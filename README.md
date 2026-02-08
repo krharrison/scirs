@@ -35,9 +35,9 @@ cargo build --release
 
 SciRS2 provides a complete ecosystem for scientific computing, data analysis, and machine learning in Rust, with production-grade quality and performance that rivals or exceeds traditional C/Fortran-based libraries.
 
-## 🎉 Release Status: v0.1.4 - SIMD Expansion & Spatial Enhancement
+## 🎉 Release Status: v0.1.5 - SIMD Expansion & Spatial Enhancement
 
-**Latest Stable Release** - v0.1.4 (February 6, 2026) 🚀
+**Latest Stable Release** - v0.1.5 (February 7, 2026) 🚀
 
 - ✅ **SIMD Phase 60-69**: Advanced SIMD operations (beta functions, interpolation, geometry, probability, array ops)
 - ✅ **Spatial Algorithms**: Enhanced Delaunay triangulation with modular Bowyer-Watson implementation
@@ -48,9 +48,9 @@ SciRS2 provides a complete ecosystem for scientific computing, data analysis, an
 - ✅ **Zero Warnings Policy**: Clean build with 0 compilation errors, 0 clippy warnings
 - ✅ **Comprehensive Testing**: 11,400+ tests passing across all modules
 - ✅ **Code Quality**: 1.95M total lines (1.69M Rust code), full clippy compliance
-- 📅 **Release Date**: February 6, 2026
+- 📅 **Release Date**: February 7, 2026
 
-**What's New in 0.1.4**:
+**What's New in 0.1.5**:
 - **SIMD Phase 60-69**: 8 new advanced SIMD operation modules
   - Beta functions (complete beta, incomplete beta, regularized beta)
   - Advanced interpolation kernels (cubic, bicubic, tricubic, Catmull-Rom)
@@ -391,7 +391,7 @@ SciRS2 leverages the Rust ecosystem:
 
 ## Recent Development History
 
-### v0.1.4 (Released February 6, 2026) - SIMD Expansion & Spatial Enhancement
+### v0.1.5 (Released February 7, 2026) - SIMD Expansion & Spatial Enhancement
 
 **Major Feature Release**
 - 🚀 **SIMD Phase 60-69**: 8 new advanced SIMD operation modules (beta functions, interpolation, geometry, probability, array ops)
@@ -424,7 +424,7 @@ SciRS2 leverages the Rust ecosystem:
 
 ### System Dependencies
 
-**v0.1.4+ uses Pure Rust dependencies only - No system libraries required!** 🎉
+**v0.1.5+ uses Pure Rust dependencies only - No system libraries required!** 🎉
 
 SciRS2 is **100% Pure Rust** with OxiBLAS (Pure Rust BLAS/LAPACK implementation). You don't need to install:
 - ❌ OpenBLAS
@@ -439,8 +439,8 @@ SciRS2 is **100% Pure Rust** with OxiBLAS (Pure Rust BLAS/LAPACK implementation)
 cargo build --release
 ```
 
-#### Legacy Note (Pre-v0.1.4)
-Versions before v0.1.4 required system BLAS/LAPACK libraries. These are **no longer needed** as of v0.1.4.
+#### Legacy Note (Pre-v0.1.0)
+Versions before v0.1.5 required system BLAS/LAPACK libraries. These are **no longer needed** as of v0.1.5.
 
 ### Cargo Installation
 
@@ -449,7 +449,7 @@ SciRS2 and all its modules are available on [crates.io](https://crates.io/crates
 ```toml
 # Add the main integration crate for all functionality
 [dependencies]
-scirs2 = "0.1.4"
+scirs2 = "0.1.5"
 ```
 
 Or include only the specific modules you need:
@@ -457,16 +457,16 @@ Or include only the specific modules you need:
 ```toml
 [dependencies]
 # Core utilities
-scirs2-core = "0.1.4"
+scirs2-core = "0.1.5"
 
 # Scientific computing modules
-scirs2-linalg = "0.1.4"
-scirs2-stats = "0.1.4"
-scirs2-optimize = "0.1.4"
+scirs2-linalg = "0.1.5"
+scirs2-stats = "0.1.5"
+scirs2-optimize = "0.1.5"
 
 # AI/ML modules
-scirs2-neural = "0.1.4"
-scirs2-autograd = "0.1.4"
+scirs2-neural = "0.1.5"
+scirs2-autograd = "0.1.5"
 # Note: For ML optimization algorithms, use the independent OptiRS project
 ```
 
@@ -584,7 +584,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Platform Compatibility
 
-SciRS2 v0.1.4 has been tested on the following platforms:
+SciRS2 v0.1.5 has been tested on the following platforms:
 
 ### ✅ Fully Supported Platforms
 
@@ -631,7 +631,7 @@ cargo install cargo-nextest
 cargo nextest run --nff --all-features
 ```
 
-## Current Status (v0.1.4 - Released February 6, 2026)
+## Current Status (v0.1.5 - Released February 7, 2026)
 
 ### 🎉 Production-Ready Features
 
@@ -643,7 +643,7 @@ cargo nextest run --nff --all-features
 
 #### High-Performance Computing
 - **Ultra-Optimized SIMD**: 10-100x performance improvements through bandwidth-saturated operations
-  - **SIMD Phase 60-69 (NEW in v0.1.4)**: Advanced operations including beta functions, interpolation kernels, geometric operations, probability distributions, and array operations
+  - **SIMD Phase 60-69 **: Advanced operations including beta functions, interpolation kernels, geometric operations, probability distributions, and array operations
   - 14.17x speedup for element-wise operations (AVX2/NEON)
   - 15-25x speedup for signal convolution
   - 20-30x speedup for bootstrap sampling
@@ -656,13 +656,13 @@ cargo nextest run --nff --all-features
 - **Core Scientific Computing**: Linear algebra, statistics, optimization, integration, interpolation, FFT, signal processing
 - **Advanced Algorithms**:
   - Sparse matrices (CSR, CSC, COO, BSR, DIA, DOK, LIL formats)
-  - **Spatial algorithms (NEW in v0.1.4)**: Enhanced modular Delaunay triangulation (2D/3D/ND), constrained triangulation, KD-trees, convex hull, Voronoi diagrams
+  - **Spatial algorithms (NEW in v0.1.5)**: Enhanced modular Delaunay triangulation (2D/3D/ND), constrained triangulation, KD-trees, convex hull, Voronoi diagrams
   - Clustering (K-means, hierarchical, DBSCAN)
 - **AI/ML Infrastructure**: Automatic differentiation (with fixed optimizers), neural networks, graph processing, computer vision, time series
 - **Data I/O**: MATLAB, HDF5, NetCDF, Parquet, Arrow, CSV, image formats
 - **Production Quality**: 11,400+ tests, zero warnings policy, comprehensive error handling
 
-#### New in v0.1.4
+#### New in v0.1.5
 - ✨ **SIMD Phase 60-69**: 8 new test modules covering advanced mathematical operations
 - ✨ **Enhanced Spatial Algorithms**: Modular Delaunay triangulation with Bowyer-Watson 2D/3D/ND implementations
 - ✨ **FFT Advanced Coordinator**: New architecture for complex FFT pipelines
@@ -733,10 +733,10 @@ All SciRS2 modules are available on crates.io. Add the modules you need to your 
 
 ```toml
 [dependencies]
-scirs2 = "0.1.4"  # Core library with all modules
+scirs2 = "0.1.5"  # Core library with all modules
 # Or individual modules:
-scirs2-linalg = "0.1.4"  # Linear algebra
-scirs2-stats = "0.1.4"   # Statistics
+scirs2-linalg = "0.1.5"  # Linear algebra
+scirs2-stats = "0.1.5"   # Statistics
 # ... and more
 ```
 
@@ -811,9 +811,9 @@ For detailed development plans, upcoming features, and contribution opportunitie
 
 ## Development Branch Status
 
-**Current Branch**: `0.1.4` (Release Day - February 6, 2026)
+**Current Branch**: `0.1.5` (Release Day - February 7, 2026)
 
-**Release Status**: All major features for v0.1.4 have been implemented and tested:
+**Release Status**: All major features for v0.1.5 have been implemented and tested:
 - ✅ SIMD Phase 60-69 complete with 8 new test modules
 - ✅ Delaunay triangulation refactoring complete
 - ✅ FFT advanced coordinator architecture implemented
@@ -853,14 +853,14 @@ All platforms benefit from:
 ### Module-Specific Notes
 
 #### scirs2-autograd
-- ✅ **Fixed in v0.1.4**: Optimizer::update() now correctly updates variables
-- ✅ **Fixed in v0.1.4**: Eliminated warning spam during gradient computation
+- ✅ **Fixed in v0.1.5**: Optimizer::update() now correctly updates variables
+- ✅ **Fixed in v0.1.5**: Eliminated warning spam during gradient computation
 - ✅ **Fixed in v0.1.3**: Adam optimizer scalar/1×1 parameter handling
 - ℹ️ Complex computation graphs may require proper graph context initialization (helper functions provided in test utilities)
 
 #### scirs2-spatial
-- ✅ **New in v0.1.4**: Enhanced Delaunay triangulation with modular Bowyer-Watson architecture (2D/3D/ND)
-- ✅ **New in v0.1.4**: Constrained Delaunay triangulation support
+- ✅ **New in v0.1.5**: Enhanced Delaunay triangulation with modular Bowyer-Watson architecture (2D/3D/ND)
+- ✅ **New in v0.1.5**: Constrained Delaunay triangulation support
 - ✅ **Stable**: KD-trees, distance calculations, convex hull, Voronoi diagrams
 
 #### scirs2-optimize / scirs2-stats / scirs2-special
@@ -1063,7 +1063,7 @@ If you use SciRS2 in your research, please cite:
   author = {{COOLJAPAN OU (Team KitaSan)}},
   year = {2026},
   url = {https://github.com/cool-japan/scirs},
-  version = {0.1.4}
+  version = {0.1.5}
 }
 ```
 

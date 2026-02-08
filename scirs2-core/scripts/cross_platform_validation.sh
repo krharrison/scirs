@@ -79,25 +79,8 @@ check_rust_toolchain() {
 check_system_dependencies() {
     echo "=== System Dependencies Check ==="
     
-    # Check for BLAS/LAPACK
-    case "$PLATFORM" in
-        linux)
-            # Check for OpenBLAS
-            if ldconfig -p | grep -q libopenblas; then
-                print_status 0 "OpenBLAS found"
-            else
-                print_status 1 "OpenBLAS not found (optional for linalg features)"
-            fi
-            ;;
-        macos)
-            # macOS has Accelerate framework built-in
-            print_status 0 "Accelerate framework available (built-in)"
-            ;;
-        windows)
-            # Windows requires manual BLAS installation
-            echo -e "${YELLOW}!${NC} BLAS/LAPACK must be manually configured on Windows"
-            ;;
-    esac
+    # OxiBLAS (pure Rust) - no system BLAS dependencies required
+    print_status 0 "OxiBLAS (pure Rust) - no system BLAS dependencies required"
     
     # Check for GPU support
     if command -v nvidia-smi &> /dev/null; then

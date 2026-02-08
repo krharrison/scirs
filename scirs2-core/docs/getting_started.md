@@ -19,7 +19,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scirs2-core = { version = "0.1.4", features = ["simd", "parallel", "gpu"] }
+scirs2-core = { version = "0.1.5", features = ["simd", "parallel", "gpu"] }
 ```
 
 ### Basic Usage

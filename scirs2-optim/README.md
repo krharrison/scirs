@@ -7,18 +7,18 @@ This module has been **moved to an independent project**.
 ### Old (scirs2-optim)
 ```toml
 [dependencies]
-scirs2-optim = "0.1.4"  # ❌ No longer available
+scirs2-optim = "0.1.5"  # ❌ No longer available
 ```
 
 ### New (OptiRS)
 ```toml
 [dependencies]
-optirs = "0.1.4"  # ✅ New independent project
+optirs = "0.1.0"  # ✅ New independent project
 # Or specific modules:
-optirs-core = "0.1.4"
-optirs-gpu = { version = "0.1.4", features = ["cuda"] }
-optirs-learned = "0.1.4"
-optirs-nas = "0.1.4"
+optirs-core = "0.1.0"
+optirs-gpu = { version = "0.1.0", features = ["cuda"] }
+optirs-learned = "0.1.0"
+optirs-nas = "0.1.0"
 ```
 
 ## 📍 New Location
@@ -64,5 +64,5 @@ Full documentation and examples are available in the OptiRS repository.
 **For SciRS2 core scientific computing**, continue using:
 ```toml
 [dependencies]
-scirs2 = "0.1.4"  # Scientific computing without optimization
+scirs2 = "0.1.5"  # Scientific computing without optimization
 ```

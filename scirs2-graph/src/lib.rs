@@ -30,7 +30,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-graph = "0.1.2"
+//! scirs2-graph = "0.1.5"
 //! ```
 //!
 //! ```rust,no_run
@@ -43,7 +43,7 @@
 //! g.add_edge(0, 1, 1.0);
 //! ```
 //!
-//! ## 🔒 Version: 0.1.2 (January 15, 2026)
+//! ## 🔒 Version: 0.1.5 (January 15, 2026)
 //!
 //! ## API Stability and Versioning
 //!
@@ -59,7 +59,7 @@
 //! - **MINOR** (1.0.x → 1.1.x): New features, deprecations only (no breaks to stable APIs)
 //! - **PATCH** (1.0.0 → 1.0.1): Bug fixes only, no API changes
 //!
-//! ### Stable Core APIs (v0.1.2+)
+//! ### Stable Core APIs (v0.1.5+)
 //! - Graph data structures (`Graph`, `DiGraph`, `MultiGraph`)
 //! - Basic algorithms (traversal, shortest paths, connectivity)
 //! - Graph generators and I/O operations
@@ -67,10 +67,6 @@
 //! - Error handling and core types
 
 #![warn(missing_docs)]
-
-// Temporarily commenting out OpenBLAS to fix build issues
-// extern crate blas;
-// extern crate openblassrc;
 
 pub mod advanced;
 pub mod algorithms;

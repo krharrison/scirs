@@ -418,17 +418,17 @@ Add SciRS2 to your Rust project:
 
 ```toml
 [dependencies]
-scirs2 = "0.1.4"
+scirs2 = "0.1"
 ```
 
 Or install specific modules:
 
 ```toml
 [dependencies]
-scirs2-core = "0.1.4"
-scirs2-linalg = "0.1.4"
-scirs2-stats = "0.1.4"
-scirs2-neural = "0.1.4"
+scirs2-core = "0.1"
+scirs2-linalg = "0.1"
+scirs2-stats = "0.1"
+scirs2-neural = "0.1"
 ```
 
 ### Quick Example
@@ -519,7 +519,7 @@ Whether you're a researcher pushing the boundaries of science, an engineer build
 *SciRS2 is free and open-source software, dual-licensed under MIT and Apache 2.0. Start building today at [https://github.com/cool-japan/scirs](https://github.com/cool-japan/scirs).*
 
 *Release Date: December 29, 2025*
-*Version: 0.1.4 (Stable Release)*
+*Version: 0.1.0 (Stable Release)*
 
 ---
 

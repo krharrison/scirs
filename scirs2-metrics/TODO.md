@@ -356,7 +356,7 @@ SciRS2 Metrics has reached production readiness with version 0.1.0. Following th
 ### Recommended Installation
 ```toml
 [dependencies]
-scirs2-metrics = "0.1.4"  # Includes default features
+scirs2-metrics = "0.1.5"  # Includes default features
 ```
 
 ### Feature Selection Guide

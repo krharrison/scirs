@@ -53,11 +53,11 @@ SciRS2 Core 1.0 is a production-ready scientific computing library built in Rust
 - **GPU**: Optional NVIDIA GPU with CUDA 11.0+ or AMD GPU with ROCm 4.0+
 
 #### Software Dependencies
-- **BLAS/LAPACK**: 
-  - Linux: OpenBLAS 0.3.20+ or Intel MKL 2022+
-  - macOS: System Accelerate framework
-  - Windows: OpenBLAS 0.3.20+ or Intel MKL 2022+
-- **Compiler**: GCC 9+ or Clang 11+ for native compilation
+- **BLAS/LAPACK**: OxiBLAS (pure Rust) - no system dependencies required
+- **Compiler**: GCC 9+ or Clang 11+ for native compilation (optional, for FFI)
+
+> **Note (v0.1.5+)**: SciRS2 now uses OxiBLAS for all BLAS/LAPACK operations. 
+> No system libraries (OpenBLAS, MKL, Accelerate) are required.
 
 ## Installation
 
@@ -78,7 +78,7 @@ scirs2-core = {
         "gpu",           # GPU computing
         "memory_efficient", # Large dataset support
         "observability", # Monitoring and tracing
-        "linalg",        # Linear algebra operations
+        "linalg",        # Linear algebra operations (OxiBLAS)
     ]
 }
 ```
@@ -105,21 +105,12 @@ features = [
     "parallel",         # Multi-core parallelism
     "gpu",              # GPU acceleration
     "memory_efficient", # Memory-mapped operations
-    "linalg",           # Optimized linear algebra
+    "linalg",           # Linear algebra (OxiBLAS - pure Rust)
 ]
 ```
 
-#### Backend-Specific Features
+#### GPU-Specific Features
 ```toml
-# Linux/Windows with OpenBLAS
-features = ["openblas"]
-
-# Intel systems with MKL
-features = ["intel-mkl"]
-
-# macOS with Accelerate
-features = ["accelerate"]
-
 # NVIDIA GPU support
 features = ["cuda"]
 
@@ -129,14 +120,13 @@ features = ["rocm"]
 
 ### System Package Dependencies
 
+> **Note**: BLAS/LAPACK system packages are no longer required. SciRS2 uses OxiBLAS (pure Rust).
+
 #### Ubuntu/Debian
 ```bash
 # Essential build dependencies
 sudo apt update
 sudo apt install build-essential pkg-config libssl-dev
-
-# BLAS/LAPACK support
-sudo apt install libopenblas-dev liblapack-dev
 
 # Optional: GPU support
 sudo apt install nvidia-cuda-toolkit  # For NVIDIA
@@ -146,9 +136,6 @@ sudo apt install nvidia-cuda-toolkit  # For NVIDIA
 ```bash
 # Essential build dependencies
 sudo dnf install gcc pkg-config openssl-devel
-
-# BLAS/LAPACK support
-sudo dnf install openblas-devel lapack-devel
 
 # Optional: GPU support
 sudo dnf install cuda-toolkit  # For NVIDIA (from NVIDIA repos)
@@ -165,11 +152,8 @@ brew install pkg-config openssl
 
 #### Windows
 ```powershell
-# Using vcpkg (recommended)
-vcpkg install openblas:x64-windows
-vcpkg install lapack:x64-windows
-
-# Or use pre-built binaries from official sources
+# No special dependencies required for BLAS/LAPACK
+# OxiBLAS (pure Rust) handles all linear algebra operations
 ```
 
 ## Configuration
@@ -192,7 +176,7 @@ export SCIRS2_ENABLE_VALIDATION=true
 
 #### Performance Tuning
 ```bash
-# BLAS threading (set to 1 for Rust-level parallelism)
+# Thread control (for compatibility with other libraries)
 export OPENBLAS_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export VECLIB_MAXIMUM_THREADS=1
@@ -731,11 +715,10 @@ perf report
    ```dockerfile
    FROM rust:1.70-slim
    
-   # Install system dependencies
+   # Install minimal system dependencies (OxiBLAS requires no external BLAS)
    RUN apt-get update && apt-get install -y \
-       libopenblas-dev \
-       liblapack-dev \
-       pkg-config
+       pkg-config \
+       libssl-dev
    
    # Copy and build application
    COPY . /app

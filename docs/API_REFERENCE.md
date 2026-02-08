@@ -405,7 +405,7 @@ scirs2_core::config::set_global_config(config);
 
 // Module-specific configuration
 let linalg_config = scirs2_linalg::Config::default()
-    .with_backend(scirs2_linalg::Backend::OpenBLAS)
+    .with_backend(scirs2_linalg::Backend::OxiBLAS)
     .with_threads(8);
 ```
 
@@ -691,4 +691,4 @@ use scirs2_neural::prelude::*;
 
 **This API reference is actively maintained and updated with each release. For the latest information, see the individual module documentation and the [SciRS2 main repository](https://github.com/cool-japan/scirs).**
 
-*Generated for SciRS2 v0.1.4 | Last updated: 2025-09-29*
+*Generated for SciRS2 v0.1.5 | Last updated: 2025-09-29*

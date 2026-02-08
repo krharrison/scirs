@@ -113,7 +113,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-core = { version = "0.1.2", features = ["simd", "parallel"] }
+//! scirs2-core = { version = "0.1.5", features = ["simd", "parallel"] }
 //! ```
 //!
 //! ### SIMD Operations
@@ -357,7 +357,7 @@
 //!
 //! ## 🔒 Version
 //!
-//! Current version: **0.1.2** (Released January 15, 2026)
+//! Current version: **0.1.5** (Released January 15, 2026)
 //!
 //! ## 📚 Examples
 //!

@@ -9,7 +9,7 @@
 [![Quality](https://img.shields.io/badge/clippy-clean-green.svg)]()
 [![Status](https://img.shields.io/badge/status-production%20ready-green.svg)]()
 
-**🚀 Production-Ready Neural Network Module (v0.1.4)** for the SciRS2 scientific computing library. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module provides comprehensive, battle-tested tools for building, training, and evaluating neural networks with state-of-the-art performance optimizations and ecosystem consistency.
+**🚀 Production-Ready Neural Network Module (v0.1.5)** for the SciRS2 scientific computing library. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module provides comprehensive, battle-tested tools for building, training, and evaluating neural networks with state-of-the-art performance optimizations and ecosystem consistency.
 
 ## ✅ Production Status
 
@@ -65,20 +65,20 @@ Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scirs2-neural = "0.1.4"
+scirs2-neural = "0.1.5"
 ```
 
 To enable optimizations and optional features:
 
 ```toml
 [dependencies]
-scirs2-neural = { version = "0.1.4", features = ["simd", "parallel"] }
+scirs2-neural = { version = "0.1.5", features = ["simd", "parallel"] }
 
 # For performance optimization
-scirs2-neural = { version = "0.1.4", features = ["jit", "cuda"] }
+scirs2-neural = { version = "0.1.5", features = ["jit", "cuda"] }
 
 # For integration with scirs2-metrics
-scirs2-neural = { version = "0.1.4", features = ["metrics_integration"] }
+scirs2-neural = { version = "0.1.5", features = ["metrics_integration"] }
 ```
 
 ## Quick Start

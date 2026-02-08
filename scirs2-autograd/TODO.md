@@ -1,4 +1,4 @@
-# SciRS2 Autograd - Production Status (v0.1.4)
+# SciRS2 Autograd - Production Status (v0.1.5)
 
 **stable Release - Stable with Platform Testing**
 
@@ -87,10 +87,10 @@ let mut env = VariableEnvironment::new();
 - **Integration Tests:** End-to-end workflow validation
 - **Performance Benchmarks:** Memory usage and computation time analysis
 
-## ✅ Recent Fixes (v0.1.4)
+## ✅ Recent Fixes (v0.1.5)
 
 ### GitHub Issues Resolved
-- ✅ **Issue #98: Adam Optimizer Scalar/1×1 Parameter Handling** (Fixed 2026-01-25, Released v0.1.4)
+- ✅ **Issue #98: Adam Optimizer Scalar/1×1 Parameter Handling** (Fixed 2026-01-25, Released v0.1.5)
   - **Problem:** AdamOp::compute panicked with "index out of bounds" on scalar/1×1 parameters
   - **Root Cause:** Code assumed scalars are 0-D arrays (shape `[]`), but some parameters are 1-element 1-D arrays (shape `[1]`)
   - **Solution:** Added helper functions `is_scalar()` and `extract_scalar()` to handle both cases
@@ -118,7 +118,7 @@ let mut env = VariableEnvironment::new();
 - **Automatic Algorithm Selection:** Runtime optimization based on input characteristics
 - **Advanced Compilation:** JIT compilation and graph-level optimization improvements
 
-## 📝 Release Notes v0.1.4
+## 📝 Release Notes v0.1.5
 
 **This is Stable Release** - fully production-ready with comprehensive testing, optimization, and zero-warning code quality.
 

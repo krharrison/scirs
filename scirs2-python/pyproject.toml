@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "scirs2"
-version = "0.1.3"
+version = "0.1.5"
 description = "SciRS2: A comprehensive scientific computing library in Rust - Python bindings (SciPy alternative)"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -49,7 +49,9 @@ Documentation = "https://docs.rs/scirs2"
 "Bug Tracker" = "https://github.com/cool-japan/scirs/issues"
 
 [tool.maturin]
-features = ["pyo3/extension-module"]
+# Enable default features to ensure all dependencies (including scirs2-core with random feature) are properly enabled
+# This is crucial for the graph module which requires thread_rng from scirs2_core::random
+features = ["pyo3/extension-module", "default"]
 module-name = "scirs2"
 include = ["scirs2.pyi"]
 

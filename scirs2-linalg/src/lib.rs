@@ -20,7 +20,7 @@
 //! ## 🎯 Key Features
 //!
 //! - **SciPy/NumPy Compatibility**: Drop-in replacement for `scipy.linalg` and `numpy.linalg`
-//! - **Native BLAS/LAPACK**: Hardware-optimized through OpenBLAS, Intel MKL, or Apple Accelerate
+//! - **Native BLAS/LAPACK**: Pure Rust implementation via OxiBLAS (no system dependencies)
 //! - **SIMD Acceleration**: AVX/AVX2/AVX-512 optimized operations for f32/f64
 //! - **GPU Support**: CUDA, ROCm, OpenCL, and Metal acceleration
 //! - **Parallel Processing**: Multi-threaded via Rayon for large matrices
@@ -48,9 +48,9 @@
 //! Add to your `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! scirs2-linalg = "0.1.2"
+//! scirs2-linalg = "0.1.5"
 //! # Optional features
-//! scirs2-linalg = { version = "0.1.2", features = ["simd", "parallel", "gpu"] }
+//! scirs2-linalg = { version = "0.1.5", features = ["simd", "parallel", "gpu"] }
 //! ```
 //!
 //! ### Basic Matrix Operations
@@ -197,7 +197,7 @@
 //! | Eigenvalues | 1000×1000 | 6.8s | 95ms | N/A | 28ms |
 //! | Solve (direct) | 1000×1000 | 1.8s | 22ms | 140ms | 8ms |
 //!
-//! **Note**: Benchmarks on AMD Ryzen 9 5950X with NVIDIA RTX 3090. BLAS/LAPACK uses OpenBLAS.
+//! **Note**: Benchmarks on AMD Ryzen 9 5950X with NVIDIA RTX 3090. BLAS/LAPACK uses OxiBLAS (pure Rust).
 //!
 //! ## 🔗 Integration
 //!
@@ -209,7 +209,7 @@
 //!
 //! ## 🔒 Version Information
 //!
-//! - **Version**: 0.1.2
+//! - **Version**: 0.1.5
 //! - **Release Date**: January 15, 2026
 //! - **MSRV** (Minimum Supported Rust Version): 1.70.0
 //! - **Documentation**: [docs.rs/scirs2-linalg](https://docs.rs/scirs2-linalg)

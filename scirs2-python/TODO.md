@@ -1,6 +1,6 @@
 # SciRS2-Python TODO (For v0.2.0 or later)
 
-## Status: NOT READY FOR v0.1.4
+## Status: NOT READY FOR v0.1.5
 
 This crate contains the foundational work for unified Python bindings but has critical blockers preventing immediate release. It will be included in a future version (v0.2.0 or v0.3.0).
 
@@ -196,7 +196,7 @@ fn apply_differencing(py: Python, data: &PyTimeSeries, periods: usize)
 [workspace]
 members = [
     # ... other crates ...
-    "scirs2-python",  # ← Commented out for v0.1.4 builds
+    "scirs2-python",  # ← Commented out for v0.1.5 builds
 ]
 ```
 
@@ -245,7 +245,7 @@ maturin publish
 
 ---
 
-## Current State (v0.1.4)
+## Current State (v0.1.5)
 
 ✅ **Phase 0 Complete** (2025-12):
 - Cargo.toml, pyproject.toml, README.md

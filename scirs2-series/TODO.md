@@ -239,7 +239,7 @@ This module provides comprehensive time series analysis functionality with featu
 
 ## 🎯 Production Release Summary
 
-**v0.1.4 delivers:**
+**v0.1.5 delivers:**
 - ✅ **Comprehensive Functionality**: Feature parity with pandas/statsmodels
 - ✅ **Production Stability**: 188 tests with 100% pass rate
 - ✅ **Advanced Analytics**: Neural models, AutoML, ensemble methods
@@ -269,4 +269,4 @@ This release is suitable for:
 
 **Built with ❤️ for the time series analysis community**
 
-*Version: 0.1.4 | Released: December 29, 2025 | Next: 0.1.0 (Q4 2026)*
+*Version: 0.1.5 | Released: December 29, 2025 | Next: 0.1.0 (Q4 2026)*

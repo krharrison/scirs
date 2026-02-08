@@ -39,12 +39,8 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y \
           build-essential \
-          pkg-config \
-          libopenblas-dev \
-          liblapack-dev \
-          gfortran \
-          libblas-dev \
-          libatlas-base-dev
+          pkg-config
+        # Note: OxiBLAS (pure Rust) - no system BLAS dependencies required
     
     - name: Install cargo-nextest
       run: cargo install cargo-nextest --locked

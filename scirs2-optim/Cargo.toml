@@ -5,7 +5,7 @@
 
 [package]
 name = "scirs2-optim"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 authors = ["SciRS2 Team"]
 description = "⚠️ MOVED: This crate has been moved to the independent OptiRS project. Use 'optirs' crate instead."

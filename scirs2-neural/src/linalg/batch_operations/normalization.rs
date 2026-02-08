@@ -44,7 +44,7 @@ type LayerNormForwardReturn<F> = (Array2<F>, (Array2<F>, Array1<F>, Array1<F>, A
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array1, Array2};
+/// use scirs2_core::ndarray::{Array, Array1, Array2};
 /// use scirs2_neural::linalg::batch_norm_forward;
 ///
 /// // Sample input: batch_size=3, features=2
@@ -176,7 +176,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array1, Array2};
+/// use scirs2_core::ndarray::{Array, Array1, Array2};
 /// use scirs2_neural::linalg::{batch_norm_forward, batch_norm_backward};
 ///
 /// // Setup (same as forward example)
@@ -298,7 +298,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array1, Array2};
+/// use scirs2_core::ndarray::{Array, Array1, Array2};
 /// use scirs2_neural::linalg::layer_norm;
 ///
 /// // Sample input: batch_size=3, features=4
@@ -391,7 +391,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array1, Array2};
+/// use scirs2_core::ndarray::{Array, Array1, Array2};
 /// use scirs2_neural::linalg::{layer_norm, layer_norm_backward};
 ///
 /// // Setup (same as forward example)
@@ -508,7 +508,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Ix2};
+/// use scirs2_core::ndarray::{Array, Ix2};
 /// use scirs2_neural::linalg::clip_grad_norm;
 ///
 /// // Create a gradient with large values

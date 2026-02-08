@@ -35,7 +35,7 @@
 //! Add to your `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! scirs2-interpolate = "0.1.2"
+//! scirs2-interpolate = "0.1.5"
 //! ```
 //!
 //! ### 1D Interpolation
@@ -184,7 +184,7 @@
 //!
 //! ## 🔒 Version Information
 //!
-//! - **Version**: 0.1.2
+//! - **Version**: 0.1.5
 //! - **Release Date**: January 15, 2026
 //! - **MSRV** (Minimum Supported Rust Version): 1.70.0
 //! - **Documentation**: [docs.rs/scirs2-interpolate](https://docs.rs/scirs2-interpolate)
@@ -661,7 +661,7 @@ pub use simd_performance_validation::{
     SimdValidationConfig, ValidationSummary,
 };
 
-// Comprehensive SIMD validation exports for 0.1.2 stable release
+// Comprehensive SIMD validation exports for 0.1.5 stable release
 pub use simd_comprehensive_validation::{
     quick_simd_validation, validate_simd_performance, validate_simd_with_config,
     AccuracyValidationResult, CpuArchitecture, InstructionSet,
@@ -814,7 +814,7 @@ pub use voronoi::{
 //     SciPyParityReport,
 // };
 
-// API stabilization exports for 0.1.2 stable release
+// API stabilization exports for 0.1.5 stable release
 // pub use api_stabilization_enhanced::{
 //     analyze_api_for_stable_release, analyze_api_with_config, quick_api_analysis, ApiAnalysisResult,
 //     ApiIssue, ApiStabilizationAnalyzer, ApiStabilizationReport, BreakingChangeAssessment,
@@ -830,7 +830,7 @@ pub use production_stress_testing::{
     StressTestResult, TestStatus,
 };
 
-// Documentation enhancement exports for 0.1.2 stable release
+// Documentation enhancement exports for 0.1.5 stable release
 pub use documentation_enhancement::{
     enhance_documentation_for_stable_release, enhance_documentation_with_config,
     quick_documentation_analysis, AudienceLevel, DocumentationAnalysisResult, DocumentationConfig,

@@ -1,6 +1,6 @@
 [package]
 name = "scirs2-python"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["COOLJAPAN OU (Team KitaSan) <contact@cooljapan.tech>"]
 edition = "2021"
 rust-version = "1.70"
@@ -17,7 +17,7 @@ categories = ["science", "mathematics", "algorithms"]
 [workspace]
 
 [workspace.package]
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 authors = ["COOLJAPAN OU (Team KitaSan) <contact@cooljapan.tech>"]
 license = "Apache-2.0"
@@ -29,7 +29,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # Core SciRS2 dependencies with Python feature (path-based for standalone build)
-scirs2-core = { path = "../scirs2-core", features = ["python", "array", "random"] }
+# Note: Features are also controlled via scirs2-python's feature flags for proper propagation
+scirs2-core = { path = "../scirs2-core", default-features = false, features = ["python", "array", "serialization"] }
 scirs2-cluster = { path = "../scirs2-cluster", features = ["python"] }
 scirs2-series = { path = "../scirs2-series", features = ["python"] }
 scirs2-linalg = { path = "../scirs2-linalg", features = ["python"] }
@@ -64,7 +65,7 @@ thiserror = "2.0.16"
 image = "0.25"
 
 [features]
-default = ["cluster", "series", "linalg", "stats", "fft", "optimize", "special", "integrate", "interpolate", "signal", "spatial", "sparse", "ndimage", "graph", "metrics", "io", "datasets", "transform", "text", "vision", "autograd", "neural", "oxifft"]
+default = ["cluster", "series", "linalg", "stats", "fft", "optimize", "special", "integrate", "interpolate", "signal", "spatial", "sparse", "ndimage", "graph", "metrics", "io", "datasets", "transform", "text", "vision", "autograd", "neural", "oxifft", "random"]
 
 # Module features
 cluster = []
@@ -80,7 +81,7 @@ signal = []
 spatial = []
 sparse = []
 ndimage = []
-graph = []
+graph = ["random"]  # Graph generators require random number generation
 metrics = []
 io = []
 datasets = []
@@ -89,6 +90,9 @@ text = []
 vision = []
 autograd = []
 neural = []
+
+# Core feature propagation
+random = ["scirs2-core/random"]  # Random number generation from scirs2-core
 
 # Performance optimization features
 oxifft = ["scirs2-fft/oxifft"]  # Pure Rust high-performance FFT

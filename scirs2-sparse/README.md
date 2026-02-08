@@ -33,7 +33,7 @@ Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scirs2-sparse = "0.1.4"
+scirs2-sparse = "0.1.5"
 ```
 
 ### Optional Performance Features
@@ -42,7 +42,7 @@ For enhanced performance in production environments:
 
 ```toml
 [dependencies]
-scirs2-sparse = { version = "0.1.4", features = ["parallel", "simd"] }
+scirs2-sparse = { version = "0.1.5", features = ["parallel", "simd"] }
 ```
 
 **Available Features:**

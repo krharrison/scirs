@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-stats)](https://docs.rs/scirs2-stats)
 
-**Production-ready statistical functions module for the SciRS2 ecosystem (v0.1.4)**, providing comprehensive statistical computing capabilities modeled after SciPy's stats module but optimized for Rust's performance and safety guarantees. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module ensures ecosystem consistency through scirs2-core abstractions.
+**Production-ready statistical functions module for the SciRS2 ecosystem (v0.1.5)**, providing comprehensive statistical computing capabilities modeled after SciPy's stats module but optimized for Rust's performance and safety guarantees. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module ensures ecosystem consistency through scirs2-core abstractions.
 
 ## Overview
 
@@ -46,7 +46,7 @@ Add scirs2-stats to your Cargo.toml:
 
 ```toml
 [dependencies]
-scirs2-stats = "0.1.4"
+scirs2-stats = "0.1.5"
 ndarray = "0.16.1"
 ```
 

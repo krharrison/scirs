@@ -471,14 +471,9 @@ impl ErrorDiagnostics {
         }
 
         // Check for BLAS backend optimization
-        if self.environment.features.contains(&"openblas".to_string()) {
-            diagnostics.push("Using OpenBLAS backend - good for general computations".to_string());
-        } else if self.environment.features.contains(&"intel-mkl".to_string()) {
-            diagnostics.push("Using Intel MKL backend - optimized for Intel CPUs".to_string());
-        } else if self.environment.features.contains(&"linalg".to_string()) {
-            diagnostics.push(
-                "Linear algebra backend available but no optimized BLAS detected".to_string(),
-            );
+        if self.environment.features.contains(&"linalg".to_string()) {
+            diagnostics
+                .push("Using OxiBLAS backend (pure Rust) - no system dependencies".to_string());
         }
 
         // Check for GPU capabilities

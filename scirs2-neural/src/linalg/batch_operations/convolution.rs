@@ -27,7 +27,7 @@ use crate::error::{NeuralError, Result};
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array1, Array4};
+/// use scirs2_core::ndarray::{Array, Array1, Array4};
 /// use scirs2_neural::linalg::conv2d;
 ///
 /// // Create sample inputs
@@ -179,7 +179,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array4};
+/// use scirs2_core::ndarray::{Array, Array4};
 /// use scirs2_neural::linalg::max_pool2d;
 ///
 /// // Create sample input
@@ -302,7 +302,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array4};
+/// use scirs2_core::ndarray::{Array, Array4};
 /// use scirs2_neural::linalg::im2col;
 ///
 /// // Create sample input
@@ -420,7 +420,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array2, Array4};
+/// use scirs2_core::ndarray::{Array, Array2, Array4};
 /// use scirs2_neural::linalg::{im2col, col2im};
 ///
 /// // Create sample input
@@ -544,7 +544,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array4};
+/// use scirs2_core::ndarray::{Array, Array4};
 /// use scirs2_neural::linalg::adaptive_avg_pool2d;
 ///
 /// // Create sample input
@@ -638,7 +638,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array1, Array4};
+/// use scirs2_core::ndarray::{Array, Array1, Array4};
 /// use scirs2_neural::linalg::{conv2d, conv2d_backward};
 ///
 /// // Setup (similar to forward example)
@@ -836,7 +836,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array4};
+/// use scirs2_core::ndarray::{Array, Array4};
 /// use scirs2_neural::linalg::{max_pool2d, max_pool2d_backward};
 ///
 /// // Setup (similar to forward example)
@@ -949,7 +949,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array4};
+/// use scirs2_core::ndarray::{Array, Array4};
 /// use scirs2_neural::linalg::{adaptive_avg_pool2d, adaptive_avg_pool2d_backward};
 ///
 /// // Setup (similar to forward example)

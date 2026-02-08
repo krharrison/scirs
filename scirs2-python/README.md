@@ -14,43 +14,26 @@ SciRS2-Python provides Python bindings for the SciRS2 scientific computing ecosy
 - **Type Safety**: Rust's compile-time guarantees prevent many runtime errors
 - **SciPy-Compatible APIs**: Familiar interface for Python scientists
 - **Zero-Copy Integration**: Efficient NumPy array interoperability
-- **BLAS/LAPACK Integration**: Hardware-accelerated linear algebra via system BLAS (OpenBLAS, Accelerate, MKL)
+- **Pure Rust Linear Algebra**: OxiBLAS-powered BLAS/LAPACK operations (no system dependencies)
 - **OxiFFT Integration**: Pure Rust high-performance FFT with FFTW-compatible algorithms
 - **Hybrid Approach**: Use alongside NumPy/SciPy for optimal performance
 
 **Important**: SciRS2 is a **specialized tool** for type-safe complex statistical analysis, not a general-purpose NumPy/SciPy replacement. See [Performance Guide](#performance) for when to use scirs2 vs NumPy.
 
-## BLAS/LAPACK Performance Notice
+## Pure Rust Implementation (v0.1.5+)
 
-**Performance varies dramatically based on your system's BLAS/LAPACK installation.**
+**SciRS2 now uses OxiBLAS** - a pure Rust BLAS/LAPACK implementation. No system dependencies required.
 
-SciRS2 uses `ndarray-linalg` with system BLAS/LAPACK backends for linear algebra operations. The performance you see depends entirely on which BLAS library is available on your system:
+| Platform | Backend | Performance Level |
+|----------|---------|-------------------|
+| **macOS** | OxiBLAS (pure Rust) | ✅ Good |
+| **Linux** | OxiBLAS (pure Rust) | ✅ Good |
+| **Windows** | OxiBLAS (pure Rust) | ✅ Good |
 
-| Platform | Default Backend | Performance Level |
-|----------|-----------------|-------------------|
-| **macOS** | Apple Accelerate | ✅ Excellent (hardware-optimized) |
-| **Linux** (with OpenBLAS) | OpenBLAS | ✅ Good to Excellent |
-| **Linux** (with MKL) | Intel MKL | ✅ Excellent (Intel CPUs) |
-| **Linux** (without BLAS) | Fallback | ⚠️ Very slow (pure Rust) |
-| **Windows** (with OpenBLAS) | OpenBLAS | ✅ Good |
-
-### Ensuring Optimal Performance
-
-**macOS**: No action needed - uses Accelerate framework automatically.
-
-**Linux (Debian/Ubuntu)**:
-```bash
-sudo apt-get install libopenblas-dev liblapack-dev
-```
-
-**Linux (RHEL/CentOS/Fedora)**:
-```bash
-sudo dnf install openblas-devel lapack-devel
-```
-
-**Windows**: Install OpenBLAS via vcpkg or use pre-built binaries.
-
-**Verify BLAS is being used**: If linear algebra operations (det, inv, solve, eig) are >100x slower than SciPy, your system likely lacks a proper BLAS installation.
+### Benefits
+- ✅ **Zero System Dependencies** - No need to install OpenBLAS, MKL, or Accelerate
+- ✅ **Cross-Platform Consistency** - Same behavior on all platforms
+- ✅ **Simple Installation** - Just `pip install scirs2`
 
 ## Installation
 
@@ -97,7 +80,7 @@ rfft = scirs2.rfft_py(signal)        # 3x faster than NumPy!
 
 ### Linear Algebra (`linalg`)
 
-Linear algebra operations use system BLAS/LAPACK via `ndarray-linalg`. Performance depends on your BLAS installation (see [BLAS/LAPACK Performance Notice](#blaslapack-performance-notice) above).
+Linear algebra operations use OxiBLAS (pure Rust). No system BLAS installation required.
 
 ```python
 import numpy as np

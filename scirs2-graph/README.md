@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-graph)](https://docs.rs/scirs2-graph)
 
-**Production-ready graph processing module for the SciRS2 scientific computing library (v0.1.4).**
+**Production-ready graph processing module for the SciRS2 scientific computing library (v0.1.5).**
 
 This is **Stable Release (stable)** featuring SciRS2 POLICY implementation and a comprehensive, high-performance graph theory and network analysis library designed for scientific computing and machine learning applications. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module ensures ecosystem consistency through scirs2-core abstractions and zero-warning code quality.
 
@@ -65,13 +65,13 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scirs2-graph = "0.1.4"
+scirs2-graph = "0.1.5"
 ```
 
 For performance features:
 ```toml
 [dependencies]
-scirs2-graph = { version = "0.1.4", features = ["parallel"] }
+scirs2-graph = { version = "0.1.5", features = ["parallel"] }
 ```
 
 ## Quick Start

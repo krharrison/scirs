@@ -1,6 +1,6 @@
 # scirs2-text - Release Status
 
-## 🚀 Production Ready - v0.1.4 (Stable Release - Platform Testing)
+## 🚀 Production Ready - v0.1.5 (Stable Release - Platform Testing)
 
 This module provides production-ready text processing functionality for scientific computing applications. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module features ecosystem consistency and comprehensive platform testing through scirs2-core abstractions.
 

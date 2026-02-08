@@ -55,6 +55,7 @@ use crate::{Context, Float, VariableEnvironment};
 ///
 /// ```no_run
 /// # use scirs2_autograd as ag;
+/// # use ag::prelude::*;
 /// # use ag::optimizers::{Adam, Optimizer};
 /// # let mut env = ag::VariableEnvironment::new();
 /// # let w = env.slot().set(ag::ndarray_ext::zeros::<f32>(&[10]));

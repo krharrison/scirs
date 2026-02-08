@@ -240,7 +240,7 @@ This module provides comprehensive linear algebra functionality comparable to Nu
 
 ## 🎯 Production Release Summary
 
-**v0.1.4 delivers:**
+**v0.1.5 delivers:**
 - ✅ **Enterprise-Grade Performance**: Comparable to NumPy/SciPy with native BLAS/LAPACK
 - ✅ **ML/AI Ready**: Complete attention mechanisms, quantization, mixed-precision
 - ✅ **Comprehensive API**: 500+ functions with SciPy compatibility layer
@@ -269,4 +269,4 @@ This release is suitable for:
 
 **Built with ❤️ for the scientific computing community**
 
-*Version: 0.1.4 | Released: December 29, 2025 | Next: 0.1.0 (Q4 2026)*
+*Version: 0.1.5 | Released: December 29, 2025 | Next: 0.1.0 (Q4 2026)*

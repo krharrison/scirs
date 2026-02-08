@@ -2,7 +2,7 @@
 
 This module provides special functions similar to SciPy's special module.
 
-## Production Status (v0.1.4) - Stable Release
+## Production Status (v0.1.5) - Stable Release
 
 Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module provides ecosystem consistency with comprehensive platform testing and reliability through scirs2-core abstractions.
 
@@ -85,9 +85,9 @@ Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module provides ecosyst
 - [x] **Cross-validation against multiple reference implementations** (✅ Implemented validation framework with SciPy, GSL, and MPFR references)
 - [x] **Performance regression testing in CI/CD pipeline** (✅ Comprehensive CI/CD script with baseline comparison, regression detection, and detailed reporting)
 
-## Current Status & Known Issues (v0.1.4)
+## Current Status & Known Issues (v0.1.5)
 
-### Recently Fixed (Advanced Implementation - v0.1.4)
+### Recently Fixed (Advanced Implementation - v0.1.5)
 - ✅ **Build System**: All Clippy warnings resolved, zero-warning builds achieved
 - ✅ **Core Library**: Compiles successfully with proper error handling
 - ✅ **Function Mapping**: Fixed function name mismatches (legendre_p → legendre, log_gamma → loggamma, etc.)
@@ -118,19 +118,19 @@ Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module provides ecosyst
 
 ## Next Steps (Priority Order)
 
-### High Priority (v0.1.4) - COMPLETED ✅
+### High Priority (v0.1.5) - COMPLETED ✅
 1. ✅ **Test Stabilization**: Optimized property-based tests for faster compilation with configurable test intensity
 2. ✅ **Example Fixes**: Resolved all remaining example compilation errors
 3. ✅ **Documentation Polish**: Enhanced comprehensive documentation for all public APIs
 4. ✅ **Performance Validation**: Validated and enhanced benchmarking infrastructure with accuracy measurements
 
-### Medium Priority (v0.1.4) - COMPLETED ✅
+### Medium Priority (v0.1.5) - COMPLETED ✅
 1. ✅ **GPU Enhancement**: Enhanced GPU acceleration features to production-ready status with comprehensive monitoring
 2. 🔄 **SciPy Completion**: Fill gaps in SciPy convenience function coverage (in progress)
 3. ✅ **Advanced Testing**: Implemented configurable cross-validation testing framework
 4. ✅ **CI/CD Integration**: Ready for full integration of performance regression testing
 
-### Current Priority (v0.1.4)
+### Current Priority (v0.1.5)
 1. **SciPy Parity Completion**: Complete implementation of remaining SciPy convenience functions
 2. **Performance Optimization**: Further optimize critical paths identified through benchmarking
 3. **Extended Validation**: Add more comprehensive numerical validation tests

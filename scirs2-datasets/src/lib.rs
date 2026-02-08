@@ -27,7 +27,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-datasets = "0.1.2"
+//! scirs2-datasets = "0.1.5"
 //! ```
 //!
 //! ```rust
@@ -41,7 +41,7 @@
 //! let data = make_classification(100, 5, 3, 2, 4, Some(42)).expect("Operation failed");
 //! ```
 //!
-//! ## 🔒 Version: 0.1.2 (January 15, 2026)
+//! ## 🔒 Version: 0.1.5 (January 15, 2026)
 //!
 //! # Examples
 //!

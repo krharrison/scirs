@@ -1,6 +1,6 @@
 # TODO List for scirs2-transform
 
-**Version: 0.1.4 (Stable Release - Platform Testing)**
+**Version: 0.1.5 (Stable Release - Platform Testing)**
 
 Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module features ecosystem consistency and comprehensive platform testing through scirs2-core abstractions.
 

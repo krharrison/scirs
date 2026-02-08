@@ -30,7 +30,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-transform = "0.1.2"
+//! scirs2-transform = "0.1.5"
 //! ```
 //!
 //! ```rust,no_run
@@ -42,7 +42,7 @@
 //! let normalized = normalize_array(&data, NormalizationMethod::ZScore, 0).unwrap();
 //! ```
 //!
-//! ## 🔒 Version: 0.1.2 (January 15, 2026)
+//! ## 🔒 Version: 0.1.5 (January 15, 2026)
 
 #![warn(missing_docs)]
 #![allow(clippy::too_many_arguments)]

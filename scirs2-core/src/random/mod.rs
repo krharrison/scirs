@@ -78,13 +78,14 @@ pub mod neural_sampling;
 pub mod quantum_inspired;
 
 // Re-export core functionality (except Random which we redefine for compatibility)
-pub use core::{seeded_rng, thread_rng, DistributionExt};
+// Use self::core to avoid ambiguity with Rust's standard library ::core (critical for Windows builds)
+pub use self::core::{seeded_rng, thread_rng, DistributionExt};
 
 // Re-export RNG types for SCIRS2 POLICY compliance
 pub use rand_chacha::{ChaCha12Rng, ChaCha20Rng, ChaCha8Rng};
 
 // Re-export the core Random as CoreRandom for internal use
-pub use core::Random as CoreRandom;
+pub use self::core::Random as CoreRandom;
 
 // Re-export enhanced slice operations
 pub use slice_ops::{ScientificSliceRandom, SliceRandomExt};

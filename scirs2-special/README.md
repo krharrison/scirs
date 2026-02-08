@@ -4,7 +4,7 @@
 [[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)]](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-special)](https://docs.rs/scirs2-special)
 
-**Production-ready special functions module for the SciRS2 scientific computing library (v0.1.4).**
+**Production-ready special functions module for the SciRS2 scientific computing library (v0.1.5).**
 
 Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module provides a comprehensive collection of special mathematical functions used in scientific computing, engineering, and statistics. Designed for performance, accuracy, reliability, and ecosystem consistency, it offers memory-safe implementations with extensive testing coverage (190+ unit tests, 164 doctests).
 
@@ -54,7 +54,7 @@ Add this production-ready crate to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scirs2-special = "0.1.4"
+scirs2-special = "0.1.5"
 ```
 
 ### Recommended Configuration
@@ -63,7 +63,7 @@ For optimal performance in production applications:
 
 ```toml
 [dependencies]
-scirs2-special = { version = "0.1.4", features = ["parallel"] }
+scirs2-special = { version = "0.1.5", features = ["parallel"] }
 ```
 
 ### Available Features

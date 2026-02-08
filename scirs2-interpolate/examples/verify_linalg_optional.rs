@@ -4,7 +4,7 @@ fn main() {
     println!("This confirms our fix is working properly.");
 
     // Notice that using the features conditionally allows us to compile
-    // even without OpenBLAS installed
+    // with or without linalg feature (uses OxiBLAS - pure Rust)
     println!("Check if the linalg feature is enabled:");
     #[cfg(feature = "linalg")]
     println!("YES - linalg feature is enabled");

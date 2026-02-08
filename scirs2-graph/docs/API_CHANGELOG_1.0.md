@@ -153,7 +153,7 @@ pub fn dijkstra_path<N, E, Ix>(...) -> Result<Option<Path<N, E>>>
 
 ## Deprecation Timeline
 
-### Phase 1: v0.1.4 (Current)
+### Phase 1: v0.1.5 (Current)
 - ✅ Add deprecation warnings to legacy APIs
 - ✅ Introduce new standardized APIs
 - ✅ Update documentation with migration examples

@@ -6,7 +6,7 @@
 
 SciRS2 is a comprehensive scientific computing library for Rust, inspired by SciPy and designed to provide a complete ecosystem for numerical computation, statistical analysis, and scientific algorithms.
 
-**Important**: From v0.1.4, SciRS2 follows the [SciRS2 POLICY](../scirs2-core/SCIRS2_POLICY.md) for consistent ecosystem architecture with layered abstractions.
+**Important**: From v0.1.5, SciRS2 follows the [SciRS2 POLICY](../scirs2-core/SCIRS2_POLICY.md) for consistent ecosystem architecture with layered abstractions.
 
 ## Overview
 
@@ -38,23 +38,23 @@ Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scirs2 = "0.1.4"  # Main package with default features
+scirs2 = "0.1.5"  # Main package with default features
 ```
 
 You can enable only the features you need:
 
 ```toml
 [dependencies]
-scirs2 = { version = "0.1.4", features = ["linalg", "stats", "optimize"] }
+scirs2 = { version = "0.1.5", features = ["linalg", "stats", "optimize"] }
 ```
 
 Or use specific modules directly:
 
 ```toml
 [dependencies]
-scirs2-core = "0.1.4"
-scirs2-linalg = "0.1.4"
-scirs2-stats = "0.1.4"
+scirs2-core = "0.1.5"
+scirs2-linalg = "0.1.5"
+scirs2-stats = "0.1.5"
 ```
 
 Basic usage examples:
@@ -134,7 +134,7 @@ SciRS2 follows a modular architecture where each domain of scientific computing 
 
 ### SciRS2 POLICY
 
-Starting with v0.1.4, SciRS2 follows a strict layered architecture:
+Starting with v0.1.5, SciRS2 follows a strict layered architecture:
 
 - **Core-Only Dependencies**: Only `scirs2-core` uses external dependencies directly
 - **Unified Abstractions**: All other crates use scirs2-core abstractions for `rand`, `ndarray`, etc.

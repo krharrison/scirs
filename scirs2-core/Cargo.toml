@@ -126,7 +126,8 @@ cudarc = { workspace = true, optional = true }  # CUDA runtime
 
 # Windows-specific dependencies
 [target.'cfg(target_os = "windows")'.dependencies]
-windows-sys = { workspace = true, features = ["Win32_System_SystemInformation"] }  # Windows system APIs for memory detection
+# GlobalMemoryStatusEx requires both Win32_System_SystemInformation and Win32_Foundation features
+windows-sys = { workspace = true, features = ["Win32_System_SystemInformation", "Win32_Foundation"] }  # Windows system APIs for memory detection
 
 [dev-dependencies]
 approx = { workspace = true }

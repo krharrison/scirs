@@ -26,7 +26,7 @@ use crate::error::{NeuralError, Result};
 /// # Examples
 ///
 /// ```
-/// use ndarray::{array, Array, Ix3};
+/// use scirs2_core::ndarray::{array, Array, Ix3};
 /// use scirs2_neural::linalg::batch_matmul;
 ///
 /// // Create batch of 2x2x3 matrices (batch_size=2, m=2, k=3)
@@ -172,7 +172,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use ndarray::{array, Array, Ix2, Ix3};
+/// use scirs2_core::ndarray::{array, Array, Ix2, Ix3};
 /// use scirs2_neural::linalg::batch_vecmat;
 ///
 /// // Create batch of 2x3 vectors (batch_size=2, k=3)
@@ -259,7 +259,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use ndarray::{array, Array, Ix3};
+/// use scirs2_core::ndarray::{array, Array, Ix3};
 /// use scirs2_neural::linalg::{batch_matmul, batch_matmul_backward};
 ///
 /// // Create input matrices

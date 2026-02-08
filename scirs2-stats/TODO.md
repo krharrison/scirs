@@ -1,6 +1,6 @@
 # scirs2-stats Development Roadmap
 
-## Production Status (v0.1.4)
+## Production Status (v0.1.5)
 
 This release represents a **production-ready** statistical computing library with comprehensive platform testing and SIMD acceleration. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), all core functionality has been implemented, tested, and is ready for production use with ecosystem consistency and performance optimizations.
 
@@ -138,10 +138,10 @@ See the main repository for contribution guidelines.
 
 ## Version History
 
-- **v0.1.4** (Current): Production-ready with SIMD-accelerated mathematical utilities
+- **v0.1.5** (Current): Production-ready with SIMD-accelerated mathematical utilities
   - Added SIMD abs/sign functions (1.5-3x speedup on large arrays)
   - 294+ tests passing with zero warnings
   - Full scirs2-core::simd_ops integration
-- **v0.1.4**: Production-ready release with comprehensive statistical functionality
+- **v0.1.5**: Production-ready release with comprehensive statistical functionality
 - **v1.0.0** (Planned): Stable API with performance optimizations and extended testing
 - **v1.1.0+** (Future): Advanced statistical methods and ecosystem integration

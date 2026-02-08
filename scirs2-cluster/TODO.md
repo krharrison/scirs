@@ -93,7 +93,7 @@ This release features SciRS2 POLICY implementation for the SciRS2 clustering mod
   - [ ] Debugging tools for clustering quality assessment
   - [ ] Custom distance metric development framework
 
-### Recent Enhancements (v0.1.4)
+### Recent Enhancements (v0.1.5)
 
 #### Advanced Serialization System
 - **Enhanced Model Metadata**: Comprehensive metadata tracking including performance metrics, data characteristics, and platform information

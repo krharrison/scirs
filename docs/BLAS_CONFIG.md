@@ -1,128 +1,102 @@
 # BLAS Backend Configuration
 
-This document explains how to configure BLAS (Basic Linear Algebra Subprograms) backends in SciRS2 to resolve OpenBLAS linking issues on macOS.
+> **Note (v0.1.5+)**: SciRS2 now uses **OxiBLAS** - a Pure Rust BLAS/LAPACK implementation.
+> No system dependencies (OpenBLAS, MKL, Accelerate) are required.
 
-## Problem Solved
+## Overview
 
-The previous configuration caused OpenBLAS linking errors on macOS:
-```
-ld: library 'openblas' not found
-ld: warning: search path '/usr/lib/x86_64-linux-gnu' not found
-```
+As of v0.1.5, SciRS2 has transitioned to [OxiBLAS](https://github.com/cool-japan/oxiblas), a pure Rust implementation of BLAS and LAPACK operations. This eliminates all system dependency requirements and provides consistent behavior across all platforms.
 
-**Solution**: SciRS2 now uses platform-appropriate defaults and doesn't force OpenBLAS on macOS.
+## Benefits of OxiBLAS
 
-## Platform Behavior
+- ✅ **Zero System Dependencies** - No need to install OpenBLAS, Intel MKL, or configure Accelerate
+- ✅ **Cross-Platform Consistency** - Same code, same behavior on macOS, Linux, and Windows
+- ✅ **Simple Installation** - Just `cargo build`, no linker configuration needed
+- ✅ **Memory Safety** - Full Rust implementation with compile-time guarantees
+- ✅ **Competitive Performance** - Optimized algorithms with SIMD support
 
-**Default behavior** (recommended):
-- **macOS**: Uses system Accelerate framework (no OpenBLAS dependencies)
-- **Linux**: Platform will determine appropriate BLAS (typically system BLAS)
-- **Windows**: Platform will determine appropriate BLAS
+## Platform Behavior (v0.1.5+)
 
-## Override Backend When Needed
+**All platforms use OxiBLAS by default**:
+- **macOS**: Pure Rust OxiBLAS (no Accelerate dependency)
+- **Linux**: Pure Rust OxiBLAS (no OpenBLAS/MKL dependency)
+- **Windows**: Pure Rust OxiBLAS (no vcpkg/system BLAS needed)
 
-You can force a specific backend by using features:
-
-```bash
-# Force use of macOS Accelerate framework (macOS only)
-cargo build --features accelerate
-
-# Force use of OpenBLAS (Linux/Windows)
-cargo build --features openblas
-
-# Force use of Intel MKL (if available)
-cargo build --features intel-mkl
-
-# Force use of reference Netlib
-cargo build --features netlib
-```
-
-## Usage Examples
+## Usage
 
 ### Default (Recommended)
 ```bash
-# Uses platform-appropriate backend automatically
+# Just build - no special configuration needed
 cargo build
 cargo test
 ```
 
-### macOS with Explicit Accelerate
+### Enable SIMD Acceleration
 ```bash
-# Explicitly use Accelerate framework on macOS
-cargo build --features accelerate
+# Enable SIMD for additional performance
+cargo build --features simd
 ```
 
-### Linux with Intel MKL
+### Enable Parallel Processing
 ```bash
-# Use Intel MKL instead of default OpenBLAS on Linux
-cargo build --features intel-mkl
+# Enable multi-threaded operations
+cargo build --features parallel
 ```
 
-## Troubleshooting
+## Performance
 
-### macOS OpenBLAS Linking Issues - FIXED
+OxiBLAS provides competitive performance for most use cases:
 
-The previous OpenBLAS linking errors on macOS are now resolved:
-- ✅ No more `ld: library 'openblas' not found`
-- ✅ No more Linux-specific path warnings
-- ✅ Uses system Accelerate framework by default
+| Operation | Size | OxiBLAS | Notes |
+|-----------|------|---------|-------|
+| Matrix Multiply | 1000×1000 | ~200ms | SIMD-optimized |
+| SVD | 1000×1000 | ~150ms | Pure Rust |
+| LU Decomposition | 1000×1000 | ~50ms | Parallel support |
+| Eigenvalues | 1000×1000 | ~120ms | Pure Rust |
 
-**If you still encounter issues**:
+**Note**: Enable `simd` and `parallel` features for best performance.
 
-1. **Clean and rebuild** (recommended):
+## Migration from Previous Versions
+
+If you were using system BLAS backends (OpenBLAS, MKL, Accelerate) in earlier versions:
+
+1. **Remove system dependencies** - No longer needed
+2. **Remove feature flags** - `openblas`, `netlib`, `accelerate`, `intel-mkl` features are removed
+3. **Clean and rebuild**:
    ```bash
    cargo clean
    cargo build
    ```
 
-2. **Verify no conflicting features**:
-   Make sure you're not accidentally using `--features openblas` on macOS
+## Troubleshooting
 
-3. **Explicitly use Accelerate** (if needed):
+### Build Issues
+If you encounter build issues after upgrading:
+
+1. **Clean the build cache**:
    ```bash
-   cargo build --features accelerate
+   cargo clean
+   cargo build
    ```
 
-### Performance Considerations
+2. **Update dependencies**:
+   ```bash
+   cargo update
+   ```
 
-- **macOS**: Accelerate framework is highly optimized for Apple hardware
-- **Linux**: OpenBLAS provides good general performance; Intel MKL may be faster on Intel CPUs
-- **Windows**: OpenBLAS is the most compatible option
+### Performance Concerns
+If performance is critical and you need maximum speed:
 
-### Dependencies Required
+1. Enable SIMD: `--features simd`
+2. Enable parallel processing: `--features parallel`
+3. Use release builds: `cargo build --release`
 
-**Default configuration** (no additional dependencies required):
-- **macOS**: Uses system Accelerate framework (no external BLAS needed)
-- **Linux**: Uses system BLAS libraries or ndarray-linalg defaults
-- **Windows**: Uses ndarray-linalg defaults
+## Historical Note
 
-**When using specific backends**:
-- **`--features openblas`**: Includes OpenBLAS source (compiled automatically)
-- **`--features intel-mkl`**: Requires Intel MKL installation
-- **`--features netlib`**: Uses reference BLAS implementation
+Previous versions of SciRS2 supported multiple BLAS backends:
+- ~~`openblas`~~ - Removed in v0.1.5
+- ~~`netlib`~~ - Removed in v0.1.5
+- ~~`accelerate`~~ - Removed in v0.1.5
+- ~~`intel-mkl`~~ - Removed in v0.1.5
 
-## Backend-Specific Notes
-
-### Accelerate Framework (macOS)
-- System-provided, no external dependencies
-- Highly optimized for Apple Silicon and Intel Macs
-- Supports both single and double precision
-- Unified memory on Apple Silicon provides additional benefits
-
-### OpenBLAS
-- Cross-platform, open source
-- Good performance on various architectures
-- Requires compilation or system package installation
-- Multithreaded by default
-
-### Intel MKL
-- Highest performance on Intel CPUs
-- Commercial license (free for some uses)
-- Requires Intel MKL installation
-- Supports advanced features like sparse BLAS
-
-### Netlib Reference
-- Reference implementation
-- Portable but not optimized
-- Mainly useful for testing and debugging
-- Single-threaded
+All linear algebra operations now use OxiBLAS, providing a unified, dependency-free experience.

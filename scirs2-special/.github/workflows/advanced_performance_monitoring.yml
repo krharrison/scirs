@@ -57,17 +57,13 @@ jobs:
         sudo apt-get install -y \
           build-essential \
           pkg-config \
-          libopenblas-dev \
-          liblapack-dev \
-          gfortran \
-          libblas-dev \
-          libatlas-base-dev \
           valgrind \
           perf \
           linux-tools-common \
           linux-tools-generic \
           stress-ng \
           htop
+        # Note: OxiBLAS (pure Rust) - no system BLAS dependencies required
     
     - name: Install performance analysis tools
       run: |

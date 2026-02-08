@@ -44,7 +44,7 @@ This document outlines the development plan for the SciRS2 project, a scientific
 
 ## 🎉 Current Release: 0.1.3 (January 25, 2026)
 
-### ✅ Recent Updates (v0.1.4)
+### ✅ Recent Updates (v0.1.5)
 
 #### GitHub Issues Resolved
 - ✅ **Issue #96: PCHIP Extrapolation Bug** (scirs2-interpolate)
@@ -68,7 +68,7 @@ This document outlines the development plan for the SciRS2 project, a scientific
 #### Build System & Quality
 - ✅ Workspace policy compliance (version.workspace = true)
 - ✅ Version consistency across all 27 crates
-- ✅ CHANGELOG.md updated with v0.1.4 release notes
+- ✅ CHANGELOG.md updated with v0.1.5 release notes
 - ✅ Zero warnings policy maintained
 
 ## 🎉 Stable Release: 0.1.0 - 0.1.2 (December 29, 2025 - January 15, 2026)

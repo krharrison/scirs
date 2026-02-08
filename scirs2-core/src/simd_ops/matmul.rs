@@ -15,7 +15,7 @@
 //! # Example
 //!
 //! ```rust
-//! use crate::simd_ops::matmul::{simd_matrix_multiply_f32, simd_dot_product_f32};
+//! use scirs2_core::simd_ops::matmul::{simd_matrix_multiply_f32, simd_dot_product_f32};
 //!
 //! // Matrix multiplication: C = A * B
 //! let m = 256;
@@ -57,7 +57,7 @@ use crate::simd::gemm::{blocked_gemm_f32, should_use_blocked, MatMulConfig};
 /// # Example
 ///
 /// ```rust
-/// use crate::simd_ops::matmul::simd_dot_product_f32;
+/// use scirs2_core::simd_ops::matmul::simd_dot_product_f32;
 ///
 /// let a = vec![1.0, 2.0, 3.0];
 /// let b = vec![4.0, 5.0, 6.0];
@@ -159,7 +159,7 @@ pub fn simd_dot_product_f64(a: &[f64], b: &[f64]) -> f64 {
 /// # Example
 ///
 /// ```rust
-/// use crate::simd_ops::matmul::simd_matrix_multiply_f32;
+/// use scirs2_core::simd_ops::matmul::simd_matrix_multiply_f32;
 ///
 /// let m = 4;
 /// let k = 4;
@@ -382,7 +382,7 @@ fn gemm_simple_f64(
 /// # Example
 ///
 /// ```rust
-/// use crate::simd_ops::matmul::should_use_simd_matmul;
+/// use scirs2_core::simd_ops::matmul::should_use_simd_matmul;
 ///
 /// assert!(!should_use_simd_matmul(32, 32, 32));  // Too small
 /// assert!(should_use_simd_matmul(256, 256, 256)); // Large enough

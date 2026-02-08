@@ -5,13 +5,26 @@ All notable changes to the SciRS2 project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.4] - 2026-02-07
+## [0.1.5] - 2026-02-07
 
 ### 🐛 Bug Fix Release
 
-This release addresses critical autograd optimizer issues reported in GitHub issue #100.
+This release addresses critical Windows build issues and autograd optimizer problems.
 
 ### Fixed
+
+#### Windows Platform Support (scirs2-core)
+- **Windows API Compatibility** (Critical fix for Windows builds)
+  - Fixed `GlobalMemoryStatusEx` import error by switching to `GlobalMemoryStatus`
+  - Added `Win32_Foundation` feature flag to `windows-sys` dependency
+  - Resolved module name ambiguity in random module (`core::` vs `self::core::`)
+  - Windows Python wheel builds now work correctly
+
+#### Python Bindings (scirs2-python)
+- **Feature Propagation**
+  - Fixed `random` feature not being enabled for graph module on Windows
+  - Added proper feature flag propagation through `default` features
+  - Graph module's `thread_rng` now correctly available on all platforms
 
 #### Autograd Module (scirs2-autograd)
 - **Optimizer Update Mechanism** (Issue #100)

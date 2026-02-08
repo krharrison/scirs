@@ -172,7 +172,7 @@ While 0.1.0 is feature-complete and production-ready, future enhancements may in
 
 ## 🎯 **FINAL STATUS: READY FOR PRODUCTION**
 
-**scirs2-fft v0.1.4** represents a complete, production-ready FFT implementation with:
+**scirs2-fft v0.1.5** represents a complete, production-ready FFT implementation with:
 
 - **World-class performance** through multi-GPU and specialized hardware acceleration
 - **Comprehensive functionality** covering all major FFT variants and applications  

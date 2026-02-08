@@ -40,9 +40,9 @@ plotters = { workspace = true }
 # Default features
 default = []
 
-# Enable this feature if you have OpenBLAS installed and want to use linear algebra operations
+# Enable this feature for linear algebra operations via OxiBLAS (pure Rust)
 # Provides faster matrix operations, SVD, eigendecompositions, etc.
-# Requires OpenBLAS development package (libopenblas-dev or equivalent)
+# No system dependencies required (uses OxiBLAS instead of OpenBLAS)
 # linalg = ["ndarray-linalg"]  # Commented out since dependency is removed
 # Adding linalg as empty feature to support existing cfg conditions
 linalg = []

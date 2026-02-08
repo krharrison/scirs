@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(not(feature = "linalg"))]
     {
         println!("ℹ️ linalg feature is NOT enabled");
-        println!("This build uses fallback implementations that don't require OpenBLAS");
+        println!("This build uses fallback implementations (OxiBLAS - pure Rust)");
         println!("Enable with: cargo run --example verify_linalg_feature --features linalg");
 
         // In the real code, we'd use a fallback implementation here

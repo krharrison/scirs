@@ -41,7 +41,7 @@ type AdamUpdateReturn<F, D> = (Array<F, D>, Array<F, D>, Array<F, D>);
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array1, Array2};
+/// use scirs2_core::ndarray::{Array, Array1, Array2};
 /// use scirs2_neural::linalg::lstm_cell;
 ///
 /// // Sample dimensions
@@ -234,15 +234,15 @@ fn sigmoid<F: Float>(x: F) -> F {
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array2};
-/// use rand::prelude::*;
+/// use scirs2_core::ndarray::{Array, Array2};
+/// use scirs2_core::random::prelude::*;
 /// use scirs2_neural::linalg::dropout;
 ///
 /// // Create input tensor
 /// let x = Array::from_shape_fn((3, 4), |_| 1.0);
 ///
 /// // Apply dropout in training mode
-/// let mut rng = StdRng::seed_from_u64(42);
+/// let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(42);
 /// let (y_train, mask) = dropout(&x.view(), 0.5, &mut rng, true).expect("Operation failed");
 ///
 /// // Apply dropout in inference mode
@@ -313,13 +313,13 @@ where
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array2};
-/// use rand::prelude::*;
+/// use scirs2_core::ndarray::{Array, Array2};
+/// use scirs2_core::random::prelude::*;
 /// use scirs2_neural::linalg::{dropout, dropout_backward};
 ///
 /// // Setup (similar to forward example)
 /// let x = Array::from_shape_fn((3, 4), |_| 1.0);
-/// let mut rng = StdRng::seed_from_u64(42);
+/// let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(42);
 /// let dropout_rate = 0.5;
 ///
 /// // Forward pass
@@ -377,7 +377,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array2, Axis};
+/// use scirs2_core::ndarray::{Array, Array2, Axis};
 /// use scirs2_neural::linalg::log_softmax;
 ///
 /// // Create sample input
@@ -467,7 +467,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use ndarray::{Array, Array1, Ix1};
+/// use scirs2_core::ndarray::{Array, Array1, Ix1};
 /// use scirs2_neural::linalg::adam_update;
 ///
 /// // Setup parameters and gradients

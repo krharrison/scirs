@@ -26,4 +26,4 @@ statrs = { workspace = true }
 
 [features]
 default = []
-gpu = []
+gpu = ["scirs2-core/gpu"]

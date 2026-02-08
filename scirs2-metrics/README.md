@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-metrics)](https://docs.rs/scirs2-metrics)
 
-Production-ready machine learning evaluation metrics library for the SciRS2 scientific computing ecosystem (v0.1.4). Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this comprehensive module provides high-performance functions to evaluate prediction performance across classification, regression, clustering, and specialized ML domains with ecosystem consistency and enhanced performance optimizations.
+Production-ready machine learning evaluation metrics library for the SciRS2 scientific computing ecosystem (v0.1.5). Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this comprehensive module provides high-performance functions to evaluate prediction performance across classification, regression, clustering, and specialized ML domains with ecosystem consistency and enhanced performance optimizations.
 
 ## Features
 
@@ -41,7 +41,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scirs2-metrics = "0.1.4"
+scirs2-metrics = "0.1.5"
 ```
 
 ### Feature Selection
@@ -51,13 +51,13 @@ Choose features based on your needs:
 ```toml
 [dependencies]
 # Default features (recommended for most users)
-scirs2-metrics = "0.1.4"
+scirs2-metrics = "0.1.5"
 
 # Minimal installation (core metrics only)
-scirs2-metrics = { version = "0.1.4", default-features = false }
+scirs2-metrics = { version = "0.1.5", default-features = false }
 
 # Full installation with all capabilities
-scirs2-metrics = { version = "0.1.4", features = ["neural_common", "optim_integration", "plotters_backend"] }
+scirs2-metrics = { version = "0.1.5", features = ["neural_common", "optim_integration", "plotters_backend"] }
 ```
 
 #### Available Features

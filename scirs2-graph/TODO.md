@@ -1,4 +1,4 @@
-# SciRS2 Graph - Production TODO (v0.1.4)
+# SciRS2 Graph - Production TODO (v0.1.5)
 
 This Stable Release features comprehensive platform testing and final preparation for stable release. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), the module is production-ready with comprehensive graph functionality and ecosystem consistency.
 

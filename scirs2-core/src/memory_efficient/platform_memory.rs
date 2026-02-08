@@ -125,32 +125,29 @@ impl PlatformMemoryInfo {
         })
     }
 
-    /// Detect memory on Windows using GlobalMemoryStatusEx
+    /// Detect memory on Windows using GlobalMemoryStatus
+    /// Note: Using GlobalMemoryStatus instead of GlobalMemoryStatusEx for windows-sys 0.52 compatibility
     #[cfg(target_os = "windows")]
     fn detect_windows() -> Option<Self> {
-        use windows_sys::Win32::System::SystemInformation::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
+        use windows_sys::Win32::System::SystemInformation::{GlobalMemoryStatus, MEMORYSTATUS};
 
-        let mut mem_status = MEMORYSTATUSEX {
-            dwLength: std::mem::size_of::<MEMORYSTATUSEX>() as u32,
+        let mut mem_status = MEMORYSTATUS {
+            dwLength: std::mem::size_of::<MEMORYSTATUS>() as u32,
             dwMemoryLoad: 0,
-            ullTotalPhys: 0,
-            ullAvailPhys: 0,
-            ullTotalPageFile: 0,
-            ullAvailPageFile: 0,
-            ullTotalVirtual: 0,
-            ullAvailVirtual: 0,
-            ullAvailExtendedVirtual: 0,
+            dwTotalPhys: 0,
+            dwAvailPhys: 0,
+            dwTotalPageFile: 0,
+            dwAvailPageFile: 0,
+            dwTotalVirtual: 0,
+            dwAvailVirtual: 0,
         };
 
         unsafe {
-            if GlobalMemoryStatusEx(&mut mem_status) != 0 {
-                Some(Self {
-                    total_memory: mem_status.ullTotalPhys as usize,
-                    available_memory: mem_status.ullAvailPhys as usize,
-                })
-            } else {
-                None
-            }
+            GlobalMemoryStatus(&mut mem_status);
+            Some(Self {
+                total_memory: mem_status.dwTotalPhys as usize,
+                available_memory: mem_status.dwAvailPhys as usize,
+            })
         }
     }
 

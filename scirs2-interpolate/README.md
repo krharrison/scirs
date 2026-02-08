@@ -17,16 +17,16 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scirs2-interpolate = "0.1.4"
+scirs2-interpolate = "0.1.5"
 
 # Optional: Enable high-performance features
-scirs2-interpolate = { version = "0.1.4", features = ["simd", "linalg"] }
+scirs2-interpolate = { version = "0.1.5", features = ["simd", "linalg"] }
 ```
 
 ### Feature Flags
 
 - **`simd`**: Enable SIMD acceleration (2-4x performance boost)
-- **`linalg`**: Enable advanced linear algebra operations (requires OpenBLAS)
+- **`linalg`**: Enable advanced linear algebra operations via OxiBLAS (pure Rust, no system dependencies)
 - **`gpu`**: Enable GPU acceleration for large datasets (experimental)
 
 ```bash

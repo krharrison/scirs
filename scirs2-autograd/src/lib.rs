@@ -24,21 +24,17 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-autograd = { version = "0.1.2", features = ["blas"] }
+//! scirs2-autograd = { version = "0.1.5", features = ["blas"] }
 //! ```
 //!
 //! ### BLAS Acceleration (Recommended)
 //!
-//! For fast matrix operations, enable BLAS:
+//! For fast matrix operations, enable BLAS (uses OxiBLAS - pure Rust):
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-autograd = { version = "0.1.2", features = ["blas", "openblas"] }
+//! scirs2-autograd = { version = "0.1.5", features = ["blas"] }
 //! ```
-//!
-//! Available BLAS implementations:
-//! - `openblas` - OpenBLAS (recommended for Linux/macOS)
-//! - `netlib` - Reference BLAS implementation
 //!
 //! ## 🚀 Quick Start
 //!
@@ -286,7 +282,7 @@
 //!
 //! - **Lazy Evaluation**: Build graphs without computation overhead
 //! - **Minimal Allocations**: Reuse memory where possible
-//! - **BLAS Integration**: Fast matrix operations via OpenBLAS/MKL
+//! - **BLAS Integration**: Fast matrix operations via OxiBLAS (pure Rust)
 //! - **Zero-copy**: Efficient data handling with ndarray views
 //!
 //! Typical training speed: **0.11 sec/epoch** for MNIST MLP (2.7GHz Intel Core i5)
@@ -311,7 +307,7 @@
 //!
 //! ## 🔒 Version
 //!
-//! Current version: **0.1.2** (Released January 15, 2026)
+//! Current version: **0.1.5** (Released January 15, 2026)
 
 #[allow(unused_imports)]
 // Re-export from scirs2-core for POLICY compliance
