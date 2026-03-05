@@ -1,7 +1,7 @@
 // Integration tests for scirs2-ndimage + scirs2-vision
 // Tests image processing pipelines, feature detection, and computer vision workflows
 
-use ndarray::{Array2, Array3};
+use scirs2_core::ndarray::{Array2, Array3};
 use proptest::prelude::*;
 use scirs2_ndimage::*;
 use scirs2_vision::*;

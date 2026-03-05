@@ -1,6 +1,6 @@
 //! Example of using convergence diagnostics with optimization
 
-use scirs2_core::ndarray::{array, ArrayView1};
+use scirs2_core::ndarray::{array, Array1, ArrayView1};
 use scirs2_optimize::unconstrained::{
     minimize_bfgs, DiagnosticCollector, DiagnosticOptions, ExportFormat, LineSearchDiagnostic,
     Options,
@@ -130,7 +130,12 @@ fn main() {
     println!("\n\nRunning actual optimization...");
     let options = Options::default();
 
-    match minimize_bfgs(rosenbrock, x0, &options) {
+    match minimize_bfgs(
+        rosenbrock,
+        None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+        x0,
+        &options,
+    ) {
         Ok(result) => {
             println!("\nOptimization Result:");
             println!("  Solution: {:?}", result.x);

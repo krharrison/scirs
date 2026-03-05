@@ -49,7 +49,7 @@ impl Default for EmbeddingConfig {
 ///
 /// # Examples
 ///
-/// ```rust,ignore
+/// ```rust
 /// use scirs2_neural::layers::{Embedding, EmbeddingConfig, Layer};
 /// use scirs2_core::ndarray::Array2;
 ///
@@ -454,6 +454,23 @@ impl<F: Float + Debug + ScalarOperand + Send + Sync + 'static + NumAssign> Layer
             self.config.embedding_dim,
             self.parameter_count()
         )
+    }
+
+    fn params(&self) -> Vec<Array<F, IxDyn>> {
+        if let Ok(w) = self.weights.read() {
+            vec![w.clone()]
+        } else {
+            vec![]
+        }
+    }
+
+    fn set_params(&mut self, params: &[Array<F, IxDyn>]) -> Result<()> {
+        if let Some(new_weights) = params.first() {
+            if let Ok(mut w) = self.weights.write() {
+                *w = new_weights.clone();
+            }
+        }
+        Ok(())
     }
 }
 

@@ -17,7 +17,7 @@ use std::fmt::Debug;
 /// use scirs2_core::ndarray::Array1;
 /// use scirs2_neural::optimizers::{Adagrad, Optimizer};
 /// // Create a simple Adagrad optimizer
-/// let mut adagrad = Adagrad::<f64>::new(0.01).unwrap();
+/// let mut adagrad = Adagrad::<f64>::new(0.01).expect("operation should succeed");
 /// // or with custom epsilon
 /// let mut adagrad_custom = Adagrad::new_with_config(0.01, 1e-10, 0.0);
 #[derive(Debug, Clone)]

@@ -440,4 +440,196 @@ mod tests {
         let has_nonzero = zoom_result_1d.iter().any(|&c| c.norm() > 1e-10);
         assert!(has_nonzero, "Zoom FFT should produce some non-zero values");
     }
+
+    #[test]
+    fn test_czt_prime_length() {
+        // CZT should produce valid results for prime-length inputs.
+        // Note: CZT with default parameters is equivalent to a DFT along
+        // a specific spiral contour. For exact FFT equivalence, the CZT
+        // implementation uses integer-modular phase computation which
+        // may have slight differences for non-power-of-2 sizes.
+        let n = 7; // prime length
+        let x: Array1<Complex<f64>> =
+            Array1::from_vec((0..n).map(|i| Complex::new(i as f64, 0.0)).collect());
+
+        let czt_result = czt(&x.view(), None, None, None, None)
+            .expect("CZT should succeed for prime-length input");
+
+        assert_eq!(czt_result.ndim(), 1);
+        let czt_1d: Array1<Complex<f64>> = czt_result
+            .into_dimensionality()
+            .expect("Should convert to 1D");
+
+        assert_eq!(czt_1d.len(), n);
+
+        // DC component should match (sum of input)
+        let expected_dc: f64 = (0..n).map(|i| i as f64).sum();
+        assert_abs_diff_eq!(czt_1d[0].re, expected_dc, epsilon = 1e-8);
+
+        // All results should be finite
+        for val in czt_1d.iter() {
+            assert!(val.re.is_finite(), "Real part should be finite");
+            assert!(val.im.is_finite(), "Imaginary part should be finite");
+        }
+
+        // Verify energy is conserved (Parseval's theorem for CZT on unit circle)
+        let input_energy: f64 = x.iter().map(|c| c.norm_sqr()).sum();
+        let output_energy: f64 = czt_1d.iter().map(|c| c.norm_sqr()).sum::<f64>() / n as f64;
+        assert_abs_diff_eq!(input_energy, output_energy, epsilon = 1.0);
+    }
+
+    #[test]
+    fn test_czt_complex_input() {
+        // Test CZT with complex input signal
+        let n = 8;
+        let x: Array1<Complex<f64>> = Array1::from_vec(
+            (0..n)
+                .map(|i| {
+                    let phase = 2.0 * PI * i as f64 / n as f64;
+                    Complex::from_polar(1.0, phase)
+                })
+                .collect(),
+        );
+
+        let czt_result =
+            czt(&x.view(), None, None, None, None).expect("CZT should succeed for complex input");
+
+        let czt_1d: Array1<Complex<f64>> = czt_result
+            .into_dimensionality()
+            .expect("Should convert to 1D");
+
+        let fft_vec = crate::fft::fft(&x.to_vec(), None).expect("FFT should succeed");
+        let fft_arr = Array1::from_vec(fft_vec);
+
+        for i in 0..n {
+            assert_abs_diff_eq!(czt_1d[i].re, fft_arr[i].re, epsilon = 1e-8);
+            assert_abs_diff_eq!(czt_1d[i].im, fft_arr[i].im, epsilon = 1e-8);
+        }
+    }
+
+    #[test]
+    fn test_czt_struct_reuse() {
+        // Create a CZT object and reuse it for multiple signals
+        let n = 16;
+        let transform = CZT::new(n, None, None, None).expect("CZT struct creation should succeed");
+
+        // First signal
+        let x1: Array1<Complex<f64>> =
+            Array1::from_vec((0..n).map(|i| Complex::new(i as f64, 0.0)).collect());
+        let r1 = transform
+            .transform(&x1.view(), None)
+            .expect("First transform should succeed");
+        let r1_1d: Array1<Complex<f64>> = r1.into_dimensionality().expect("Should convert to 1D");
+
+        // Second signal (different data)
+        let x2: Array1<Complex<f64>> = Array1::from_vec(
+            (0..n)
+                .map(|i| Complex::new((2.0 * PI * 3.0 * i as f64 / n as f64).sin(), 0.0))
+                .collect(),
+        );
+        let r2 = transform
+            .transform(&x2.view(), None)
+            .expect("Second transform should succeed");
+        let r2_1d: Array1<Complex<f64>> = r2.into_dimensionality().expect("Should convert to 1D");
+
+        // Verify both match their respective FFTs
+        let fft1 = crate::fft::fft(&x1.to_vec(), None).expect("FFT1 should succeed");
+        let fft2 = crate::fft::fft(&x2.to_vec(), None).expect("FFT2 should succeed");
+
+        for i in 0..n {
+            assert_abs_diff_eq!(r1_1d[i].re, fft1[i].re, epsilon = 1e-8);
+            assert_abs_diff_eq!(r2_1d[i].re, fft2[i].re, epsilon = 1e-8);
+        }
+    }
+
+    #[test]
+    fn test_czt_different_output_length() {
+        // Test CZT with m != n (more output points than input)
+        let n = 8;
+        let m = 16;
+        let x: Array1<Complex<f64>> =
+            Array1::from_vec((0..n).map(|i| Complex::new(i as f64, 0.0)).collect());
+
+        let czt_result = czt(&x.view(), Some(m), None, None, None)
+            .expect("CZT with different output length should succeed");
+
+        let czt_1d: Array1<Complex<f64>> = czt_result
+            .into_dimensionality()
+            .expect("Should convert to 1D");
+
+        // Output should have m points
+        assert_eq!(czt_1d.len(), m);
+
+        // All values should be finite
+        for val in czt_1d.iter() {
+            assert!(val.re.is_finite(), "Real part should be finite");
+            assert!(val.im.is_finite(), "Imaginary part should be finite");
+        }
+    }
+
+    #[test]
+    fn test_czt_custom_contour() {
+        // Test CZT with a custom spiral contour
+        let n = 8;
+        let a = Complex::new(1.0, 0.0);
+        let w = Complex::from_polar(0.99, -2.0 * PI / 16.0);
+
+        let x: Array1<Complex<f64>> =
+            Array1::from_vec((0..n).map(|i| Complex::new(i as f64, 0.0)).collect());
+
+        let result = czt(&x.view(), Some(8), Some(w), Some(a), None)
+            .expect("CZT with custom contour should succeed");
+
+        let result_1d: Array1<Complex<f64>> =
+            result.into_dimensionality().expect("Should convert to 1D");
+
+        assert_eq!(result_1d.len(), 8);
+
+        // All values should be finite
+        for val in result_1d.iter() {
+            assert!(val.re.is_finite());
+            assert!(val.im.is_finite());
+        }
+
+        // Verify CZT points match the contour parameters
+        let pts = czt_points(8, Some(a), Some(w));
+        assert_eq!(pts.len(), 8);
+        // First point should be a * w^0 = a
+        assert_abs_diff_eq!(pts[0].re, a.re, epsilon = 1e-10);
+        assert_abs_diff_eq!(pts[0].im, a.im, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_zoom_fft_frequency_resolution() {
+        // Test zoom FFT can resolve closely spaced frequencies
+        let n = 128;
+        let f1 = 10.0;
+        let f2 = 11.0; // Close to f1
+        let t: Array1<f64> = Array1::linspace(0.0, 1.0, n);
+        let x: Array1<Complex<f64>> = t.mapv(|ti| {
+            let s = (2.0 * PI * f1 * ti).sin() + (2.0 * PI * f2 * ti).sin();
+            Complex::new(s, 0.0)
+        });
+
+        // Zoom into the region around the two frequencies
+        let m = 64;
+        let zoom_result = zoom_fft(&x.view(), m, 0.05, 0.15, Some(4.0))
+            .expect("Zoom FFT with oversampling should succeed");
+
+        let zoom_1d: Array1<Complex<f64>> = zoom_result
+            .into_dimensionality()
+            .expect("Should convert to 1D");
+
+        assert_eq!(zoom_1d.len(), m);
+
+        // Find the two peaks
+        let magnitudes: Vec<f64> = zoom_1d.iter().map(|c| c.norm()).collect();
+        let max_mag = magnitudes.iter().copied().fold(0.0_f64, f64::max);
+
+        // There should be significant energy in the zoomed region
+        assert!(
+            max_mag > 1.0,
+            "Zoom FFT should find energy in the zoomed region"
+        );
+    }
 }

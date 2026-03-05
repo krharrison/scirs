@@ -20,10 +20,10 @@
 //! asyncio.run(main())
 //! ```
 
-use pyo3::prelude::*;
-use pyo3_asyncio;
-use scirs2_numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods};
 use crate::error::SciRS2Error;
+use pyo3::prelude::*;
+use pyo3_async_runtimes;
+use scirs2_numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods, PyUntypedArrayMethods};
 
 /// Async FFT operation for large arrays
 ///
@@ -37,25 +37,40 @@ pub fn fft_async<'py>(
     let data_vec: Vec<f64> = {
         let binding = data.readonly();
         let arr = binding.as_array();
-        arr.to_vec()
+        arr.iter().cloned().collect()
     };
 
-    pyo3_asyncio::tokio::future_into_py(py, async move {
+    pyo3_async_runtimes::tokio::future_into_py(py, async move {
         // Run FFT in blocking task
-        let result = tokio::task::spawn_blocking(move || {
-            // Import FFT implementation
+        // FFT returns Vec<Complex64> - collect real and imag parts
+        let (real_part, imag_part): (Vec<f64>, Vec<f64>) = tokio::task::spawn_blocking(move || {
+            use scirs2_core::Complex64;
             use scirs2_fft::fft;
-            use scirs2_core::Array1;
 
-            let arr = Array1::from_vec(data_vec);
-            fft(&arr).map_err(|e| SciRS2Error::ComputationError(format!("FFT failed: {}", e)))
+            let result: Vec<Complex64> = fft(data_vec.as_slice(), None)
+                .map_err(|e| SciRS2Error::ComputationError(format!("FFT failed: {}", e)))?;
+
+            let real: Vec<f64> = result.iter().map(|c| c.re).collect();
+            let imag: Vec<f64> = result.iter().map(|c| c.im).collect();
+            Ok::<(Vec<f64>, Vec<f64>), SciRS2Error>((real, imag))
         })
         .await
         .map_err(|e| SciRS2Error::RuntimeError(format!("Task join error: {}", e)))??;
 
-        Python::with_gil(|py| {
-            Ok(result.into_pyarray(py).into_any())
-        })
+        // Return as Py<PyAny> which is Send
+        let py_result: Py<PyAny> = Python::attach(|py| {
+            use pyo3::types::PyDict;
+            use scirs2_core::Array1;
+            // Return dict with real and imag arrays
+            let dict = PyDict::new(py);
+            let real_arr: Array1<f64> = Array1::from_vec(real_part);
+            let imag_arr: Array1<f64> = Array1::from_vec(imag_part);
+            dict.set_item("real", real_arr.into_pyarray(py))?;
+            dict.set_item("imag", imag_arr.into_pyarray(py))?;
+            Ok::<Py<PyAny>, PyErr>(dict.into_any().unbind())
+        })?;
+
+        Ok(py_result)
     })
 }
 
@@ -69,37 +84,40 @@ pub fn svd_async<'py>(
     matrix: &Bound<'_, PyArray2<f64>>,
     full_matrices: Option<bool>,
 ) -> PyResult<Bound<'py, PyAny>> {
+    let matrix_shape = matrix.shape().to_vec();
     let matrix_vec: Vec<f64> = {
         let binding = matrix.readonly();
         let arr = binding.as_array();
-        arr.to_vec()
+        arr.iter().cloned().collect()
     };
-    let shape = matrix.shape();
     let full_matrices = full_matrices.unwrap_or(true);
 
-    pyo3_asyncio::tokio::future_into_py(py, async move {
+    pyo3_async_runtimes::tokio::future_into_py(py, async move {
         // Run SVD in blocking task
         let result = tokio::task::spawn_blocking(move || {
-            use scirs2_linalg::svd_f64_lapack;
             use scirs2_core::Array2;
+            use scirs2_linalg::svd_f64_lapack;
 
-            let arr = Array2::from_shape_vec((shape[0], shape[1]), matrix_vec)
+            let arr = Array2::from_shape_vec((matrix_shape[0], matrix_shape[1]), matrix_vec)
                 .map_err(|e| SciRS2Error::ArrayError(format!("Array reshape failed: {}", e)))?;
 
-            svd_f64_lapack(&arr, full_matrices)
+            svd_f64_lapack(&arr.view(), full_matrices)
                 .map_err(|e| SciRS2Error::ComputationError(format!("SVD failed: {}", e)))
         })
         .await
         .map_err(|e| SciRS2Error::RuntimeError(format!("Task join error: {}", e)))??;
 
-        Python::with_gil(|py| {
+        // Convert result to Python dict; return Py<PyAny> which is Send
+        let py_result: Py<PyAny> = Python::attach(|py| {
             use pyo3::types::PyDict;
             let dict = PyDict::new(py);
             dict.set_item("U", result.0.into_pyarray(py))?;
             dict.set_item("S", result.1.into_pyarray(py))?;
             dict.set_item("Vt", result.2.into_pyarray(py))?;
-            Ok(dict.into_any())
-        })
+            Ok::<Py<PyAny>, PyErr>(dict.into_any().unbind())
+        })?;
+
+        Ok(py_result)
     })
 }
 
@@ -109,34 +127,36 @@ pub fn qr_async<'py>(
     py: Python<'py>,
     matrix: &Bound<'_, PyArray2<f64>>,
 ) -> PyResult<Bound<'py, PyAny>> {
+    let matrix_shape = matrix.shape().to_vec();
     let matrix_vec: Vec<f64> = {
         let binding = matrix.readonly();
         let arr = binding.as_array();
-        arr.to_vec()
+        arr.iter().cloned().collect()
     };
-    let shape = matrix.shape();
 
-    pyo3_asyncio::tokio::future_into_py(py, async move {
+    pyo3_async_runtimes::tokio::future_into_py(py, async move {
         let result = tokio::task::spawn_blocking(move || {
-            use scirs2_linalg::qr_f64_lapack;
             use scirs2_core::Array2;
+            use scirs2_linalg::qr_f64_lapack;
 
-            let arr = Array2::from_shape_vec((shape[0], shape[1]), matrix_vec)
+            let arr = Array2::from_shape_vec((matrix_shape[0], matrix_shape[1]), matrix_vec)
                 .map_err(|e| SciRS2Error::ArrayError(format!("Array reshape failed: {}", e)))?;
 
-            qr_f64_lapack(&arr)
+            qr_f64_lapack(&arr.view())
                 .map_err(|e| SciRS2Error::ComputationError(format!("QR failed: {}", e)))
         })
         .await
         .map_err(|e| SciRS2Error::RuntimeError(format!("Task join error: {}", e)))??;
 
-        Python::with_gil(|py| {
+        let py_result: Py<PyAny> = Python::attach(|py| {
             use pyo3::types::PyDict;
             let dict = PyDict::new(py);
             dict.set_item("Q", result.0.into_pyarray(py))?;
             dict.set_item("R", result.1.into_pyarray(py))?;
-            Ok(dict.into_any())
-        })
+            Ok::<Py<PyAny>, PyErr>(dict.into_any().unbind())
+        })?;
+
+        Ok(py_result)
     })
 }
 
@@ -144,46 +164,55 @@ pub fn qr_async<'py>(
 #[pyfunction]
 pub fn quad_async<'py>(
     py: Python<'py>,
-    func: PyObject,
+    func: Py<PyAny>,
     a: f64,
     b: f64,
     epsabs: Option<f64>,
     epsrel: Option<f64>,
 ) -> PyResult<Bound<'py, PyAny>> {
-    pyo3_asyncio::tokio::future_into_py(py, async move {
-        let result = tokio::task::spawn_blocking(move || {
-            Python::with_gil(|py| {
-                use scirs2_integrate::quad;
+    pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let result: (f64, f64) = tokio::task::spawn_blocking(move || {
+            Python::attach(|py| {
+                use scirs2_integrate::quad::{quad, QuadOptions};
+
+                let abs_tol = epsabs.unwrap_or(1e-8);
+                let rel_tol = epsrel.unwrap_or(1e-8);
 
                 // Create Rust closure that calls Python function
-                let integrand = |x: f64| -> Result<f64, String> {
+                let integrand = |x: f64| -> f64 {
                     func.call1(py, (x,))
                         .and_then(|result| result.extract::<f64>(py))
-                        .map_err(|e| format!("Python function call failed: {}", e))
+                        .unwrap_or(f64::NAN)
                 };
 
-                let result = quad(
-                    integrand,
-                    a,
-                    b,
-                    epsabs.unwrap_or(1e-8),
-                    epsrel.unwrap_or(1e-8),
-                )
-                .map_err(|e| SciRS2Error::ComputationError(format!("Integration failed: {}", e)))?;
+                let options = QuadOptions {
+                    abs_tol,
+                    rel_tol,
+                    ..Default::default()
+                };
 
-                Ok((result.value, result.error))
+                let result = quad(integrand, a, b, Some(options)).map_err(|e| {
+                    PyErr::from(SciRS2Error::ComputationError(format!(
+                        "Integration failed: {}",
+                        e
+                    )))
+                })?;
+
+                Ok::<(f64, f64), PyErr>((result.value, result.abs_error))
             })
         })
         .await
         .map_err(|e| SciRS2Error::RuntimeError(format!("Task join error: {}", e)))??;
 
-        Python::with_gil(|py| {
+        let py_result: Py<PyAny> = Python::attach(|py| {
             use pyo3::types::PyDict;
             let dict = PyDict::new(py);
             dict.set_item("value", result.0)?;
             dict.set_item("error", result.1)?;
-            Ok(dict.into_any())
-        })
+            Ok::<Py<PyAny>, PyErr>(dict.into_any().unbind())
+        })?;
+
+        Ok(py_result)
     })
 }
 
@@ -191,7 +220,7 @@ pub fn quad_async<'py>(
 #[pyfunction]
 pub fn minimize_async<'py>(
     py: Python<'py>,
-    func: PyObject,
+    func: Py<PyAny>,
     x0: &Bound<'_, PyArray1<f64>>,
     method: Option<String>,
     maxiter: Option<usize>,
@@ -199,44 +228,60 @@ pub fn minimize_async<'py>(
     let x0_vec: Vec<f64> = {
         let binding = x0.readonly();
         let arr = binding.as_array();
-        arr.to_vec()
+        arr.iter().cloned().collect()
     };
 
-    pyo3_asyncio::tokio::future_into_py(py, async move {
-        let result = tokio::task::spawn_blocking(move || {
-            Python::with_gil(|py| {
-                use scirs2_optimize::{minimize, OptimizationMethod};
+    pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let result: (Vec<f64>, f64, usize) = tokio::task::spawn_blocking(move || {
+            Python::attach(|py| {
+                use scirs2_core::ndarray::ArrayView1;
+                use scirs2_optimize::unconstrained::{minimize, Method};
 
                 // Create Rust closure that calls Python function
-                let objective = |x: &[f64]| -> Result<f64, String> {
-                    let x_py = pyo3::types::PyList::new(py, x)?;
+                let objective = |x: &ArrayView1<f64>| -> f64 {
+                    let x_slice = x.as_slice().unwrap_or(&[]);
+                    let x_py = match pyo3::types::PyList::new(py, x_slice) {
+                        Ok(list) => list,
+                        Err(_) => return f64::NAN,
+                    };
                     func.call1(py, (x_py,))
-                        .and_then(|result| result.extract::<f64>(py))
-                        .map_err(|e| format!("Python function call failed: {}", e))
+                        .and_then(|r| r.extract::<f64>(py))
+                        .unwrap_or(f64::NAN)
                 };
 
-                let method = match method.as_deref() {
-                    Some("BFGS") => OptimizationMethod::BFGS,
-                    Some("Newton") => OptimizationMethod::Newton,
-                    Some("GradientDescent") => OptimizationMethod::GradientDescent,
-                    _ => OptimizationMethod::BFGS,
+                let opt_method = match method.as_deref() {
+                    Some("BFGS") => Method::BFGS,
+                    Some("Newton") | Some("NewtonCG") => Method::NewtonCG,
+                    Some("GradientDescent") | Some("CG") => Method::CG,
+                    Some("NelderMead") => Method::NelderMead,
+                    Some("LBFGS") => Method::LBFGS,
+                    _ => Method::BFGS,
                 };
 
-                let result = minimize(
-                    objective,
-                    &x0_vec,
-                    method,
-                    maxiter.unwrap_or(1000),
-                )
-                .map_err(|e| SciRS2Error::ComputationError(format!("Optimization failed: {}", e)))?;
+                use scirs2_optimize::unconstrained::Options;
+                let options = Options {
+                    max_iter: maxiter.unwrap_or(1000),
+                    ..Default::default()
+                };
 
-                Ok((result.x, result.fun, result.nit))
+                let result =
+                    minimize(objective, &x0_vec, opt_method, Some(options)).map_err(|e| {
+                        PyErr::from(SciRS2Error::ComputationError(format!(
+                            "Optimization failed: {}",
+                            e
+                        )))
+                    })?;
+
+                let x_vec = result.x.to_vec();
+                let fun_val: f64 = result.fun;
+                let nit = result.nit;
+                Ok::<(Vec<f64>, f64, usize), PyErr>((x_vec, fun_val, nit))
             })
         })
         .await
         .map_err(|e| SciRS2Error::RuntimeError(format!("Task join error: {}", e)))??;
 
-        Python::with_gil(|py| {
+        let py_result: Py<PyAny> = Python::attach(|py| {
             use pyo3::types::PyDict;
             use scirs2_core::Array1;
 
@@ -245,8 +290,10 @@ pub fn minimize_async<'py>(
             dict.set_item("x", x.into_pyarray(py))?;
             dict.set_item("fun", result.1)?;
             dict.set_item("nit", result.2)?;
-            Ok(dict.into_any())
-        })
+            Ok::<Py<PyAny>, PyErr>(dict.into_any().unbind())
+        })?;
+
+        Ok(py_result)
     })
 }
 

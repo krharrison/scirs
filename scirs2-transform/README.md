@@ -1,334 +1,286 @@
-# SciRS2 Transform
+# scirs2-transform
 
 [![crates.io](https://img.shields.io/crates/v/scirs2-transform.svg)](https://crates.io/crates/scirs2-transform)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](#license)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-transform)](https://docs.rs/scirs2-transform)
-[![Tests](https://img.shields.io/badge/tests-100%20passing-brightgreen.svg)](#testing)
 
-**Production-ready data transformation library for machine learning in Rust (v0.1.5)**
+Data transformation, dimensionality reduction, and feature engineering library for machine learning in Rust, part of the [SciRS2](https://github.com/cool-japan/scirs) scientific computing ecosystem.
 
-This crate provides comprehensive data transformation utilities for the SciRS2 ecosystem (v0.1.5). Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module is designed to match and exceed the functionality of scikit-learn's preprocessing module while leveraging Rust's performance and safety guarantees with enhanced distributed processing capabilities.
+## Overview
 
-## 🚀 Features
+`scirs2-transform` provides comprehensive data preprocessing and transformation utilities following scikit-learn's `fit` / `transform` / `fit_transform` API pattern. v0.3.0 significantly extends the library with UMAP, Barnes-Hut t-SNE, persistent homology / TDA, metric learning, kernel methods, optimal transport, and advanced NMF variants.
 
-### Data Normalization & Standardization
-- **Min-Max Scaling**: Scale features to [0, 1] or custom ranges
-- **Z-Score Standardization**: Transform to zero mean and unit variance  
-- **Robust Scaling**: Use median and IQR for outlier-resistant scaling
-- **Max Absolute Scaling**: Scale by maximum absolute value
-- **L1/L2 Normalization**: Vector normalization
+## Features
+
+### Normalization and Scaling
+- Min-Max scaling to `[0, 1]` or custom ranges
+- Z-score standardization (zero mean, unit variance)
+- Robust scaling (median and IQR; outlier-resistant)
+- Max-absolute scaling
+- L1 / L2 vector normalization
+- Quantile normalization
+- Reusable `Normalizer` with `fit` / `transform` / `inverse_transform`
 
 ### Feature Engineering
-- **Polynomial Features**: Generate polynomial and interaction features
-- **Power Transformations**: Box-Cox and Yeo-Johnson with optimal λ estimation
-- **Discretization**: Equal-width and equal-frequency binning
-- **Binarization**: Convert continuous features to binary
-- **Log Transformations**: Logarithmic feature scaling
+- Polynomial features (degree 2+, with/without interaction-only mode)
+- Box-Cox and Yeo-Johnson power transformations with optimal lambda estimation
+- Equal-width and equal-frequency discretization (binning)
+- Binarization with configurable thresholds
+- Log transformations with epsilon handling
+- Interaction terms, custom function transformers
 
 ### Dimensionality Reduction
-- **PCA**: Principal Component Analysis with centering/scaling options
-- **Truncated SVD**: Memory-efficient singular value decomposition
-- **LDA**: Linear Discriminant Analysis for supervised reduction
-- **t-SNE**: Advanced non-linear embedding with Barnes-Hut optimization
+- PCA (Principal Component Analysis) with centering/scaling, explained variance ratio
+- Truncated SVD (memory-efficient for sparse data)
+- Linear Discriminant Analysis (LDA) for supervised reduction
+- t-SNE with Barnes-Hut approximation (O(n log n), multicore)
+- UMAP (Uniform Manifold Approximation and Projection)
+- Isomap (geodesic-distance manifold learning)
+- Locally Linear Embedding (LLE)
+- Kernel PCA (RBF, polynomial, sigmoid kernels)
+- Probabilistic PCA (PPCA)
+- Factor analysis
+
+### Independent Component Analysis
+- FastICA (fixed-point iteration)
+- Spatial ICA
+- Infomax ICA
+
+### Non-Negative Matrix Factorization (NMF) Variants
+- Standard NMF (multiplicative update rules)
+- Sparse NMF
+- Convex NMF
+- Semi-NMF
+- Online NMF for streaming data
+
+### Sparse PCA and Dictionary Learning
+- Sparse PCA via LASSO-based encoding
+- Dictionary learning (K-SVD style)
+- Sparse coding and reconstruction
+
+### Metric Learning
+- Mahalanobis distance learning
+- LMNN (Large Margin Nearest Neighbor)
+- NCA (Neighborhood Components Analysis)
+- Metric learning extensions (`metric_learning_ext/`)
+
+### Kernel Methods
+- Kernel PCA with multiple kernels
+- Deep kernel learning
+- Random Fourier Features (RFF) for large-scale kernel approximation
+- Orthogonal Random Features (ORF)
+- Nystrom approximation
+
+### Optimal Transport
+- Wasserstein distance computation
+- Sinkhorn-Knopp regularized OT
+- Sliced Wasserstein distance
+- OT-based domain adaptation
+
+### Topological Data Analysis (TDA)
+- Vietoris-Rips complex construction
+- Persistent homology computation (Betti numbers, persistence diagrams)
+- Persistence landscape features
+- Topological feature vectorization
+- Persistent diagram analysis
+
+### Archetypal Analysis
+- Archetypal analysis (convex hull vertex finding)
+- Simplex-based data representation
+
+### Autoencoder-Based Reduction
+- Linear autoencoder as PCA surrogate
+- Nonlinear autoencoder reduction
 
 ### Categorical Encoding
-- **One-Hot Encoding**: Sparse and dense representations
-- **Ordinal Encoding**: Label encoding for ordinal categories
-- **Target Encoding**: Supervised encoding with regularization
-- **Binary Encoding**: Memory-efficient encoding for high-cardinality features
+- One-hot encoding (sparse and dense)
+- Ordinal / label encoding
+- Target encoding with regularization
+- Binary encoding for high-cardinality features
+- Unknown category handling strategies
 
 ### Missing Value Imputation
-- **Simple Imputation**: Mean, median, mode, and constant strategies
-- **KNN Imputation**: K-nearest neighbors with multiple distance metrics
-- **Iterative Imputation**: MICE algorithm for multivariate imputation
-- **Missing Indicators**: Track which values were imputed
+- Simple imputation: mean, median, mode, constant
+- KNN imputation with multiple distance metrics
+- Iterative imputation (MICE algorithm)
+- Missing indicator tracking
 
 ### Feature Selection
-- **Variance Threshold**: Remove low-variance features
-- **Integration**: Seamless integration with all transformers
+- Variance threshold filter
+- Recursive Feature Elimination (RFE)
+- Mutual information-based selection
 
-## 📦 Installation
+### Pipeline API
+- Sequential transformation chains
+- `ColumnTransformer` for per-column transforms
+- `fit` / `transform` / `fit_transform` / `inverse_transform` throughout
 
-Add this to your `Cargo.toml`:
+### Signal Transforms (Integrated)
+- Discrete Wavelet Transform (DWT): Haar, Daubechies, Symlet, Coiflet; multi-level
+- 2D DWT for image decomposition (LL, LH, HL, HH subbands)
+- Continuous Wavelet Transform (CWT): Morlet, Mexican Hat, Gaussian
+- Wavelet Packet Transform (WPT) with best-basis selection
+- Short-Time Fourier Transform (STFT) with multiple window functions
+- Spectrograms (power, magnitude, dB scale)
+- MFCC with mel filterbank, delta and delta-delta features
+- Constant-Q Transform (CQT) for musical analysis
+- Chromagram (12-bin pitch class profiles)
+
+### Multi-View Learning
+- Multi-view PCA and CCA
+- Consensus multi-view embedding
+
+### Online / Incremental Learning
+- Incremental PCA (chunk-by-chunk update)
+- Online NMF
+- Online t-SNE approximations
+
+### Out-of-Core Processing
+- Chunked array reader/writer for datasets larger than RAM
+- Streaming normalizer with partial-fit
+
+### Structure Learning
+- Covariance structure estimation
+- Graphical LASSO for sparse inverse covariance
+
+## Quick Start
+
+Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scirs2-transform = "0.1.5"
+scirs2-transform = "0.3.0"
 ```
 
-For parallel processing and enhanced performance:
+With SIMD and parallel features:
 
 ```toml
 [dependencies]
-scirs2-transform = { version = "0.1.5", features = ["parallel"] }
+scirs2-transform = { version = "0.3.0", features = ["parallel", "simd"] }
 ```
 
-## 🎯 Quick Start
-
-### Basic Normalization
+### Normalization
 
 ```rust
-use ndarray::array;
 use scirs2_transform::normalize::{normalize_array, NormalizationMethod, Normalizer};
+use scirs2_core::ndarray::Array2;
 
-// One-shot normalization
-let data = array![[1.0, 2.0, 3.0], 
-                 [4.0, 5.0, 6.0],
-                 [7.0, 8.0, 9.0]];
-let normalized = normalize_array(&data, NormalizationMethod::MinMax, 0)?;
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let data = Array2::<f64>::from_shape_vec((4, 3), vec![
+        1.0, 2.0, 3.0,
+        4.0, 5.0, 6.0,
+        7.0, 8.0, 9.0,
+        10.0, 11.0, 12.0,
+    ])?;
 
-// Fit-transform workflow for reusable transformations
-let mut normalizer = Normalizer::new(NormalizationMethod::ZScore, 0);
-let train_transformed = normalizer.fit_transform(&train_data)?;
-let test_transformed = normalizer.transform(&test_data)?;
-```
+    // One-shot Z-score normalization
+    let normalized = normalize_array(&data, NormalizationMethod::ZScore, 0)?;
 
-### Feature Engineering
+    // Reusable normalizer (fit on train, apply to test)
+    let mut scaler = Normalizer::new(NormalizationMethod::MinMax, 0);
+    let train_scaled = scaler.fit_transform(&data)?;
+    // let test_scaled = scaler.transform(&test_data)?;
 
-```rust
-use scirs2_transform::features::{PolynomialFeatures, PowerTransformer, binarize};
-
-// Generate polynomial features
-let data = array![[1.0, 2.0], [3.0, 4.0]];
-let poly = PolynomialFeatures::new(2, false, true);
-let poly_features = poly.transform(&data)?;
-
-// Power transformations with optimal lambda
-let mut transformer = PowerTransformer::yeo_johnson(true);
-let gaussian_data = transformer.fit_transform(&skewed_data)?;
-
-// Binarization
-let binary_features = binarize(&data, 0.0)?;
-```
-
-### Dimensionality Reduction
-
-```rust
-use scirs2_transform::reduction::{PCA, TSNE};
-
-// PCA for linear dimensionality reduction
-let mut pca = PCA::new(2, true, false);
-let reduced_data = pca.fit_transform(&high_dim_data)?;
-let explained_variance = pca.explained_variance_ratio().unwrap();
-
-// t-SNE for non-linear visualization
-let mut tsne = TSNE::new(2, 30.0, 500)?;
-let embedding = tsne.fit_transform(&data)?;
-```
-
-### Categorical Encoding
-
-```rust
-use scirs2_transform::encoding::{OneHotEncoder, TargetEncoder};
-
-// One-hot encoding
-let mut encoder = OneHotEncoder::new(false, false)?;
-let encoded = encoder.fit_transform(&categorical_data)?;
-
-// Target encoding for supervised learning
-let mut target_encoder = TargetEncoder::mean_encoding(1.0);
-let encoded = target_encoder.fit_transform(&categories, &targets)?;
-```
-
-### Missing Value Imputation
-
-```rust
-use scirs2_transform::impute::{SimpleImputer, KNNImputer, ImputeStrategy};
-
-// Simple imputation
-let mut imputer = SimpleImputer::new(ImputeStrategy::Mean);
-let complete_data = imputer.fit_transform(&data_with_missing)?;
-
-// KNN imputation
-let mut knn_imputer = KNNImputer::new(5)?;
-let imputed_data = knn_imputer.fit_transform(&data_with_missing)?;
-```
-
-## 🔧 Advanced Usage
-
-### Pipeline Integration
-
-```rust
-// Sequential transformations
-let mut scaler = Normalizer::new(NormalizationMethod::ZScore, 0);
-let mut pca = PCA::new(50, true, false);
-
-// Preprocessing pipeline
-let scaled_data = scaler.fit_transform(&raw_data)?;
-let reduced_data = pca.fit_transform(&scaled_data)?;
-```
-
-### Custom Transformations
-
-```rust
-use scirs2_transform::features::PowerTransformer;
-
-// Custom power transformation
-let mut transformer = PowerTransformer::new("yeo-johnson", true)?;
-transformer.fit(&training_data)?;
-
-// Apply to new data
-let transformed_test = transformer.transform(&test_data)?;
-let original_test = transformer.inverse_transform(&transformed_test)?;
-```
-
-### Performance Optimization
-
-```rust
-// Enable parallel processing for large datasets
-use rayon::prelude::*;
-
-// Most transformers automatically use parallel processing when beneficial
-let mut pca = PCA::new(100, true, false);
-let result = pca.fit_transform(&large_dataset)?; // Automatically parallelized
-```
-
-## 📊 Performance
-
-SciRS2 Transform is designed for production workloads:
-
-- **Memory Efficient**: Zero-copy operations where possible
-- **Parallel Processing**: Multi-core support via Rayon
-- **SIMD Ready**: Integration with vectorized operations
-- **Large Scale**: Handles datasets with 100k+ samples and 10k+ features
-
-### Benchmarks
-
-| Operation | Dataset Size | Time (SciRS2) | Time (sklearn) | Speedup |
-|-----------|-------------|---------------|----------------|---------|
-| PCA | 50k × 1k | 2.1s | 3.8s | 1.8x |
-| t-SNE | 10k × 100 | 12.3s | 18.7s | 1.5x |
-| Normalization | 100k × 500 | 0.3s | 0.9s | 3.0x |
-| Power Transform | 50k × 200 | 1.8s | 2.4s | 1.3x |
-
-## 🧪 Testing
-
-Run the comprehensive test suite:
-
-```bash
-# All tests (100 tests)
-cargo test
-
-# With output
-cargo test -- --nocapture
-
-# Specific module
-cargo test normalize::tests
-```
-
-## 📚 Documentation
-
-- [API Documentation](https://docs.rs/scirs2-transform)
-- [SciRS2 Project](https://github.com/cool-japan/scirs)
-- [Performance Guide](./docs/performance.md)
-- [Migration from sklearn](./docs/sklearn-migration.md)
-
-## 🔄 Compatibility
-
-### Scikit-learn API Compatibility
-
-SciRS2 Transform follows scikit-learn's API conventions:
-
-- `fit()` / `transform()` / `fit_transform()` pattern
-- Consistent parameter naming
-- Similar default behaviors
-- Compatible data formats (via ndarray)
-
-### Migration from Scikit-learn
-
-```python
-# Python (scikit-learn)
-from sklearn.preprocessing import StandardScaler
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-```
-
-```rust
-// Rust (SciRS2)
-use scirs2_transform::normalize::{Normalizer, NormalizationMethod};
-let mut scaler = Normalizer::new(NormalizationMethod::ZScore, 0);
-let x_scaled = scaler.fit_transform(&x)?;
-```
-
-## 🏗️ Architecture
-
-### Modular Design
-
-```
-scirs2-transform/
-├── normalize/     # Data normalization and standardization
-├── features/      # Feature engineering utilities  
-├── reduction/     # Dimensionality reduction algorithms
-├── encoding/      # Categorical data encoding
-├── impute/        # Missing value imputation
-├── selection/     # Feature selection methods
-└── scaling/       # Advanced scaling transformers
-```
-
-### Error Handling
-
-Comprehensive error handling with descriptive messages:
-
-```rust
-use scirs2_transform::{Result, TransformError};
-
-match normalizer.fit_transform(&data) {
-    Ok(transformed) => println!("Success!"),
-    Err(TransformError::InvalidInput(msg)) => println!("Input error: {}", msg),
-    Err(TransformError::TransformationError(msg)) => println!("Transform error: {}", msg),
-    Err(e) => println!("Other error: {}", e),
+    println!("Normalized shape: {:?}", normalized.shape());
+    Ok(())
 }
 ```
 
-## 🛠️ Development
+### PCA
 
-### Building from Source
+```rust
+use scirs2_transform::reduction::PCA;
+use scirs2_core::ndarray::Array2;
 
-```bash
-git clone https://github.com/cool-japan/scirs
-cd scirs/scirs2-transform
-cargo build --release
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let data = Array2::<f64>::zeros((200, 50)); // high-dimensional data
+
+    let mut pca = PCA::new(10, true, false); // 10 components, center=true
+    let reduced = pca.fit_transform(&data)?;
+
+    if let Some(evr) = pca.explained_variance_ratio() {
+        let total: f64 = evr.iter().take(10).sum();
+        println!("Explained variance (10 components): {:.1}%", total * 100.0);
+    }
+    println!("Reduced shape: {:?}", reduced.shape()); // (200, 10)
+    Ok(())
+}
 ```
 
-### Contributing
+### UMAP
 
-1. Fork the repository
-2. Create a feature branch
-3. Add comprehensive tests
-4. Ensure all tests pass: `cargo test`
-5. Run clippy: `cargo clippy`
-6. Submit a pull request
+```rust
+use scirs2_transform::umap::UMAP;
+use scirs2_core::ndarray::Array2;
 
-## 📈 Roadmap
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let data = Array2::<f64>::zeros((500, 100));
 
-### Version 0.1.0 (Next)
-- Pipeline API for chaining transformations
-- Enhanced SIMD acceleration
-- Comprehensive benchmarking suite
+    let mut umap = UMAP::new(2)     // 2D embedding
+        .with_n_neighbors(15)
+        .with_min_dist(0.1);
+    let embedding = umap.fit_transform(&data)?;
 
-### Version 0.2.0
-- UMAP and manifold learning algorithms  
-- Advanced matrix decomposition methods
-- Time series feature extraction
+    println!("UMAP embedding shape: {:?}", embedding.shape()); // (500, 2)
+    Ok(())
+}
+```
 
-### Version 1.0.0
-- GPU acceleration
-- Distributed processing
-- Production monitoring tools
+### Persistent Homology (TDA)
 
-## 🤝 License
+```rust
+use scirs2_transform::tda::{VietorisRips, PersistentHomology};
+use scirs2_core::ndarray::Array2;
 
-This project is dual-licensed under either:
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let points = Array2::<f64>::zeros((50, 3));
 
+    let vr = VietorisRips::new(2.0, 1); // max_radius, max_dim
+    let complex = vr.build(points.view())?;
 
-You may choose to use either license.
+    let ph = PersistentHomology::new();
+    let diagrams = ph.compute(&complex)?;
 
-## 🙏 Acknowledgments
+    println!("H0 features: {}", diagrams[0].len());
+    println!("H1 features: {}", diagrams[1].len());
+    Ok(())
+}
+```
 
-- Inspired by [scikit-learn](https://scikit-learn.org/)
-- Built on [ndarray](https://github.com/rust-ndarray/ndarray)
-- Powered by [Rayon](https://github.com/rayon-rs/rayon) for parallelization
+### Optimal Transport
 
----
+```rust
+use scirs2_transform::optimal_transport::{sinkhorn, wasserstein_distance};
+use scirs2_core::ndarray::{Array1, Array2};
 
-**Ready for Production**: SciRS2 Transform v0.1.5 provides production-ready data transformation capabilities with performance that meets or exceeds established Python libraries while offering Rust's safety and performance guarantees.
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let source = Array1::<f64>::from_vec(vec![0.5, 0.5]);
+    let target = Array1::<f64>::from_vec(vec![0.3, 0.7]);
+    let cost = Array2::<f64>::from_shape_vec((2, 2), vec![0.0, 1.0, 1.0, 0.0])?;
+
+    // Sinkhorn regularized OT (reg=0.1)
+    let (transport_plan, ot_cost) = sinkhorn(
+        source.view(), target.view(), cost.view(), 0.1, 100
+    )?;
+    println!("OT cost: {:.4}", ot_cost);
+    Ok(())
+}
+```
+
+## Feature Flags
+
+| Flag | Description |
+|------|-------------|
+| `parallel` | Enable Rayon-based multi-threaded transforms |
+| `simd` | SIMD-accelerated normalization and distance operations |
+
+## Related Crates
+
+- [`scirs2-cluster`](../scirs2-cluster) - Clustering algorithms
+- [`scirs2-linalg`](../scirs2-linalg) - Linear algebra (SVD, eigendecomposition)
+- [`scirs2-fft`](../scirs2-fft) - FFT operations (used by signal transforms)
+- [SciRS2 project](https://github.com/cool-japan/scirs)
+
+## License
+
+Licensed under the Apache License, Version 2.0. See [LICENSE](../LICENSE) for details.

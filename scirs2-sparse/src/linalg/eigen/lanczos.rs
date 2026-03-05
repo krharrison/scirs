@@ -12,13 +12,6 @@ use scirs2_core::SparseElement;
 use std::fmt::Debug;
 use std::ops::{Add, Div, Mul, Sub};
 
-// For checking approximate equality in floating-point values
-macro_rules! abs_diff_eq {
-    ($left:expr, $right:expr) => {
-        ($left as i32) == ($right as i32)
-    };
-}
-
 /// Configuration options for the Lanczos algorithm
 #[derive(Debug, Clone)]
 pub struct LanczosOptions {
@@ -191,7 +184,7 @@ where
     }
 
     // Compute beta (norm of w)
-    let beta_j = (w.iter().map(|&val| val * val).sum::<T>()).sqrt();
+    let mut beta_j = (w.iter().map(|&val| val * val).sum::<T>()).sqrt();
 
     let mut iter = 1;
     let mut converged = false;
@@ -213,10 +206,26 @@ where
         // Store the vector
         v_vectors.push(v_next.clone());
 
-        // Next iteration step
+        // Next iteration step: w = A * v_next
         w = sym_csr_matvec(matrix, &v_next.view())?;
 
-        // Full reorthogonalization (for numerical stability)
+        // Compute alpha BEFORE orthogonalization (standard 3-term recurrence)
+        let alpha_j = v_next
+            .iter()
+            .zip(w.iter())
+            .map(|(&vi, &wi)| vi * wi)
+            .sum::<T>();
+        alpha.push(alpha_j);
+
+        // Subtract the standard 3-term recurrence components:
+        // w = w - alpha_j * v_next - beta_j * v_prev
+        // (beta_j * v_prev is handled by full reorthogonalization below)
+        for i in 0..n {
+            w[i] = w[i] - alpha_j * v_next[i];
+        }
+
+        // Full reorthogonalization for numerical stability:
+        // Remove any residual components along all previous Lanczos vectors
         for v_j in v_vectors.iter() {
             let proj = v_j
                 .iter()
@@ -228,51 +237,43 @@ where
             }
         }
 
-        // Compute alpha
-        let alpha_j = v_next
-            .iter()
-            .zip(w.iter())
-            .map(|(&vi, &wi)| vi * wi)
-            .sum::<T>();
-        alpha.push(alpha_j);
-
-        // Update v for next iteration
-        for i in 0..n {
-            w[i] = w[i] - alpha_j * v_next[i];
-        }
-
         // Compute beta for next iteration
         let beta_j_next = (w.iter().map(|&val| val * val).sum::<T>()).sqrt();
 
         // Check for convergence using the largest eigenvalue approx
         if alpha.len() >= numeigenvalues {
             // Build and solve the tridiagonal system
-            let (eigvals, _) = solve_tridiagonal_eigenproblem(&alpha, &beta, numeigenvalues)?;
-
-            // Check if the largest eigvals have converged (using beta as an error estimate)
-            if beta_j_next < T::from(options.tol).expect("Operation failed") * eigvals[0].abs() {
-                converged = true;
-                break;
+            if let Ok((eigvals, _)) = solve_tridiagonal_eigenproblem(&alpha, &beta, numeigenvalues)
+            {
+                // Check if the largest eigvals have converged (using beta as an error estimate)
+                if !eigvals.is_empty()
+                    && eigvals[0].abs() > T::sparse_zero()
+                    && beta_j_next < T::from(options.tol).unwrap_or(T::epsilon()) * eigvals[0].abs()
+                {
+                    converged = true;
+                    break;
+                }
             }
         }
 
         v = v_next;
         iter += 1;
 
-        // Update beta for next iteration
-        if iter < options.max_iter && alpha.len() < subspace_size {
-            let _beta_j = beta_j_next;
-        }
+        // Update beta_j for the next iteration
+        beta_j = beta_j_next;
     }
 
-    // Solve the final tridiagonal eigenproblem
-    let (eigvals, eigvecs) = solve_tridiagonal_eigenproblem(&alpha, &beta, numeigenvalues)?;
+    // Solve the final tridiagonal eigenproblem for ALL eigenvalues so that
+    // callers (e.g. process_eigenvalue_selection) can pick any subset (LA, SA, LM, SM).
+    let n_tridiag = alpha.len();
+    let (eigvals, eigvecs) = solve_tridiagonal_eigenproblem(&alpha, &beta, n_tridiag)?;
 
     // Compute the Ritz vectors (eigenvectors in the original space) if requested
+    let actual_neig = eigvals.len();
     let eigenvectors = if options.compute_eigenvectors {
-        let mut ritz_vectors = Array2::zeros((n, numeigenvalues));
+        let mut ritz_vectors = Array2::zeros((n, actual_neig));
 
-        for k in 0..numeigenvalues {
+        for k in 0..actual_neig {
             for i in 0..n {
                 let mut sum = T::sparse_zero();
                 for j in 0..v_vectors.len() {
@@ -311,7 +312,7 @@ where
     } else {
         // If no eigenvectors were computed, use the Kaniel-Paige error bound
         // (beta_j * last component of eigenvector in the Krylov basis)
-        for k in 0..numeigenvalues {
+        for k in 0..actualeigenvalues {
             if k < eigvecs.len() && !beta.is_empty() {
                 residuals[k] = beta[beta.len() - 1] * eigvecs[eigvecs.len() - 1][k].abs();
             }
@@ -397,67 +398,79 @@ where
         z[i][i] = T::sparse_one(); // Initialize with identity matrix
     }
 
-    // Run the QL algorithm with implicit shifts
+    // QL algorithm with implicit shifts (tqli from Numerical Recipes)
+    //
+    // d[0..n] = diagonal,  e[0..n] = off-diagonal (e[n-1] unused).
+    // On exit d[] holds eigenvalues and z[][] holds eigenvectors.
+    let max_ql_iter: usize = 200; // generous iteration budget per eigenvalue
+
     for l in 0..n {
-        let mut iter = 0;
-        let max_iter = 30; // Typical value
+        let mut iter_count: usize = 0;
 
         loop {
-            // Look for a small off-diagonal element
+            // Find the smallest m >= l such that |e[m]| is negligible
             let mut m = l;
             while m < n - 1 {
-                if e[m].abs()
-                    <= T::from(1e-12).expect("Operation failed") * (d[m].abs() + d[m + 1].abs())
-                {
+                let dd = d[m].abs() + d[m + 1].abs();
+                // Use a relative + absolute tolerance
+                if e[m].abs() <= T::from(2.0e-15).unwrap_or(T::epsilon()) * dd {
                     break;
                 }
                 m += 1;
             }
 
             if m == l {
-                // No more work for this eigenvalue
-                break;
+                break; // eigenvalue d[l] has converged
             }
 
-            if iter >= max_iter {
-                // Too many iterations, return error
+            if iter_count >= max_ql_iter {
                 return Err(SparseError::IterativeSolverFailure(
                     "QL algorithm did not converge".to_string(),
                 ));
             }
+            iter_count += 1;
 
-            let g = (d[l + 1] - d[l]) * T::from(0.5).expect("Operation failed") / e[l];
-            let r = (g * g + T::sparse_one()).sqrt();
-            let mut g = d[m] - d[l] + e[l] / (g + if g >= T::sparse_zero() { r } else { -r });
+            // Form the implicit QL shift
+            let half = T::from(0.5).unwrap_or(T::sparse_one());
+            let mut g = (d[l + 1] - d[l]) / (e[l] + e[l]); // = (d[l+1]-d[l])/(2*e[l])
+            let mut r = (g * g + T::sparse_one()).sqrt();
+            // g = d[m] - d[l] + e[l] / (g + sign(g)*r)
+            g = d[m] - d[l] + e[l] / (g + if g >= T::sparse_zero() { r } else { -r });
 
             let mut s = T::sparse_one();
             let mut c = T::sparse_one();
             let mut p = T::sparse_zero();
 
-            let mut i = m - 1;
-            while i >= l && i < n {
-                // Handle unsigned underflow
+            // Chase the bulge from m-1 down to l
+            let mut broke_early = false;
+            let mut ii = m; // we will iterate i = m-1, m-2, ..., l
+            while ii > l {
+                let i = ii - 1;
+
                 let f = s * e[i];
                 let b = c * e[i];
 
-                // Compute the Givens rotation
-                let r = (f * f + g * g).sqrt();
+                // Givens rotation to zero out f
+                r = (f * f + g * g).sqrt();
                 e[i + 1] = r;
 
-                if SparseElement::is_zero(&r) {
-                    // Avoid division by zero
+                if r < T::from(1e-30).unwrap_or(T::epsilon()) {
+                    // Underflow recovery: undo the accumulated shift
                     d[i + 1] = d[i + 1] - p;
                     e[m] = T::sparse_zero();
+                    broke_early = true;
                     break;
                 }
 
                 s = f / r;
                 c = g / r;
-
-                let _h = g * p;
-                p = s * (d[i] - d[i + 1]) + c * b;
-                d[i + 1] = d[i + 1] + p;
-                g = c * s - b;
+                g = d[i + 1] - p;
+                r = (d[i] - g) * s + c * b + c * b;
+                // Accumulate shift
+                let _ = half; // suppress unused warning
+                p = s * r;
+                d[i + 1] = g + p;
+                g = c * r - b;
 
                 // Update eigenvectors
                 #[allow(clippy::needless_range_loop)]
@@ -467,28 +480,16 @@ where
                     z[k][i] = c * z[k][i] - s * t;
                 }
 
-                if i == 0 {
-                    break;
-                }
-                i -= 1;
+                ii -= 1;
             }
 
-            if (i as i32) < (l as i32) || i >= n {
-                // Handle the case of i becoming invalid after decrement
-                break;
+            if broke_early {
+                continue; // retry this eigenvalue
             }
 
-            if SparseElement::is_zero(&r) {
-                if abs_diff_eq!(m, l + 1) {
-                    // Special case for m == l + 1
-                    break;
-                }
-                d[l] = d[l] - p;
-                e[l] = g;
-                e[m - 1] = T::sparse_zero();
-            }
-
-            iter += 1;
+            d[l] = d[l] - p;
+            e[l] = g;
+            e[m] = T::sparse_zero();
         }
     }
 
@@ -721,10 +722,122 @@ where
         return Ok((sortedeigenvalues, eigenvectors));
     }
 
-    // For n > 3, fallback to general algorithm (not implemented here)
-    Err(SparseError::ValueError(
-        "Tridiagonal eigenvalue problem for n > 3 not implemented".to_string(),
-    ))
+    // For n > 3, use the implicit QL algorithm with shifts.
+    // This is the standard approach for symmetric tridiagonal eigenproblems
+    // (Golub & Van Loan, "Matrix Computations", Algorithm 8.3.3).
+
+    let mut d = alpha.to_vec();
+    let mut e = beta.to_vec();
+    e.push(T::sparse_zero());
+
+    // Eigenvector matrix (rows = components, columns = eigenvector index)
+    let mut z = vec![vec![T::sparse_zero(); n]; n];
+    for i in 0..n {
+        z[i][i] = T::sparse_one();
+    }
+
+    let max_ql_iter: usize = 30 * n;
+
+    for l in 0..n {
+        let mut iter_count = 0usize;
+        loop {
+            let mut m = l;
+            while m < n - 1 {
+                let dd = d[m].abs() + d[m + 1].abs();
+                if dd + e[m].abs() == dd {
+                    break;
+                }
+                m += 1;
+            }
+            if m == l {
+                break;
+            }
+            if iter_count >= max_ql_iter {
+                return Err(SparseError::IterativeSolverFailure(
+                    "QL algorithm for tridiagonal eigenproblem did not converge".to_string(),
+                ));
+            }
+            iter_count += 1;
+
+            // Wilkinson shift
+            let g0 = (d[l + 1] - d[l]) / (T::from(2.0).expect("conv") * e[l]);
+            let r0 = (g0 * g0 + T::sparse_one()).sqrt();
+            let signed_r = if g0 >= T::sparse_zero() { r0 } else { -r0 };
+            let mut g = d[m] - d[l] + e[l] / (g0 + signed_r);
+
+            let mut s = T::sparse_one();
+            let mut c = T::sparse_one();
+            let mut p = T::sparse_zero();
+
+            if m == 0 {
+                break;
+            }
+            let mut i = m - 1;
+            loop {
+                let f = s * e[i];
+                let b = c * e[i];
+                let r = (f * f + g * g).sqrt();
+                e[i + 1] = r;
+
+                if SparseElement::is_zero(&r) {
+                    d[i + 1] = d[i + 1] - p;
+                    e[m] = T::sparse_zero();
+                    break;
+                }
+
+                s = f / r;
+                c = g / r;
+                g = d[i + 1] - p;
+                let rr = (d[i] - g) * s + T::from(2.0).expect("conv") * c * b;
+                p = s * rr;
+                d[i + 1] = g + p;
+                g = c * rr - b;
+
+                for k in 0..n {
+                    let t = z[k][i + 1];
+                    z[k][i + 1] = s * z[k][i] + c * t;
+                    z[k][i] = c * z[k][i] - s * t;
+                }
+
+                if i == l {
+                    break;
+                }
+                i -= 1;
+            }
+            d[l] = d[l] - p;
+            e[l] = g;
+            e[m] = T::sparse_zero();
+        }
+    }
+
+    // Sort eigenvalues in descending order
+    let mut indices: Vec<usize> = (0..n).collect();
+    indices.sort_by(|&a, &b| d[b].partial_cmp(&d[a]).unwrap_or(std::cmp::Ordering::Equal));
+
+    let take = numeigenvalues.min(n);
+    let mut eigenvalues = Vec::with_capacity(take);
+    let mut eigenvectors = Vec::with_capacity(take);
+
+    for &idx in indices.iter().take(take) {
+        eigenvalues.push(d[idx]);
+        let mut v = Vec::with_capacity(n);
+        for row in 0..n {
+            v.push(z[row][idx]);
+        }
+        let nrm: T = v
+            .iter()
+            .map(|&x| x * x)
+            .fold(T::sparse_zero(), |a, b| a + b)
+            .sqrt();
+        if !SparseElement::is_zero(&nrm) {
+            for x in &mut v {
+                *x = *x / nrm;
+            }
+        }
+        eigenvectors.push(v);
+    }
+
+    Ok((eigenvalues, eigenvectors))
 }
 
 /// Solves a cubic equation ax³ + bx² + cx + d = 0
@@ -823,9 +936,17 @@ mod tests {
         let result = lanczos(&matrix, &options, None).expect("Operation failed");
 
         assert!(result.converged);
-        assert_eq!(result.eigenvalues.len(), 1);
-        // Test that we get a finite eigenvalue (algorithm converges)
-        assert!(result.eigenvalues[0].is_finite());
+        // lanczos() returns all computed eigenvalues from the Krylov subspace;
+        // callers use process_eigenvalue_selection to narrow down to k.
+        assert!(
+            result.eigenvalues.len() >= 1,
+            "expected at least 1 eigenvalue, got {}",
+            result.eigenvalues.len()
+        );
+        // Test that the eigenvalues are finite (algorithm converges)
+        for &ev in result.eigenvalues.iter() {
+            assert!(ev.is_finite());
+        }
     }
 
     #[test]

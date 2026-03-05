@@ -189,7 +189,7 @@ pub fn auto_arima<F>(
     seasonal_period: Option<usize>,
 ) -> Result<ArimaParams>
 where
-    F: Float + FromPrimitive + Debug,
+    F: Float + FromPrimitive + Debug + 'static,
 {
     let options = AutoArimaOptions {
         max_p,
@@ -234,7 +234,7 @@ where
 #[allow(dead_code)]
 pub fn auto_arima_with_options<F>(ts: &Array1<F>, options: &AutoArimaOptions) -> Result<ArimaParams>
 where
-    F: Float + FromPrimitive + Debug,
+    F: Float + FromPrimitive + Debug + 'static,
 {
     if ts.len() < 10 {
         return Err(TimeSeriesError::ForecastingError(
@@ -405,7 +405,7 @@ where
 #[allow(dead_code)]
 fn determine_differencing_order<F>(_ts: &Array1<F>, maxd: usize) -> Result<usize>
 where
-    F: Float + FromPrimitive + Debug,
+    F: Float + FromPrimitive + Debug + 'static,
 {
     let mut best_d = 0;
     let mut series_is_stationary = false;
@@ -435,7 +435,7 @@ fn determine_seasonal_differencing_order<F>(
     max_seasonal_d: usize,
 ) -> Result<usize>
 where
-    F: Float + FromPrimitive + Debug,
+    F: Float + FromPrimitive + Debug + 'static,
 {
     let mut best_d = 0;
     let initial_stat_ = is_stationary(ts, None)?;

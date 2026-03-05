@@ -61,49 +61,34 @@ pub fn j0<F: Float + FromPrimitive + Debug>(x: F) -> F {
 
     let abs_x = x.abs();
 
-    // Use known reference values for specific test points
-    if abs_x == const_f64::<F>(0.5) {
-        return const_f64::<F>(0.938_469_807_240_813);
-    }
-    if abs_x == const_f64::<F>(1.0) {
-        return const_f64::<F>(constants::lookup::j0::AT_1);
-    }
-    if abs_x == const_f64::<F>(2.0) {
-        return const_f64::<F>(constants::lookup::j0::AT_2);
-    }
-    // First zero of J₀
-    if (abs_x - const_f64::<F>(2.404825557695773)).abs() < const_f64::<F>(1e-12) {
-        return const_f64::<F>(-9.586882554906229e-17);
-    }
-    if abs_x == const_f64::<F>(5.0) {
-        return const_f64::<F>(constants::lookup::j0::AT_5);
-    }
-    if abs_x == const_f64::<F>(10.0) {
-        return const_f64::<F>(constants::lookup::j0::AT_10);
+    // For large arguments, use the enhanced asymptotic expansion
+    // The asymptotic expansion is most accurate for x > 25
+    if abs_x > const_f64::<F>(25.0) {
+        return enhanced_asymptotic_j0(x);
     }
 
-    // For very small arguments, use series expansion
-    if abs_x < const_f64::<F>(0.1) {
-        // J₀(x) ≈ 1 - x²/4 + x⁴/64 - x⁶/2304 + ...
-        let x2 = abs_x * abs_x;
-        let x4 = x2 * x2;
-        let x6 = x4 * x2;
-        return F::one() - x2 / const_f64::<F>(4.0) + x4 / const_f64::<F>(64.0)
-            - x6 / const_f64::<F>(2304.0);
-    }
+    // For all |x| <= 25, use the Taylor series:
+    //   J_0(x) = sum_{k=0}^inf (-1)^k * (x/2)^{2k} / (k!)^2
+    //
+    // Using term recurrence: term_{k} = -term_{k-1} * (x/2)^2 / k^2
+    let half_x = abs_x / const_f64::<F>(2.0);
+    let half_x_sq = half_x * half_x;
 
-    // For large arguments, use asymptotic expansion
-    if abs_x > const_f64::<F>(8.0) {
-        let z = abs_x - const_f64::<F>(constants::f64::PI_4);
-        let sqrt_2_over_pi_x =
-            (const_f64::<F>(2.0) / (const_f64::<F>(constants::f64::PI) * abs_x)).sqrt();
-        return sqrt_2_over_pi_x * z.cos();
-    }
+    let mut sum = F::one();
+    let mut term = F::one();
 
-    // For moderate arguments, use a simplified rational approximation
-    // This is a placeholder - for production use, implement proper Chebyshev or rational approximation
-    let x2 = abs_x * abs_x;
-    F::one() - x2 / const_f64::<F>(4.0) + x2 * x2 / const_f64::<F>(64.0)
+    // For |x| <= 25, z = (x/2)^2 <= 156.25, series converges within 80 terms
+    for k in 1..80 {
+        let k_f = const_f64::<F>(k as f64);
+        term = term * (-half_x_sq) / (k_f * k_f);
+        let new_sum = sum + term;
+        // Convergence check: term is smaller than sum * epsilon
+        if (new_sum - sum).abs() < const_f64::<F>(1e-15) * sum.abs().max(const_f64::<F>(1e-300)) {
+            return new_sum;
+        }
+        sum = new_sum;
+    }
+    sum
 }
 
 /// Enhanced asymptotic approximation for J0 with very large arguments.
@@ -186,45 +171,34 @@ pub fn j1<F: Float + FromPrimitive + Debug>(x: F) -> F {
         -F::one()
     };
 
-    // Use known reference values for specific test points
-    if abs_x == const_f64::<F>(0.5) {
-        return sign * const_f64::<F>(0.2422684576748739);
-    }
-    if abs_x == const_f64::<F>(1.0) {
-        return sign * const_f64::<F>(constants::lookup::j1::AT_1);
-    }
-    if abs_x == const_f64::<F>(2.0) {
-        return sign * const_f64::<F>(constants::lookup::j1::AT_2);
-    }
-    if abs_x == const_f64::<F>(5.0) {
-        return sign * const_f64::<F>(constants::lookup::j1::AT_5);
-    }
-    if abs_x == const_f64::<F>(10.0) {
-        return sign * const_f64::<F>(constants::lookup::j1::AT_10);
+    // For large arguments, use the enhanced asymptotic expansion
+    // The asymptotic expansion is most accurate for x > 25
+    if abs_x > const_f64::<F>(25.0) {
+        return sign * enhanced_asymptotic_j1(abs_x);
     }
 
-    // For very small arguments, use series expansion
-    if abs_x < const_f64::<F>(0.1) {
-        // J₁(x) ≈ x/2 - x³/16 + x⁵/384 - ...
-        let x2 = abs_x * abs_x;
-        let x4 = x2 * x2;
-        return sign
-            * (abs_x / const_f64::<F>(2.0) - abs_x * x2 / const_f64::<F>(16.0)
-                + abs_x * x4 / const_f64::<F>(384.0));
-    }
+    // For all |x| <= 25, use the Taylor series:
+    //   J_1(x) = (x/2) * sum_{k=0}^inf (-1)^k * (x/2)^{2k} / (k! * (k+1)!)
+    //
+    // Using term recurrence: term_{k} = -term_{k-1} * (x/2)^2 / (k * (k+1))
+    let half_x = abs_x / const_f64::<F>(2.0);
+    let half_x_sq = half_x * half_x;
 
-    // For large arguments, use asymptotic expansion
-    if abs_x > const_f64::<F>(8.0) {
-        let z = abs_x - const_f64::<F>(3.0 * constants::f64::PI_4);
-        let sqrt_2_over_pi_x =
-            (const_f64::<F>(2.0) / (const_f64::<F>(constants::f64::PI) * abs_x)).sqrt();
-        return sign * sqrt_2_over_pi_x * z.cos();
-    }
+    let mut sum = F::one(); // k=0 term: 1/(0! * 1!) = 1
+    let mut term = F::one();
 
-    // For moderate arguments, use a simplified approximation
-    // This is a placeholder - for production use, implement proper approximation
-    let x2 = abs_x * abs_x;
-    sign * (abs_x / const_f64::<F>(2.0) - abs_x * x2 / const_f64::<F>(16.0))
+    // For |x| <= 25, z = (x/2)^2 <= 156.25, series converges within 80 terms
+    for k in 1..80 {
+        let k_f = const_f64::<F>(k as f64);
+        let k_plus_1 = const_f64::<F>((k + 1) as f64);
+        term = term * (-half_x_sq) / (k_f * k_plus_1);
+        let new_sum = sum + term;
+        if (new_sum - sum).abs() < const_f64::<F>(1e-15) * sum.abs().max(const_f64::<F>(1e-300)) {
+            return sign * half_x * new_sum;
+        }
+        sum = new_sum;
+    }
+    sign * half_x * sum
 }
 
 /// Enhanced asymptotic approximation for J1 with very large arguments.

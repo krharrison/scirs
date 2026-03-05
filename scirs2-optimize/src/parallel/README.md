@@ -78,7 +78,7 @@ let result = differential_evolution(
     bounds,
     Some(options),
     None,
-).unwrap();
+).expect("valid input");
 ```
 
 ## Configuration

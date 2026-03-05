@@ -38,7 +38,7 @@ use scirs2_core::numeric::Zero;
 /// // Convert simple analog integrator to digital
 /// let analog_poles = vec![Complex64::new(0.0, 0.0)];
 /// let analog_zeros = vec![];
-/// let (z, p, k) = bilinear_transform(&analog_zeros, &analog_poles, 1.0, 1000.0).unwrap();
+/// let (z, p, k) = bilinear_transform(&analog_zeros, &analog_poles, 1.0, 1000.0).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn bilinear_transform(
@@ -102,7 +102,7 @@ pub fn bilinear_transform(
 /// // Convert simple first-order system
 /// let zeros = vec![];
 /// let poles = vec![Complex64::new(-1.0, 0.0)];
-/// let (b, a) = zpk_to_tf(&zeros, &poles, 1.0).unwrap();
+/// let (b, a) = zpk_to_tf(&zeros, &poles, 1.0).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn zpk_to_tf(
@@ -216,7 +216,7 @@ pub fn zpk_to_tf(
 /// // Convert simple first-order transfer function
 /// let b = vec![1.0];
 /// let a = vec![1.0, 1.0]; // H(z) = 1 / (z + 1)
-/// let (zeros, poles, gain) = tf_to_zpk(&b, &a).unwrap();
+/// let (zeros, poles, gain) = tf_to_zpk(&b, &a).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn tf_to_zpk(b: &[f64], a: &[f64]) -> SignalResult<(Vec<Complex64>, Vec<Complex64>, f64)> {

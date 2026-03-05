@@ -13,6 +13,9 @@
 // Public types module
 pub mod types;
 
+// Enhanced event detection
+pub mod events;
+
 // Public modules
 pub mod chemical;
 pub mod chemical_equilibrium;

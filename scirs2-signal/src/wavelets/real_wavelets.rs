@@ -20,7 +20,7 @@ use crate::error::{SignalError, SignalResult};
 /// use scirs2_signal::wavelets::ricker;
 ///
 /// // Generate a Ricker wavelet with 100 points and width parameter 4.0
-/// let wavelet = ricker(100, 4.0).unwrap();
+/// let wavelet = ricker(100, 4.0).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn ricker(points: usize, a: f64) -> SignalResult<Vec<f64>> {

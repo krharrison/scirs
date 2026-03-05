@@ -6,8 +6,8 @@
 //! or TensorFlow which integrate seamlessly with scirs2 via NumPy arrays.
 
 use pyo3::prelude::*;
-use scirs2_autograd::VariableEnvironment;
 use scirs2_autograd::variable::NamespaceTrait;
+use scirs2_autograd::VariableEnvironment;
 use scirs2_numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods};
 
 /// Variable environment for managing trainable parameters
@@ -76,31 +76,36 @@ impl PyVariableEnvironment {
     #[allow(deprecated)]
     fn get_variable(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
         let namespace = self.inner.default_namespace();
-        let array_ref = namespace
-            .get_array_by_name(name)
-            .ok_or_else(|| {
-                PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
-                    "Variable '{}' not found",
-                    name
-                ))
-            })?;
+        let array_ref = namespace.get_array_by_name(name).ok_or_else(|| {
+            PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!("Variable '{}' not found", name))
+        })?;
 
         let array = array_ref.borrow();
 
         // Return based on dimensionality
         match array.ndim() {
             1 => {
-                let arr1d = array.view().into_dimensionality::<scirs2_core::ndarray::Ix1>()
-                    .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                        format!("Dimension error: {}", e)
-                    ))?;
+                let arr1d = array
+                    .view()
+                    .into_dimensionality::<scirs2_core::ndarray::Ix1>()
+                    .map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Dimension error: {}",
+                            e
+                        ))
+                    })?;
                 Ok(arr1d.to_owned().into_pyarray(py).unbind().into())
             }
             2 => {
-                let arr2d = array.view().into_dimensionality::<scirs2_core::ndarray::Ix2>()
-                    .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                        format!("Dimension error: {}", e)
-                    ))?;
+                let arr2d = array
+                    .view()
+                    .into_dimensionality::<scirs2_core::ndarray::Ix2>()
+                    .map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Dimension error: {}",
+                            e
+                        ))
+                    })?;
                 Ok(arr2d.to_owned().into_pyarray(py).unbind().into())
             }
             _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
@@ -127,9 +132,9 @@ impl PyVariableEnvironment {
     /// Args:
     ///     path (str): Path to save file (.json format)
     fn save(&self, path: &str) -> PyResult<()> {
-        self.inner.save(path).map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Save error: {}", e))
-        })
+        self.inner
+            .save(path)
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Save error: {}", e)))
     }
 
     /// Load a variable environment from a file

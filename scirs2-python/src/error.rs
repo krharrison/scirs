@@ -2,7 +2,7 @@
 //!
 //! This module provides comprehensive error types and conversions for Python exceptions.
 
-use pyo3::exceptions::{PyRuntimeError, PyValueError, PyTypeError, PyIndexError};
+use pyo3::exceptions::{PyIndexError, PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use std::fmt;
 
@@ -44,13 +44,15 @@ impl std::error::Error for SciRS2Error {}
 impl From<SciRS2Error> for PyErr {
     fn from(err: SciRS2Error) -> PyErr {
         match err {
-            SciRS2Error::ArrayError(msg) | SciRS2Error::ComputationError(msg) | SciRS2Error::RuntimeError(msg) => {
-                PyRuntimeError::new_err(msg)
-            }
+            SciRS2Error::ArrayError(msg)
+            | SciRS2Error::ComputationError(msg)
+            | SciRS2Error::RuntimeError(msg) => PyRuntimeError::new_err(msg),
             SciRS2Error::ValueError(msg) => PyValueError::new_err(msg),
             SciRS2Error::TypeError(msg) => PyTypeError::new_err(msg),
             SciRS2Error::IndexError(msg) => PyIndexError::new_err(msg),
-            SciRS2Error::MemoryError(msg) => PyRuntimeError::new_err(format!("Memory error: {}", msg)),
+            SciRS2Error::MemoryError(msg) => {
+                PyRuntimeError::new_err(format!("Memory error: {}", msg))
+            }
         }
     }
 }
@@ -86,14 +88,24 @@ pub fn get_array_slice_2d<'a, T>(
 where
     T: ndarray::NdFloat,
 {
-    arr.as_slice()
-        .ok_or_else(|| SciRS2Error::ArrayError(format!("{}: array is not contiguous or not in standard layout", context)))
+    arr.as_slice().ok_or_else(|| {
+        SciRS2Error::ArrayError(format!(
+            "{}: array is not contiguous or not in standard layout",
+            context
+        ))
+    })
 }
 
 /// Helper function to validate array is not empty
-pub fn check_not_empty<T>(arr: &ndarray::ArrayView1<'_, T>, operation: &str) -> Result<(), SciRS2Error> {
+pub fn check_not_empty<T>(
+    arr: &ndarray::ArrayView1<'_, T>,
+    operation: &str,
+) -> Result<(), SciRS2Error> {
     if arr.is_empty() {
-        Err(SciRS2Error::ValueError(format!("{}: array must not be empty", operation)))
+        Err(SciRS2Error::ValueError(format!(
+            "{}: array must not be empty",
+            operation
+        )))
     } else {
         Ok(())
     }

@@ -92,8 +92,13 @@ where
 
         let integrand = discount * phi_w / denominator;
 
-        // Simpson's rule weights (more accurate than trapezoidal)
-        let weight = if j == 0 || j == n - 1 {
+        // Carr-Madan (1999) equation (24) integration weights.
+        // In 1-indexed terms: w_j = η/3 * (3 + (-1)^j - δ_{j,1})
+        // In 0-indexed terms (j_here = j_paper - 1):
+        //   j==0  → η/3   (Kronecker delta correction for the first term)
+        //   j odd → 4η/3  (corresponds to even j in 1-indexed)
+        //   j even (≠0) → 2η/3 (corresponds to odd j in 1-indexed, weight 3-1=2)
+        let weight = if j == 0 {
             eta / 3.0
         } else if j % 2 == 1 {
             4.0 * eta / 3.0
@@ -114,12 +119,14 @@ where
     let idx = ((k + b) / lambda).round() as usize;
     let idx = idx.min(n - 1).max(0);
 
-    // Extract call price with correct phase adjustment
-    // C(k) = (1/π) * exp(-αk) * Re[exp(-ikb) * FFT[...]]
-    let phase_adj = (-(i_unit * k * b)).exp();
+    // Extract call price from FFT output.
+    // The exp(i*v_j*b) phase factor inserted before the FFT combined with the FFT kernel
+    // exp(-i*2π*j*m/N) at index m=(k+b)/λ already encodes exp(-i*v_j*k):
+    //   fft_output[m] = Σ_j ψ(v_j) * weight_j * exp(i*v_j*b) * exp(-i*v_j*(k+b))
+    //                 = Σ_j ψ(v_j) * weight_j * exp(-i*v_j*k)
+    // The Carr-Madan formula is: C(k) = (1/π) * exp(-αk) * Re[fft_output[m]]
     let damping = (-(alpha * k)).exp();
-    let call_value = fft_output[idx] * phase_adj;
-    let call_price = (call_value.re * damping) / PI;
+    let call_price = (fft_output[idx].re * damping) / PI;
 
     // Debug: Check if we're getting reasonable intermediate values
     if call_price.is_nan() || call_price.is_infinite() {
@@ -199,13 +206,15 @@ fn heston_characteristic_function(
     (psi + i * u * s0.ln()).exp()
 }
 
-/// Simple in-place FFT (Cooley-Tukey radix-2)
+/// Correct in-place radix-2 Cooley-Tukey FFT.
+///
+/// Computes the DFT: X[m] = Σ_{j=0}^{N-1} x[j] * e^{-2πi*j*m/N}
 fn simple_fft(data: &mut [Complex64]) -> Vec<Complex64> {
     let n = data.len();
     assert!(n.is_power_of_two(), "FFT size must be power of 2");
 
     // Bit-reversal permutation
-    let mut j = 0;
+    let mut j = 0usize;
     for i in 1..n {
         let mut bit = n >> 1;
         while j >= bit {
@@ -218,24 +227,26 @@ fn simple_fft(data: &mut [Complex64]) -> Vec<Complex64> {
         }
     }
 
-    // Cooley-Tukey FFT
-    let mut size = 2;
+    // Cooley-Tukey butterfly stages.
+    // At each stage the DFT size doubles from 2 to N.
+    // The twiddle factor for position p within a size-`size` butterfly is:
+    //   W^p_size = e^{-2πi*p/size}  where p = 0..half_size-1
+    let mut size = 2usize;
     while size <= n {
         let half_size = size / 2;
-        let table_step = n / size;
+        // Precompute the primitive root for this stage: e^{-2πi/size}
+        let angle_step = -2.0 * PI / size as f64;
+        let w_step = Complex64::new(angle_step.cos(), angle_step.sin());
 
         for i in (0..n).step_by(size) {
-            let mut k = 0;
-            for j in i..(i + half_size) {
-                let angle = -2.0 * PI * k as f64 / size as f64;
-                let w = Complex64::new(angle.cos(), angle.sin());
-                let t = w * data[j + half_size];
-                let u = data[j];
-
-                data[j] = u + t;
-                data[j + half_size] = u - t;
-
-                k += table_step;
+            // Accumulate twiddle factor by multiplication to avoid trig calls
+            let mut w = Complex64::new(1.0, 0.0);
+            for p in 0..half_size {
+                let t = w * data[i + p + half_size];
+                let u = data[i + p];
+                data[i + p] = u + t;
+                data[i + p + half_size] = u - t;
+                w *= w_step;
             }
         }
         size *= 2;
@@ -251,7 +262,6 @@ mod tests {
     use crate::specialized::finance::types::{FinanceMethod, OptionStyle, OptionType};
 
     #[test]
-    #[ignore] // Carr-Madan FFT requires further investigation - characteristic function formulation issue
     fn test_fourier_black_scholes_call() {
         let option = FinancialOption {
             option_type: OptionType::Call,
@@ -286,7 +296,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Carr-Madan FFT requires further investigation - characteristic function formulation issue
     fn test_fourier_black_scholes_put() {
         let option = FinancialOption {
             option_type: OptionType::Put,
@@ -321,7 +330,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Carr-Madan FFT requires further investigation - characteristic function formulation issue
     fn test_fourier_heston_call() {
         let option = FinancialOption {
             option_type: OptionType::Call,

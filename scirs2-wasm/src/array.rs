@@ -2,7 +2,7 @@
 
 use crate::error::WasmError;
 use crate::utils::{js_array_to_vec_f64, parse_shape, typed_array_to_vec_f64};
-use ndarray::{Array1, ArrayD};
+use scirs2_core::ndarray::{Array1, ArrayD};
 use wasm_bindgen::prelude::*;
 
 /// A wrapper around ndarray for JavaScript interop

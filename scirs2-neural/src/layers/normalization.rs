@@ -280,6 +280,20 @@ impl<F: Float + Debug + ScalarOperand + Send + Sync + SimdUnifiedOps + 'static +
     fn parameter_count(&self) -> usize {
         self.gamma.len() + self.beta.len()
     }
+
+    fn params(&self) -> Vec<Array<F, scirs2_core::ndarray::IxDyn>> {
+        vec![self.gamma.clone(), self.beta.clone()]
+    }
+
+    fn set_params(&mut self, params: &[Array<F, scirs2_core::ndarray::IxDyn>]) -> Result<()> {
+        if params.len() >= 2 {
+            self.gamma = params[0].clone();
+            self.beta = params[1].clone();
+        } else if params.len() == 1 {
+            self.gamma = params[0].clone();
+        }
+        Ok(())
+    }
 }
 
 impl<F: Float + Debug + ScalarOperand + Send + Sync + SimdUnifiedOps + 'static + NumAssign>
@@ -419,6 +433,20 @@ impl<F: Float + Debug + ScalarOperand + Send + Sync + 'static + NumAssign> Layer
 
     fn parameter_count(&self) -> usize {
         self.gamma.len() + self.beta.len()
+    }
+
+    fn params(&self) -> Vec<Array<F, scirs2_core::ndarray::IxDyn>> {
+        vec![self.gamma.clone(), self.beta.clone()]
+    }
+
+    fn set_params(&mut self, params: &[Array<F, scirs2_core::ndarray::IxDyn>]) -> Result<()> {
+        if params.len() >= 2 {
+            self.gamma = params[0].clone();
+            self.beta = params[1].clone();
+        } else if params.len() == 1 {
+            self.gamma = params[0].clone();
+        }
+        Ok(())
     }
 }
 

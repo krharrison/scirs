@@ -612,7 +612,10 @@ pub mod advanced_parallel_monte_carlo; // Advanced parallel Monte Carlo integrat
 pub mod bayesian; // Bayesian statistics
 pub mod contingency; // Contingency table functions
 pub mod distributions; // Statistical distributions
+pub mod dynamic_factor; // Dynamic Factor Model (DFM)
+pub mod extreme_value; // Extreme Value Theory
 pub mod gaussian_process; // Gaussian Process regression
+pub mod kde; // Kernel Density Estimation (1D, 2D, bandwidth selection)
 pub mod math_utils;
 pub mod mcmc; // Markov Chain Monte Carlo methods
 pub mod mstats; // Masked array statistics
@@ -634,13 +637,20 @@ pub use traits::{
     MultivariateDistribution, Truncatable,
 };
 
+// Export KDE public API
+pub use kde::{
+    cross_validation_bandwidth as kde_cross_validation_bandwidth, improved_sheather_jones,
+    scott_bandwidth, silverman_bandwidth, Kernel, KernelDensityEstimate, KDE2D,
+};
+
 // v0.2.0 SIMD enhancements
 pub mod correlation_simd_enhanced; // Enhanced correlation and covariance with SIMD
 pub mod parallel_simd_stats;
 pub mod sampling_simd; // SIMD-optimized distribution sampling // Parallel processing with SIMD acceleration
 
 pub use correlation_simd_enhanced::{
-    covariance_matrix_simd, partial_correlation_simd, rolling_correlation_simd, spearman_r_simd,
+    covariance_matrix_simd, partial_correlation_simd, rolling_correlation_simd,
+    simd_pearson_correlation_matrix, simd_spearman_correlation_batch, spearman_r_simd,
 };
 pub use parallel_simd_stats::{
     bootstrap_parallel_simd, corrcoef_parallel_simd, covariance_matrix_parallel_simd,
@@ -648,6 +658,14 @@ pub use parallel_simd_stats::{
 };
 pub use sampling_simd::{
     bootstrap_simd, box_muller_simd, exponential_simd, inverse_transform_simd,
+};
+
+// v0.3.0 SIMD batch sampling module — PDF/CDF evaluation and parallel sampling
+pub mod simd_sampling;
+pub use simd_sampling::{
+    exponential_cdf_batch, exponential_pdf_batch, normal_cdf_batch, normal_pdf_batch,
+    parallel_normal_sample, parallel_uniform_sample, sample_exponential_batch, sample_normal_batch,
+    sample_uniform_batch, uniform_cdf_batch, uniform_pdf_batch,
 };
 
 // Core functions for descriptive statistics
@@ -672,6 +690,7 @@ mod parallel_advanced;
 mod parallel_advanced_v3;
 mod parallel_enhanced_v2;
 mod parallel_enhanced_v4;
+pub mod parallel_processing;
 mod parallel_stats;
 mod parallel_stats_enhanced;
 // mod propertybased_tests_extended;
@@ -770,10 +789,11 @@ pub use memory_profiling::{
 };
 pub use mixture_models::{
     benchmark_mixture_models, gaussian_mixture_model, gmm_cross_validation, gmm_model_selection,
-    hierarchical_gmm_init, kernel_density_estimation, BandwidthMethod, ComponentDiagnostics,
-    ConvergenceReason, CovarianceConstraint, CovarianceType, GMMConfig, GMMParameters,
-    GaussianMixtureModel, InitializationMethod, KDEConfig, KernelDensityEstimator, KernelType,
-    ModelSelectionCriteria, ParameterSnapshot, RobustGMM, StreamingGMM,
+    hierarchical_gmm_init, kernel_density_estimation, select_n_components, BandwidthMethod,
+    ComponentDiagnostics, ConvergenceReason, CovarianceConstraint, CovarianceType, GMMConfig,
+    GMMParameters, GaussianMixtureModel, InitializationMethod, KDEConfig, KernelDensityEstimator,
+    KernelType, ModelSelectionCriteria, ParameterSnapshot, RobustGMM, StreamingGMM, VariationalGMM,
+    VariationalGMMConfig, VariationalGMMParameters, VariationalGMMResult,
 };
 pub use multivariate_advanced::{
     ActivationFunction, AdvancedMultivariateAnalysis, AdvancedMultivariateConfig,
@@ -814,6 +834,13 @@ pub use parallel_enhanced_v4::{
     bootstrap_parallel_advanced, correlation_matrix_parallel_advanced, mean_parallel_advanced,
     variance_parallel_advanced, EnhancedParallelConfig, EnhancedParallelProcessor,
     MatrixParallelResult,
+};
+pub use parallel_processing::{
+    parallel_bootstrap, parallel_cross_validation, parallel_grid_search, parallel_histogram,
+    parallel_median, parallel_mle_fit, parallel_moments, parallel_permutation_test,
+    parallel_quantile, parallel_welford_kurtosis, parallel_welford_mean, parallel_welford_skewness,
+    parallel_welford_variance, CrossValidationResult, GridSearchResult, ParallelBootstrapResult,
+    ParallelHistogramResult, ParallelMLEResult, PermutationTestResult, WelfordAccumulator,
 };
 pub use parallel_stats::{
     bootstrap_parallel, corrcoef_parallel, mean_parallel, quantiles_parallel,
@@ -911,6 +938,8 @@ pub use survival_enhanced::{
     cox_regression, kaplan_meier, log_rank_test, CoxConfig, CoxConvergenceInfo,
     CoxProportionalHazards, EnhancedKaplanMeier,
 };
+// v0.3.0 survival analysis: canonical API types
+pub use survival::{CoxPH, KaplanMeier, NelsonAalen};
 pub use topological_advanced::{
     AdvancedTopologicalAnalyzer, CoeffientField, DistanceMetric, FilterFunction, Filtration,
     FiltrationType, MapperEdge, MapperGraph, MapperNode, MultiscaleResults, PersistenceAlgorithm,
@@ -977,6 +1006,14 @@ pub use advanced_benchmark_validation::{
 */
 
 // MCMC module
+pub use mcmc::diagnostics::{
+    autocorrelation, bulk_ess, bulk_ess_single, divergence_diagnostics, effective_sample_size,
+    energy_bfmi, energy_diagnostics, mcse, mcse_mean, mcse_quantile, r_hat, running_mean,
+    running_variance, split_r_hat, split_rhat, split_rhat_rank, split_rhat_trace, tail_ess,
+    tail_ess_single, DiagnosticReport, DivergenceDiagnostics, EnergyDiagnostics,
+    ParameterDiagnostic,
+};
+pub use mcmc::nuts::{NutsConfig, NutsSample, NutsSampler};
 pub use mcmc::ChainStatistics;
 
 // Statistical tests module
@@ -1023,13 +1060,34 @@ pub use distribution_characteristics::{
     Mode, ModeMethod,
 };
 
+// Robust estimators for location and scale
+pub mod robust_estimators;
+pub use robust_estimators::{
+    biweight_midcorrelation, biweight_midcovariance, biweight_midvariance, huber_location,
+    irls_location, trimmed_mean, tukey_biweight_location, IrlsConfig, IrlsResult, MEstimatorWeight,
+};
+
+// Outlier detection methods
+pub mod outlier_detection;
+pub use outlier_detection::{
+    dixon_test, generalized_esd_test, grubbs_test, iqr_outlier_detection, modified_z_score,
+    DixonResult, EsdResult, GrubbsResult, IqrOutlierResult, ModifiedZScoreResult,
+};
+
+// Bootstrap resampling methods
+pub mod bootstrap;
+pub use bootstrap::{
+    bca_bootstrap, block_bootstrap_ci, parametric_bootstrap, percentile_bootstrap,
+    BcaBootstrapResult, BootstrapCI,
+};
+
 // Core functions for regression analysis
 pub mod regression;
 pub use regression::{
-    elastic_net, group_lasso, huber_regression, lasso_regression, linear_regression, linregress,
-    multilinear_regression, odr, polyfit, ransac, ridge_regression, stepwise_regression,
-    theilslopes, HuberT, RegressionResults, StepwiseCriterion, StepwiseDirection, StepwiseResults,
-    TheilSlopesResult,
+    bisquare_regression, elastic_net, group_lasso, huber_regression, lasso_regression,
+    linear_regression, linregress, lts_regression, multilinear_regression, odr, polyfit, ransac,
+    ridge_regression, stepwise_regression, theilslopes, HuberT, LtsResult, RegressionResults,
+    StepwiseCriterion, StepwiseDirection, StepwiseResults, TheilSlopesResult,
 };
 
 // Core functions for random number generation

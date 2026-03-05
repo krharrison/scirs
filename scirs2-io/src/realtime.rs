@@ -68,8 +68,7 @@ use url;
 #[cfg(feature = "websocket")]
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
-#[cfg(all(feature = "sse", feature = "async"))]
-// StreamExt already imported above
+// StreamExt already imported above via futures feature
 
 /// Streaming protocol types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -268,7 +267,12 @@ impl StreamClient {
     /// Create a connection based on protocol
     async fn create_connection(&self) -> Result<Box<dyn StreamConnection>> {
         match self.config.protocol {
+            #[cfg(feature = "websocket")]
             Protocol::WebSocket => Ok(Box::new(WebSocketConnection::new(&self.config))),
+            #[cfg(not(feature = "websocket"))]
+            Protocol::WebSocket => Err(IoError::ParseError(
+                "WebSocket support requires the 'websocket' feature".to_string(),
+            )),
             Protocol::SSE => Ok(Box::new(SSEConnection::new(&self.config))),
             Protocol::GrpcStream => Ok(Box::new(GrpcStreamConnection::new(&self.config))),
             Protocol::Mqtt => Ok(Box::new(MqttConnection::new(&self.config))),
@@ -513,6 +517,7 @@ impl<'a, T: ScientificNumber + Clone> StreamProcessor<'a, T> {
 }
 
 /// WebSocket connection implementation
+#[cfg(feature = "websocket")]
 struct WebSocketConnection {
     config: StreamConfig,
     ws_stream: Option<
@@ -523,6 +528,7 @@ struct WebSocketConnection {
     connected: bool,
 }
 
+#[cfg(feature = "websocket")]
 impl WebSocketConnection {
     fn new(config: &StreamConfig) -> Self {
         Self {
@@ -533,6 +539,7 @@ impl WebSocketConnection {
     }
 }
 
+#[cfg(feature = "websocket")]
 #[async_trait::async_trait]
 impl StreamConnection for WebSocketConnection {
     async fn connect(&mut self) -> Result<()> {

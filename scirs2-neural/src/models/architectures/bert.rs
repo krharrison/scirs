@@ -10,9 +10,10 @@ use crate::layers::{
     Dense, Dropout, Embedding, EmbeddingConfig, Layer, LayerNorm, MultiHeadAttention,
 };
 use scirs2_core::ndarray::{Array, IxDyn, ScalarOperand};
-use scirs2_core::numeric::{Float, NumAssign};
+use scirs2_core::numeric::{Float, FromPrimitive, NumAssign, ToPrimitive};
 use scirs2_core::random::SeedableRng;
 use scirs2_core::simd_ops::SimdUnifiedOps;
+use std::collections::HashMap;
 use std::fmt::Debug;
 
 /// Configuration for a BERT model
@@ -796,6 +797,314 @@ impl<F: Float + Debug + ScalarOperand + Send + Sync + SimdUnifiedOps + NumAssign
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
+    }
+}
+
+impl<
+        F: Float
+            + Debug
+            + ScalarOperand
+            + Send
+            + Sync
+            + SimdUnifiedOps
+            + NumAssign
+            + ToPrimitive
+            + FromPrimitive
+            + 'static,
+    > BertModel<F>
+{
+    /// Extract all named parameters in HuggingFace-compatible format.
+    ///
+    /// Parameter names mirror the official HuggingFace BERT naming:
+    /// - `embeddings.word_embeddings.weight`
+    /// - `embeddings.LayerNorm.weight`, `embeddings.LayerNorm.bias`
+    /// - `encoder.layer.N.attention.self.query.weight`
+    /// - `encoder.layer.N.attention.output.dense.weight`
+    /// - `encoder.layer.N.intermediate.dense.weight`
+    /// - `encoder.layer.N.output.dense.weight`
+    /// - `pooler.dense.weight`, `pooler.dense.bias`
+    pub fn extract_named_params(&self) -> Result<Vec<(String, Array<F, IxDyn>)>> {
+        let mut result = Vec::new();
+
+        // Embeddings
+        for p in self.embeddings.word_embeddings.params().iter() {
+            result.push(("embeddings.word_embeddings.weight".to_string(), p.clone()));
+        }
+        for p in self.embeddings.position_embeddings.params().iter() {
+            result.push((
+                "embeddings.position_embeddings.weight".to_string(),
+                p.clone(),
+            ));
+        }
+        for p in self.embeddings.token_type_embeddings.params().iter() {
+            result.push((
+                "embeddings.token_type_embeddings.weight".to_string(),
+                p.clone(),
+            ));
+        }
+        let ln_params = self.embeddings.layer_norm.params();
+        if !ln_params.is_empty() {
+            result.push((
+                "embeddings.LayerNorm.weight".to_string(),
+                ln_params[0].clone(),
+            ));
+        }
+        if ln_params.len() >= 2 {
+            result.push((
+                "embeddings.LayerNorm.bias".to_string(),
+                ln_params[1].clone(),
+            ));
+        }
+
+        // Encoder layers
+        for (layer_idx, bert_layer) in self.encoder.layers.iter().enumerate() {
+            let prefix = format!("encoder.layer.{layer_idx}");
+
+            // Self-attention: MultiHeadAttention has 4 params: w_query, w_key, w_value, w_output
+            let attn_params = bert_layer.attention.attention.params();
+            if attn_params.len() >= 4 {
+                result.push((
+                    format!("{prefix}.attention.self.query.weight"),
+                    attn_params[0].clone(),
+                ));
+                result.push((
+                    format!("{prefix}.attention.self.key.weight"),
+                    attn_params[1].clone(),
+                ));
+                result.push((
+                    format!("{prefix}.attention.self.value.weight"),
+                    attn_params[2].clone(),
+                ));
+                result.push((
+                    format!("{prefix}.attention.output.dense.weight"),
+                    attn_params[3].clone(),
+                ));
+            } else if attn_params.len() == 3 {
+                result.push((
+                    format!("{prefix}.attention.self.query.weight"),
+                    attn_params[0].clone(),
+                ));
+                result.push((
+                    format!("{prefix}.attention.self.key.weight"),
+                    attn_params[1].clone(),
+                ));
+                result.push((
+                    format!("{prefix}.attention.self.value.weight"),
+                    attn_params[2].clone(),
+                ));
+            }
+
+            // Attention output layer norm
+            let attn_ln_params = bert_layer.attention_layer_norm.params();
+            if !attn_ln_params.is_empty() {
+                result.push((
+                    format!("{prefix}.attention.output.LayerNorm.weight"),
+                    attn_ln_params[0].clone(),
+                ));
+            }
+            if attn_ln_params.len() >= 2 {
+                result.push((
+                    format!("{prefix}.attention.output.LayerNorm.bias"),
+                    attn_ln_params[1].clone(),
+                ));
+            }
+
+            // Feed-forward intermediate dense
+            let ff_inter_params = bert_layer.feed_forward.intermediate_dense.params();
+            if !ff_inter_params.is_empty() {
+                result.push((
+                    format!("{prefix}.intermediate.dense.weight"),
+                    ff_inter_params[0].clone(),
+                ));
+            }
+            if ff_inter_params.len() >= 2 {
+                result.push((
+                    format!("{prefix}.intermediate.dense.bias"),
+                    ff_inter_params[1].clone(),
+                ));
+            }
+
+            // Feed-forward output dense
+            let ff_out_params = bert_layer.feed_forward.output_dense.params();
+            if !ff_out_params.is_empty() {
+                result.push((
+                    format!("{prefix}.output.dense.weight"),
+                    ff_out_params[0].clone(),
+                ));
+            }
+            if ff_out_params.len() >= 2 {
+                result.push((
+                    format!("{prefix}.output.dense.bias"),
+                    ff_out_params[1].clone(),
+                ));
+            }
+
+            // Feed-forward layer norm
+            let ff_ln_params = bert_layer.feed_forward.layer_norm.params();
+            if !ff_ln_params.is_empty() {
+                result.push((
+                    format!("{prefix}.output.LayerNorm.weight"),
+                    ff_ln_params[0].clone(),
+                ));
+            }
+            if ff_ln_params.len() >= 2 {
+                result.push((
+                    format!("{prefix}.output.LayerNorm.bias"),
+                    ff_ln_params[1].clone(),
+                ));
+            }
+        }
+
+        // Pooler
+        let pooler_params = self.pooler.dense.params();
+        if !pooler_params.is_empty() {
+            result.push(("pooler.dense.weight".to_string(), pooler_params[0].clone()));
+        }
+        if pooler_params.len() >= 2 {
+            result.push(("pooler.dense.bias".to_string(), pooler_params[1].clone()));
+        }
+
+        Ok(result)
+    }
+
+    /// Load named parameters from a map (by name).
+    ///
+    /// Unknown parameter names are silently ignored, enabling graceful
+    /// forward/backward compatibility between model versions.
+    pub fn load_named_params(
+        &mut self,
+        params_map: &HashMap<String, Array<F, IxDyn>>,
+    ) -> Result<()> {
+        // Embeddings
+        if let Some(p) = params_map.get("embeddings.word_embeddings.weight") {
+            self.embeddings
+                .word_embeddings
+                .set_params(std::slice::from_ref(p))?;
+        }
+        if let Some(p) = params_map.get("embeddings.position_embeddings.weight") {
+            self.embeddings
+                .position_embeddings
+                .set_params(std::slice::from_ref(p))?;
+        }
+        if let Some(p) = params_map.get("embeddings.token_type_embeddings.weight") {
+            self.embeddings
+                .token_type_embeddings
+                .set_params(std::slice::from_ref(p))?;
+        }
+        {
+            let mut ln_ps = Vec::new();
+            if let Some(p) = params_map.get("embeddings.LayerNorm.weight") {
+                ln_ps.push(p.clone());
+            }
+            if let Some(p) = params_map.get("embeddings.LayerNorm.bias") {
+                ln_ps.push(p.clone());
+            }
+            if !ln_ps.is_empty() {
+                self.embeddings.layer_norm.set_params(&ln_ps)?;
+            }
+        }
+
+        // Encoder layers
+        for (layer_idx, bert_layer) in self.encoder.layers.iter_mut().enumerate() {
+            let prefix = format!("encoder.layer.{layer_idx}");
+
+            // Self-attention weights
+            let mut attn_ps = Vec::new();
+            if let Some(p) = params_map.get(&format!("{prefix}.attention.self.query.weight")) {
+                attn_ps.push(p.clone());
+            }
+            if let Some(p) = params_map.get(&format!("{prefix}.attention.self.key.weight")) {
+                attn_ps.push(p.clone());
+            }
+            if let Some(p) = params_map.get(&format!("{prefix}.attention.self.value.weight")) {
+                attn_ps.push(p.clone());
+            }
+            if let Some(p) = params_map.get(&format!("{prefix}.attention.output.dense.weight")) {
+                attn_ps.push(p.clone());
+            }
+            if !attn_ps.is_empty() {
+                bert_layer.attention.attention.set_params(&attn_ps)?;
+            }
+
+            // Attention output layer norm
+            {
+                let mut ln_ps = Vec::new();
+                if let Some(p) =
+                    params_map.get(&format!("{prefix}.attention.output.LayerNorm.weight"))
+                {
+                    ln_ps.push(p.clone());
+                }
+                if let Some(p) =
+                    params_map.get(&format!("{prefix}.attention.output.LayerNorm.bias"))
+                {
+                    ln_ps.push(p.clone());
+                }
+                if !ln_ps.is_empty() {
+                    bert_layer.attention_layer_norm.set_params(&ln_ps)?;
+                }
+            }
+
+            // Feed-forward intermediate dense
+            {
+                let mut ff_ps = Vec::new();
+                if let Some(p) = params_map.get(&format!("{prefix}.intermediate.dense.weight")) {
+                    ff_ps.push(p.clone());
+                }
+                if let Some(p) = params_map.get(&format!("{prefix}.intermediate.dense.bias")) {
+                    ff_ps.push(p.clone());
+                }
+                if !ff_ps.is_empty() {
+                    bert_layer
+                        .feed_forward
+                        .intermediate_dense
+                        .set_params(&ff_ps)?;
+                }
+            }
+
+            // Feed-forward output dense
+            {
+                let mut ff_ps = Vec::new();
+                if let Some(p) = params_map.get(&format!("{prefix}.output.dense.weight")) {
+                    ff_ps.push(p.clone());
+                }
+                if let Some(p) = params_map.get(&format!("{prefix}.output.dense.bias")) {
+                    ff_ps.push(p.clone());
+                }
+                if !ff_ps.is_empty() {
+                    bert_layer.feed_forward.output_dense.set_params(&ff_ps)?;
+                }
+            }
+
+            // Feed-forward layer norm
+            {
+                let mut ln_ps = Vec::new();
+                if let Some(p) = params_map.get(&format!("{prefix}.output.LayerNorm.weight")) {
+                    ln_ps.push(p.clone());
+                }
+                if let Some(p) = params_map.get(&format!("{prefix}.output.LayerNorm.bias")) {
+                    ln_ps.push(p.clone());
+                }
+                if !ln_ps.is_empty() {
+                    bert_layer.feed_forward.layer_norm.set_params(&ln_ps)?;
+                }
+            }
+        }
+
+        // Pooler
+        {
+            let mut ps = Vec::new();
+            if let Some(p) = params_map.get("pooler.dense.weight") {
+                ps.push(p.clone());
+            }
+            if let Some(p) = params_map.get("pooler.dense.bias") {
+                ps.push(p.clone());
+            }
+            if !ps.is_empty() {
+                self.pooler.dense.set_params(&ps)?;
+            }
+        }
+
+        Ok(())
     }
 }
 

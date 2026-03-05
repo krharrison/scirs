@@ -309,11 +309,11 @@ pub mod opencl_impl {
                 max_mem_allocsize: {
                     #[cfg(target_pointer_width = "32")]
                     {
-                        512 * 1024 * 1024
+                        512u64 * 1024 * 1024
                     } // 512MB for 32-bit
                     #[cfg(target_pointer_width = "64")]
                     {
-                        2usize * 1024 * 1024 * 1024
+                        2u64 * 1024 * 1024 * 1024
                     } // 2GB for 64-bit
                 },
                 image_support: 1,
@@ -331,21 +331,21 @@ pub mod opencl_impl {
                 single_fp_config: 0x3F,   // Mock FP config
                 global_mem_cache_type: 2, // CL_READ_WRITE_CACHE
                 global_mem_cachelinesize: 64,
-                global_mem_cachesize: 2 * 1024 * 1024, // 2MB
+                global_mem_cachesize: 2u64 * 1024 * 1024, // 2MB
                 global_memsize: {
                     #[cfg(target_pointer_width = "32")]
                     {
-                        512 * 1024 * 1024
+                        512u64 * 1024 * 1024
                     } // 512MB for 32-bit
                     #[cfg(target_pointer_width = "64")]
                     {
-                        8usize * 1024 * 1024 * 1024
+                        8u64 * 1024 * 1024 * 1024
                     } // 8GB for 64-bit
                 },
-                max_constant_buffersize: 64 * 1024, // 64KB
+                max_constant_buffersize: 64u64 * 1024, // 64KB
                 max_constant_args: 8,
-                local_mem_type: 1,        // CL_LOCAL
-                local_memsize: 48 * 1024, // 48KB
+                local_mem_type: 1,           // CL_LOCAL
+                local_memsize: 48u64 * 1024, // 48KB
                 error_correction_support: 0,
                 profiling_timer_resolution: 1,
                 endian_little: 1,

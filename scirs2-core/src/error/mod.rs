@@ -117,6 +117,10 @@
 #[allow(clippy::module_inception)]
 mod error;
 
+// ErrorKind enum and additional From implementations
+pub mod error_kind;
+pub use error_kind::ErrorKind;
+
 // Recovery strategies and mechanisms
 pub mod recovery;
 pub use recovery::{

@@ -153,6 +153,12 @@ pub mod threading;
 pub mod utils;
 pub mod visualization;
 
+// Advanced segmentation and analysis modules (v0.3.0)
+pub mod active_contours;
+pub mod distance_transforms;
+pub mod regionprops;
+pub mod watershed;
+
 // Re-exports
 pub use self::error::*;
 
@@ -240,20 +246,33 @@ pub use self::segmentation::{
     checkerboard_level_set,
     create_circle_contour,
     create_ellipse_contour,
+    // Contour finding (OpenCV-like findContours)
+    draw_contours,
+    find_contours,
     // Advanced segmentation algorithms
     graph_cuts,
     marker_watershed,
     mask_to_contour,
     mask_to_level_set,
     otsu_threshold,
+    point_in_contour,
     smooth_contour,
     threshold_binary,
     watershed,
+    watershed_from_distance,
+    watershed_with_config,
     ActiveContourParams,
     AdaptiveMethod,
+    ApproximationMethod,
     ChanVeseParams,
+    Contour,
+    ContourHierarchy,
+    ContourMoments,
     GraphCutsParams,
     InteractiveGraphCuts,
+    RetrievalMode,
+    WatershedConfig,
+    WatershedConnectivity,
 };
 
 // Interpolation module exports
@@ -264,44 +283,69 @@ pub use self::interpolation::{
 
 // Measurements module exports
 pub use self::measurements::{
-    center_of_mass, count_labels, extrema, find_objects, local_extrema, mean_labels, moments,
-    moments_inertia_tensor, peak_prominences, peak_widths, region_properties, sum_labels,
-    variance_labels, RegionProperties,
+    center_of_mass, central_moments, count_labels, extrema, find_objects, histogram, local_extrema,
+    mean_labels, moments, moments_inertia_tensor, normalized_moments, peak_prominences,
+    peak_widths, region_properties, regionprops_2d, sum_labels, variance_labels, PeakWidthsResult,
+    RegionProperties, RegionProperties2D,
 };
 
 // Morphology module exports
 pub use self::morphology::{
+    area_opening_2d,
     binary_closing,
     binary_dilation,
+    binary_dilation_2d_optimized,
     binary_erosion,
+    binary_erosion_2d_optimized,
     binary_fill_holes,
     binary_hit_or_miss,
     binary_opening,
     black_tophat,
+    black_tophat_2d_fast,
     box_structure,
+    // Optimized distance transforms (Meijster's separable EDT, etc.)
+    chessboard_distance_transform,
+    cityblock_distance_transform,
+    count_labels_2d,
     disk_structure,
     distance_transform_bf,
     distance_transform_cdt,
+    distance_transform_chessboard_2d,
+    distance_transform_cityblock_2d,
     // Distance transform functions
     distance_transform_edt,
+    distance_transform_edt_2d,
+    distance_transform_edt_full,
+    euclidean_distance_transform,
+    euclidean_distance_transform_separable,
+    fill_holes_2d,
     find_boundaries,
+    find_objects_2d,
     generate_binary_structure,
     geodesic_dilation_2d,
     geodesic_erosion_2d,
     granulometry_2d,
     grey_closing,
     grey_dilation,
+    grey_dilation_2d_optimized,
     grey_erosion,
+    grey_erosion_2d_optimized,
     grey_opening,
     iterate_structure,
     label,
+    label_2d,
     morphological_gradient,
+    morphological_gradient_2d_fast,
     morphological_laplace,
     morphological_reconstruction_2d,
+    morphological_reconstruction_by_dilation,
+    morphological_reconstruction_by_erosion,
     multi_scale_morphology_2d,
     remove_small_holes,
     remove_small_objects,
     white_tophat,
+    white_tophat_2d_fast,
+    BoundingBox2D,
     Connectivity,
     DistanceMetric,
     MorphBorderMode,
@@ -425,3 +469,29 @@ pub use self::comprehensive_validation::{
 
 // Utils exports
 pub use self::utils::{safe_f64_to_float, safe_float_to_f64, safe_usize_to_float};
+
+// Advanced watershed segmentation exports (v0.3.0)
+pub use self::watershed::{
+    auto_markers, compact_watershed, extract_dams, h_minima_transform, merge_small_regions,
+    CompactWatershedConfig, DamResult, OversegmentationConfig, WatershedNeighborhood,
+};
+
+// Region properties exports (v0.3.0)
+pub use self::regionprops::Connectivity as RegionConnectivity;
+pub use self::regionprops::{
+    filter_regions, label_components, region_properties as region_props_advanced, RegionFilter,
+    RegionProps,
+};
+
+// Advanced active contours exports (v0.3.0)
+pub use self::active_contours::{
+    contour_area, contour_energy, contour_perimeter, create_circular_contour,
+    create_elliptical_contour, create_rectangular_contour, evolve_snake, resample_contour,
+    SnakeParams, SnakeResult,
+};
+
+// Distance transforms exports (v0.3.0)
+pub use self::distance_transforms::{
+    chessboard_dt, cityblock_dt, euclidean_dt, geodesic_dt, nearest_background,
+    signed_distance_function,
+};

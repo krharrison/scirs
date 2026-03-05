@@ -270,9 +270,31 @@
 // (using standard import instead of deprecated extern crate)
 
 pub mod color;
+/// Object detection utilities
+///
+/// Bounding box operations, non-maximum suppression, anchor generation,
+/// detection metrics (AP/mAP), and detection-aware augmentation helpers.
+pub mod detection;
+/// Image enhancement algorithms
+///
+/// Contrast stretching (linear, logarithmic, power-law / gamma),
+/// homomorphic filtering. See also [`preprocessing`] for bilateral filtering,
+/// NLM denoising, guided filtering, retinex, and CLAHE.
+pub mod enhancement;
 pub mod error;
 pub mod feature;
+/// Geometric image transformations
+///
+/// Rotation, scaling (nearest/bilinear/bicubic), affine and perspective transforms,
+/// cropping, padding, and horizontal/vertical flipping.
+pub mod geometric;
 pub mod gpu_ops;
+/// Histogram operations for image analysis
+///
+/// Histogram computation (grayscale and colour), equalization (global and CLAHE),
+/// matching/specification, CDF, Otsu threshold (single and multi-level),
+/// and histogram backprojection.
+pub mod histogram;
 /// Image preprocessing functionality
 ///
 /// Includes operations like filtering, histogram manipulation,
@@ -290,12 +312,50 @@ pub mod neuromorphic_streaming;
 pub mod quantum_inspired_streaming;
 pub mod transform;
 
+/// Video and temporal processing algorithms.
+///
+/// Background subtraction, motion estimation, object tracking (Mean Shift,
+/// CamShift, Kalman, multi-object with Hungarian assignment), temporal
+/// filtering, video stabilisation, and frame interpolation.
+pub mod video;
+
 // Advanced Advanced-mode modules - future development features
 pub mod activity_recognition;
 pub mod scene_understanding;
 pub mod vision_3d;
 pub mod visual_reasoning;
 pub mod visual_slam;
+
+// Extended vision modules (v0.3.0)
+pub mod calibration;
+pub mod camera;
+pub mod camera_model;
+pub mod depth;
+pub mod depth_estimation;
+pub mod depth_processing;
+pub mod descriptors;
+pub mod face_detection;
+pub mod feature_extraction;
+pub mod features;
+pub mod image_quality;
+pub mod instance_segmentation;
+pub mod matching;
+pub mod medical;
+pub mod morphology;
+pub mod object_detection;
+pub mod optical_flow_dense;
+pub mod point_cloud;
+pub mod pointcloud;
+pub mod pose;
+pub mod reconstruction;
+pub mod semantic_segmentation;
+pub mod slam;
+pub mod stereo;
+pub mod stereo_legacy;
+pub mod stitch;
+pub mod style_transfer;
+pub mod video_processing;
+pub mod video_stabilization;
 
 // Cross-module Advanced coordination
 /// Advanced Integration - Cross-Module AI Coordination
@@ -345,15 +405,33 @@ pub mod _transform {
 // Re-export commonly used items
 pub use error::{Result, VisionError};
 
+// Re-export object detection utilities
+pub use detection::{
+    batched_nms, clip_boxes, compute_ap, compute_map, filter_by_confidence, generate_anchors,
+    generate_ssd_anchors, generate_yolo_anchors, nms, precision_recall_curve,
+    random_crop_with_boxes, random_horizontal_flip, scale_boxes, soft_nms, translate_boxes,
+    weighted_nms, AnchorConfig, DetectionBox,
+};
+
 // Re-export feature functionality (select items to avoid conflicts)
 pub use feature::{
     array_to_image,
+    // Unified APIs
+    calc_optical_flow,
+    compute_descriptors,
+    corners::{CornerDetectParams, CornerMethod, CornerPoint},
     descriptor::{detect_and_compute, match_descriptors, Descriptor, KeyPoint},
+    descriptors::{DescriptorMethod, DescriptorParams, UnifiedDescriptor},
+    detect_corners,
     find_homography,
+    flow_unified::{FlowMethod, FlowResult},
     harris_corners,
+    // Horn-Schunck optical flow
+    horn_schunck_flow,
     image_to_array,
     laplacian::{laplacian_edges, laplacian_of_gaussian},
     log_blob::{log_blob_detect, log_blobs_to_image, LogBlob, LogBlobConfig},
+    match_unified_descriptors,
     orb::{detect_and_compute_orb, match_orb_descriptors, OrbConfig, OrbDescriptor},
     prewitt::prewitt_edges,
     sobel::sobel_edges_simd,
@@ -366,6 +444,7 @@ pub use feature::{
     Detection,
     // Advanced enhancement features
     HDRProcessor,
+    HornSchunckParams,
     KalmanFilter,
     LearnedSIFT,
     NeuralFeatureConfig,
@@ -393,6 +472,28 @@ pub use preprocessing::*;
 
 // Re-export color functionality
 pub use color::*;
+
+// Re-export enhancement functionality
+pub use enhancement::{
+    contrast_stretch_auto, contrast_stretch_linear, contrast_stretch_log, contrast_stretch_power,
+    homomorphic_filter,
+};
+
+// Re-export geometric transform functionality
+pub use geometric::{
+    affine_transform as geometric_affine_transform, crop, flip_horizontal, flip_vertical, pad,
+    perspective_transform as geometric_perspective_transform, resize as geometric_resize, rotate,
+    Interpolation, PadMode,
+};
+
+// Re-export histogram functionality
+pub use histogram::{
+    backproject_histogram, backproject_hs_histogram, binarize_otsu, clahe as histogram_clahe,
+    compute_cdf, compute_color_histogram, compute_histogram,
+    equalize_histogram as histogram_equalize, equalize_histogram_color, match_histogram,
+    match_histogram_image, multi_otsu_threshold, otsu_threshold, otsu_threshold_from_histogram,
+    ColorHistogram, Histogram,
+};
 
 // Re-export transform functionality (select items to avoid conflicts)
 pub use transform::{
@@ -485,4 +586,24 @@ pub use performance_benchmark::{
     AdvancedBenchmarkSuite, BenchmarkConfig, BenchmarkResult, ComparisonMetrics,
     PerformanceMetrics as BenchmarkPerformanceMetrics, QualityMetrics, ResourceUsage,
     ScalabilityMetrics, StatisticalSummary,
+};
+
+// Re-export video/temporal processing functionality
+pub use video::{
+    adaptive_learning_rate, block_match_full, block_match_tss, mask_to_binary, motion_compensate,
+    phase_correlation, prediction_error, smooth_trajectory, stabilisation_corrections,
+    BackgroundConfig, ForegroundLabel, GmmBackground, MedianBackground, MotionField, MotionVector,
+    RunningAverageBackground, ShadowParams,
+};
+
+pub use video::{
+    apply_translation, double_frame_difference, frame_difference, interpolate_linear,
+    interpolate_motion_compensated, threshold_difference, TemporalGaussianFilter,
+    TemporalMedianFilter,
+};
+
+pub use video::tracking::{
+    BBox as VideoBBox, CamShiftTracker, KalmanModel as VideoKalmanModel,
+    KalmanTracker as VideoKalmanTracker, MeanShiftConfig, MeanShiftTracker, MultiObjectTracker,
+    MultiTrackerConfig, TrackStatus as VideoTrackStatus, TrackedObject,
 };

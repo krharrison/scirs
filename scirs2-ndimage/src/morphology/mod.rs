@@ -37,6 +37,7 @@
 
 use std::fmt::Debug;
 
+mod advanced_morph;
 mod connected;
 mod distance_transform;
 mod distance_transform_optimized;
@@ -50,6 +51,7 @@ mod binary;
 mod grayscale;
 
 // Public re-exports
+pub use advanced_morph::*;
 pub use binary::*;
 pub use connected::*;
 pub use distance_transform::*;

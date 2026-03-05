@@ -48,11 +48,11 @@
 //! let y = array![0.0, 1.0, 4.0, 9.0, 16.0];
 //!
 //! // Create cubic interpolator
-//! let interp = Interp1d::new(x.view(), y.view(), InterpolationMethod::Cubic).unwrap();
+//! let interp = Interp1d::new(x.view(), y.view(), InterpolationMethod::Cubic).expect("doc example: should succeed");
 //!
 //! // Evaluate at new points
 //! let x_new = array![0.5, 1.5, 2.5];
-//! let y_new = interp.eval(&x_new.view()).unwrap();
+//! let y_new = interp.eval(&x_new.view()).expect("doc example: should succeed");
 //! ```
 //!
 //! ### Spline Interpolation
@@ -70,9 +70,9 @@
 //!     y.view(),
 //!     SplineBoundaryCondition::Natural,
 //!     SplineBoundaryCondition::Natural
-//! ).unwrap();
+//! ).expect("doc example: should succeed");
 //!
-//! let y_interp = spline.evaluate(1.5).unwrap();
+//! let y_interp = spline.evaluate(1.5).expect("doc example: should succeed");
 //! ```
 //!
 //! ### Radial Basis Function (RBF) Interpolation
@@ -86,11 +86,11 @@
 //! let y = array![0.0, 1.0, 1.0, 2.0];
 //!
 //! // Create RBF interpolator with thin-plate spline kernel
-//! let rbf = RBFInterpolator::new(x.view(), y.view(), RBFKernel::ThinPlate).unwrap();
+//! let rbf = RBFInterpolator::new(x.view(), y.view(), RBFKernel::ThinPlate).expect("doc example: should succeed");
 //!
 //! // Evaluate at new points
 //! let x_new = array![[0.5, 0.5]];
-//! let y_new = rbf.evaluate(&x_new.view()).unwrap();
+//! let y_new = rbf.evaluate(&x_new.view()).expect("doc example: should succeed");
 //! ```
 //!
 //! ### N-D Regular Grid Interpolation
@@ -112,7 +112,7 @@
 //! let interp = RegularGridInterpolator::new(
 //!     vec![x.view(), y.view(), z.view()],
 //!     values.view(),
-//! ).unwrap();
+//! ).expect("doc example: should succeed");
 //! ```
 //!
 //! ## 🏗️ Architecture
@@ -410,9 +410,20 @@ pub mod advanced_coordinator;
 pub mod advanced_coordinator_modules;
 pub mod tension;
 pub mod tensor;
+pub mod tensor_product;
 pub mod timeseries;
+pub mod triangulation_interp;
 pub mod utils;
 pub mod voronoi;
+
+// N-dimensional scattered data interpolation
+pub mod scattered_nd;
+
+// Advanced spline calculus, monotone interpolation, RBF, and rational interpolation
+pub mod monotone;
+pub mod rational_interpolation;
+pub mod rbf_interpolation;
+pub mod spline_calculus;
 
 // SciPy compatibility validation
 pub mod scipy_compatibility;
@@ -756,6 +767,48 @@ pub use voronoi::{
     GradientEstimation, InterpolateWithGradient, InterpolateWithGradientResult,
     InterpolationMethod as VoronoiInterpolationMethod, NaturalNeighborInterpolator,
     ParallelNaturalNeighborInterpolator,
+};
+
+// Scattered N-dimensional interpolation re-exports
+pub use scattered_nd::{
+    make_knn_nd_interpolator, make_natural_neighbor_nd_interpolator,
+    make_nearest_neighbor_interpolator as make_nearest_neighbor_nd_interpolator,
+    make_shepard_interpolator, DistanceMetric, ScatteredNdInterpolator, ScatteredNdMethod,
+};
+
+// Tensor product grid interpolation re-exports
+pub use tensor_product::{
+    make_multilinear_interpolator, make_tensor_bspline_interpolator, BoundaryHandling,
+    TensorProductGridInterpolator, TensorProductMethod,
+};
+
+// Triangulation-based interpolation re-exports
+pub use triangulation_interp::{
+    make_clough_tocher_interpolator, make_linear_triangulation, make_nearest_vertex_interpolator,
+    DelaunayTriangulation, ExteriorHandling, Triangle, TriangulationInterpolator,
+    TriangulationMethod,
+};
+
+// Spline calculus re-exports
+pub use spline_calculus::{
+    spline_antiderivative, spline_derivative, spline_integral, spline_roots, spline_solve,
+    PiecewisePolynomial,
+};
+
+// Monotone interpolation re-exports
+pub use monotone::{
+    make_fritsch_carlson, make_steffen, FritschCarlsonInterpolator, SteffenInterpolator,
+};
+
+// RBF interpolation re-exports
+pub use rbf_interpolation::{
+    make_gaussian_rbf, make_inverse_multiquadric_rbf, make_multiquadric_rbf, make_thin_plate_rbf,
+    RbfKernel, ScatteredRbf,
+};
+
+// Rational interpolation re-exports
+pub use rational_interpolation::{
+    auto_select_order, make_floater_hormann, make_floater_hormann_auto, FloaterHormann,
 };
 
 // Enhanced performance validation exports

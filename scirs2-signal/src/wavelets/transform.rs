@@ -34,7 +34,7 @@ use std::fmt::Debug;
 /// let scales: Vec<f64> = vec![1.0, 2.0, 4.0, 8.0, 16.0];
 ///
 /// // Compute CWT using the Ricker wavelet
-/// let result = cwt(&signal, |points, scale| ricker(points, scale), &scales).unwrap();
+/// let result = cwt(&signal, |points, scale| ricker(points, scale), &scales).expect("operation should succeed");
 /// ```
 ///
 /// You can also use it with complex signals:
@@ -54,7 +54,7 @@ use std::fmt::Debug;
 /// let scales: Vec<f64> = vec![1.0, 2.0, 4.0, 8.0];
 ///
 /// // Compute CWT using the Morlet wavelet with 5.0 as central frequency parameter
-/// let result = cwt(&signal, |points, scale| morlet(points, 5.0, scale), &scales).unwrap();
+/// let result = cwt(&signal, |points, scale| morlet(points, 5.0, scale), &scales).expect("operation should succeed");
 ///
 /// // Check results
 /// assert_eq!(result.len(), scales.len());

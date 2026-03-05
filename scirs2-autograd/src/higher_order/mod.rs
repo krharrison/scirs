@@ -9,6 +9,7 @@
 use crate::tensor_ops as T;
 use crate::{error::AutogradError, tensor::Tensor, Context, Float, NdArray, Result};
 
+pub mod extensions;
 pub mod hessian;
 pub mod jacobian;
 pub mod vjp;

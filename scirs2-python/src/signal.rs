@@ -4,15 +4,15 @@
 
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use scirs2_numpy::{PyArray1, PyReadonlyArray1};
 use scirs2_core::python::numpy_compat::{scirs_to_numpy_array1, Array1};
+use scirs2_numpy::{PyArray1, PyReadonlyArray1};
 
 // Import signal functions
 use scirs2_signal::hilbert::hilbert;
 
 // Import filter design functions
-use scirs2_signal::filter::iir::{butter, cheby1};
 use scirs2_signal::filter::fir::firwin;
+use scirs2_signal::filter::iir::{butter, cheby1};
 use scirs2_signal::filter::FilterType;
 
 // =============================================================================
@@ -41,7 +41,9 @@ fn convolve_py(
     let m = v_slice.len();
 
     if n == 0 || m == 0 {
-        return Err(pyo3::exceptions::PyValueError::new_err("Arrays must not be empty"));
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "Arrays must not be empty",
+        ));
     }
 
     // Calculate output size based on mode
@@ -51,12 +53,16 @@ fn convolve_py(
         "valid" => {
             if n < m {
                 return Err(pyo3::exceptions::PyValueError::new_err(
-                    "For 'valid' mode, first array must be at least as long as second"
+                    "For 'valid' mode, first array must be at least as long as second",
                 ));
             }
             (n - m + 1, m - 1)
         }
-        _ => return Err(pyo3::exceptions::PyValueError::new_err("mode must be 'full', 'same', or 'valid'")),
+        _ => {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "mode must be 'full', 'same', or 'valid'",
+            ))
+        }
     };
 
     // Direct convolution (optimized for small kernels)
@@ -99,7 +105,9 @@ fn correlate_py(
     let m = v_slice.len();
 
     if n == 0 || m == 0 {
-        return Err(pyo3::exceptions::PyValueError::new_err("Arrays must not be empty"));
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "Arrays must not be empty",
+        ));
     }
 
     // Reverse kernel for correlation (correlation = convolution with reversed kernel)
@@ -110,12 +118,16 @@ fn correlate_py(
         "valid" => {
             if n < m {
                 return Err(pyo3::exceptions::PyValueError::new_err(
-                    "For 'valid' mode, first array must be at least as long as second"
+                    "For 'valid' mode, first array must be at least as long as second",
                 ));
             }
             (n - m + 1, m - 1)
         }
-        _ => return Err(pyo3::exceptions::PyValueError::new_err("mode must be 'full', 'same', or 'valid'")),
+        _ => {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "mode must be 'full', 'same', or 'valid'",
+            ))
+        }
     };
 
     // Direct correlation
@@ -144,14 +156,11 @@ fn correlate_py(
 ///
 /// Returns the analytic signal (real and imaginary parts separately)
 #[pyfunction]
-fn hilbert_py(
-    py: Python,
-    x: PyReadonlyArray1<f64>,
-) -> PyResult<Py<PyAny>> {
+fn hilbert_py(py: Python, x: PyReadonlyArray1<f64>) -> PyResult<Py<PyAny>> {
     let x_slice = x.as_array().to_vec();
 
-    let result = hilbert(&x_slice)
-        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+    let result =
+        hilbert(&x_slice).map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
     // Extract real and imaginary parts
     let real: Vec<f64> = result.iter().map(|c| c.re).collect();
@@ -259,12 +268,7 @@ fn kaiser_py(py: Python, n: usize, beta: f64) -> PyResult<Py<PyArray1<f64>>> {
 /// - Dict with 'b' (numerator) and 'a' (denominator) coefficients
 #[pyfunction]
 #[pyo3(signature = (order, cutoff, filter_type="lowpass"))]
-fn butter_py(
-    py: Python,
-    order: usize,
-    cutoff: f64,
-    filter_type: &str,
-) -> PyResult<Py<PyAny>> {
+fn butter_py(py: Python, order: usize, cutoff: f64, filter_type: &str) -> PyResult<Py<PyAny>> {
     let ftype = match filter_type.to_lowercase().as_str() {
         "lowpass" | "low" => FilterType::Lowpass,
         "highpass" | "high" => FilterType::Highpass,
@@ -272,7 +276,7 @@ fn butter_py(
         "bandstop" | "stop" => FilterType::Bandstop,
         _ => {
             return Err(pyo3::exceptions::PyValueError::new_err(
-                "Invalid filter type. Use 'lowpass', 'highpass', 'bandpass', or 'bandstop'"
+                "Invalid filter type. Use 'lowpass', 'highpass', 'bandpass', or 'bandstop'",
             ));
         }
     };
@@ -311,7 +315,7 @@ fn cheby1_py(
         "highpass" | "high" => FilterType::Highpass,
         _ => {
             return Err(pyo3::exceptions::PyValueError::new_err(
-                "Invalid filter type for cheby1. Use 'lowpass' or 'highpass'"
+                "Invalid filter type for cheby1. Use 'lowpass' or 'highpass'",
             ));
         }
     };
@@ -392,7 +396,9 @@ fn find_peaks_py(
     if let Some(dist) = distance {
         let mut filtered = Vec::new();
         for &peak in &peaks {
-            let keep = filtered.iter().all(|&p: &i64| (peak - p).unsigned_abs() >= dist as u64);
+            let keep = filtered
+                .iter()
+                .all(|&p: &i64| (peak - p).unsigned_abs() >= dist as u64);
             if keep {
                 filtered.push(peak);
             }

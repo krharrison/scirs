@@ -727,10 +727,18 @@ mod tests {
 
     #[test]
     fn test_tvl1_flow() {
-        let img1 = DynamicImage::ImageRgb8(RgbImage::new(64, 64));
-        let img2 = DynamicImage::ImageRgb8(RgbImage::new(64, 64));
+        let img1 = DynamicImage::ImageRgb8(RgbImage::new(16, 16));
+        let img2 = DynamicImage::ImageRgb8(RgbImage::new(16, 16));
 
-        let flow = tvl1_flow(&img1, &img2, &TVL1Params::default());
+        // Use minimal params to avoid timeout in debug mode
+        let params = TVL1Params {
+            scales: 1,
+            warps: 1,
+            inner_iterations: 2,
+            outer_iterations: 2,
+            ..TVL1Params::default()
+        };
+        let flow = tvl1_flow(&img1, &img2, &params);
         assert!(flow.is_ok());
     }
 

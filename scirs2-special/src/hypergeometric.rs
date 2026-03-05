@@ -513,15 +513,12 @@ where
     }
 
     // For small x and b=1, use recurrence relation to avoid numerical instability
-    if b == F::one()
-        && x < F::one()
-        && a.abs() < F::from(0.25).expect("test/example should not fail")
-    {
+    if b == F::one() && x < F::one() && a.abs() < F::from(0.25).unwrap_or(F::zero()) {
         return hyperu_recurrence_b1(a, x);
     }
 
     // For negative integer a, U becomes a polynomial
-    if a < F::zero() && a.to_f64().expect("test/example should not fail").fract() == 0.0 {
+    if a < F::zero() && a.to_f64().unwrap_or(0.0).fract() == 0.0 {
         return hyperu_polynomial(a, b, x);
     }
 
@@ -535,14 +532,14 @@ fn hyperu_recurrence_b1<F>(a: F, x: F) -> SpecialResult<F>
 where
     F: Float + FromPrimitive + Debug + AddAssign + MulAssign,
 {
-    // Use DLMF 13.3.7 recurrence: U(a,1,x) = (x + 1 + 2*a)*U(a+1,1,x) - (a+1)²*U(a+2,1,x)
+    // Use DLMF 13.3.7 recurrence: U(a,1,x) = (x + 1 + 2*a)*U(a+1,1,x) - (a+1)^2*U(a+2,1,x)
     let a_plus_1 = a + F::one();
-    let a_plus_2 = a + F::from(2.0).expect("test/example should not fail");
+    let a_plus_2 = a + F::from(2.0).unwrap_or(F::one());
 
     let u_a2 = hyperu_general(a_plus_2, F::one(), x)?;
     let u_a1 = hyperu_general(a_plus_1, F::one(), x)?;
 
-    let coeff1 = x + F::one() + F::from(2.0).expect("test/example should not fail") * a;
+    let coeff1 = x + F::one() + F::from(2.0).unwrap_or(F::one()) * a;
     let coeff2 = a_plus_1 * a_plus_1;
 
     Ok(coeff1 * u_a1 - coeff2 * u_a2)
@@ -554,16 +551,14 @@ fn hyperu_polynomial<F>(a: F, b: F, x: F) -> SpecialResult<F>
 where
     F: Float + FromPrimitive + Debug + AddAssign + MulAssign,
 {
-    let n = (-a).to_usize().expect("test/example should not fail");
+    let n = (-a).to_usize().unwrap_or(0);
     let mut sum = F::zero();
 
     for k in 0..=n {
-        let k_f = F::from(k).expect("test/example should not fail");
-        let coeff = pochhammer(-F::from(n).expect("test/example should not fail"), k)
-            / gamma(k_f + F::one());
-        let term = coeff
-            * pochhammer(b - F::from(n).expect("test/example should not fail"), k)
-            * x.powf(k_f);
+        let k_f = F::from(k).unwrap_or(F::zero());
+        let n_f = F::from(n).unwrap_or(F::zero());
+        let coeff = pochhammer(-n_f, k) / gamma(k_f + F::one());
+        let term = coeff * pochhammer(b - n_f, k) * x.powf(k_f);
         sum += term;
     }
 
@@ -571,40 +566,145 @@ where
 }
 
 /// General computation using asymptotic expansion or series
+///
+/// Uses the asymptotic expansion:
+///   U(a, b, x) ~ x^{-a} * sum_{n=0}^inf (a)_n * (a-b+1)_n / (n! * (-x)^n)
+///
+/// For moderate x where the asymptotic is not accurate enough, uses the
+/// relation to 1F1 via Kummer's transformation.
 #[allow(dead_code)]
 fn hyperu_general<F>(a: F, b: F, x: F) -> SpecialResult<F>
 where
     F: Float + FromPrimitive + Debug + AddAssign + MulAssign,
 {
-    let tolerance = F::from(1e-15).expect("test/example should not fail");
+    let tolerance = F::from(1e-15).unwrap_or(F::zero());
 
-    // For large x, use asymptotic expansion: U(a,b,x) ~ x^(-a) * [1 + a(a-b+1)/(1*x) + ...]
-    if x > F::from(30.0).expect("test/example should not fail") {
+    // For large x, use asymptotic expansion:
+    //   U(a,b,x) ~ x^{-a} * sum_{n=0}^N (a)_n * (a-b+1)_n / (n! * (-x)^n)
+    // This is a divergent series; use optimal truncation
+    if x > F::from(2.0).unwrap_or(F::one()) {
         let x_neg_a = x.powf(-a);
-        let first_correction = a * (a - b + F::one()) / x;
-        return Ok(x_neg_a * (F::one() + first_correction));
-    }
+        let neg_x_inv = -F::one() / x;
 
-    // For moderate x, use continued fraction (simplified implementation)
-    // In practice, this would use a more sophisticated algorithm
+        let mut sum = F::one();
+        let mut term = F::one();
+        let mut best_sum = sum;
+        let mut best_term_abs = F::one();
+        let a_minus_b_plus_1 = a - b + F::one();
 
-    // Fallback to series expansion for now
-    let mut sum = F::one();
-    let mut term = F::one();
+        for n in 1..60 {
+            let n_f = F::from(n).unwrap_or(F::one());
+            // term *= (a + n - 1) * (a - b + 1 + n - 1) / (n * (-x))
+            //       = (a + n - 1) * (a - b + n) / n * (-1/x)
+            term =
+                term * (a + n_f - F::one()) * (a_minus_b_plus_1 + n_f - F::one()) / n_f * neg_x_inv;
+            let new_sum = sum + term;
 
-    for n in 1..100 {
-        let n_f = F::from(n).expect("test/example should not fail");
-        term = term * (a + n_f - F::one()) * x / (n_f * (b + n_f - F::one()));
-        sum += term;
+            // Optimal truncation: stop when terms start growing
+            if term.abs() > best_term_abs && n > 2 {
+                break;
+            }
+            best_term_abs = term.abs();
+            best_sum = new_sum;
+            sum = new_sum;
 
-        if term.abs() < tolerance * sum.abs() {
-            break;
+            if term.abs() < tolerance * sum.abs().max(F::from(1e-300).unwrap_or(F::zero())) {
+                break;
+            }
         }
+
+        return Ok(x_neg_a * best_sum);
     }
 
-    // Apply normalization factor (simplified)
-    let normalization = gamma(F::one() - b + a) / gamma(a);
-    Ok(normalization * sum)
+    // For small x (x <= 2), use the relation:
+    //   U(a, b, x) = Gamma(1-b)/Gamma(a+1-b) * 1F1(a, b, x)
+    //              + Gamma(b-1)/Gamma(a) * x^(1-b) * 1F1(a+1-b, 2-b, x)
+    //
+    // When b is a positive integer >= 2, Gamma(1-b) has a pole, so use
+    // the logarithmic form. For simplicity, we use a series form.
+
+    let b_f64 = b.to_f64().unwrap_or(0.0);
+    let a_f64 = a.to_f64().unwrap_or(0.0);
+
+    // Check if b is a positive integer (poles in Gamma(1-b))
+    let b_is_pos_int = b_f64 > 0.0 && b_f64.fract() == 0.0 && b_f64 >= 2.0;
+
+    if b_is_pos_int {
+        // For integer b >= 2, Gamma(1-b) has a pole making the standard two-term
+        // relation singular. Use perturbation: compute U(a, b+eps, x) at a small
+        // non-integer offset and extrapolate.
+        //
+        // The two-term relation for non-integer b:
+        //   U(a, b, x) = Gamma(1-b)/Gamma(a+1-b) * 1F1(a, b, x)
+        //              + Gamma(b-1)/Gamma(a) * x^(1-b) * 1F1(a+1-b, 2-b, x)
+        //
+        // We evaluate at b_pert = b + epsilon with small epsilon (not exactly integer)
+        // and use Richardson extrapolation with two perturbation sizes.
+        let eps1 = F::from(1e-6).unwrap_or(F::one());
+        let eps2 = F::from(2e-6).unwrap_or(F::one());
+        let b_p1 = b + eps1;
+        let b_p2 = b + eps2;
+
+        let u1 = hyperu_two_term(a, b_p1, x, tolerance)?;
+        let u2 = hyperu_two_term(a, b_p2, x, tolerance)?;
+
+        // Richardson extrapolation: U(a,b,x) ~ 2*U(eps) - U(2*eps) to first order
+        let result = F::from(2.0).unwrap_or(F::one()) * u1 - u2;
+        return Ok(result);
+    }
+
+    // Non-integer b case
+    hyperu_two_term(a, b, x, tolerance)
+}
+
+/// Compute U(a, b, x) using the standard two-term relation.
+/// Only valid for non-integer b (Gamma(1-b) and Gamma(b-1) must not have poles).
+///
+/// U(a, b, x) = Gamma(1-b)/Gamma(a+1-b) * 1F1(a, b, x)
+///            + Gamma(b-1)/Gamma(a) * x^(1-b) * 1F1(a+1-b, 2-b, x)
+#[allow(dead_code)]
+fn hyperu_two_term<F>(a: F, b: F, x: F, tolerance: F) -> SpecialResult<F>
+where
+    F: Float + FromPrimitive + Debug + AddAssign + MulAssign,
+{
+    // Compute 1F1(a, b, x)
+    let hyp1 = {
+        let mut s = F::one();
+        let mut t = F::one();
+        for n in 1..200 {
+            let n_f = F::from(n).unwrap_or(F::one());
+            t = t * (a + n_f - F::one()) * x / (n_f * (b + n_f - F::one()));
+            s += t;
+            if t.abs() < tolerance * s.abs().max(F::from(1e-300).unwrap_or(F::zero())) {
+                break;
+            }
+        }
+        s
+    };
+
+    // Compute 1F1(a+1-b, 2-b, x)
+    let a2 = a + F::one() - b;
+    let b2 = F::from(2.0).unwrap_or(F::one()) - b;
+    let hyp2 = {
+        let mut s = F::one();
+        let mut t = F::one();
+        for n in 1..200 {
+            let n_f = F::from(n).unwrap_or(F::one());
+            t = t * (a2 + n_f - F::one()) * x / (n_f * (b2 + n_f - F::one()));
+            s += t;
+            if t.abs() < tolerance * s.abs().max(F::from(1e-300).unwrap_or(F::zero())) {
+                break;
+            }
+        }
+        s
+    };
+
+    let one_minus_b = F::one() - b;
+    let g1 = gamma(one_minus_b) / gamma(a + one_minus_b);
+    let g2 = gamma(b - F::one()) / gamma(a);
+    let x_1_minus_b = x.powf(one_minus_b);
+
+    Ok(g1 * hyp1 + g2 * x_1_minus_b * hyp2)
 }
 
 #[allow(dead_code)]

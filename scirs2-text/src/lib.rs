@@ -118,6 +118,7 @@ pub mod error;
 pub mod huggingface_compat;
 pub mod information_extraction;
 pub mod language_model;
+pub mod lemmatization;
 pub mod ml_integration;
 pub mod ml_sentiment;
 pub mod model_registry;
@@ -126,6 +127,7 @@ pub mod neural_architectures;
 pub mod parallel;
 pub mod paraphrasing;
 pub mod performance;
+pub mod pipeline;
 pub mod pos_tagging;
 pub mod preprocess;
 pub mod semantic_similarity;
@@ -142,6 +144,7 @@ pub mod text_coordinator;
 pub mod text_statistics;
 pub mod token_filter;
 pub mod tokenize;
+pub mod tokenizer;
 pub mod topic_coherence;
 pub mod topic_modeling;
 pub mod transformer;
@@ -151,9 +154,18 @@ pub mod visualization;
 pub mod vocabulary;
 pub mod weighted_distance;
 
+// New text processing modules
+pub mod keyword_extraction;
+pub mod language_detection;
+pub mod named_entity_recognition;
+pub mod text_similarity;
+pub mod text_summarization;
+
 // Re-export commonly used items
 pub use classification::{
-    TextClassificationMetrics, TextClassificationPipeline, TextDataset, TextFeatureSelector,
+    cross_validate_nb, BernoulliNaiveBayes, CrossValidationResult, FeatureHasher, FoldResult,
+    MultiLabelClassifier, MultiLabelPrediction, MultinomialNaiveBayes, TextClassificationMetrics,
+    TextClassificationPipeline, TextDataset, TextFeatureSelector, TfidfCosineClassifier,
 };
 pub use cleansing::{
     expand_contractions, normalize_currencies, normalize_numbers, normalize_ordinals,
@@ -167,9 +179,10 @@ pub use domain_processors::{
     ScientificTextProcessor, SocialMediaTextProcessor, UnifiedDomainProcessor,
 };
 pub use embeddings::{
+    embedding_cosine_similarity,
     fasttext::{FastText, FastTextConfig},
-    glove::GloVe,
-    Word2Vec, Word2VecAlgorithm, Word2VecConfig,
+    glove::{CooccurrenceMatrix, GloVe, GloVeTrainer, GloVeTrainerConfig},
+    pairwise_similarity, Word2Vec, Word2VecAlgorithm, Word2VecConfig, WordEmbedding,
 };
 pub use enhanced_vectorize::{EnhancedCountVectorizer, EnhancedTfidfVectorizer};
 pub use error::{Result, TextError};
@@ -188,6 +201,7 @@ pub use information_extraction::{
     StructuredDocumentInformation, TemporalExtractor, Topic,
 };
 pub use language_model::{NgramModel, SmoothingMethod};
+pub use lemmatization::{Lemmatizer, RuleBasedLemmatizer, WordNetLemmatizer};
 pub use ml_integration::{
     BatchTextProcessor, FeatureExtractionMode, MLTextPreprocessor, TextFeatures, TextMLPipeline,
 };
@@ -216,6 +230,10 @@ pub use performance::{
     AdvancedPerformanceMonitor, DetailedPerformanceReport, OptimizationRecommendation,
     PerformanceSummary, PerformanceThresholds,
 };
+pub use pipeline::{
+    basic_pipeline, lemmatization_pipeline, ngram_pipeline, stemming_pipeline, BatchProcessor,
+    NlpPipeline, PipelineBuilder, PipelineStep,
+};
 pub use pos_tagging::{
     PosAwareLemmatizer, PosTagResult, PosTagger, PosTaggerConfig, PosTaggingResult,
 };
@@ -225,8 +243,10 @@ pub use semantic_similarity::{
     WordMoversDistance,
 };
 pub use sentiment::{
-    LexiconSentimentAnalyzer, RuleBasedSentimentAnalyzer, Sentiment, SentimentLexicon,
-    SentimentResult, SentimentRules, SentimentWordCounts,
+    aggregate_sentiment, analyze_and_aggregate, AggregatedSentiment, AspectSentiment,
+    AspectSentimentAnalyzer, LexiconSentimentAnalyzer, NaiveBayesSentiment,
+    RuleBasedSentimentAnalyzer, Sentiment, SentimentLexicon, SentimentResult, SentimentRules,
+    SentimentWordCounts, VaderResult, VaderSentimentAnalyzer,
 };
 pub use simd_ops::{
     AdvancedSIMDTextProcessor, SimdEditDistance, SimdStringOps, SimdTextAnalyzer,
@@ -267,6 +287,10 @@ pub use tokenize::{
     CharacterTokenizer, NgramTokenizer, RegexTokenizer, SentenceTokenizer, Tokenizer,
     WhitespaceTokenizer, WordTokenizer,
 };
+pub use tokenizer::{
+    BPETokenizer, SimpleCharTokenizer, SimpleWhitespaceTokenizer, TransformerTokenizer,
+    WordPieceTokenizer,
+};
 pub use topic_coherence::{TopicCoherence, TopicDiversity};
 pub use topic_modeling::{
     LatentDirichletAllocation, LdaBuilder, LdaConfig, LdaLearningMethod, Topic as LdaTopic,
@@ -285,4 +309,23 @@ pub use vocabulary::Vocabulary;
 pub use weighted_distance::{
     DamerauLevenshteinWeights, LevenshteinWeights, WeightedDamerauLevenshtein, WeightedLevenshtein,
     WeightedStringMetric,
+};
+
+// Re-exports for new modules
+pub use keyword_extraction::{
+    extract_keywords, Keyword, KeywordMethod, RakeKeywordExtractor, TextRankKeywordExtractor,
+    TfIdfKeywordExtractor,
+};
+pub use language_detection::{
+    detect_language, detect_language_with_strategy, DetectedLanguage, DetectionStrategy,
+    LanguageDetectionOutput,
+};
+pub use named_entity_recognition::{extract_entities, NerEntity, NerEntityType, NerPatternConfig};
+pub use text_similarity::{
+    bm25_score, char_ngram_jaccard_similarity, edit_distance_similarity, jaccard_token_similarity,
+    text_similarity, tfidf_cosine_similarity, Bm25Config, Bm25Scorer, SimilarityMethod,
+    SimilarityResult, TfIdfCosineSimilarity,
+};
+pub use text_summarization::{
+    score_position, score_textrank, score_tfidf, summarize, ScoredSentence, SummarizationMethod,
 };

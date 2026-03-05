@@ -26,19 +26,19 @@
 //! let y_score = array![0.1, 0.2, 0.9, 0.7, 0.8, 0.3, 0.6, 0.95, 0.2, 0.1];
 //!
 //! // Compute accuracy of anomaly detection
-//! let accuracy = detection_accuracy(&y_true, &y_pred).unwrap();
+//! let accuracy = detection_accuracy(&y_true, &y_pred).expect("should succeed");
 //!
 //! // False alarm rate (Type I error)
-//! let far = false_alarm_rate(&y_true, &y_pred).unwrap();
+//! let far = false_alarm_rate(&y_true, &y_pred).expect("should succeed");
 //!
 //! // Miss detection rate (Type II error)
-//! let mdr = miss_detection_rate(&y_true, &y_pred).unwrap();
+//! let mdr = miss_detection_rate(&y_true, &y_pred).expect("should succeed");
 //!
 //! // AUC for anomaly detection
-//! let auc = anomaly_auc_score(&y_true, &y_score).unwrap();
+//! let auc = anomaly_auc_score(&y_true, &y_score).expect("should succeed");
 //!
 //! // Average precision score
-//! let ap = anomaly_average_precision_score(&y_true, &y_score).unwrap();
+//! let ap = anomaly_average_precision_score(&y_true, &y_score).expect("should succeed");
 //! ```
 //!
 //! ## Distribution Metrics
@@ -56,20 +56,20 @@
 //! let q = array![0.3, 0.4, 0.3];
 //!
 //! // Compute Kullback-Leibler divergence
-//! let kl = kl_divergence(&p, &q).unwrap();
+//! let kl = kl_divergence(&p, &q).expect("should succeed");
 //!
 //! // Jensen-Shannon divergence
-//! let js = js_divergence(&p, &q).unwrap();
+//! let js = js_divergence(&p, &q).expect("should succeed");
 //!
 //! // Wasserstein distance (1D version)
 //! let samples_p = array![1.0, 2.0, 3.0, 4.0, 5.0];
 //! let samples_q = array![1.5, 2.5, 3.5, 4.5, 5.5];
-//! let w_dist = wasserstein_distance(&samples_p, &samples_q).unwrap();
+//! let w_dist = wasserstein_distance(&samples_p, &samples_q).expect("should succeed");
 //!
 //! // Maximum Mean Discrepancy with RBF kernel
 //! let x = array![1.0, 2.0, 3.0, 4.0, 5.0];
 //! let y = array![1.2, 2.3, 3.1, 4.2, 5.5];
-//! let mmd = maximum_mean_discrepancy(&x, &y, None).unwrap();
+//! let mmd = maximum_mean_discrepancy(&x, &y, None).expect("should succeed");
 //! ```
 //!
 //! ## Time Series Anomaly Metrics
@@ -90,13 +90,13 @@
 //! let y_pred = array![0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0];
 //!
 //! // Precision and recall with a tolerance window of 2 time steps
-//! let (precision, recall, f1) = precision_recall_with_tolerance(&y_true, &y_pred, 2).unwrap();
+//! let (precision, recall, f1) = precision_recall_with_tolerance(&y_true, &y_pred, 2).expect("should succeed");
 //!
 //! // Point-adjusted precision and recall
-//! let (pa_precision, pa_recall, pa_f1) = point_adjusted_precision_recall(&y_true, &y_pred).unwrap();
+//! let (pa_precision, pa_recall, pa_f1) = point_adjusted_precision_recall(&y_true, &y_pred).expect("should succeed");
 //!
 //! // Numenta Anomaly Benchmark (NAB) score with default parameters
-//! let nab = nab_score(&y_true, &y_pred, None, None, None).unwrap();
+//! let nab = nab_score(&y_true, &y_pred, None, None, None).expect("should succeed");
 //! ```
 
 use scirs2_core::ndarray::{Array1, ArrayBase, Data, Ix1};
@@ -130,7 +130,7 @@ use crate::error::{MetricsError, Result};
 /// let y_pred = array![0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0];
 ///
 /// // Overall accuracy: 8 correct out of 10 instances (80%)
-/// let accuracy = detection_accuracy(&y_true, &y_pred).unwrap();
+/// let accuracy = detection_accuracy(&y_true, &y_pred).expect("should succeed");
 /// assert!(accuracy >= 0.0 && accuracy <= 1.0);
 /// ```
 #[allow(dead_code)]
@@ -196,7 +196,7 @@ where
 /// let y_pred = array![0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0];
 ///
 /// // 2 false alarms out of 7 normal instances (≈ 0.286)
-/// let far = false_alarm_rate(&y_true, &y_pred).unwrap();
+/// let far = false_alarm_rate(&y_true, &y_pred).expect("should succeed");
 /// assert!(far >= 0.0 && far <= 1.0);
 /// ```
 #[allow(dead_code)]
@@ -271,7 +271,7 @@ where
 /// let y_pred = array![0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0];
 ///
 /// // 1 missed anomaly out of 3 total anomalies (≈ 0.333)
-/// let mdr = miss_detection_rate(&y_true, &y_pred).unwrap();
+/// let mdr = miss_detection_rate(&y_true, &y_pred).expect("should succeed");
 /// assert!(mdr >= 0.0 && mdr <= 1.0);
 /// ```
 #[allow(dead_code)]
@@ -346,7 +346,7 @@ where
 /// let y_score = array![0.1, 0.2, 0.9, 0.3, 0.8, 0.2, 0.4, 0.95, 0.1, 0.05];
 ///
 /// // Calculate AUC score
-/// let auc = anomaly_auc_score(&y_true, &y_score).unwrap();
+/// let auc = anomaly_auc_score(&y_true, &y_score).expect("should succeed");
 /// assert!(auc >= 0.0 && auc <= 1.0);
 /// ```
 #[allow(dead_code)]
@@ -459,7 +459,7 @@ where
 /// let y_score = array![0.1, 0.2, 0.9, 0.3, 0.8, 0.2, 0.4, 0.95, 0.1, 0.05];
 ///
 /// // Calculate average precision score
-/// let ap = anomaly_average_precision_score(&y_true, &y_score).unwrap();
+/// let ap = anomaly_average_precision_score(&y_true, &y_score).expect("should succeed");
 /// assert!(ap > 0.0 && ap <= 1.0);
 /// ```
 #[allow(dead_code)]
@@ -560,7 +560,7 @@ where
 /// let q = array![0.3, 0.4, 0.3];
 ///
 /// // Calculate KL divergence
-/// let kl = kl_divergence(&p, &q).unwrap();
+/// let kl = kl_divergence(&p, &q).expect("should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn kl_divergence<T, S, R>(p: &ArrayBase<S, Ix1>, q: &ArrayBase<R, Ix1>) -> Result<f64>
@@ -637,7 +637,7 @@ where
 /// let q = array![0.3, 0.4, 0.3];
 ///
 /// // Calculate JS divergence
-/// let js = js_divergence(&p, &q).unwrap();
+/// let js = js_divergence(&p, &q).expect("should succeed");
 /// assert!(js >= 0.0 && js <= 0.693);
 /// ```
 #[allow(dead_code)]
@@ -731,7 +731,7 @@ where
 /// let v_values = array![1.5, 2.5, 3.5, 4.5, 5.5];
 ///
 /// // Calculate Wasserstein distance
-/// let w_dist = wasserstein_distance(&u_values, &v_values).unwrap();
+/// let w_dist = wasserstein_distance(&u_values, &v_values).expect("should succeed");
 /// // Check if the result is valid (might be NaN in some implementations)
 /// if !w_dist.is_nan() {
 ///     assert!(w_dist >= 0.0);
@@ -826,11 +826,11 @@ where
 /// let y = array![1.2, 2.1, 3.0, 4.1, 5.2];
 ///
 /// // Calculate MMD with default bandwidth (median heuristic)
-/// let mmd = maximum_mean_discrepancy(&x, &y, None).unwrap();
+/// let mmd = maximum_mean_discrepancy(&x, &y, None).expect("should succeed");
 /// assert!(mmd >= 0.0);
 ///
 /// // Calculate MMD with custom bandwidth
-/// let mmd_custom = maximum_mean_discrepancy(&x, &y, Some(1.0)).unwrap();
+/// let mmd_custom = maximum_mean_discrepancy(&x, &y, Some(1.0)).expect("should succeed");
 /// assert!(mmd_custom >= 0.0);
 /// ```
 ///
@@ -986,11 +986,11 @@ where
 ///
 /// // With a tolerance of 1, predictions at positions 2 and 8 are considered correct
 /// // because they're within 1 time step of a true anomaly
-/// let (precision, recall, f1) = precision_recall_with_tolerance(&y_true, &y_pred, 1).unwrap();
+/// let (precision, recall, f1) = precision_recall_with_tolerance(&y_true, &y_pred, 1).expect("should succeed");
 ///
 /// // With a tolerance of 0, only exact matches are considered
 /// let (precision_strict, recall_strict, f1_strict) =
-///     precision_recall_with_tolerance(&y_true, &y_pred, 0).unwrap();
+///     precision_recall_with_tolerance(&y_true, &y_pred, 0).expect("should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn precision_recall_with_tolerance<T, S, R>(
@@ -1132,7 +1132,7 @@ where
 /// let y_pred = array![0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0];
 ///
 /// // Point-adjusted evaluation considers both anomaly sequences correctly detected
-/// let (pa_precision, pa_recall, pa_f1) = point_adjusted_precision_recall(&y_true, &y_pred).unwrap();
+/// let (pa_precision, pa_recall, pa_f1) = point_adjusted_precision_recall(&y_true, &y_pred).expect("should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn point_adjusted_precision_recall<T, S, R>(
@@ -1293,10 +1293,10 @@ where
 /// let y_pred = scirs2_core::ndarray::Array::from(y_pred);
 ///
 /// // Calculate NAB score with default parameters
-/// let score = nab_score(&y_true, &y_pred, None, None, None).unwrap();
+/// let score = nab_score(&y_true, &y_pred, None, None, None).expect("should succeed");
 ///
 /// // Calculate NAB score with custom parameters
-/// let custom_score = nab_score(&y_true, &y_pred, Some(5), Some(2.0), Some(-1.0)).unwrap();
+/// let custom_score = nab_score(&y_true, &y_pred, Some(5), Some(2.0), Some(-1.0)).expect("should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn nab_score<T, S, R>(

@@ -350,7 +350,7 @@ where
                 convergence_iter,
                 preference: None, // Use default (median of similarities)
                 affinity: "euclidean".to_string(),
-                max_affinity_iterations: 10,
+                verbose: false,
             };
 
             match affinity_propagation(train_data.view(), false, Some(options)) {
@@ -400,7 +400,9 @@ where
             let options = BirchOptions {
                 branching_factor,
                 threshold,
-                n_clusters: None, // Use all clusters found
+                n_clusters: None,
+                max_leaf_entries: None,
+                n_refinement_iter: 5,
             };
 
             match birch(train_data.view(), options) {

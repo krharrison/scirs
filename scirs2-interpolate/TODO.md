@@ -1,158 +1,107 @@
-# scirs2-interpolate TODO - Stable Release Planning
+# scirs2-interpolate TODO
 
-**Status**: Production-ready Stable (0.1.0) with platform testing - Following the [SciRS2 POLICY](../SCIRS2_POLICY.md) for ecosystem consistency
+## v0.3.0 Completed
 
-## 🎯 0.1.0 Stable Release Goals
+### 1D Interpolation
+- [x] Linear and nearest-neighbor interpolation with boundary handling
+- [x] Natural cubic spline with natural, not-a-knot, clamped, periodic BCs
+- [x] Akima spline: outlier-robust local construction
+- [x] PCHIP (Piecewise Cubic Hermite Interpolating Polynomial): shape- and monotonicity-preserving
+- [x] B-splines: arbitrary-order, de Boor evaluation, knot insertion and removal
+- [x] NURBS: Non-Uniform Rational B-Splines for exact conics and free-form curves
+- [x] Bezier curves: de Casteljau; rational and polynomial
+- [x] Tension splines: splines under tension
+- [x] Penalized splines (P-splines): regularized B-spline fitting for noisy data
+- [x] Monotone constrained splines
+- [x] Hermite splines with user-specified derivatives
+- [x] Floater-Hormann barycentric rational interpolation (arbitrary blending order d)
 
-### Critical for Stable Release
+### Scattered Data Interpolation
+- [x] RBF interpolation: multiquadric, thin-plate spline, Gaussian, inverse multiquadric, linear
+- [x] RBF parameter optimization: cross-validation and LOOCV error
+- [x] Compactly supported RBF kernels (Wendland, Wu)
+- [x] Ordinary Kriging with variogram fitting and prediction variance
+- [x] Universal Kriging with polynomial trend
+- [x] Indicator Kriging for binary/categorical data
+- [x] Bayesian Kriging with uncertainty quantification
+- [x] Fast Kriging: local O(k^3), fixed-rank, sparse tapering, HODLR
+- [x] Moving Least Squares (MLS): weighted polynomial fitting
+- [x] Natural Neighbor (Sibson): Voronoi-based, C1 continuity
+- [x] Thin-Plate Spline (TPS): global scattered data interpolant
+- [x] Shepard's method: inverse distance weighting; modified Shepard variant
+- [x] Scattered 2D interpolation via Delaunay triangulation (linear and cubic)
 
-- [ ] **API Stabilization Review**
-  - [ ] Final review of all public APIs for consistency
-  - [ ] Lock down breaking change policy
-  - [ ] Update semantic versioning strategy
-  - [ ] Deprecation policy for experimental features
+### Spherical and Parametric
+- [x] Spherical harmonic interpolation on the sphere (real harmonics, arbitrary l,m)
+- [x] Parametric arc-length curve interpolation of 2D/3D point sequences
+- [x] Barycentric coordinates on arbitrary triangulated manifolds
 
-- [ ] **Performance Validation**
-  - [ ] Complete benchmarking suite against SciPy 1.13+
-  - [ ] Profile memory usage under stress conditions
-  - [ ] Validate SIMD performance gains across architectures
-  - [ ] Test scalability to 1M+ data points
+### Multidimensional Grid Interpolation
+- [x] Regular grid N-D interpolation (`RegularGridInterpolator`): linear and cubic
+- [x] Tensor product interpolation on separable grids
+- [x] Bivariate splines: smoothing and interpolating on 2D rectangular grids
+- [x] B-spline surface fitting of 3D point clouds
 
-- [ ] **Production Hardening**
-  - [ ] Stress testing with extreme inputs
-  - [ ] Numerical stability analysis for edge cases
-  - [ ] Error message clarity and actionability review
-  - [ ] Memory leak detection under continuous use
+### Adaptive Interpolation
+- [x] Error-controlled adaptive refinement: subdivide until local tolerance met
+- [x] Hierarchical multi-level sparse-grid construction
+- [x] Meshless methods: partition-of-unity and reproducing-kernel particle method
 
-### Documentation for Stable Release
+### Performance
+- [x] SIMD-accelerated de Boor B-spline evaluation
+- [x] SIMD-accelerated pairwise distance computation for RBF
+- [x] Parallel batch evaluation using Rayon
+- [x] K-d tree for O(log n) nearest-neighbor queries
+- [x] Ball tree for metric-space nearest-neighbor queries
+- [x] Cache-aware memory access patterns in hot paths
 
-- [ ] **Comprehensive User Guide**
-  - [ ] Tutorial series for different use cases
-  - [ ] Best practices guide for method selection
-  - [ ] Performance tuning recommendations
-  - [ ] Migration guide from SciPy
+### Bug Fixes (v0.3.0)
+- [x] PCHIP extrapolation: switched to linear extension at endpoints to avoid polynomial blow-up (issue #96)
+- [x] Bicubic Hermite: corrected 4x4 Hermite matrix transpose
+- [x] CubicSpline boundary condition: fixed not-a-knot third-derivative condition
 
-- [ ] **API Documentation Polish**
-  - [ ] Review all doc comments for clarity
-  - [ ] Add complexity analysis for all methods
-  - [ ] Parameter selection guidelines
-  - [ ] Error handling documentation
+## v0.4.0 Roadmap
 
-### Feature Completion (Nice-to-Have)
+### GPU-Accelerated Scattered Data
+- [ ] GPU-accelerated RBF solve: CUDA kernel for dense system assembly and direct solve
+- [ ] GPU batch evaluation: thousands of query points in parallel for RBF and Kriging
+- [ ] GPU-accelerated k-d tree queries for large scattered datasets
 
-- [ ] **Missing SciPy Parity Features**
-  - [ ] Complete spline derivative/integral interfaces
-  - [ ] Some specialized extrapolation modes
-  - [ ] Advanced statistical interpolation methods
+### Machine Learning Enhanced Interpolation
+- [ ] Physics-Informed interpolation: enforce PDE residuals as constraints
+- [ ] Neural-network-enhanced interpolation: learned correction terms on top of RBF
+- [ ] Gaussian Process surrogate with automatic kernel structure discovery
+- [ ] Deep Kriging: deep neural feature maps combined with Kriging
+- [ ] Active learning for adaptive sampling: minimize interpolation error with fewest evaluations
 
-- [ ] **Performance Enhancements**
-  - [ ] GPU acceleration for production workloads
-  - [ ] Distributed interpolation for massive datasets
-  - [ ] Streaming interpolation for online systems
+### New Interpolation Methods
+- [ ] Hermite-Birkhoff interpolation: arbitrary derivative data at arbitrary points
+- [ ] Polyharmonic splines: higher-order thin-plate generalizations
+- [ ] Subdivision surfaces: Loop and Catmull-Clark subdivision for smooth surfaces
+- [ ] Kernel interpolation on Lie groups and homogeneous spaces
 
-## 🚀 Post-1.0 Roadmap
+### High-Dimensional and Tensor Methods
+- [ ] Sparse grid interpolation via Smolyak construction
+- [ ] Tensor-train / TT-cross interpolation for very high-dimensional grids
+- [ ] ANOVA decomposition for variance-based adaptive sparse grids
+- [ ] Anchored-ANOVA: exploit low effective dimensionality
 
-### Next Major Version (1.1.0)
+### Approximate and Streaming Interpolation
+- [ ] Random feature approximation of RBF (Rahimi-Recht)
+- [ ] Nystrom approximation for large Kriging systems
+- [ ] Online / streaming interpolation: incremental update without full re-solve
+- [ ] Out-of-core interpolation: disk-backed coefficient storage for huge datasets
 
-- [ ] **Advanced Machine Learning Integration**
-  - [ ] Reinforcement learning for adaptive interpolation
-  - [ ] Transfer learning for domain-specific optimization
-  - [ ] AutoML for automatic method selection
+### Usability and Tooling
+- [ ] Automatic method selection: given data size, dimension, and smoothness estimate, recommend best method
+- [ ] Extrapolation modes: nearest, linear, polynomial, reflection, periodic
+- [ ] Grid resampling utilities: resample scattered data onto regular or irregular grids
+- [ ] Symbolic derivative evaluation: analytically differentiate spline representations
 
-- [ ] **Ecosystem Integration**
-  - [ ] Arrow integration for big data workflows
-  - [ ] Polars DataFrame support
-  - [ ] Integration with visualization libraries
+## Known Issues
 
-- [ ] **Specialized Domains**
-  - [ ] Time series specialized interpolators
-  - [ ] Geospatial interpolation methods
-  - [ ] Financial data specific algorithms
-
-### Research & Development
-
-- [ ] **Cutting-Edge Methods**
-  - [ ] Quantum-inspired interpolation algorithms
-  - [ ] Advanced physics-informed neural networks
-  - [ ] Novel adaptive mesh refinement techniques
-
-- [ ] **Hardware Acceleration**
-  - [ ] Apple Metal GPU support
-  - [ ] ARM NEON optimizations
-  - [ ] WebAssembly SIMD for browser deployment
-
-## 🐛 Known Issues (Non-Blocking)
-
-### Minor Issues for Future Releases
-
-- [ ] Some Kriging variants show "not fully implemented" warnings
-- [ ] Matrix conditioning warnings in specific edge cases (educational, not bugs)
-- [ ] GPU acceleration marked as experimental
-
-### Performance Optimizations
-
-- [ ] Further SIMD optimization opportunities in spatial search
-- [ ] Memory layout optimizations for cache performance
-- [ ] Parallel algorithm improvements for NUMA systems
-
-## ✅ Recent Fixes (v0.1.5)
-
-### GitHub Issues Resolved
-- ✅ **Issue #96: PCHIP Extrapolation Bug** (Fixed 2026-01-16, Released v0.1.5)
-  - **Problem:** PCHIP extrapolation returned -24008 for x=50 with monotonic data [0,1,4,9]
-  - **Root Cause:** Cubic polynomial extrapolation produced explosive values outside data range
-  - **Solution:** Implemented linear extrapolation using endpoint derivatives
-  - **Impact:** Stable, monotonicity-preserving extrapolation for all PCHIP use cases
-  - **Commit:** 49817afbd - "Enhance PCHIP extrapolation with linear extension"
-  - **Tests Added:**
-    - `test_pchip_extrapolation_far_beyond_range()` - Validates x=50 case
-    - `test_pchip_extrapolation_linear_behavior()` - Verifies linear slope
-  - **Files Modified:** `src/interp1d/pchip.rs` (lines 138-149, 491-556)
-  - **Reference:** https://github.com/cool-japan/scirs/issues/96
-
-## ✅ 0.1.0 Implementation Status
-
-**Complete Implementation** (100% of planned features):
-- ✅ All standard 1D/ND interpolation methods
-- ✅ Complete spline family (cubic, Akima, PCHIP, B-splines, NURBS)
-- ✅ Advanced splines (penalized, constrained, tension, multiscale)
-- ✅ Full RBF implementation with 10+ kernels
-- ✅ Production-ready fast kriging (local, fixed-rank, tapering, HODLR)
-- ✅ Natural neighbor, moving least squares, local polynomial regression
-- ✅ Adaptive interpolation with error-based refinement
-- ✅ Neural-enhanced and physics-informed methods
-
-**Performance & Quality** (Production-ready):
-- ✅ SIMD acceleration (2-4x speedup)
-- ✅ Parallel processing with configurable workers
-- ✅ GPU acceleration (experimental)
-- ✅ 100+ comprehensive unit tests (95%+ coverage)
-- ✅ Extensive benchmarking vs SciPy
-- ✅ 35+ working examples
-- ✅ Complete API documentation
-- ✅ Feature-gated dependencies
-
-**Infrastructure**:
-- ✅ CI/CD pipeline with comprehensive testing
-- ✅ Performance regression detection
-- ✅ Cross-platform validation (Linux, macOS, Windows)
-- ✅ Multiple Rust version compatibility
-
-## 📋 Maintenance Tasks
-
-### Regular Maintenance
-- [ ] Dependency updates (quarterly)
-- [ ] Security audit (bi-annually) 
-- [ ] Performance regression monitoring
-- [ ] User feedback integration
-
-### Community
-- [ ] User survey for feature priorities
-- [ ] Community contribution guidelines
-- [ ] Mentorship program for new contributors
-
----
-
-**Next Review Date**: After 0.1.0 stable release
-**Maintainer**: SciRS2 Team
-**Priority**: Stable release preparation
+- Kriging with very large nugget values (> 0.5 * signal variance) may produce numerically unstable Cholesky factorizations; increasing nugget regularization is the current workaround.
+- Natural Neighbor interpolation does not extrapolate beyond the convex hull of the data; it returns an error for out-of-hull queries.
+- NURBS surface fitting is implemented for structured (grid-like) point clouds; unstructured point cloud fitting requires the scattered-2D module.
+- Meshless partition-of-unity methods require a minimum patch overlap ratio of 1.5x; smaller overlaps cause oscillation in the unity partition.
+- B-spline surface fitting performance degrades for large grids (> 200x200 control points) due to dense system assembly; sparse assembly is planned.

@@ -66,7 +66,7 @@ impl Default for AttentionConfig {
 ///
 /// # Examples
 ///
-/// ```rust,ignore
+/// ```rust
 /// use scirs2_neural::layers::{MultiHeadAttention, Layer, AttentionConfig};
 /// use scirs2_core::ndarray::Array3;
 /// use scirs2_core::random::rng;
@@ -500,6 +500,20 @@ impl<F: Float + Debug + Send + Sync + ScalarOperand + NumAssign + 'static> Layer
             self.w_value.clone(),
             self.w_output.clone(),
         ]
+    }
+
+    fn set_params(&mut self, params: &[Array<F, IxDyn>]) -> Result<()> {
+        if params.len() >= 4 {
+            self.w_query = params[0].clone();
+            self.w_key = params[1].clone();
+            self.w_value = params[2].clone();
+            self.w_output = params[3].clone();
+        } else if params.len() == 3 {
+            self.w_query = params[0].clone();
+            self.w_key = params[1].clone();
+            self.w_value = params[2].clone();
+        }
+        Ok(())
     }
 
     fn gradients(&self) -> Vec<Array<F, IxDyn>> {

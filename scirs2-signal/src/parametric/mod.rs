@@ -22,7 +22,7 @@
 //!                          0.5 * (2.0 * std::f64::consts::PI * f2 * ti).sin());
 //!
 //! // Estimate AR parameters using Burg's method (order 10)
-//! let (ar_coeffs, reflection_coeffs, variance) = burg_method(&signal, 10).unwrap();
+//! let (ar_coeffs, reflection_coeffs, variance) = burg_method(&signal, 10).expect("operation should succeed");
 //!
 //! // Burg method returns coefficients
 //! assert_eq!(ar_coeffs.len(), 11); // order + 1 coefficients

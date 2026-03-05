@@ -1281,6 +1281,10 @@ pub mod cross_device;
 /// Out-of-core processing for datasets larger than memory
 pub mod out_of_core;
 
+/// Async tokio-based out-of-core array I/O (chunk loader/writer for Array2)
+#[cfg(all(feature = "async", not(target_arch = "wasm32")))]
+pub mod async_out_of_core;
+
 /// Compressed memory buffers for memory-constrained environments
 #[cfg(feature = "memory_compression")]
 pub mod compressed_buffers;
@@ -1292,11 +1296,19 @@ pub mod safety;
 #[cfg(feature = "memory_management")]
 pub mod leak_detection;
 
+/// Zero-copy, file-backed ndarray with Copy-on-Write semantics
+#[cfg(feature = "mmap")]
+pub mod mmap_array;
+
 // Re-export key metric functions for convenient usage
 pub use metrics::{
     format_memory_report, generate_memory_report, track_allocation, track_deallocation,
     track_resize,
 };
+
+// Re-export mmap_array types for convenient usage
+#[cfg(feature = "mmap")]
+pub use mmap_array::{MmapArray, MmapElement, MmapError};
 
 // Re-export leak detection types for convenience
 #[cfg(feature = "memory_management")]

@@ -898,7 +898,7 @@ where
                     convergence_iter,
                     preference: None, // Use default (median of similarities)
                     affinity: "euclidean".to_string(),
-                    max_affinity_iterations: max_iter, // Use same as max_iter
+                    verbose: false,
                 };
 
                 match affinity_propagation(data.view(), false, Some(options)) {

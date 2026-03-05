@@ -38,181 +38,136 @@
 //!
 //! ### Building a Simple Neural Network
 //!
-//! ```rust,ignore
-//! # IGNORED: Waiting for 0.1.0 - API needs migration to scirs2_core abstractions
-//! # Current implementation uses ndarray_rand::rand directly (POLICY violation)
-//! # TODO: Migrate all layer APIs to use scirs2_core::random::Random
+//! ```rust
 //! use scirs2_neural::prelude::*;
 //! use scirs2_core::ndarray::Array2;
+//! use scirs2_core::random::rng;
 //!
-//! fn main() -> Result<()> {
-//!     let mut rng = scirs2_core::random::Random::seed(42);
+//! let mut rng = rng();
 //!
-//!     // Build a 3-layer MLP for MNIST
-//!     let mut model = Sequential::<f32>::new();
-//!     model.add(Dense::new(784, 256, Some("relu"), &mut rng)?);
-//!     model.add(Dropout::new(0.2, &mut rng)?);
-//!     model.add(Dense::new(256, 128, Some("relu"), &mut rng)?);
-//!     model.add(Dense::new(128, 10, None, &mut rng)?);
+//! // Build a 3-layer MLP for MNIST
+//! let mut model = Sequential::<f32>::new();
+//! model.add(Dense::new(784, 256, Some("relu"), &mut rng).expect("failed to create dense layer"));
+//! model.add(Dense::new(256, 128, Some("relu"), &mut rng).expect("failed to create dense layer"));
+//! model.add(Dense::new(128, 10, None, &mut rng).expect("failed to create dense layer"));
 //!
-//!     // Forward pass
-//!     let input = Array2::<f32>::zeros((32, 784));
-//!     // let output = model.forward(&input)?;
-//!
-//!     println!("Model created with {} layers", model.len());
-//!     Ok(())
-//! }
+//! println!("Model created with {} layers", model.len());
+//! assert_eq!(model.len(), 3);
 //! ```
 //!
 //! ### Using Individual Layers
 //!
-//! ```rust,ignore
-//! # IGNORED: Waiting for 0.1.0 - API needs migration to scirs2_core abstractions
+//! ```rust
 //! use scirs2_neural::prelude::*;
 //! use scirs2_core::ndarray::Array2;
+//! use scirs2_core::random::rng;
 //!
-//! fn main() -> Result<()> {
-//!     let mut rng = scirs2_core::random::Random::seed(42);
+//! let mut rng = rng();
 //!
-//!     // Dense layer
-//!     let mut dense = Dense::new(10, 5, None, &mut rng)?;
-//!     let input = Array2::<f32>::zeros((2, 10));
-//!     // let output = dense.forward(&input)?;
+//! // Dense layer
+//! let dense = Dense::<f32>::new(10, 5, None, &mut rng).expect("failed to create dense layer");
 //!
-//!     // Activation functions
-//!     let relu = ReLU::new();
-//!     let sigmoid = Sigmoid::new();
-//!     let tanh = Tanh::new();
-//!     let gelu = GELU::new();
+//! // Activation functions
+//! let relu = ReLU::new();
+//! let sigmoid = Sigmoid::new();
+//! let tanh_act = Tanh::new();
+//! let gelu = GELU::new();
 //!
-//!     // Normalization layers
-//!     let batch_norm = BatchNorm::new(5, 0.1, 1e-5, &mut rng)?;
-//!     let layer_norm = LayerNorm::new(5, 1e-5, &mut rng)?;
-//!
-//!     // Regularization
-//!     let dropout = Dropout::new(0.5, &mut rng)?;
-//!
-//!     Ok(())
-//! }
+//! // Normalization layers
+//! let batch_norm = BatchNorm::<f32>::new(5, 0.1, 1e-5, &mut rng).expect("failed to create batch norm");
+//! let layer_norm = LayerNorm::<f32>::new(5, 1e-5, &mut rng).expect("failed to create layer norm");
 //! ```
 //!
 //! ### Convolutional Networks
 //!
-//! ```rust,ignore
-//! # IGNORED: Waiting for 0.1.0 - API needs migration to scirs2_core abstractions
+//! ```rust
 //! use scirs2_neural::prelude::*;
+//! use scirs2_core::random::rng;
 //!
-//! fn main() -> Result<()> {
-//!     let mut rng = scirs2_core::random::Random::seed(42);
+//! let mut rng = rng();
 //!
-//!     // Build a simple CNN
-//!     let mut model = Sequential::<f32>::new();
+//! // Build a simple CNN
+//! let mut model = Sequential::<f32>::new();
 //!
-//!     // Conv layers (in_channels, out_channels, kernel_size, stride, name)
-//!     model.add(Conv2D::new(1, 32, (3, 3), (1, 1), Some("relu"))?);
-//!     model.add(Conv2D::new(32, 64, (3, 3), (1, 1), Some("relu"))?);
+//! // Conv layers (in_channels, out_channels, kernel_size, stride, name)
+//! model.add(Conv2D::new(1, 32, (3, 3), (1, 1), Some("relu")).expect("conv2d failed"));
+//! model.add(Conv2D::new(32, 64, (3, 3), (1, 1), Some("relu")).expect("conv2d failed"));
 //!
-//!     // Flatten and classify
-//!     model.add(Dense::new(64 * 28 * 28, 10, None, &mut rng)?);
+//! // Flatten and classify
+//! model.add(Dense::new(64 * 28 * 28, 10, None, &mut rng).expect("dense failed"));
 //!
-//!     Ok(())
-//! }
+//! assert_eq!(model.len(), 3);
 //! ```
 //!
 //! ### Recurrent Networks (LSTM)
 //!
-//! ```rust,ignore
-//! # IGNORED: Waiting for 0.1.0 - API needs migration to scirs2_core abstractions
+//! ```rust
 //! use scirs2_neural::prelude::*;
+//! use scirs2_core::random::rng;
 //!
-//! fn main() -> Result<()> {
-//!     let mut rng = scirs2_core::random::Random::seed(42);
+//! let mut rng = rng();
 //!
-//!     // Build an LSTM-based model
-//!     let mut model = Sequential::<f32>::new();
+//! // Build an LSTM-based model
+//! let mut model = Sequential::<f32>::new();
 //!
-//!     // LSTM (input_size, hidden_size, rng)
-//!     model.add(LSTM::new(100, 256, &mut rng)?);
-//!     model.add(Dense::new(256, 10, None, &mut rng)?);
+//! // LSTM (input_size, hidden_size, rng)
+//! model.add(LSTM::new(100, 256, &mut rng).expect("lstm failed"));
+//! model.add(Dense::new(256, 10, None, &mut rng).expect("dense failed"));
 //!
-//!     Ok(())
-//! }
+//! assert_eq!(model.len(), 2);
 //! ```
 //!
 //! ### Loss Functions
 //!
-//! ```rust,ignore
-//! # IGNORED: Consistent with other examples pending 0.1.0 API migration
+//! ```rust
 //! use scirs2_neural::prelude::*;
-//! use scirs2_core::ndarray::array;
 //!
-//! fn main() -> Result<()> {
-//!     // Mean Squared Error (regression)
-//!     let mse = MeanSquaredError::new();
+//! // Mean Squared Error (regression)
+//! let mse = MeanSquaredError::new();
 //!
-//!     // Cross Entropy (classification)
-//!     let ce = CrossEntropyLoss::new(1e-7);
+//! // Cross Entropy (classification)
+//! let ce = CrossEntropyLoss::new(1e-7);
 //!
-//!     // Focal Loss (imbalanced classes)
-//!     let focal = FocalLoss::new(2.0, None, 1e-7);
+//! // Focal Loss (imbalanced classes)
+//! let focal = FocalLoss::new(2.0, None, 1e-7);
 //!
-//!     // Contrastive Loss (metric learning)
-//!     let contrastive = ContrastiveLoss::new(1.0);
+//! // Contrastive Loss (metric learning)
+//! let contrastive = ContrastiveLoss::new(1.0);
 //!
-//!     // Triplet Loss (metric learning)
-//!     let triplet = TripletLoss::new(1.0);
-//!
-//!     // Compute loss
-//!     let predictions = array![[0.7, 0.2, 0.1], [0.1, 0.8, 0.1]];
-//!     let targets = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]];
-//!     // let loss = mse.compute(&predictions.view(), &targets.view())?;
-//!
-//!     Ok(())
-//! }
+//! // Triplet Loss (metric learning)
+//! let triplet = TripletLoss::new(1.0);
 //! ```
 //!
 //! ### Training a Model
 //!
-//! ```rust,ignore
-//! # IGNORED: Waiting for 0.1.0 - API needs migration to scirs2_core abstractions
+//! ```rust
 //! use scirs2_neural::prelude::*;
-//! use scirs2_neural::training::ValidationSettings;
-//! use scirs2_core::ndarray::Array2;
+//! use scirs2_core::random::rng;
 //!
-//! fn main() -> Result<()> {
-//!     let mut rng = scirs2_core::random::Random::seed(42);
+//! let mut rng = rng();
 //!
-//!     // Build model
-//!     let mut model = Sequential::<f32>::new();
-//!     model.add(Dense::new(784, 128, Some("relu"), &mut rng)?);
-//!     model.add(Dense::new(128, 10, None, &mut rng)?);
+//! // Build model
+//! let mut model = Sequential::<f32>::new();
+//! model.add(Dense::new(784, 128, Some("relu"), &mut rng).expect("dense failed"));
+//! model.add(Dense::new(128, 10, None, &mut rng).expect("dense failed"));
 //!
-//!     // Training configuration
-//!     let config = TrainingConfig {
-//!         learning_rate: 0.001,
+//! // Training configuration
+//! let config = TrainingConfig {
+//!     learning_rate: 0.001,
+//!     batch_size: 32,
+//!     epochs: 10,
+//!     validation: Some(ValidationSettings {
+//!         enabled: true,
+//!         validation_split: 0.2,
 //!         batch_size: 32,
-//!         epochs: 10,
-//!         validation: Some(ValidationSettings {
-//!             enabled: true,
-//!             validation_split: 0.2,
-//!             batch_size: 32,
-//!             num_workers: 0,
-//!         }),
-//!         ..Default::default()
-//!     };
+//!         num_workers: 0,
+//!     }),
+//!     ..Default::default()
+//! };
 //!
-//!     // Create training session
-//!     let session = TrainingSession::<f32>::new(config);
-//!
-//!     // Prepare data
-//!     let x_train = Array2::<f32>::zeros((1000, 784));
-//!     let y_train = Array2::<f32>::zeros((1000, 10));
-//!
-//!     // Train
-//!     // session.fit(&x_train, &y_train)?;
-//!
-//!     Ok(())
-//! }
+//! // Create training session
+//! let session = TrainingSession::<f32>::new(config);
+//! assert_eq!(model.len(), 2);
 //! ```
 //!
 //! ## 🧠 Available Layers
@@ -313,6 +268,7 @@ pub mod activations_minimal;
 pub mod autograd;
 pub mod callbacks;
 pub mod data;
+pub mod distillation;
 pub mod error;
 // pub mod gpu; // Disabled in minimal version - has syntax errors
 pub mod layers;
@@ -320,6 +276,8 @@ pub mod linalg; // Re-enabled - fixing errors
 pub mod losses;
 pub mod models;
 pub mod optimizers;
+pub mod quantization;
+pub mod serialization;
 pub mod tensor_ops;
 pub mod training;
 pub mod transformer;
@@ -341,6 +299,49 @@ pub use training::{
     ProgressConfig, TrainingState, ValidationConfig, WarmupSchedule,
 };
 
+// Re-export serialization (v0.3.0)
+pub use serialization::{
+    ExtractParameters, ModelDeserialize, ModelFormat, ModelMetadata, ModelSerialize,
+    NamedParameters, SafeTensorsReader, SafeTensorsWriter, TensorInfo,
+};
+
+// Re-export checkpoint (v0.3.0)
+pub use training::{
+    best_checkpoint, checkpoint_dir_name, latest_checkpoint, list_checkpoints, load_checkpoint,
+    save_checkpoint, CheckpointMetadata, OptimizerStateMetadata, ParamGroupState,
+};
+
+// Re-export distillation (v0.3.0)
+pub use distillation::{
+    DistanceMetric, DistillationConfig, DistillationMethod, DistillationResult,
+    DistillationStatistics, DistillationTrainer, EnsembleAggregation, FeatureAdaptation,
+};
+
+// Re-export quantization (v0.3.0)
+pub use quantization::{
+    DynamicQuantizer, MixedBitWidthQuantizer, PostTrainingQuantizer, QuantizationAwareTraining,
+    QuantizationConfig, QuantizationMode, QuantizationParams, QuantizationScheme, QuantizedTensor,
+};
+
+// Re-export LR finder (v0.3.0+)
+pub use training::{
+    find_optimal_lr, LRFinder, LRFinderConfig, LRFinderResult, LRFinderStatus, LRScheduleType,
+};
+
+// Re-export curriculum learning (v0.3.0+)
+pub use training::{CompetenceSchedule, CurriculumConfig, CurriculumLearner, CurriculumStrategy};
+
+// Re-export federated learning (v0.3.0+)
+pub use training::{
+    AggregationMethod, ClientSelectionStrategy, ClientUpdate, FederatedConfig, FederatedServer,
+};
+
+// Re-export training profiler (v0.3.0+)
+pub use training::{Bottleneck, LayerProfile, ProfilePhase, ProfileSummary, TrainingProfiler};
+
+// Re-export hyperparameter tuner (v0.3.0+)
+pub use training::{HParamSpace, HParamTuner, HParamValue, SearchStrategy, TrialResult};
+
 /// Prelude module with core functionality
 ///
 /// Import everything you need to get started:
@@ -360,7 +361,7 @@ pub mod prelude {
         },
         training::{
             EnhancedTrainer, EnhancedTrainingConfig, TrainingConfig, TrainingSession,
-            ValidationConfig,
+            ValidationConfig, ValidationSettings,
         },
     };
 }

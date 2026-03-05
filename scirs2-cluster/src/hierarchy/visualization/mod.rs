@@ -23,7 +23,7 @@
 //!     0.0, 1.0, 0.1, 2.0,
 //!     2.0, 3.0, 0.2, 2.0,
 //!     4.0, 5.0, 0.3, 4.0,
-//! ]).unwrap();
+//! ]).expect("operation should succeed");
 //!
 //! // Configure the visualization
 //! let mut config = DendrogramConfig::default();
@@ -35,12 +35,12 @@
 //!     linkage.view(),
 //!     Some(&["A".to_string(), "B".to_string(), "C".to_string(), "D".to_string()]),
 //!     config
-//! ).unwrap();
+//! ).expect("operation should succeed");
 //!
 //! // Export to various formats
-//! let svg = plot.to_svg().unwrap();
-//! let html = plot.to_html().unwrap();
-//! let json = plot.to_json().unwrap();
+//! let svg = plot.to_svg().expect("operation should succeed");
+//! let html = plot.to_html().expect("operation should succeed");
+//! let json = plot.to_json().expect("operation should succeed");
 //! ```
 
 // Re-export modules

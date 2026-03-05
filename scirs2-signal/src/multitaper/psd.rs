@@ -60,7 +60,7 @@ pub type MultitaperResult = (Vec<f64>, Vec<f64>, Option<Array2<f64>>, Option<Arr
 ///     None,      // nfft = signal length
 ///     Some(true),  // one-sided spectrum
 ///     Some(true)   // return tapers for this example
-/// ).unwrap();
+/// ).expect("operation should succeed");
 ///
 /// // Basic verification - function should succeed
 /// assert!(freqs.len() > 0);
@@ -269,7 +269,7 @@ where
 ///     None,         // nfft = window_size
 ///     Some(true),   // one-sided spectrum
 ///     Some(true),   // adaptive weighting
-/// ).unwrap();
+/// ).expect("operation should succeed");
 ///
 /// // The spectrogram should show the frequency increasing over time
 /// ```

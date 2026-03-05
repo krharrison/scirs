@@ -310,6 +310,7 @@ pub enum LayerConfig {
 pub mod conv;
 pub mod dense;
 pub mod dropout;
+pub mod graph_conv;
 pub mod normalization;
 pub mod recurrent;
 
@@ -327,6 +328,9 @@ pub use dense::Dense;
 pub use dropout::Dropout;
 pub use embedding::{Embedding, EmbeddingConfig, PositionalEmbedding};
 pub use flash_attention::{flash_attention_compute, FlashAttention, FlashAttentionConfig};
+pub use graph_conv::{
+    GraphActivation, GraphAttentionLayer, GraphConvLayer, GraphSageLayer, SageAggregator,
+};
 pub use normalization::{BatchNorm, LayerNorm};
 pub use recurrent::rnn::{RNNConfig, RecurrentActivation as RecurrentActivationRNN};
 pub use recurrent::{LSTM, RNN};

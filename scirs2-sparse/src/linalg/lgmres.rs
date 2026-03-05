@@ -222,7 +222,7 @@ where
     let mut beta = vec![F::sparse_zero(); m + 2];
     beta[0] = r0_norm;
 
-    // Standard Arnoldi process (augmented _vectors not implemented yet)
+    // Standard Arnoldi process (augmented vector recycling is applied at the outer level)
     let mut k = 0; // Track actual iterations completed
     for j in 0..m {
         // Compute A*v[j] with preconditioning

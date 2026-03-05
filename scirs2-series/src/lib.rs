@@ -46,7 +46,7 @@
 //! // STL decomposition
 //! let data = array![1.0, 2.0, 3.0, 4.0, 5.0, 4.0, 3.0, 2.0]; // Seasonal data
 //! let options = STLOptions::default();
-//! let result = stl_decomposition(&data, 4, &options).unwrap();
+//! let result = stl_decomposition(&data, 4, &options).expect("should succeed");
 //! // result.trend, result.seasonal, result.residual
 //! ```
 //!
@@ -211,6 +211,7 @@ pub mod enhanced_arma;
 pub mod ensemble_automl;
 pub mod environmental;
 pub mod error;
+pub mod ets;
 pub mod feature_selection;
 pub mod features;
 pub mod financial;
@@ -218,6 +219,8 @@ pub mod financial_advanced;
 pub mod forecasting;
 pub mod gpu_acceleration;
 pub mod iot_sensors;
+pub mod loess;
+pub mod neural_forecast;
 pub mod neural_forecasting;
 pub mod neuromorphic_computing;
 pub mod optimization;
@@ -225,6 +228,7 @@ pub mod out_of_core;
 pub mod quantum_forecasting;
 pub mod regression;
 pub mod sarima_models;
+pub mod seasonal_decompose;
 pub mod state_space;
 pub mod streaming;
 pub mod tests;
@@ -234,6 +238,10 @@ pub mod utils;
 pub mod validation;
 pub mod var_models;
 pub mod visualization;
+
+// SIMD-accelerated time series operations
+#[cfg(feature = "simd")]
+pub mod simd_ops;
 
 // Optional WASM bindings for browser-based time series analysis
 #[cfg(feature = "wasm")]

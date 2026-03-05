@@ -42,10 +42,10 @@
 //!     &knots.view(),
 //!     degree,
 //!     ExtrapolateMode::Extrapolate
-//! ).unwrap();
+//! ).expect("doc example: should succeed");
 //!
 //! // Evaluate the curve at parameter t = 0.5
-//! let point = curve.evaluate(0.5).unwrap();
+//! let point = curve.evaluate(0.5).expect("doc example: should succeed");
 //! ```
 //!
 //! ### NURBS Surface
@@ -71,10 +71,10 @@
 //!     &knotsv.view(),
 //!     1, 1,  // degreeu, degreev
 //!     ExtrapolateMode::Extrapolate
-//! ).unwrap();
+//! ).expect("doc example: should succeed");
 //!
 //! // Evaluate the surface at parameters (u=0.5, v=0.5)
-//! let point = surface.evaluate(0.5, 0.5).unwrap();
+//! let point = surface.evaluate(0.5, 0.5).expect("doc example: should succeed");
 //! ```
 //!
 //! ### Creating Common Shapes
@@ -83,10 +83,10 @@
 //! use scirs2_interpolate::nurbs::{make_nurbs_circle, make_nurbs_sphere};
 //!
 //! // Create a circle centered at origin with radius 1.0
-//! let circle = make_nurbs_circle([0.0, 0.0], 1.0, Some(0.0), Some(2.0 * std::f64::consts::PI)).unwrap();
+//! let circle = make_nurbs_circle([0.0, 0.0], 1.0, Some(0.0), Some(2.0 * std::f64::consts::PI)).expect("doc example: should succeed");
 //!
 //! // Create a sphere centered at origin with radius 1.0
-//! let sphere = make_nurbs_sphere([0.0, 0.0, 0.0], 1.0).unwrap();
+//! let sphere = make_nurbs_sphere([0.0, 0.0, 0.0], 1.0).expect("doc example: should succeed");
 //! ```
 
 // Re-export the nurbs module contents from the subdirectory

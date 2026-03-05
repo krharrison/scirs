@@ -31,7 +31,7 @@
 //!     0.0, 1.0,
 //!     1.0, 1.0,
 //!     0.5, 0.5,
-//! ]).unwrap();
+//! ]).expect("doc example: should succeed");
 //! let values = Array1::from_vec(vec![0.0, 1.0, 1.0, 2.0, 1.5]);
 //!
 //! // Create natural neighbor interpolator
@@ -39,11 +39,11 @@
 //!     points,
 //!     values,
 //!     InterpolationMethod::Sibson,
-//! ).unwrap();
+//! ).expect("doc example: should succeed");
 //!
 //! // Interpolate at a query point
 //! let query = Array1::from_vec(vec![0.25, 0.25]);
-//! let result = interpolator.interpolate(&query.view()).unwrap();
+//! let result = interpolator.interpolate(&query.view()).expect("doc example: should succeed");
 //! ```
 
 // Simply re-export the modules since they're already defined below

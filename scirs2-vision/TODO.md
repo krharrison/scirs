@@ -1,202 +1,133 @@
-# scirs2-vision - Production Status (0.1.0)
+# scirs2-vision TODO
 
-Computer vision module for SciRS2 - **PRODUCTION READY** with comprehensive platform testing.
+## Status: v0.3.0 Released (February 26, 2026)
 
-⚠️ **SciRS2 POLICY Migration Status**: This module is currently being updated to follow the [SciRS2 POLICY](../SCIRS2_POLICY.md). Migration from direct `rand::` usage to scirs2-core abstractions is in progress.
+## v0.3.0 Completed
 
-## Release Readiness Status
+### Feature Detection and Description
+- Edge detection: Sobel, Canny, Prewitt, Laplacian, LoG
+- Corner detection: Harris, FAST, Shi-Tomasi
+- Blob detection: DoG, LoG, MSER
+- Keypoint descriptors: SIFT, ORB, BRIEF, HOG
+- Feature matching: RANSAC, homography estimation
+- Hough circle and line transforms
+- Sub-pixel corner refinement
 
-- [x] **PRODUCTION READY**: All core functionality implemented and tested
-- [x] **Zero build errors and warnings**: All 217 tests passing
-- [x] **API stability**: Public API finalized for stable release
-- [x] **Documentation**: Core functionality documented with examples
-- [x] **Examples**: Working examples demonstrating real functionality
-- [x] **SciRS2 POLICY**: Framework established, migration in progress
+### Image Segmentation
+- Thresholding: binary, Otsu, adaptive (mean/Gaussian)
+- Region-based: SLIC superpixels, watershed, region growing
+- Instance segmentation: mask generation, per-instance labeling
+- Panoptic segmentation: combined semantic and instance
+- GrabCut-style interactive segmentation
+- Connected component analysis
 
-## Implemented and Production-Ready Features
+### Camera and 3D Vision
+- Camera calibration (intrinsic parameters, lens distortion)
+- Pinhole, fisheye, and generic camera models
+- Stereo depth estimation (disparity maps, depth conversion)
+- PnP pose estimation (Perspective-n-Point, 6-DOF)
+- SLAM foundations: feature tracking, loop closure
 
-### ✅ Core Infrastructure
-- [x] Image-array conversion utilities
-- [x] Comprehensive error handling (`VisionError`)
-- [x] Module organization and clean re-exports
-- [x] Integration with scirs2-core
+### Point Cloud Processing
+- ICP (Iterative Closest Point) registration
+- RANSAC-based robust point cloud alignment
+- Point cloud loading (PLY, XYZ)
 
-### ✅ Feature Detection and Description
-- [x] **Edge Detection**: Sobel, Canny, Prewitt, Laplacian operators
-- [x] **Corner Detection**: Harris corners, FAST corners, Shi-Tomasi
-- [x] **Blob Detection**: DoG (Difference of Gaussians), LoG (Laplacian of Gaussian), MSER
-- [x] **Feature Descriptors**: ORB descriptors, BRIEF descriptors, HOG descriptors
-- [x] **Feature Matching**: RANSAC algorithm, homography estimation
-- [x] **Hough Transforms**: Circle detection and line detection
-- [x] **Advanced Features**: Sub-pixel corner refinement, non-maximum suppression
+### Video Processing
+- Frame extraction from video streams
+- Dense optical flow (Farneback, Lucas-Kanade)
+- Video stabilization (feature-based, mesh-based)
+- Background subtraction and motion detection
 
-### ✅ Image Preprocessing
-- [x] **Basic Operations**: Grayscale conversion, brightness/contrast normalization
-- [x] **Filtering**: Gaussian blur, bilateral filtering, median filtering
-- [x] **Enhancement**: Histogram equalization, CLAHE, gamma correction (auto/adaptive)
-- [x] **Advanced Denoising**: Non-local means denoising, guided filtering
-- [x] **Edge Enhancement**: Unsharp masking
-- [x] **Morphological Operations**: Complete suite (erosion, dilation, opening, closing, gradient, top-hat)
+### Object Detection
+- Sliding window multi-scale detector
+- HOG+SVM pedestrian detection pipeline
+- Non-Maximum Suppression (NMS)
+- Bounding box utilities
 
-### ✅ Color Processing
-- [x] **Color Space Conversions**: RGB ↔ HSV, RGB ↔ LAB with proper gamma correction
-- [x] **Channel Operations**: Channel splitting and merging
-- [x] **Color Quantization**: K-means, median cut, octree quantization
-- [x] **Specialized Processing**: Weighted grayscale conversion
+### Face Detection
+- Viola-Jones foundation (Haar cascade evaluation)
+- Multi-scale face candidate generation
 
-### ✅ Image Segmentation
-- [x] **Thresholding**: Binary thresholding, Otsu's automatic thresholding
-- [x] **Adaptive Thresholding**: Mean and Gaussian adaptive methods
-- [x] **Connected Components**: 8-connectivity labeling with union-find algorithm
-- [x] **Advanced Segmentation**: SLIC superpixels, watershed algorithm, region growing, mean shift
+### 3D Reconstruction
+- Multi-view stereo foundations
+- Essential and fundamental matrix estimation
+- Triangulation of 3D points from stereo pairs
 
-### ✅ Image Transformations
-- [x] **Geometric Transformations**: Affine transformations, perspective transformations
-- [x] **Non-rigid Transformations**: Thin-plate spline, elastic deformation
-- [x] **Interpolation Methods**: Bilinear, bicubic, Lanczos, edge-preserving interpolation
-- [x] **Image Warping**: Complete warping framework with multiple border modes
+### Image Enhancement and Preprocessing
+- Non-local means, bilateral, guided filtering
+- Histogram equalization, CLAHE, gamma correction
+- Gaussian blur, median filtering, unsharp masking
 
-### ✅ Image Registration
-- [x] **Transform Estimation**: Rigid, similarity, affine, homography estimation
-- [x] **Robust Estimation**: RANSAC with configurable parameters
-- [x] **Registration Framework**: Complete parameter structures and result types
-- [x] **Feature-based Registration**: Using detected features for registration
+### Color Processing
+- RGB to/from HSV, LAB, YCbCr, grayscale
+- Color quantization: K-means, median cut, octree
+- Histogram matching, color transfer
 
-### ✅ Quality and Analysis
-- [x] **Texture Analysis**: Gray-level co-occurrence matrix (GLCM), Local binary patterns (LBP)
-- [x] **Advanced Texture**: Gabor filters, Tamura features
-- [x] **Template Matching**: Cross-correlation methods
-- [x] **Optical Flow**: Dense optical flow computation
+### Geometric Transformations
+- Affine, perspective, non-rigid (thin-plate spline, elastic)
+- Bilinear, bicubic, Lanczos interpolation
+- Feature-based and intensity-based image registration
 
-### ✅ Performance Optimizations (NEW - 0.1.0)
-- [x] **SIMD Acceleration**: Implemented SIMD-optimized operations using scirs2-core
-  - [x] SIMD convolution for 2-4x speedup
-  - [x] SIMD Sobel gradients with orientation
-  - [x] SIMD Gaussian blur with separable convolution
-  - [x] SIMD image normalization and histogram equalization
-- [x] **GPU Acceleration Foundation**: GPU context and operations via scirs2-core
-  - [x] Multi-backend support (CUDA, Metal, OpenCL, WebGPU, CPU)
-  - [x] GPU convolution and filtering operations
-  - [x] GPU batch processing capabilities
-  - [x] Memory usage monitoring and benchmarking
-- [x] **Streaming Processing Pipeline**: Real-time video and image stream processing
-  - [x] Multi-threaded pipeline stages
-  - [x] Frame-by-frame processing with minimal latency
-  - [x] Performance monitoring and metrics
-  - [x] Motion detection and batch processing
+### Morphological Operations
+- Erosion, dilation, opening, closing, morphological gradient
+- Top-hat, black-hat transforms
 
-## Minor Documentation Issues (Pre-Release)
+### Style Transfer
+- Neural style transfer interface
+- Statistical feature matching stylization
 
-### 📋 API Documentation Corrections Needed
-- [x] **README Examples**: Update function names to match public API re-exports ✓ Completed
-- [x] **Missing Re-exports**: Consider adding `prewitt_edges`, `laplacian_edges`, `laplacian_of_gaussian` to public API ✓ Already exported
-- [x] **Blob Detection Examples**: Update to match actual implementation API ✓ Completed
+### Image Quality
+- PSNR, SSIM metrics
+- Blind image quality assessment
 
-### 📋 Final Polish Items
-- [x] **Performance Documentation**: Add performance characteristics to complex algorithms
-- [x] **Algorithm References**: Include references to papers/algorithms where applicable
-- [x] **Thread Safety**: Document thread-safety considerations for parallel operations
+### Texture Analysis
+- GLCM, LBP, Gabor filters, Tamura features
 
-## Cutting-Edge Enhancements (NEW - 0.1.0)
+### Medical Imaging
+- Frangi vesselness filter
+- Bone enhancement, basic segmentation
 
-### ✅ Neural-Quantum Hybrid Processing
-- [x] **Quantum-Inspired Streaming**: Superposition, entanglement, and interference algorithms
-- [x] **Neuromorphic Computing**: Spiking neural networks with adaptive plasticity
-- [x] **Hybrid Fusion Engine**: Advanced integration of quantum and neuromorphic paradigms
-- [x] **Real-time Quantum Advantage**: 2-4x speedup through quantum-inspired optimization
+## v0.4.0 Roadmap
 
-### ✅ Advanced AI Integration
-- [x] **Reinforcement Learning Optimization**: Q-learning for parameter tuning
-- [x] **Neural Architecture Search**: Automated discovery of optimal processing topologies
-- [x] **Genetic Algorithm Evolution**: Multi-objective optimization of pipeline parameters
-- [x] **Predictive Scaling**: ML-based resource allocation and workload prediction
+### NeRF (Neural Radiance Fields)
+- Implicit neural scene representation
+- Volume rendering with ray marching
+- Training pipeline for novel view synthesis
+- Integration with scirs2-neural for MLP backbone
 
-### ✅ Meta-Learning and Self-Adaptation
-- [x] **Model-Agnostic Meta-Learning (MAML)**: Fast adaptation to new tasks
-- [x] **Transfer Learning**: Domain adaptation across different vision scenarios
-- [x] **Self-Modification Engine**: Autonomous system improvement with safety constraints
-- [x] **Emergent Behavior Detection**: Recognition of complex patterns beyond training
+### 3D Object Detection
+- Point cloud object detection (PointNet++ backbone)
+- Frustum-based 3D detection from RGB-D
+- Lidar object detection foundations
+- 3D bounding box estimation and NMS
 
-### ✅ Advanced Scene Understanding
-- [x] **Cognitive-Level Reasoning**: High-level scene interpretation and analysis
-- [x] **Visual Question Answering**: Natural language queries about visual content
-- [x] **Activity Recognition**: Comprehensive human behavior analysis and prediction
-- [x] **Visual SLAM**: Semantic mapping with real-time localization
+### Foundation Model Integration
+- CLIP-based image and text feature extraction
+- SAM (Segment Anything Model) interface wrapper
+- DINOv2 feature extraction API
+- Prompt-based segmentation pipeline
 
-### ✅ Ultrathink Integration Module
-- [x] **Unified Processing Pipeline**: Seamless integration of all ultrathink capabilities
-- [x] **Performance Monitoring**: Real-time metrics and adaptive optimization
-- [x] **Uncertainty Quantification**: Epistemic and aleatoric uncertainty estimation
-- [x] **Example Demonstrations**: Comprehensive showcase of ultrathink features
+### Advanced Video Understanding
+- Temporal action recognition foundations
+- Video object segmentation (VOS)
+- Dense video captioning interfaces
+- Multi-object tracking (MOT) evaluation metrics
 
-## Future Development (Post-RC)
+### Advanced Depth Estimation
+- Monocular depth estimation (MiDaS-style interface)
+- Depth completion from sparse LiDAR
+- Confidence-weighted depth fusion
 
-The following features are planned for future releases but are **NOT** part of the stable release:
+### Camera Network Calibration
+- Multi-camera extrinsic calibration
+- Rolling shutter camera models
+- Omnidirectional camera calibration
 
-### 🔮 Advanced Computer Vision (Future)
-- [ ] Scene understanding framework
-- [ ] Visual reasoning utilities
-- [ ] Activity recognition
-- [ ] Visual SLAM components
+## Known Issues
 
-### 🔮 Machine Learning Integration (Future)
-- [ ] Advanced DNN-based operations
-- [ ] End-to-end vision pipelines
-- [ ] Interactive learning tools
-- [ ] Online adaptation methods
-
-### 🔮 Domain-specific Applications (Future)
-- [ ] Medical imaging specializations
-- [ ] Remote sensing utilities
-- [ ] Microscopy analysis tools
-- [ ] Industrial inspection frameworks
-
-### 🔮 Performance Optimization (Future)
-- [x] SIMD acceleration for critical paths - **COMPLETED** ✓
-- [x] GPU acceleration (CUDA/OpenCL/Metal/WebGPU) - **COMPLETED** ✓  
-- [x] Streaming processing pipeline - **COMPLETED** ✓
-- [x] Neural-Quantum Hybrid Processing - **COMPLETED** ✓
-- [x] Meta-Learning and Self-Optimization - **COMPLETED** ✓
-- [x] Emergent Behavior Detection - **COMPLETED** ✓
-- [ ] Distributed image processing
-
-### 🔮 Extended Format Support (Future)
-- [ ] Additional image format support
-- [ ] Metadata handling (EXIF, XMP)
-- [ ] Camera RAW support
-- [ ] Video format interfaces
-
-## Production Release Notes
-
-**Version 0.1.0** represents a comprehensive computer vision library with:
-
-- **217+ unit tests** covering all implemented functionality
-- **Working examples** demonstrating real-world usage
-- **Zero build warnings** following clean coding practices
-- **Comprehensive error handling** for robust applications
-- **Performance-optimized implementations**:
-  - SIMD acceleration for 2-4x speedup on critical operations
-  - GPU acceleration foundation with multi-backend support
-  - Streaming pipeline for real-time video processing
-  - Parallel processing via scirs2-core abstractions
-- **SciPy-compatible API design** for familiar usage patterns
-- **Production-ready features**:
-  - Complete edge and corner detection algorithms
-  - Advanced image segmentation techniques
-  - Feature detection and matching with RANSAC
-  - Image registration and transformation
-  - Color space conversions and quantization
-  - Morphological operations and filtering
-  - Real-time streaming capabilities
-
-This module is ready for production use in scientific computing applications requiring computer vision capabilities.
-
-## Contributing
-
-For post-alpha development, contributions are welcome for:
-- Performance optimizations
-- Additional computer vision algorithms
-- Domain-specific applications
-- Integration with machine learning frameworks
-
-See the project's [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
+- SIFT descriptor computation is approximate; results may differ slightly from OpenCV reference
+- Farneback optical flow requires grayscale input; color flow not yet supported
+- ICP convergence is sensitive to initial alignment; RANSAC pre-alignment recommended for large misalignments
+- Video stabilization requires sufficient texture in scene; textureless scenes may produce artifacts
+- Panoptic segmentation API is preliminary; interface may change in v0.4.0

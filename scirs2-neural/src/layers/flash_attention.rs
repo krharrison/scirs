@@ -113,7 +113,7 @@ impl FlashAttentionConfig {
 ///
 /// # Examples
 ///
-/// ```rust,ignore
+/// ```rust
 /// use scirs2_neural::layers::{FlashAttention, FlashAttentionConfig, Layer};
 /// use scirs2_core::ndarray::Array3;
 /// use scirs2_core::random::rng;

@@ -1097,6 +1097,9 @@ impl<T: ScientificNumber + Neg<Output = T>> Neg for Scalar<T> {
     }
 }
 
+/// Numeric utilities: approximate equality, ULP distance, relative error, safe clamping
+pub mod utilities;
+
 /// Automated precision tracking for numerical computations
 pub mod precision_tracking;
 
@@ -1112,6 +1115,9 @@ pub mod stability;
 
 /// Stable numerical algorithms
 pub mod stable_algorithms;
+
+/// Extended numeric stability toolkit (gradients, error helpers, array-based activations)
+pub mod stability_toolkit;
 
 /// Advanced-optimized SIMD operations for numerical computations
 ///

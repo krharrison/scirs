@@ -3,14 +3,25 @@
 //! This module provides comprehensive distributed computing capabilities
 //! for SciRS2 Core 1.0, including distributed arrays, cluster management,
 //! fault tolerance, and scalable computation orchestration.
+//!
+//! ## Distributed Primitives
+//!
+//! Low-level local primitives (work queues, worker pools, map-reduce) are
+//! provided in [`primitives`].  These complement the cluster-management
+//! machinery with simple, channel-based concurrency helpers.
 
 pub mod array;
 pub mod cluster;
 pub mod communication;
 pub mod fault_tolerance;
 pub mod load_balancing;
+pub mod lock_free;
 pub mod orchestration;
+pub mod par_iter;
+pub mod parallel_scan;
+pub mod primitives;
 pub mod scheduler;
+pub mod task_graph;
 
 // Array operations
 pub use array::{DistributedArray, DistributedArrayManager};
@@ -56,6 +67,32 @@ pub use scheduler::{
     FailedTask, LoadBalancer as SchedulerLoadBalancer,
     LoadBalancingStrategy as SchedulerLoadBalancingStrategy, NodeLoad as SchedulerNodeLoad,
     SchedulingAlgorithm, SchedulingPolicies, TaskAssignment as SchedulerTaskAssignment, TaskQueue,
+};
+
+// Distributed primitives (work queue, worker pool, map-reduce, resource monitor)
+pub use primitives::{
+    chunked_parallel_process, distributed_map, distributed_map_reduce, try_distributed_map,
+    try_distributed_map_reduce, DistributedError, DistributedSliceExt, ResourceMonitor, WorkQueue,
+    WorkReceiver, WorkerPool,
+};
+
+// Lock-free data structures
+pub use lock_free::{LockFreeCounter, LockFreeQueue, LockFreeStack};
+
+// Task graph executor
+pub use task_graph::TaskGraph;
+
+// Parallel scan / prefix sum
+pub use parallel_scan::{
+    parallel_prefix_max, parallel_prefix_min, parallel_prefix_sum, parallel_prefix_sum_exclusive,
+    parallel_prefix_sum_f64, parallel_prefix_sum_i64, parallel_scan, parallel_scan_exclusive,
+    segmented_prefix_sum, try_parallel_prefix_sum, try_parallel_scan,
+};
+
+// Parallel iterator combinators
+pub use par_iter::{
+    par_all, par_any, par_filter, par_filter_map, par_fold, par_for_each, par_map, par_sort,
+    par_sort_by, try_par_fold, try_par_map,
 };
 
 /// Initialize distributed computing infrastructure

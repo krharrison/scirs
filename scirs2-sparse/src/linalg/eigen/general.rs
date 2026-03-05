@@ -280,11 +280,24 @@ where
         }
     }
 
-    // Compute residuals (simplified)
+    // Compute residuals: for each Ritz pair (lambda_k, x_k), ||A*x_k - lambda_k*x_k||_2
     let mut residuals = Array1::zeros(eigenvalues.len());
     for k in 0..eigenvalues.len() {
-        // For a proper implementation, compute ||A*x - lambda*x||
-        residuals[k] = T::from(options.tol).expect("Operation failed"); // Placeholder
+        let x_k = ritz_vectors.column(k).to_owned();
+        match matrix_vector_multiply(matrix, &x_k) {
+            Ok(ax) => {
+                let lambda_k = eigenvalues[k];
+                let mut res_norm_sq = T::sparse_zero();
+                for i in 0..n {
+                    let diff = ax[i] - lambda_k * x_k[i];
+                    res_norm_sq = res_norm_sq + diff * diff;
+                }
+                residuals[k] = res_norm_sq.sqrt();
+            }
+            Err(_) => {
+                residuals[k] = T::from(1.0).expect("conv");
+            }
+        }
     }
 
     Ok(EigenResult {

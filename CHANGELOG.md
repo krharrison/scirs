@@ -5,6 +5,468 @@ All notable changes to the SciRS2 project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-05
+
+### Major Release - Massive Feature Expansion Across All Crates
+
+SciRS2 v0.3.0 is the largest feature release in the project's history, adding hundreds of new algorithms, data structures, and utilities across all 45+ crates through two major development waves (Waves 17 and 18).
+
+#### Release Statistics
+- **19,644 tests** (72% increase from v0.2.0's ~11,400)
+- **2,584,620 lines of Rust code** (35% increase from ~1.9M lines)
+- **6,660 Rust source files**
+- **45+ crates** in the workspace
+- **0 compilation errors**, **0 test failures** (165 tests skipped by design)
+
+### Added
+
+#### scirs2-neural - Advanced Deep Learning
+- **Attention variants**: Rotary Position Embedding (RoPE), Grouped Query Attention (GQA), linear attention, efficient attention, sparse attention, multi-head latent attention
+- **Mixture of Experts (MoE)**: Top-k routing, load balancing, expert capacity management
+- **Capsule networks**: Dynamic routing between capsules, squash activation
+- **Spiking Neural Networks (SNN)**: Leaky integrate-and-fire neurons, spike timing, plasticity rules
+- **Reinforcement Learning**: Proximal Policy Optimization (PPO), Direct Preference Optimization (DPO), reward modeling, preference data handling
+- **Graph Neural Networks**: GCN, GAT, GraphSAGE, GIN layers, graph pooling (DiffPool, SAGPool), message passing framework
+- **Vision architectures**: SWIN Transformer, UNet with skip connections, CLIP dual-encoder, ConvNeXt, VisionTransformer (ViT), PatchEmbedding, depthwise separable convolutions
+- **Transformer architectures**: GPT-2 (autoregressive with causal masking), T5 (encoder-decoder), full transformer with cross-attention
+- **Generative models**: Diffusion models (DDPM/DDIM), Variational Autoencoders (VAE), Generative Adversarial Networks (GAN), normalizing flows, energy-based models
+- **Training techniques**: Federated learning, knowledge distillation, model pruning (magnitude/structured), post-training quantization, continual learning, meta-learning (MAML), multi-task learning, contrastive learning, self-supervised learning
+- **NLP utilities**: Tokenizer interface, embedding layers, positional encoding variants (sinusoidal, learned, ALiBi)
+- **Gradient checkpointing**: Segment-based memory-efficient backpropagation
+- **Model serialization**: Weight format v2 with quantization support, computational graph export
+- **On-device compression**: Model compression pipeline for edge deployment
+- **Recurrent layers**: GRU/LSTM cells with peephole connections and layer normalization variants
+- **Normalization**: LayerNorm2D, RMSNorm, GroupNorm, AdaptiveLayerNorm
+
+#### scirs2-stats - Comprehensive Statistical Methods
+- **Sequential Monte Carlo (SMC)**: Particle filter with systematic/stratified/multinomial resampling, adaptive tempering
+- **MCMC samplers**: Gibbs sampler, slice sampler, No-U-Turn Sampler (NUTS), Hamiltonian Monte Carlo (HMC)
+- **Distributions**: Stable distributions (alpha-stable, Levy), Generalized Pareto Distribution (GPD), von Mises-Fisher (spherical), Tweedie, truncated distributions
+- **Copula models**: Frank, Clayton, Gumbel, Gaussian, Student-t copulas with tail dependence measures
+- **Gaussian process regression**: Advanced kernels (Matern, RBF, periodic, polynomial), sparse GP, deep kernel learning, GP classification
+- **Hierarchical Bayesian models**: Mixed effects, multilevel regression, empirical Bayes
+- **Nonparametric Bayes**: Dirichlet process mixture models, Chinese restaurant process, stick-breaking construction
+- **Survival analysis**: Cox Proportional Hazards (with time-varying covariates), Kaplan-Meier estimator, Nelson-Aalen estimator, Accelerated Failure Time (AFT), competing risks (Fine-Gray model)
+- **Panel data**: Fixed/random effects models, Hausman test, within/between estimators
+- **Causal inference**: Causal graph structure learning, do-calculus, instrumental variables, difference-in-differences
+- **Bayesian networks**: Structure learning (PC algorithm, score-based), parameter estimation, exact/approximate inference
+- **Extreme value theory**: GEV/GPD fitting, return level estimation, block maxima, peaks over threshold
+- **Spatial statistics**: Variogram estimation, kriging (ordinary/universal/co-kriging), spatial autocorrelation (Moran's I, Geary's C)
+- **Information theory**: Mutual information, KL divergence, Jensen-Shannon divergence, entropy estimators
+- **Multiple testing**: Bonferroni, Holm, Benjamini-Hochberg, Benjamini-Yekutieli corrections
+- **Effect sizes**: Cohen's d, eta-squared, omega-squared, Glass's delta, Hedges' g
+- **Robust statistics**: M-estimators, S-estimators, MM-estimators, minimum covariance determinant
+- **Nonparametric models**: Kernel density estimation with bandwidth selection, local polynomial regression
+
+#### scirs2-core - Foundational Infrastructure
+- **Work-stealing task scheduler**: Deque-based work stealing, adaptive thread pool sizing, task priorities
+- **Parallel iterators**: Parallel map/filter/fold/scan with automatic chunking
+- **Async utilities**: Async semaphore, async barrier, async rwlock, async channel
+- **Validation framework**: Schema validation, type coercion, constraint checking, assertion utilities
+- **Cache-oblivious algorithms**: Cache-oblivious matrix transpose, merge sort, van Emde Boas layout
+- **Persistent data structures**: Hash Array Mapped Trie (HAMT), Red-Black tree with path copying, persistent queue
+- **Memory management**: NUMA-aware allocator, object pool, slab allocator, arena allocator, zero-copy buffers
+- **Distributed computing**: Collective operations (AllReduce/Broadcast/Scatter/Gather), parameter server, ring-AllReduce
+- **Bioinformatics**: Extended sequence alignment, motif finding, sequence type support
+- **Quantum simulation**: Qubit state management, quantum gate library, quantum circuit simulation
+- **Combinatorics**: Permutations, combinations, partitions, set operations with iterator support
+- **String algorithms**: KMP, Boyer-Moore, Rabin-Karp, Aho-Corasick, suffix arrays
+- **Geographic utilities**: Geospatial operations, coordinate systems, distance calculations
+- **Metrics collection**: Prometheus-compatible metrics, histograms, counters, gauges
+- **ML pipeline**: Transformer, predictor, evaluator, and pipeline abstractions
+- **Profiling**: GPU profiler, perf profiler, tracing utilities
+- **Interval arithmetic**: Interval types with basic arithmetic and relational operations
+
+#### scirs2-series - Time Series Analysis
+- **Vector Autoregression (VAR/VECM)**: Granger causality testing, impulse response functions, forecast error variance decomposition, Johansen cointegration test
+- **Dynamic Factor Model (DFM)**: EM algorithm estimation, Kalman filter/smoother, factor extraction
+- **Volatility models**: EGARCH, FIGARCH, GJR-GARCH, APARCH, realized volatility measures
+- **Functional Data Analysis (FDA)**: B-spline basis expansion, functional PCA, functional regression, functional clustering
+- **Deep learning forecasting**: Temporal Fusion Transformer (TFT), N-BEATS (interpretable/generic), DeepAR (probabilistic), neural ODE for time series
+- **Classical methods**: Prophet-style decomposition with changepoints and holidays, Theta method, BATS/TBATS with Box-Cox and ARMA errors
+- **Online learning**: ADWIN drift detection, online ARIMA, reservoir sampling, online algorithms with forgetting factors
+- **Anomaly detection**: Isolation forest, SARIMA residual-based, matrix profile, spectral residual
+- **Regime detection**: Hidden Markov Model regimes, Markov-switching models, structural break detection
+- **Conformal prediction**: Time series conformal intervals, rolling/adaptive conformal sets
+- **Hierarchical forecasting**: Bottom-up/top-down/middle-out reconciliation, MinT reconciliation, OLS reconciliation
+- **Ensemble forecasting**: Weighted ensemble, stacking, dynamic model averaging
+- **Intermittent demand**: Croston's method, TSB method, IMAPA
+- **Long memory**: ARFIMA, FIGARCH, fractional differencing, Hurst exponent estimation
+- **Panel time series**: Common factor models, cross-sectional dependence tests, panel unit root tests
+- **Causality testing**: Granger causality, transfer entropy, convergent cross mapping
+
+#### scirs2-linalg - Linear Algebra Extensions
+- **Iterative solvers**: GMRES (standard/restarted), Preconditioned Conjugate Gradient (PCG), BiCGStab, MINRES, SYMMLQ, QMR
+- **Matrix factorizations**: Arnoldi/Lanczos factorization, randomized SVD (Nystrom/sketching), block matrix operations, structured factorizations
+- **Matrix functions**: `expm`, `logm`, `sqrtm`, `signm`, `cosm`/`sinm`/`tanm` via Schur decomposition, Pade approximation, matrix polynomial evaluation, Sylvester equation solver (Bartels-Stewart)
+- **Tensor decompositions**: CP-ALS (Alternating Least Squares), Tucker decomposition, tensor train, hierarchical Tucker, NTT (Number Theoretic Transform)
+- **Structured matrices**: Cauchy matrices, companion matrices, Vandermonde, circulant solvers
+- **Matrix ODEs**: Matrix Riccati, Lyapunov, Sylvester ODE solvers
+- **Randomized algorithms**: Nystrom approximation, randomized range finder, sketch-and-solve
+- **Preconditioning**: ILU(k), ILUT, sparse approximate inverse, domain decomposition preconditioners
+- **Numerical range**: Field of values computation, Crouzeix conjecture verification
+- **Perturbation theory**: Condition number estimation, backward error analysis, componentwise perturbation bounds
+- **Control theory**: Riccati equation solvers (continuous/discrete ARE), Lyapunov stability, controllability/observability
+
+#### scirs2-optimize - Optimization Methods
+- **Mixed Integer Programming (MIP)**: Branch-and-bound with LP relaxation, cutting planes (Gomory cuts), heuristic upper bounds
+- **Conic programming**: Semidefinite Programming (SDP) via ADMM, Second-Order Cone Programming (SOCP), self-dual embedding
+- **Bayesian optimization**: Constrained BO with feasibility surrogates, multi-fidelity BO (MFBO), transfer BO, warm-start BO
+- **Metaheuristics**: Ant Colony Optimization (ACO), Differential Evolution (DE), Simulated Annealing (SA), Harmony Search
+- **Multi-objective**: NSGA-III with reference point adaptation, decomposition-based (MOEA/D), hypervolume-based selection
+- **Bilevel optimization**: Single-level reduction, penalty-based methods, optimal value function approach
+- **Blackbox optimization**: DIRECT algorithm, multistart with basin-hopping, model-based trust region
+- **Stochastic optimization**: SGD with momentum/Nesterov, Adam/AdaW/AMSGrad, variance reduction (SVRG/SARAH/SPIDER), learning rate schedules (cosine, one-cycle, warmup)
+- **Surrogate methods**: Kriging surrogate, polynomial response surface, radial basis function surrogate
+- **Convex optimization**: ADMM, proximal gradient, LASSO, ridge, elastic net, SVM dual, NNLS
+- **Combinatorial**: Traveling salesman (2-opt/3-opt/LKH heuristic), knapsack (DP/greedy/FPTAS), graph coloring, scheduling
+- **Proximal methods**: Proximal gradient descent, FISTA, ProxSkip, stochastic proximal
+- **Robust optimization**: Min-max formulations, robust LP/QP, scenario-based robust constraints
+- **Decomposition methods**: Dantzig-Wolfe, Benders decomposition, Lagrangian relaxation
+
+#### scirs2-graph - Graph Algorithms and Analysis
+- **Community detection**: Louvain algorithm (modularity optimization), Girvan-Newman (edge betweenness), label propagation, Leiden algorithm
+- **Graph Neural Networks**: GCN (Kipf-Welling), GAT (attention-based), Node2Vec (random walk embeddings), spectral graph convolution
+- **Graph isomorphism**: VF2 algorithm with subgraph matching, Weisfeiler-Lehman graph kernels
+- **Maximum flow**: Dinic's algorithm, push-relabel, min-cut computation, multi-commodity flow
+- **Layout algorithms**: Force-directed (Fruchterman-Reingold), hierarchical (Sugiyama), circular, spectral layout
+- **Visualization**: SVG graph rendering, JSON/DOT export, interactive visualization support
+- **Temporal graphs**: Time-expanded graphs, temporal reachability, contact sequences, link streams
+- **Hypergraphs**: Hyperedge operations, clique expansion, star expansion, hypergraph partitioning
+- **Graph generators**: Watts-Strogatz small-world, Barabasi-Albert scale-free, Erdos-Renyi, regular graphs, trees
+- **Social network analysis**: Centrality measures (betweenness/closeness/eigenvector/PageRank), structural holes, triadic closure
+- **Network statistics**: Motif counting, graphlet frequency distribution, network entropy
+- **Algebraic graph theory**: Spectral gap, Cheeger constant, interlacing theorems, graph polynomials
+- **Reliability**: Network reliability polynomial, all-terminal reliability, Monte Carlo reliability estimation
+- **Planarity**: Planarity testing (LR-planarity), planar embedding, Kuratowski subgraph extraction
+
+#### scirs2-signal - Signal Processing
+- **Radar signal processing**: Matched filter (time/frequency domain), CFAR detection (CA-CFAR/OS-CFAR/GO-CFAR/SO-CFAR), range-Doppler processing, pulse compression
+- **State estimation filters**: Kalman filter (linear), Extended Kalman Filter (EKF), Unscented Kalman Filter (UKF), particle filter, adaptive Kalman
+- **Compressed sensing**: Orthogonal Matching Pursuit (OMP), Iterative Shrinkage Thresholding (ISTA/FISTA), CoSaMP, subspace pursuit
+- **Audio/speech features**: MFCC (Mel-Frequency Cepstral Coefficients), chroma features, spectral centroid/bandwidth/rolloff, zero-crossing rate
+- **Time-frequency analysis**: Empirical Mode Decomposition (EMD), Hilbert-Huang Transform (HHT), synchrosqueezing transform, Wigner-Ville distribution, Zoom FFT
+- **Wavelet processing**: Wavelet packet transform, wavelet denoising (soft/hard thresholding), continuous wavelet transform
+- **Array signal processing**: MUSIC algorithm, ESPRIT, beamforming (delay-and-sum, MVDR/Capon), direction-of-arrival estimation
+- **Spectral estimation**: Multi-taper (DPSS), Burg AR method, MUSIC/ESPRIT eigendecomposition-based
+- **Source separation**: Blind source separation (FastICA, JADE, SOBI), NMF for audio, convolutive BSS
+- **Adaptive filtering**: LMS, RLS, NLMS, affine projection algorithm, Kalman-based adaptive
+- **System identification**: ARX, ARMAX, N4SID subspace identification, enhanced system ID
+
+#### scirs2-io - Data Input/Output
+- **Binary serialization**: Protocol Buffers (lite implementation), MessagePack, CBOR, BSON, Avro (schema registry)
+- **Columnar formats**: Parquet (lite), Feather/Arrow IPC, ORC (lite)
+- **Streaming readers**: Streaming JSON (NDJSON/JSON Lines), streaming CSV with schema inference, streaming Arrow
+- **Distributed IO**: Sharded file reading/writing, distributed merge sort, partitioned datasets
+- **Cloud interface**: Cloud storage abstraction (S3/GCS/Azure-compatible), presigned URLs, multipart upload
+- **Format detection**: Automatic format detection by magic bytes and extension, universal reader
+- **Schema management**: Schema registry, schema evolution with compatibility modes, schema versioning
+- **Data catalog**: Metadata catalog, dataset lineage tracking, data versioning
+- **ETL pipeline**: Source/transform/sink pipeline, backpressure handling, typed transforms
+- **Compression**: Zstd/LZ4/Snappy/Brotli utilities, streaming compression/decompression
+- **HDF5 lite**: Pure Rust HDF5-like hierarchical data format
+- **TOML extensions**: Extended TOML parsing with includes and variables
+
+#### scirs2-fft - FFT and Spectral Methods
+- **Sparse FFT**: Sublinear sparse FFT for signals with few significant frequencies, Prony method for exponential sums
+- **Spectral analysis**: MUSIC spectral estimator, Lomb-Scargle periodogram (non-uniform sampling), Burg AR spectral estimation
+- **Advanced transforms**: Chirp-Z Transform (CZT), Fractional Fourier Transform (FRFT), Number Theoretic Transform (NTT) over finite fields
+- **Wavelet transforms**: Wavelet packet decomposition, fast wavelet transform, Hilbert transform via FFT
+- **Multidimensional FFT**: N-dimensional FFT with stride optimization, real-to-complex ND-FFT
+- **Convolution**: Fast convolution (overlap-add/overlap-save), correlation, polynomial multiplication via NTT
+- **Window functions**: Comprehensive window library (Kaiser-Bessel, Dolph-Chebyshev, DPSS, flat top, Nuttall)
+- **DCT/DST variants**: All 8 DCT/DST variants (Type I-IV), Modulated Lapped Transform (MLT)
+- **Mixed-radix FFT**: Generalized mixed-radix for arbitrary sizes, prime-length FFT (Rader's algorithm, Bluestein's algorithm)
+- **Polyphase filterbank**: Analysis/synthesis filterbank, perfect reconstruction conditions
+- **Spectrogram enhancements**: Reassigned spectrogram, multi-taper spectrogram, superlet transform
+
+#### scirs2-cluster - Clustering Algorithms
+- **Probabilistic clustering**: Gaussian Mixture Model (EM algorithm), Dirichlet process mixture, variational Bayes GMM
+- **Self-Organizing Map (SOM)**: Batch/online learning, neighborhood functions (Gaussian/Mexican hat), visualization
+- **Kernel methods**: Kernel k-means, kernel spectral clustering, multiple kernel learning
+- **Density-based**: HDBSCAN (hierarchical DBSCAN), density peaks clustering, OPTICS, density ratio clustering
+- **Topological**: Mapper algorithm (TDA-based), Vietoris-Rips complex clustering, Reeb graph clustering
+- **Deep clustering**: Deep Embedded Clustering (DEC), deep k-means, self-supervised clustering
+- **Stream/online**: CluStream, DenStream, D-Stream, BIRCH (online variant)
+- **Biclustering**: Cheng-Church algorithm, FABIA, PLAID model, spectral biclustering
+- **Co-clustering**: Bregman co-clustering, information-theoretic co-clustering
+- **Ensemble methods**: Weighted ensemble clustering, consensus clustering, stability-based cluster selection
+- **Subspace clustering**: Sparse subspace clustering (SSC), low-rank representation (LRR), ORCLUS
+- **Competitive learning**: Neural gas, growing neural gas, fuzzy c-means variants
+- **Prototype-based**: Enhanced k-medoids, k-medians, kernel k-medoids
+- **Time series clustering**: DTW-based, feature-based, model-based (HMM), shapelet-based
+
+#### scirs2-sparse - Sparse Matrix Operations
+- **Preconditioners**: Block Jacobi, Sparse Approximate Inverse (SPAI), Additive Schwarz, polynomial preconditioners
+- **Storage formats**: BCSR (Block Compressed Sparse Row), ELLPACK, Diagonal (DIA), SELL-C-sigma
+- **Eigensolvers**: LOBPCG (Locally Optimal Block Preconditioned CG), IRAM (Implicitly Restarted Arnoldi Method), Krylov-Schur
+- **Algebraic Multigrid (AMG)**: Classical AMG, smoothed aggregation AMG, unsmoothed aggregation
+- **Augmented Krylov**: GCRO-style deflation (GCROT/GCRODR), recycled GMRES, flexible GMRES
+- **Krylov subspace methods**: SYMMLQ, QMR, TFQMR, IDR(s)
+- **Saddle point systems**: Block preconditioners for saddle point problems, constraint preconditioners
+- **Domain decomposition**: Overlapping/non-overlapping Schwarz, FETI, balancing Neumann-Neumann
+- **Graph algorithms on sparse matrices**: Graph Laplacian, spectral partitioning, minimum spanning tree
+- **Ordering algorithms**: Approximate Minimum Degree (AMD), Nested Dissection, Reverse Cuthill-McKee
+- **Parallel sparse**: Parallel SpMV, parallel sparse triangular solve, parallel ILU
+
+#### scirs2-ndimage - N-Dimensional Image Processing
+- **Feature detection**: Gabor filter bank, SIFT (Scale-Invariant Feature Transform), HOG (Histogram of Oriented Gradients), FAST corners, Harris corner detector
+- **Segmentation**: GrabCut (iterative graph-cut), watershed transform, SLIC superpixels, random walker, atlas-based segmentation
+- **Quality metrics**: PSNR, SSIM, MS-SSIM, FSIM, perceptual quality metrics
+- **Optical flow**: Dense optical flow (Farneback), Lucas-Kanade (sparse), Horn-Schunck (variational)
+- **3D operations**: 3D morphology (erosion/dilation/opening/closing), 3D convolution, volumetric analysis, 3D connected components
+- **Medical imaging**: DICOM-like metadata handling, Hounsfield unit conversion, MRI utilities, slice processing
+- **Texture analysis**: GLCM (Gray-Level Co-occurrence Matrix), LBP (Local Binary Pattern), Gabor texture features, fractal dimension
+- **Mathematical morphology**: Advanced morphological profiles, granulometry, ultimate erosion, pattern spectrum
+- **Registration**: Rigid/affine/non-rigid image registration, mutual information similarity, demons algorithm
+- **Video processing**: Motion estimation, temporal filtering, frame interpolation
+- **Reconstruction**: Iterative reconstruction algorithms, tomographic reconstruction, compressed sensing reconstruction
+- **Deep features**: CNN feature extraction interface, transfer learning support
+
+#### scirs2-special - Special Functions
+- **Mathieu functions**: Mathieu characteristic values, Mathieu cosine/sine functions, modified Mathieu functions
+- **Coulomb wave functions**: Regular/irregular Coulomb functions, Coulomb phase shift
+- **Spherical harmonics**: Real/complex spherical harmonics Y_lm, vector spherical harmonics
+- **Coupling coefficients**: Gaunt coefficients, Wigner 3j/6j/9j symbols, Clebsch-Gordan coefficients
+- **Jacobi theta functions**: Theta1/2/3/4, nome, elliptic nome, Jacobi elliptic modular functions
+- **Debye functions**: Debye D_n functions, Debye integrals for heat capacity
+- **Clausen function**: Clausen Cl_2, generalized Clausen functions
+- **Whittaker functions**: Whittaker M and W functions (confluent hypergeometric)
+- **Fox H-function**: Fox H-function via inverse Mellin transform (Talbot's method)
+- **Heun functions**: Heun's equation, Heun local/confluent functions
+- **Appell functions**: Appell F1/F2/F3/F4 hypergeometric functions of two variables
+- **q-analogs**: q-Pochhammer, q-binomial, q-Bessel functions, q-orthogonal polynomials
+- **Parabolic cylinder**: Parabolic cylinder functions D_nu, U, V
+- **Polylogarithm extensions**: Lerch transcendent, Jonquiere's function, Bose-Einstein/Fermi-Dirac integrals
+- **Weierstrass functions**: Weierstrass p-function, zeta function, sigma function
+- **Extended combinatorics**: Bell numbers, Bernoulli numbers, Stirling numbers (both kinds), Eulerian numbers, partition functions
+- **Lattice functions**: Epstein zeta function, lattice theta series, Madelung constants
+
+#### scirs2-transform - Dimensionality Reduction and Feature Engineering
+- **UMAP**: Uniform Manifold Approximation and Projection with fuzzy simplicial set construction
+- **Barnes-Hut t-SNE**: O(N log N) t-SNE with quad/oct-tree acceleration
+- **Sparse PCA**: LASSO-penalized PCA, dictionary learning-based sparse coding
+- **Persistent homology**: Vietoris-Rips complex, Rips filtration, persistent diagram, Betti numbers
+- **Archetypal analysis**: Simplex-constrained factorization, convex hull approximation
+- **Optimal transport**: Wasserstein distance (exact via LP), Sinkhorn algorithm (regularized OT), sliced Wasserstein
+- **Deep kernel embeddings**: Kernel mean embedding, random kitchen sinks, deep kernel PCA
+- **Online dimensionality reduction**: Incremental PCA, online NMF, streaming UMAP
+- **Metric learning**: Large-margin nearest neighbor (LMNN), information-theoretic metric learning (ITML), Siamese/triplet loss
+- **Multiview learning**: CCA, kernel CCA, deep CCA, multiview clustering
+- **Nonlinear methods**: Isomap, locally linear embedding (LLE), Laplacian eigenmaps, diffusion maps
+- **NMF variants**: NMF with L1/L2/KL divergence/Itakura-Saito penalties, convex NMF, semi-NMF
+- **Feature selection**: mRMR, ReliefF, SPEC spectral feature selection, stability selection
+- **Feature engineering**: Polynomial features, interaction features, periodic features, radial features
+- **Projection methods**: Random projections (JL lemma), count sketch, tensor sketch, subspace embeddings
+
+#### scirs2-autograd - Automatic Differentiation
+- **Custom gradient rules**: User-defined backward passes, gradient overrides for efficiency
+- **Gradient checkpointing**: Segment-based rematerialization, memory-efficient backpropagation
+- **Finite differences**: Forward/backward/central differences, Richardson extrapolation for high accuracy
+- **JVP/VJP**: Jacobian-vector product (forward mode), vector-Jacobian product (reverse mode)
+- **Implicit differentiation**: Implicit function theorem differentiation, fixed-point differentiation
+- **Lazy evaluation**: Deferred computation graph, lazy tensor operations
+- **Mixed precision**: FP16/BF16/FP32 mixed precision training support, loss scaling
+- **Distributed gradient**: Gradient synchronization, gradient compression (top-k, random-k), gradient accumulation
+- **Higher-order**: Hessian computation, Jacobian computation, Taylor-mode AD
+- **JIT fusion**: Operator fusion for elementwise operations, kernel fusion patterns
+- **Optimizers**: SGD, Adam, AdaGrad, RMSprop, LARS, LAMB, SAM (sharpness-aware minimization)
+- **Tape-based AD**: Wengert tape implementation, eager-mode recording
+
+#### scirs2-datasets - Dataset Management
+- **Text datasets**: Corpus loading utilities, text classification benchmarks, sentiment analysis datasets
+- **NER/QA datasets**: Named entity recognition loaders, question answering dataset interface, sequence labeling benchmarks
+- **Medical imaging**: Medical image dataset interface, annotation format support, label management
+- **Graph benchmarks**: TUDataset-compatible loader, graph classification benchmarks, molecule datasets
+- **Recommendation**: User-item interaction matrices, collaborative filtering benchmarks, implicit feedback
+- **Anomaly detection benchmarks**: Synthetic anomaly injection, benchmark evaluation protocols
+- **Time series benchmarks**: UCR archive-compatible interface, forecasting competition loaders
+- **Financial data**: OHLCV data utilities, factor data management, return calculation utilities
+- **Vision datasets**: ImageNet-compatible loader, CIFAR-like loaders, MNIST-like utilities
+- **Physics simulations**: Particle simulation datasets, PDE solution datasets
+- **Synthetic generators**: Configurable synthetic data generation for all problem types
+
+#### scirs2-integrate - Numerical Integration
+- **Lattice Boltzmann Method (LBM)**: D1Q3/D2Q9/D3Q27 lattices, BGK/MRT collision operators, boundary conditions
+- **Discontinuous Galerkin (DG)**: DG spatial discretization, upwind fluxes, slope limiters, h/p refinement
+- **Phase-field models**: Cahn-Hilliard equation solver, Allen-Cahn equation, phase-field crystal model
+- **Stochastic DEs (SDE)**: Euler-Maruyama, Milstein method, stochastic Runge-Kutta, adaptive SDE solvers
+- **Stochastic PDEs (SPDE)**: Stochastic finite element, spectral stochastic methods
+- **Integral equations**: Fredholm equations (2nd kind), Volterra equations, singular integral equations
+- **Boundary Element Method (BEM)**: 2D/3D BEM for Laplace/Helmholtz, Galerkin/collocation formulations
+- **Quasi-Monte Carlo**: Halton/Sobol/Niederreiter sequences, scrambled QMC, randomized QMC
+- **Shooting methods**: Single/multiple shooting for BVPs, sensitivity equations
+- **Continuation methods**: Pseudo-arclength continuation, bifurcation detection, branch switching
+- **Port-Hamiltonian systems**: Structure-preserving discretization, energy-consistent integration
+- **IMEX methods**: Implicit-Explicit Runge-Kutta, additive Runge-Kutta, exponential integrators
+- **Isogeometric Analysis (IGA)**: NURBS-based IGA, B-spline spaces, Gauss quadrature on patches
+- **Adaptive quadrature**: Nested Clenshaw-Curtis, Gauss-Kronrod with error control, double exponential
+
+#### scirs2-interpolate - Interpolation Methods
+- **Radial Basis Functions (RBF)**: Thin-plate spline, multiquadric, inverse multiquadric, compact support RBF
+- **Moving Least Squares (MLS)**: Weighted polynomial fitting, adaptive bandwidth selection
+- **PCHIP**: Piecewise Cubic Hermite Interpolating Polynomial (shape-preserving)
+- **Spherical interpolation**: Spherical harmonics expansion, SLERP, spherical RBF
+- **Kriging**: Ordinary kriging, universal kriging, co-kriging, indicator kriging
+- **Barycentric interpolation**: Floater-Hormann weights, Lebesgue constant minimization
+- **B-spline surfaces**: Bivariate B-spline fitting, NURBS surfaces, surface refinement
+- **Tensor product methods**: Full tensor product, sparse grid interpolation, dimension-adaptive
+- **Natural neighbor interpolation**: Sibson/Laplace weights, Voronoi-based
+- **Adaptive interpolation**: Error-driven refinement, anisotropic adaptation, moving meshes
+- **Parametric curves**: NURBS curves, Bezier splines, G2-continuous splines
+- **Scattered 2D**: Delaunay-based interpolation, Clough-Tocher triangulation
+
+#### scirs2-spatial - Spatial Data Structures
+- **R*-Tree**: Bulk loading (Sort-Tile-Recursive), forced reinsertion, split algorithm selection
+- **Fortune's Voronoi**: Sweep line Voronoi diagram, half-edge data structure, degenerate case handling
+- **Geodata/projections**: WGS84/GRS80 ellipsoid, Mercator/UTM/Lambert/Albers projections, datum transformations
+- **Spatial statistics**: Ripley's K/L functions, pair correlation function, spatial scan statistics
+- **Trajectory analysis**: Trajectory simplification (Douglas-Peucker), frechet distance, trajectory clustering
+- **Point location**: Trapezoidal map, point-in-polygon, convex hull inclusion test
+- **Sweep line algorithms**: Bentley-Ottmann intersection, polygon clipping (Sutherland-Hodgman, Weiler-Atherton)
+- **3D convex hull**: Quickhull algorithm, half-edge mesh, convex hull properties
+- **Advanced geospatial**: Topographic analysis, slope/aspect/curvature, viewshed computation
+- **Spatial join**: Nested loop/sort-merge/hash spatial join, distance join
+- **Grid index**: Regular grid, adaptive grid, kd-tree enhanced
+
+#### scirs2-vision - Computer Vision
+- **Stereo vision**: Stereo rectification, disparity estimation (SGM, BM), depth from stereo, stereo calibration
+- **Depth estimation**: Monocular depth estimation interface, depth completion, depth super-resolution
+- **Point cloud**: ICP (Iterative Closest Point) registration, normal estimation, plane fitting, RANSAC-based alignment
+- **Camera pose (PnP)**: PnP solver (EPnP, iterative), RANSAC-based robust PnP, camera calibration
+- **Dense optical flow**: Farneback algorithm, TV-L1 optical flow, optical flow evaluation (EPE, F1)
+- **Video processing**: Frame difference, motion detection, temporal filtering, video stabilization
+- **SLAM interface**: Feature-based SLAM framework, map management, loop closure detection
+- **Face detection**: Viola-Jones-like cascade, facial landmark detection
+- **Image quality**: BRISQUE (blind quality), NIQE, perceptual hash, image fingerprinting
+- **3D reconstruction**: Structure from motion (SfM) pipeline, bundle adjustment interface, dense reconstruction
+- **Medical vision**: Vessel segmentation, lesion detection, registration for medical images
+- **Segmentation**: Panoptic segmentation framework, semantic segmentation (with decoders), instance segmentation
+- **Style transfer**: Neural style transfer interface, fast style transfer
+- **Descriptors**: BRIEF, FREAK, AKAZE descriptors
+
+#### scirs2-text - Natural Language Processing
+- **Tokenization**: BPE (Byte-Pair Encoding) with merges vocabulary, WordPiece tokenizer, Unigram language model tokenizer
+- **Sequence labeling**: CRF (Conditional Random Field), HMM-based labeling, BiLSTM-CRF interface
+- **FastText**: Subword n-gram embeddings, OOV handling, FastText classification
+- **Named Entity Recognition**: Rule-based NER, statistical NER, neural NER interface
+- **Topic modeling**: LDA (Latent Dirichlet Allocation) with collapsed Gibbs sampling, NMF-based topic modeling, hierarchical LDA
+- **Semantic parsing**: Constituency parsing interface, dependency parsing, CCG supertags
+- **Question answering**: Extractive QA, reading comprehension interface, answer span prediction
+- **Coreference resolution**: Rule-based coreference, mention detection, entity clustering
+- **Discourse analysis**: Rhetorical Structure Theory (RST), discourse relation detection
+- **Grammar checking**: Pattern-based grammar rules, language model scoring
+- **Knowledge graphs**: Triple extraction, relation classification, entity linking
+- **Multilingual**: Language detection, cross-lingual embeddings, multilingual tokenization
+- **Information extraction**: Event extraction, temporal expression recognition, quantity extraction
+- **Text classification**: Advanced multiclass/multilabel classification, zero-shot classification
+
+#### scirs2-metrics - Evaluation Metrics
+- **Detection metrics**: IoU computation, Average Precision (AP), mean AP (mAP), Non-Maximum Suppression (NMS)
+- **Ranking metrics**: NDCG (Normalized Discounted Cumulative Gain), MAP (Mean Average Precision), MRR, Precision@K, Recall@K
+- **Generative metrics**: Frechet Inception Distance (FID), Inception Score (IS), LPIPS (learned perceptual similarity), CLIP score
+- **Fairness metrics**: Demographic parity, equalized odds, individual fairness, counterfactual fairness
+- **Segmentation metrics**: Panoptic quality, semantic IoU, instance AP, boundary F-measure
+- **Streaming metrics**: Online computation with sliding windows, incremental updates, batching/buffering/partitioning/windowing patterns
+- **Regression advanced**: Quantile loss, Huber loss, pinball loss, interval coverage, calibration metrics
+- **IR metrics**: BPREF, infAP, GMAP, condensed list metrics
+
+#### scirs2-wasm - WebAssembly Bindings
+- **TypeScript bindings**: Complete TS type definitions, auto-generated from Rust types
+- **WasmMatrix**: Matrix operations exposed to JS/TS, zero-copy where possible
+- **WASM workers**: Web worker-based parallel computation, message passing protocol
+- **SIMD operations**: WebAssembly SIMD (128-bit), vectorized math operations in browser
+- **Streaming**: Streaming data processing from JS, incremental results
+
+#### Python bindings (scirs2-python)
+- Extended Python APIs for FFT, linear algebra, optimization, signal processing, statistics via PyO3
+- MCMC/GP Python interface, matrix completion, LASSO, sparse eigensolvers
+- Type-safe Python wrappers with NumPy array interoperability
+
+#### Julia bindings (julia/SciRS2)
+- **ExtendedFFT**: Advanced FFT operations accessible from Julia
+- **ExtendedLinalg**: Extended linear algebra (sparse, iterative, matrix functions)
+- **ExtendedOptimize**: Optimization algorithms from Julia
+- **ExtendedStats**: Statistical methods including MCMC and distributions
+- **Interpolate**: Interpolation methods from Julia
+- **PureAlgorithms**: Pure algorithmic implementations with Julia-friendly APIs
+
+#### Benchmarks (scirs2-benchmarks)
+- v0.3.0 comprehensive benchmark suite: FFT (advanced), linalg (advanced), signal (advanced), stats/ML, optimize/cluster
+- Criterion-based benchmarks with statistical analysis and regression detection
+
+#### Cross-crate integration tests
+- New integration test framework for cross-crate workflows
+- Integration tests: ODE solving, sparse linalg, optimize+stats, autograd+neural
+
+### Fixed
+
+#### Correctness Bugs
+- **Bicubic Hermite matrix transpose**: Fixed incorrect transpose in tensor product bicubic Hermite interpolation kernel construction
+- **Lanczos QL eigensolver**: Rewrote tqli algorithm with proper implicit shifted QL iterations and deflation
+- **Bartels-Stewart Sylvester solver**: Fixed 2x2 Schur block handling for real quasi-triangular Schur forms
+- **LockFreeQueue race condition**: Eliminated CAS-before-read race using ManuallyDrop + ptr::read pattern (UB-free)
+- **BDF ODE solver sign error**: Fixed sign error in residual computation for Backward Differentiation Formula solver
+- **FLANN duplicate descriptors**: Fixed duplicate descriptor handling causing incorrect nearest-neighbor results
+- **PnP RANSAC degeneracy**: Added coplanar point degeneracy detection and fallback in P3P solver
+- **External merge sort key mismatch**: Fixed key function application mismatch in external merge sort in scirs2-io
+- **Burg AR PSD early-stopping**: Fixed premature termination in Burg's method for AR spectral estimation
+- **Wavelet polyphase decimation**: Fixed aliasing in polyphase decimation step of wavelet packet transform
+- **lfilter off-by-one**: Corrected off-by-one error in IIR filter initial condition computation
+- **STFT frequency bin count**: Fixed formula for number of frequency bins in Short-Time Fourier Transform
+- **ReLU gradient mask**: Corrected subgradient mask computation (>=0 vs >0) in autograd ReLU backward
+- **DFM Kalman covariance**: Added symmetrization and Tikhonov regularization to Dynamic Factor Model Kalman update
+- **Watts-Strogatz edge accumulation**: Fixed duplicate edge accumulation in graph rewiring step
+- **Spectral clustering eigenvalue sort**: Corrected ascending/descending sort order for Laplacian eigenvalues
+- **DOP853 Lorenz tolerances**: Adjusted absolute/relative tolerances for DOP853 on stiff Lorenz system
+- **CSV timestamp heuristic**: Fixed format detection for ISO 8601 timestamps in streaming CSV reader
+- **GMRES-DR/recycled Krylov**: Rewrote GCRO-style deflated GMRES with correct harmonic Ritz pair extraction
+- **LockFreeQueue double-drop/UAF**: Fixed use-after-free in timeout path of lock-free queue dequeue
+- **Dense layer N-dim input**: Fixed input tensor reshape for N-dimensional batch inputs in Dense layer
+- **UNet spatial mismatch**: Fixed skip connection spatial dimension mismatch in UNet decoder
+- **GPT causal masking**: Fixed causal attention mask broadcasting for variable sequence lengths
+- **DIRECT Branin**: Fixed DIRECT global optimizer interval bisection for Branin function
+- **Ball tree tie-breaking**: Fixed deterministic tie-breaking in Ball tree nearest-neighbor search
+- **Frank copula Debye integral**: Fixed Debye D_1 function evaluation in Frank copula parameter estimation
+- **NUTS MCMC tolerances**: Adjusted energy conservation tolerance in No-U-Turn Sampler
+
+#### Build and Quality
+- **GPU allocator deadlock tests**: Marked GPU allocator deadlock-prone tests as `#[ignore]` for safety in CI
+- **scirs2-core parallel iterators**: Fixed `+ 'static` lifetime bounds on parallel map/filter closures
+- **scirs2-fft InvalidInput variant**: Added missing `InvalidInput` error variant to FFT error enum
+- **scirs2-linalg SingularMatrixError**: Added missing `SingularMatrixError` variant and Riccati error conversion
+- **scirs2-special Sum trait bound**: Added `Sum` trait bound for Mathieu function series accumulation
+- **scirs2-stats parallel iterators**: Fixed parallel iterator imports from rayon in survival analysis modules
+- **scirs2-integrate IMEX methods**: Added IMEX Runge-Kutta additive methods
+
+### Changed
+
+#### Dependency Updates
+- All workspace dependencies updated to latest compatible versions available on crates.io
+- Pure Rust policy maintained: OxiBLAS, OxiFFT, oxiarc-*, oxicode used throughout
+- No C/Fortran dependencies in default feature set; optional C-backed features remain feature-gated
+
+#### Performance Improvements
+- Sparse matrix-vector multiplication optimized with BCSR/ELLPACK formats
+- FFT planning improved with better cache-oblivious twiddle factor layout
+- Parallel iterators in scirs2-core use adaptive chunk sizing based on workload
+- Randomized SVD uses subspace iteration with Krylov enhancement for better accuracy/speed
+- AMG coarsening uses parallel strength-of-connection computation
+
+#### Code Quality
+- `unwrap()` eliminated across new code (no-unwrap policy enforced)
+- All new modules follow snake_case naming convention
+- Workspace Cargo.toml manages versions centrally; subcrate Cargo.toml files use `*.workspace = true`
+- No direct `ndarray` or `rand` imports; all go through scirs2-core abstractions
+
+### Breaking Changes
+None. All public APIs from v0.2.0 remain backward compatible.
+
+### Migration Guide
+No migration required. Upgrade from v0.2.0 to v0.3.0 by updating your `Cargo.toml` dependency version. All existing code continues to work without modification.
+
+---
+
 ## [0.2.0] - 2026-02-10
 
 ### 🎉 Major Release - Complete Workspace Restoration

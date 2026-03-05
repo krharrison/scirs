@@ -24,7 +24,7 @@ pub mod solutions;
 // Re-export main types for easier access
 pub use algorithms::{
     MultiObjectiveConfig, MultiObjectiveOptimizer, MultiObjectiveOptimizerWrapper,
-    OptimizerFactory, NSGAII, NSGAIII,
+    OptimizerFactory, MOEAD, NSGAII, NSGAIII, SPEA2,
 };
 pub use solutions::{
     MultiObjectiveResult, MultiObjectiveSolution, OptimizationMetrics, Population,

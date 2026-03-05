@@ -18,10 +18,18 @@
 //! ## What's Included
 //!
 //! ### Array Types and Operations
-//! - `Array`, `Array1`, `Array2`, `ArrayD` - N-dimensional array types
-//! - `ArrayView`, `ArrayViewMut` - Array views
-//! - `Axis`, `Ix1`, `Ix2`, `IxDyn` - Shape and axis types
+//! - `Array`, `Array1`, `Array2`, `Array3`, `Array4`, `ArrayD` - N-dimensional array types
+//! - `ArrayView`, `ArrayView1`, `ArrayView2`, `ArrayView3`, `ArrayView4`, `ArrayViewD` - Array views
+//! - `ArrayViewMut`, `ArrayViewMut1`, `ArrayViewMut2` - Mutable array views
+//! - `Axis`, `Ix1`, `Ix2`, `Ix3`, `Ix4`, `IxDyn` - Shape and axis types
+//! - `Zip` - Parallel element-wise iteration across arrays
 //! - `array!`, `s!` - Convenient macros for array creation and slicing
+//!
+//! ### Numeric Traits
+//! - `Float` - Floating-point operations
+//! - `FromPrimitive`, `ToPrimitive` - Convert from/to primitive types
+//! - `Num`, `NumCast`, `NumAssign` - Numeric operations and in-place ops
+//! - `Zero`, `One` - Additive and multiplicative identities
 //!
 //! ### Random Number Generation
 //! - `random()` - Convenient random value generation
@@ -50,6 +58,25 @@
 //! ### Complex Numbers
 //! - `Complex`, `Complex32`, `Complex64` - Complex number types
 //!
+//! ### Builder Patterns (IDE-friendly ergonomic construction)
+//! - `MatrixBuilder` - Fluent builder for 2D matrices
+//! - `VectorBuilder` - Fluent builder for 1D vectors
+//! - `ArrayBuilder` - Generic fluent array builder
+//!
+//! ### Ergonomic Matrix Operations
+//! - `mat_dot(a, b)` - Matrix multiply (2D)
+//! - `outer(a, b)` - Outer product of two 1D arrays
+//! - `kron_product(a, b)` - Kronecker product
+//! - `vstack(arrays)` - Vertical stack of 2D arrays
+//! - `hstack(arrays)` - Horizontal stack of 2D arrays
+//! - `block_diag_stack(blocks)` - Block diagonal matrix
+//!
+//! ### Domain Modules
+//! - `finance` - Option pricing, fixed income, risk, portfolio analytics
+//! - `bioinformatics` - Sequence analysis, alignment, phylogenetics
+//! - `physics` - Classical, thermodynamics, electrodynamics, quantum
+//! - `ml_pipeline` (feature-gated) - ML pipeline framework
+//!
 //! ## Examples
 //!
 //! ### Basic Array Operations
@@ -67,6 +94,37 @@
 //! // Array operations
 //! let sum = a.sum();
 //! let mean = a.mean().expect("Operation failed");
+//! ```
+//!
+//! ### Builder Patterns
+//!
+//! ```rust
+//! use scirs2_core::prelude::*;
+//!
+//! // Fluent matrix construction
+//! let identity = MatrixBuilder::<f64>::eye(3);
+//! let zeros = MatrixBuilder::<f64>::zeros(4, 4);
+//! let from_data = MatrixBuilder::from_vec(vec![1.0, 2.0, 3.0, 4.0], 2, 2)
+//!     .expect("valid shape");
+//!
+//! // Vector construction
+//! let v = VectorBuilder::<f64>::linspace(0.0, 1.0, 11);
+//! let range = VectorBuilder::<f64>::arange(0.0, 5.0, 1.0);
+//! ```
+//!
+//! ### Ergonomic Matrix Operations
+//!
+//! ```rust
+//! use scirs2_core::prelude::*;
+//!
+//! let a = MatrixBuilder::from_vec(vec![1.0, 2.0, 3.0, 4.0], 2, 2)
+//!     .expect("valid shape");
+//! let b = MatrixBuilder::<f64>::eye(2);
+//! let c = mat_dot(&a.view(), &b.view());  // Matrix multiply
+//!
+//! let u = array![1.0, 2.0, 3.0];
+//! let v = array![4.0, 5.0, 6.0];
+//! let outer_prod = outer(&u.view(), &v.view());  // Outer product
 //! ```
 //!
 //! ### Random Number Generation
@@ -95,7 +153,7 @@
 //! pub fn my_function(data: &Array2<f64>, k: usize) -> CoreResult<Array1<f64>> {
 //!     // Validate inputs
 //!     check_positive(k, "k")?;
-//!     checkarray_finite(data, "data")?;
+//!     check_array_finite(data, "data")?;
 //!
 //!     // Your implementation here
 //!     Ok(Array1::zeros(k))
@@ -125,8 +183,7 @@
 // Array Types and Operations
 // ================================
 
-/// Re-export core array types
-/// These are re-exported from crate root (see lib.rs lines 521-540)
+/// Re-export core array types for 1D, 2D, 3D, 4D, and dynamic dimensions.
 pub use crate::{
     Array,  // Generic N-dimensional array
     Array1, // 1-dimensional array
@@ -142,8 +199,25 @@ pub use crate::{
     IxDyn,        // Dynamic index
 };
 
+// Re-export 3D and 4D array types (frequently used in deep learning / physics)
+pub use ::ndarray::{
+    Array3,        // 3-dimensional array (images, volumes, conv layers)
+    Array4,        // 4-dimensional array (batched images: NCHW)
+    ArrayView3,    // Immutable 3D view
+    ArrayView4,    // Immutable 4D view
+    ArrayViewD,    // Immutable dynamic-dimensional view
+    ArrayViewMut1, // Mutable 1D view
+    ArrayViewMut2, // Mutable 2D view
+    ArrayViewMut3, // Mutable 3D view
+    ArrayViewMutD, // Mutable dynamic-dimensional view
+    Ix3,           // 3-dimensional index type
+    Ix4,           // 4-dimensional index type
+};
+
+// Re-export Zip for parallel element-wise iteration (critical for IDE ergonomics)
+pub use ::ndarray::Zip;
+
 /// Re-export array creation and manipulation macros
-/// These are re-exported from crate root (see lib.rs lines 521-540)
 pub use crate::{
     array, // Create arrays: array![[1, 2], [3, 4]]
     s,     // Slice arrays: arr.slice(s![.., 0])
@@ -228,17 +302,18 @@ pub use num_complex::{
 };
 
 // ================================
-// Common Traits
+// Common Numeric Traits
 // ================================
 
 /// Re-export commonly used numerical traits
 pub use num_traits::{
-    Float,         // Floating-point operations
-    FromPrimitive, // Convert from primitive types
+    Float,         // Floating-point operations (sin, cos, sqrt, exp, ln, ...)
+    FromPrimitive, // Convert from primitive types (usize -> T, i32 -> T, ...)
     Num,           // Basic numeric operations
+    NumAssign,     // In-place numeric operations (+=, -=, *=, /=)
     NumCast,       // Numeric type conversions
     One,           // Multiplicative identity (1)
-    ToPrimitive,   // Convert to primitive types
+    ToPrimitive,   // Convert to primitive types (T -> f64, T -> usize, ...)
     Zero,          // Additive identity (0)
 };
 
@@ -261,3 +336,147 @@ pub use crate::constants::math;
 
 /// Physical constants (c, h, G, etc.)
 pub use crate::constants::physical;
+
+// ================================
+// Builder Patterns for IDE Ergonomics
+// ================================
+
+/// Fluent builder for 2D matrices — IDE-friendly ergonomic matrix construction.
+///
+/// # Examples
+///
+/// ```rust
+/// use scirs2_core::prelude::MatrixBuilder;
+///
+/// let identity = MatrixBuilder::<f64>::eye(3);
+/// let zeros = MatrixBuilder::<f64>::zeros(4, 4);
+/// let from_data = MatrixBuilder::from_vec(vec![1.0, 2.0, 3.0, 4.0], 2, 2)
+///     .expect("valid shape");
+/// ```
+pub use crate::builders::MatrixBuilder;
+
+/// Fluent builder for 1D vectors — IDE-friendly ergonomic vector construction.
+///
+/// # Examples
+///
+/// ```rust
+/// use scirs2_core::prelude::VectorBuilder;
+///
+/// let linspace = VectorBuilder::<f64>::linspace(0.0, 1.0, 11);
+/// let arange = VectorBuilder::<f64>::arange(0.0, 5.0, 1.0);
+/// let ones = VectorBuilder::<f64>::ones(5);
+/// ```
+pub use crate::builders::VectorBuilder;
+
+/// Generic fluent array builder.
+pub use crate::builders::ArrayBuilder;
+
+// ================================
+// Ergonomic Matrix Operations
+// ================================
+
+/// Matrix multiplication (dot product of two 2D arrays).
+///
+/// Shorthand for the common pattern of multiplying two matrices.
+///
+/// # Examples
+///
+/// ```rust
+/// use scirs2_core::prelude::*;
+///
+/// let a = MatrixBuilder::from_vec(vec![1.0, 0.0, 0.0, 1.0], 2, 2).expect("ok");
+/// let b = MatrixBuilder::from_vec(vec![3.0, 4.0, 5.0, 6.0], 2, 2).expect("ok");
+/// let c = mat_dot(&a.view(), &b.view());
+/// ```
+pub use crate::ops::dot as mat_dot;
+
+/// Outer product of two 1D arrays.
+///
+/// # Examples
+///
+/// ```rust
+/// use scirs2_core::prelude::*;
+///
+/// let u = array![1.0, 2.0, 3.0];
+/// let v = array![4.0, 5.0, 6.0];
+/// let m = outer(&u.view(), &v.view());
+/// assert_eq!(m.shape(), &[3, 3]);
+/// ```
+pub use crate::ops::outer;
+
+/// Kronecker product of two 2D arrays.
+///
+/// # Examples
+///
+/// ```rust
+/// use scirs2_core::prelude::*;
+///
+/// let a = MatrixBuilder::<f64>::eye(2);
+/// let b = MatrixBuilder::<f64>::eye(2);
+/// let k = kron_product(&a.view(), &b.view());
+/// assert_eq!(k.shape(), &[4, 4]);
+/// ```
+pub use crate::ops::kron as kron_product;
+
+/// Vertical stack of 2D arrays (rows concatenation).
+///
+/// # Examples
+///
+/// ```rust
+/// use scirs2_core::prelude::*;
+///
+/// let a = MatrixBuilder::from_vec(vec![1.0, 2.0, 3.0, 4.0], 2, 2).expect("ok");
+/// let b = MatrixBuilder::from_vec(vec![5.0, 6.0, 7.0, 8.0], 2, 2).expect("ok");
+/// let stacked = vstack(&[a.view(), b.view()]).expect("same cols");
+/// assert_eq!(stacked.shape(), &[4, 2]);
+/// ```
+pub use crate::ops::vstack;
+
+/// Horizontal stack of 2D arrays (column concatenation).
+///
+/// # Examples
+///
+/// ```rust
+/// use scirs2_core::prelude::*;
+///
+/// let a = MatrixBuilder::from_vec(vec![1.0, 2.0, 3.0, 4.0], 2, 2).expect("ok");
+/// let b = MatrixBuilder::from_vec(vec![5.0, 6.0, 7.0, 8.0], 2, 2).expect("ok");
+/// let stacked = hstack(&[a.view(), b.view()]).expect("same rows");
+/// assert_eq!(stacked.shape(), &[2, 4]);
+/// ```
+pub use crate::ops::hstack;
+
+/// Block diagonal matrix from a sequence of 2D arrays.
+///
+/// # Examples
+///
+/// ```rust
+/// use scirs2_core::prelude::*;
+///
+/// let a = MatrixBuilder::<f64>::eye(2);
+/// let b = MatrixBuilder::<f64>::eye(3);
+/// let bd = block_diag_stack(&[a.view(), b.view()]);
+/// assert_eq!(bd.shape(), &[5, 5]);
+/// ```
+pub use crate::ops::block_diag as block_diag_stack;
+
+// ================================
+// Domain Module Re-exports
+// ================================
+
+// Financial computing (option pricing, fixed income, risk, portfolio)
+// Always available — no feature gate required
+pub use crate::finance;
+
+// Bioinformatics (sequence analysis, alignment, phylogenetics, statistics)
+// Always available — no feature gate required
+pub use crate::bioinformatics;
+
+// Computational physics (classical, thermodynamics, electrodynamics, quantum)
+// Always available — no feature gate required
+pub use crate::physics;
+
+// ML pipeline (composable pipelines, transformers, predictors)
+// Feature-gated — only available when `ml_pipeline` feature is enabled
+#[cfg(feature = "ml_pipeline")]
+pub use crate::ml_pipeline;

@@ -26,7 +26,7 @@ use crate::slice_container::PySliceContainer;
 /// Python::attach(|py| {
 ///     let py_array = vec![1, 2, 3].into_pyarray(py);
 ///
-///     assert_eq!(py_array.readonly().as_slice().unwrap(), &[1, 2, 3]);
+///     assert_eq!(py_array.readonly().as_slice().expect("contiguous array"), &[1, 2, 3]);
 ///
 ///     // Array cannot be resized when its data is owned by Rust.
 ///     unsafe {
@@ -106,7 +106,7 @@ where
 /// Python::attach(|py| {
 ///     let py_array = vec![1, 2, 3].to_pyarray(py);
 ///
-///     assert_eq!(py_array.readonly().as_slice().unwrap(), &[1, 2, 3]);
+///     assert_eq!(py_array.readonly().as_slice().expect("contiguous array"), &[1, 2, 3]);
 /// });
 /// ```
 ///

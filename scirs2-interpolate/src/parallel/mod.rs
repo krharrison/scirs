@@ -32,7 +32,7 @@
 //!     0.0, 1.0,
 //!     1.0, 1.0,
 //!     0.5, 0.5,
-//! ]).unwrap();
+//! ]).expect("doc example: should succeed");
 //! let values = Array1::from_vec(vec![0.0, 1.0, 1.0, 2.0, 1.5]);
 //!
 //! // Create parallel MLS interpolator
@@ -42,16 +42,16 @@
 //!     WeightFunction::Gaussian,
 //!     PolynomialBasis::Linear,
 //!     0.5, // bandwidth
-//! ).unwrap();
+//! ).expect("doc example: should succeed");
 //!
 //! // Evaluate at multiple points in parallel
 //! let query_points = Array2::from_shape_vec((2, 2), vec![
 //!     0.25, 0.25,
 //!     0.75, 0.75,
-//! ]).unwrap();
+//! ]).expect("doc example: should succeed");
 //!
 //! let config = ParallelConfig::new();
-//! let results: Array1<f64> = parallel_mls.evaluate_parallel(&query_points.view(), &config).unwrap();
+//! let results: Array1<f64> = parallel_mls.evaluate_parallel(&query_points.view(), &config).expect("doc example: should succeed");
 //! ```
 
 use scirs2_core::ndarray::{Array1, ArrayView2};

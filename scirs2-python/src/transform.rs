@@ -12,19 +12,19 @@ use scirs2_numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods};
 
 // Direct imports from scirs2-transform
 use scirs2_transform::{
-    // Normalization
-    normalize::{normalize_array, normalize_vector, Normalizer, NormalizationMethod},
+    // Encoding
+    encoding::{OneHotEncoder, OrdinalEncoder},
     // Features
     features::{
         binarize, discretize_equal_frequency, discretize_equal_width, log_transform,
         power_transform, PolynomialFeatures, PowerTransformer,
     },
-    // Encoding
-    encoding::{OneHotEncoder, OrdinalEncoder},
-    // Reduction
-    reduction::{PCA, TSNE, UMAP},
     // Imputation
     impute::{ImputeStrategy, KNNImputer, SimpleImputer},
+    // Normalization
+    normalize::{normalize_array, normalize_vector, NormalizationMethod, Normalizer},
+    // Reduction
+    reduction::{PCA, TSNE, UMAP},
     // Scaling
     scaling::{MaxAbsScaler, QuantileTransformer},
 };
@@ -97,7 +97,11 @@ impl PyNormalizer {
             .map_err(|e| PyRuntimeError::new_err(format!("Fit failed: {}", e)))
     }
 
-    fn transform(&self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn transform(
+        &self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -107,7 +111,11 @@ impl PyNormalizer {
         Ok(result.into_pyarray(py).unbind())
     }
 
-    fn fit_transform(&mut self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn fit_transform(
+        &mut self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -158,7 +166,11 @@ impl PyPolynomialFeatures {
         self.inner.n_output_features(n_features)
     }
 
-    fn transform(&self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn transform(
+        &self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -180,8 +192,9 @@ impl PyPowerTransformer {
     #[new]
     #[pyo3(signature = (method="yeo-johnson", standardize=true))]
     fn new(method: &str, standardize: bool) -> PyResult<Self> {
-        let transformer = PowerTransformer::new(method, standardize)
-            .map_err(|e| PyRuntimeError::new_err(format!("PowerTransformer creation failed: {}", e)))?;
+        let transformer = PowerTransformer::new(method, standardize).map_err(|e| {
+            PyRuntimeError::new_err(format!("PowerTransformer creation failed: {}", e))
+        })?;
         Ok(Self { inner: transformer })
     }
 
@@ -193,7 +206,11 @@ impl PyPowerTransformer {
             .map_err(|e| PyRuntimeError::new_err(format!("Fit failed: {}", e)))
     }
 
-    fn transform(&self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn transform(
+        &self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -203,7 +220,11 @@ impl PyPowerTransformer {
         Ok(result.into_pyarray(py).unbind())
     }
 
-    fn inverse_transform(&self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn inverse_transform(
+        &self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -322,7 +343,11 @@ impl PyPCA {
             .map_err(|e| PyRuntimeError::new_err(format!("PCA fit failed: {}", e)))
     }
 
-    fn transform(&self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn transform(
+        &self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -332,7 +357,11 @@ impl PyPCA {
         Ok(result.into_pyarray(py).unbind())
     }
 
-    fn fit_transform(&mut self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn fit_transform(
+        &mut self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -376,7 +405,11 @@ impl PyTSNE {
         }
     }
 
-    fn fit_transform(&mut self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn fit_transform(
+        &mut self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -397,13 +430,23 @@ pub struct PyUMAP {
 impl PyUMAP {
     #[new]
     #[pyo3(signature = (n_components=2, n_neighbors=15, min_dist=0.1, learning_rate=1.0, n_epochs=200))]
-    fn new(n_components: usize, n_neighbors: usize, min_dist: f64, learning_rate: f64, n_epochs: usize) -> Self {
+    fn new(
+        n_components: usize,
+        n_neighbors: usize,
+        min_dist: f64,
+        learning_rate: f64,
+        n_epochs: usize,
+    ) -> Self {
         Self {
             inner: UMAP::new(n_neighbors, n_components, min_dist, learning_rate, n_epochs),
         }
     }
 
-    fn fit_transform(&mut self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn fit_transform(
+        &mut self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -429,8 +472,9 @@ impl PyOneHotEncoder {
     #[new]
     #[pyo3(signature = (drop=None, handle_unknown="error", sparse=false))]
     fn new(drop: Option<String>, handle_unknown: &str, sparse: bool) -> PyResult<Self> {
-        let encoder = OneHotEncoder::new(drop, handle_unknown, sparse)
-            .map_err(|e| PyRuntimeError::new_err(format!("OneHotEncoder creation failed: {}", e)))?;
+        let encoder = OneHotEncoder::new(drop, handle_unknown, sparse).map_err(|e| {
+            PyRuntimeError::new_err(format!("OneHotEncoder creation failed: {}", e))
+        })?;
         Ok(Self { inner: encoder })
     }
 
@@ -442,7 +486,11 @@ impl PyOneHotEncoder {
             .map_err(|e| PyRuntimeError::new_err(format!("Fit failed: {}", e)))
     }
 
-    fn transform(&self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn transform(
+        &self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -452,7 +500,11 @@ impl PyOneHotEncoder {
         Ok(result.to_dense().into_pyarray(py).unbind())
     }
 
-    fn fit_transform(&mut self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn fit_transform(
+        &mut self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -474,8 +526,9 @@ impl PyOrdinalEncoder {
     #[new]
     #[pyo3(signature = (handle_unknown="error", unknown_value=None))]
     fn new(handle_unknown: &str, unknown_value: Option<f64>) -> PyResult<Self> {
-        let encoder = OrdinalEncoder::new(handle_unknown, unknown_value)
-            .map_err(|e| PyRuntimeError::new_err(format!("OrdinalEncoder creation failed: {}", e)))?;
+        let encoder = OrdinalEncoder::new(handle_unknown, unknown_value).map_err(|e| {
+            PyRuntimeError::new_err(format!("OrdinalEncoder creation failed: {}", e))
+        })?;
         Ok(Self { inner: encoder })
     }
 
@@ -487,7 +540,11 @@ impl PyOrdinalEncoder {
             .map_err(|e| PyRuntimeError::new_err(format!("Fit failed: {}", e)))
     }
 
-    fn transform(&self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn transform(
+        &self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -497,7 +554,11 @@ impl PyOrdinalEncoder {
         Ok(result.into_pyarray(py).unbind())
     }
 
-    fn fit_transform(&mut self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn fit_transform(
+        &mut self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -548,7 +609,11 @@ impl PySimpleImputer {
             .map_err(|e| PyRuntimeError::new_err(format!("Fit failed: {}", e)))
     }
 
-    fn transform(&self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn transform(
+        &self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -558,7 +623,11 @@ impl PySimpleImputer {
         Ok(result.into_pyarray(py).unbind())
     }
 
-    fn fit_transform(&mut self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn fit_transform(
+        &mut self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -599,7 +668,11 @@ impl PyKNNImputer {
             .map_err(|e| PyRuntimeError::new_err(format!("Fit failed: {}", e)))
     }
 
-    fn transform(&self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn transform(
+        &self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -637,7 +710,11 @@ impl PyMaxAbsScaler {
             .map_err(|e| PyRuntimeError::new_err(format!("Fit failed: {}", e)))
     }
 
-    fn transform(&self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn transform(
+        &self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -647,7 +724,11 @@ impl PyMaxAbsScaler {
         Ok(result.into_pyarray(py).unbind())
     }
 
-    fn fit_transform(&mut self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn fit_transform(
+        &mut self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -670,7 +751,9 @@ impl PyQuantileTransformer {
     #[pyo3(signature = (n_quantiles=1000, output_distribution="uniform", clip=false))]
     fn new(n_quantiles: usize, output_distribution: &str, clip: bool) -> PyResult<Self> {
         let transformer = QuantileTransformer::new(n_quantiles, output_distribution, clip)
-            .map_err(|e| PyRuntimeError::new_err(format!("QuantileTransformer creation failed: {}", e)))?;
+            .map_err(|e| {
+                PyRuntimeError::new_err(format!("QuantileTransformer creation failed: {}", e))
+            })?;
         Ok(Self { inner: transformer })
     }
 
@@ -682,7 +765,11 @@ impl PyQuantileTransformer {
             .map_err(|e| PyRuntimeError::new_err(format!("Fit failed: {}", e)))
     }
 
-    fn transform(&self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn transform(
+        &self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self
@@ -692,7 +779,11 @@ impl PyQuantileTransformer {
         Ok(result.into_pyarray(py).unbind())
     }
 
-    fn fit_transform(&mut self, py: Python, array: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
+    fn fit_transform(
+        &mut self,
+        py: Python,
+        array: &Bound<'_, PyArray2<f64>>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let binding = array.readonly();
         let arr = binding.as_array();
         let result = self

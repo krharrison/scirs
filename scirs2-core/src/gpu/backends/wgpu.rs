@@ -241,7 +241,8 @@ impl WebGPUContext {
                     .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                         label: Some(&format!("{}_layout", name)),
                         bind_group_layouts: &[&bind_group_layout],
-                        push_constant_ranges: &[],
+                        // wgpu 28+: immediate_size replaces push_constant_ranges
+                        ..Default::default()
                     });
 
             let compute_pipeline =

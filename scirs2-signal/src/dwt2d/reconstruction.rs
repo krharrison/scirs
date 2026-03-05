@@ -78,10 +78,10 @@ use rayon::prelude::*;
 /// }
 ///
 /// // Decompose
-/// let decomposition = dwt2d_decompose(&data, Wavelet::Haar, None).unwrap();
+/// let decomposition = dwt2d_decompose(&data, Wavelet::Haar, None).expect("operation should succeed");
 ///
 /// // Reconstruct
-/// let reconstructed = dwt2d_reconstruct(&decomposition, Wavelet::Haar, None).unwrap();
+/// let reconstructed = dwt2d_reconstruct(&decomposition, Wavelet::Haar, None).expect("operation should succeed");
 ///
 /// // Check dimensions
 /// assert_eq!(reconstructed.shape(), data.shape());
@@ -95,7 +95,7 @@ use rayon::prelude::*;
 /// use scirs2_signal::dwt2d::{dwt2d_decompose, dwt2d_reconstruct, Dwt2dResult};
 ///
 /// let mut data = Array2::ones((8, 8));
-/// let mut decomposition = dwt2d_decompose(&data, Wavelet::DB(4), None).unwrap();
+/// let mut decomposition = dwt2d_decompose(&data, Wavelet::DB(4), None).expect("operation should succeed");
 ///
 /// // Zero out high-frequency details for lossy compression
 /// decomposition.detail_h.fill(0.0);
@@ -103,7 +103,7 @@ use rayon::prelude::*;
 /// decomposition.detail_d.fill(0.0);
 ///
 /// // Reconstruct from modified coefficients
-/// let denoised = dwt2d_reconstruct(&decomposition, Wavelet::DB(4), None).unwrap();
+/// let denoised = dwt2d_reconstruct(&decomposition, Wavelet::DB(4), None).expect("operation should succeed");
 /// ```
 pub fn dwt2d_reconstruct(
     decomposition: &Dwt2dResult,
@@ -316,10 +316,10 @@ pub fn dwt2d_reconstruct(
 /// }
 ///
 /// // Decompose
-/// let coeffs = wavedec2(&data, Wavelet::Haar, 3, None).unwrap();
+/// let coeffs = wavedec2(&data, Wavelet::Haar, 3, None).expect("operation should succeed");
 ///
 /// // Reconstruct
-/// let reconstructed = waverec2(&coeffs, Wavelet::Haar, None).unwrap();
+/// let reconstructed = waverec2(&coeffs, Wavelet::Haar, None).expect("operation should succeed");
 ///
 /// // Check that reconstruction has the correct shape
 /// assert_eq!(reconstructed.shape(), data.shape());
@@ -341,7 +341,7 @@ pub fn dwt2d_reconstruct(
 /// }
 ///
 /// // Multi-level decomposition
-/// let mut coeffs = wavedec2(&data, Wavelet::DB(4), 2, None).unwrap();
+/// let mut coeffs = wavedec2(&data, Wavelet::DB(4), 2, None).expect("operation should succeed");
 ///
 /// // Threshold small detail coefficients to achieve compression
 /// let threshold = 0.5;
@@ -359,7 +359,7 @@ pub fn dwt2d_reconstruct(
 /// }
 ///
 /// // Reconstruct from thresholded coefficients
-/// let compressed = waverec2(&coeffs, Wavelet::DB(4), None).unwrap();
+/// let compressed = waverec2(&coeffs, Wavelet::DB(4), None).expect("operation should succeed");
 /// ```
 pub fn waverec2(
     coeffs: &[Dwt2dResult],
@@ -456,7 +456,7 @@ pub fn waverec2(
 /// }
 ///
 /// // Perform 3-level 2D DWT
-/// let coeffs = wavedec2(&data, Wavelet::Haar, 3, None).unwrap();
+/// let coeffs = wavedec2(&data, Wavelet::Haar, 3, None).expect("operation should succeed");
 ///
 /// // Check the number of decomposition levels
 /// assert_eq!(coeffs.len(), 3);
@@ -483,7 +483,7 @@ pub fn waverec2(
 /// }
 ///
 /// // Decompose with Daubechies 4 wavelet
-/// let coeffs = wavedec2(&data, Wavelet::DB(4), 2, None).unwrap();
+/// let coeffs = wavedec2(&data, Wavelet::DB(4), 2, None).expect("operation should succeed");
 /// assert_eq!(coeffs.len(), 2);
 /// ```
 pub fn wavedec2<T>(

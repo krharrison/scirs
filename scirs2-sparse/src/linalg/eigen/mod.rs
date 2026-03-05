@@ -3,6 +3,7 @@
 //! This module provides a comprehensive set of eigenvalue solvers for sparse matrices,
 //! organized by algorithm type and matrix properties.
 
+pub mod arnoldi;
 pub mod general;
 pub mod generalized;
 pub mod lanczos;
@@ -10,6 +11,7 @@ pub mod power_iteration;
 pub mod symmetric;
 
 // Re-export main types and functions for convenience
+pub use arnoldi::{iram, iram_shift_invert, ArnoldiConfig};
 pub use general::eigs;
 pub use generalized::{eigsh_generalized, eigsh_generalized_enhanced};
 pub use lanczos::{lanczos, EigenResult, LanczosOptions};

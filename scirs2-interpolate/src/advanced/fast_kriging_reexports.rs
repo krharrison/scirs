@@ -97,7 +97,7 @@ pub enum FastKrigingMethod {
 ///     .approximation_method(FastKrigingMethod::Local)
 ///     .max_neighbors(50)
 ///     .build()
-///     .unwrap();
+///     .expect("doc example: should succeed");
 ///
 /// // Predict at new points
 /// let query_points = Array2::<f64>::zeros((10, 2));
@@ -110,7 +110,7 @@ pub enum FastKrigingMethod {
 ///     .covariance_function(CovarianceFunction::Exponential)
 ///     .approximation_method(FastKrigingMethod::FixedRank(10))
 ///     .build()
-///     .unwrap();
+///     .expect("doc example: should succeed");
 /// # }
 /// ```
 #[derive(Debug, Clone)]
@@ -209,7 +209,7 @@ where
 ///     .max_neighbors(30)
 ///     .radius_multiplier(2.5)
 ///     .build()
-///     .unwrap();
+///     .expect("doc example: should succeed");
 /// # }
 /// ```
 #[derive(Debug, Clone)]

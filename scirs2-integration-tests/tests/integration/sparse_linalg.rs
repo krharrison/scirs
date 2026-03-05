@@ -1,7 +1,7 @@
 // Integration tests for scirs2-sparse + scirs2-linalg
 // Tests sparse linear algebra operations, solver integration, and matrix conversions
 
-use ndarray::{Array1, Array2};
+use scirs2_core::ndarray::{Array1, Array2};
 use proptest::prelude::*;
 use scirs2_sparse::*;
 use scirs2_linalg::*;

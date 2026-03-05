@@ -30,6 +30,12 @@ pub mod mesh_generation;
 pub mod method_of_lines;
 pub mod spectral;
 
+// Enhanced PDE solvers (v0.3.0)
+pub mod fd_solvers;
+pub mod fem_1d;
+pub mod mol_enhanced;
+pub mod spectral_enhanced;
+
 use scirs2_core::ndarray::{Array1, Array2};
 use std::ops::Range;
 

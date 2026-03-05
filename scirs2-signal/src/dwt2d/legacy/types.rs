@@ -117,7 +117,7 @@ impl MemoryPool {
 /// }
 ///
 /// // Decompose the image
-/// let result: Dwt2dResult = dwt2d_decompose(&image, Wavelet::Haar, None).unwrap();
+/// let result: Dwt2dResult = dwt2d_decompose(&image, Wavelet::Haar, None).expect("operation should succeed");
 ///
 /// // The image is now decomposed into four subbands:
 /// let ll = &result.approx;  // Approximation coefficients (low-resolution image)

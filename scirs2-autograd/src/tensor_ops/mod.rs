@@ -525,6 +525,10 @@ mod numerical_props;
 // Kronecker product
 mod kronecker_ops;
 
+// SIMD-accelerated tensor operations for ML performance
+#[cfg(feature = "simd")]
+pub mod simd_ops;
+
 // ---------------------------------------
 // -- Ops to manipulate `Tensor` object --
 // ---------------------------------------
@@ -1963,6 +1967,17 @@ pub use graph_enhancements::{
     cached_op, clear_computation_cache, conditional, configure_cache, get_cache_stats,
     get_gc_stats, run_garbage_collection, smart_checkpoint, CacheStats, GcStats, GraphEnhancer,
     GraphStats, PredicateType,
+};
+
+// SIMD-accelerated tensor operations for ML performance
+#[cfg(feature = "simd")]
+pub use simd_ops::{
+    simd_activation_relu, simd_activation_sigmoid, simd_activation_tanh, simd_broadcast_add,
+    simd_broadcast_mul, simd_dot_product, simd_elementwise_add, simd_elementwise_div,
+    simd_elementwise_mul, simd_elementwise_sub, simd_gradient_accumulate, simd_reduction_sum,
+    simd_scaled_gradient_accumulate, SimdConfig, SimdDotProduct, SimdElementwiseAdd,
+    SimdElementwiseDiv, SimdElementwiseMul, SimdElementwiseSub, SimdGradientAccumulate, SimdReLU,
+    SimdReductionSum, SimdSigmoid, SimdTanh,
 };
 
 #[cfg(test)]

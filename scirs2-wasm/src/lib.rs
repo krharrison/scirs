@@ -19,6 +19,7 @@
 //! - `fft`: Fast Fourier Transform operations
 //! - `signal`: Signal processing (filtering, convolution, wavelets)
 //! - `integrate`: Numerical integration and ODE solvers
+//! - `interpolate`: Interpolation (linear, spline, Lagrange, PCHIP, Akima)
 //! - `optimize`: Optimization algorithms (minimize, curve fitting)
 //! - `random`: Random number generation and distributions
 //!
@@ -56,8 +57,13 @@ use web_sys::console;
 
 pub mod array;
 pub mod error;
+pub mod fft;
+pub mod integrate;
+pub mod interpolate;
 pub mod linalg;
+pub mod optimize;
 pub mod random;
+pub mod signal;
 pub mod stats;
 pub mod utils;
 

@@ -2,7 +2,7 @@
 
 use scirs2_core::ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
 use scirs2_core::numeric::{Float, FromPrimitive};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, SeedableRng};
 use std::fmt::Debug;
 
 use super::{euclidean_distance, vq};
@@ -464,7 +464,12 @@ where
         )));
     }
 
-    let mut rng = scirs2_core::random::rng();
+    let mut rng = match random_seed {
+        Some(seed) => scirs2_core::random::rngs::StdRng::seed_from_u64(seed),
+        None => scirs2_core::random::rngs::StdRng::seed_from_u64(
+            scirs2_core::random::rng().random::<u64>(),
+        ),
+    };
 
     let mut centroids = Array2::zeros((k, n_features));
 

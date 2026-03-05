@@ -14,9 +14,9 @@ use scirs2_numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods};
 use scirs2_core::{Array1, Array2};
 
 // Direct imports from scirs2-cluster (native ndarray 0.17 support)
+use scirs2_cluster::kmeans;
 use scirs2_cluster::{calinski_harabasz_score, davies_bouldin_score, silhouette_score};
 use scirs2_cluster::{normalize, standardize, NormType};
-use scirs2_cluster::kmeans;
 
 /// Python-compatible K-means clustering implementation
 #[pyclass(name = "KMeans")]
@@ -113,7 +113,7 @@ impl PyKMeans {
                 .rows()
                 .into_iter()
                 .map(|row| row.to_vec())
-                .collect()
+                .collect(),
         );
         self.labels_ = Some(labels);
         self.inertia_ = Some(inertia);
@@ -291,10 +291,7 @@ fn calinski_harabasz_score_py(
 
 /// Standardize data to zero mean and unit variance
 #[pyfunction]
-fn standardize_py(
-    py: Python,
-    x: &Bound<'_, PyArray2<f64>>,
-) -> PyResult<Py<PyArray2<f64>>> {
+fn standardize_py(py: Python, x: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
     let binding = x.readonly();
     let data = binding.as_array();
 
@@ -318,11 +315,17 @@ fn normalize_py(
         "l1" => NormType::L1,
         "l2" => NormType::L2,
         "max" => NormType::Max,
-        other => return Err(PyValueError::new_err(format!("Unknown norm type: {}", other))),
+        other => {
+            return Err(PyValueError::new_err(format!(
+                "Unknown norm type: {}",
+                other
+            )))
+        }
     };
 
-    let result = normalize(data, norm_type, true)  // check_finite=true
-        .map_err(|e| PyRuntimeError::new_err(format!("Normalization failed: {}", e)))?;
+    let result =
+        normalize(data, norm_type, true) // check_finite=true
+            .map_err(|e| PyRuntimeError::new_err(format!("Normalization failed: {}", e)))?;
 
     Ok(result.into_pyarray(py).unbind())
 }

@@ -12,8 +12,8 @@
 //! let a = array![[1.0_f64, 2.0], [3.0, 4.0]];
 //!
 //! // Old ndarray-linalg style (now works via compat layer)
-//! let (u, s, vt) = a.svd(true).unwrap();
-//! let inv_a = a.inv().unwrap();
+//! let (u, s, vt) = a.svd(true).expect("valid input");
+//! let inv_a = a.inv().expect("valid input");
 //! ```
 
 // ✅ SciRS2 POLICY: Use scirs2_core for all external dependencies
@@ -488,10 +488,8 @@ where
     S1: Data<Elem = A>,
     S2: Data<Elem = A>,
 {
-    let _ = (l_and_u, ab, b);
-    Err(LinalgError::ComputationError(
-        "solve_banded not yet implemented".to_string(),
-    ))
+    let (l, u) = l_and_u;
+    crate::structured_solvers::solve_banded(l, u, &ab.view(), &b.view())
 }
 
 /// Solve triangular system

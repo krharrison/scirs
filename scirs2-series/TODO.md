@@ -1,272 +1,159 @@
 # scirs2-series TODO
 
-**Current Version**: 0.1.0 (Released December 29, 2025)
-**Status**: Production Ready - Comprehensive time series analysis for scientific computing
+## Status: v0.3.0 Released (February 26, 2026)
 
-This module provides comprehensive time series analysis functionality with feature parity to pandas and statsmodels. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module uses scirs2-core abstractions for consistent ecosystem integration.
-
----
-
-## 🎯 Current Release: stable (December 29, 2025)
-
-### ✅ Production Status: COMPLETE
-
-**Core Implementation**: 100% Complete
-- ✅ Advanced decomposition methods (STL, TBATS, SSA, STR)
-- ✅ Comprehensive forecasting (ARIMA, SARIMA, ETS, state-space models)
-- ✅ Change point and anomaly detection
-- ✅ 60+ feature engineering capabilities
-- ✅ Pattern mining and clustering
-- ✅ Neural forecasting models (LSTM, Transformer, N-BEATS)
-- ✅ Domain-specific extensions (financial, environmental, biomedical, IoT)
-
-### ✅ Test Status: 188 PASSED, 0 FAILED (100% pass rate)
-
-**Production Quality Metrics:**
-- **Unit Tests**: 137 comprehensive tests (100% pass rate)
-- **Integration Tests**: 4 tests validating cross-module functionality
-- **Doc Tests**: 47 tests with working examples (all enabled)
-- **Code Quality**: Zero clippy warnings, production-ready
-- **Documentation**: 100% API coverage with examples
-
-### ✅ Major Features Complete
-
-#### Time Series Decomposition
-- ✅ Advanced methods (STL, TBATS, SSA, STR)
-- ✅ Multi-seasonal patterns support
-- ✅ Classical additive/multiplicative decomposition
-- ✅ Robust variants for outlier handling
-- ✅ Trend analysis with confidence intervals
-
-#### Forecasting Models
-- ✅ ARIMA/SARIMA with Auto-ARIMA
-- ✅ Exponential smoothing (Simple, Holt-Winters, ETS)
-- ✅ State-space models (Kalman filtering, structural time series)
-- ✅ Neural models (LSTM, Transformer, N-BEATS)
-- ✅ Simple methods (moving average, naive, drift)
-
-#### Analysis & Detection
-- ✅ Change point detection (PELT, binary segmentation, CUSUM, Bayesian)
-- ✅ Anomaly detection (IQR, Z-score, isolation forest, SPC)
-- ✅ Causality analysis (Granger, transfer entropy, causal impact)
-- ✅ Correlation analysis (auto/partial autocorrelation, cross-correlation)
-
-#### Feature Engineering
-- ✅ **60+ features** (statistical, frequency domain, complexity measures)
-- ✅ Automated selection (filter, wrapper, embedded methods)
-- ✅ Transformations (Box-Cox, differencing, normalization)
-- ✅ Dimensionality reduction (PCA, functional PCA, symbolic approximation)
-
-#### Domain-Specific Extensions
-- ✅ **Financial**: GARCH, 10+ technical indicators (CCI, MFI, OBV, Parabolic SAR, etc.)
-- ✅ **Environmental**: Climate analysis, temperature/precipitation analysis, climate indices
-- ✅ **Biomedical**: ECG, EEG, EMG analysis with health assessment
-- ✅ **IoT**: Sensor data analysis, predictive maintenance, data quality assessment
-
-#### Advanced Analytics
-- ✅ Clustering with DTW and shapelet discovery
-- ✅ Pattern mining (motif discovery, discord detection)
-- ✅ VAR models with impulse response analysis
-- ✅ AutoML for model selection and hyperparameter optimization
-
-#### Performance & Infrastructure
-- ✅ GPU acceleration for large-scale processing
-- ✅ Distributed computing framework with fault tolerance
-- ✅ Out-of-core processing for massive datasets
-- ✅ Streaming time series analysis
-- ✅ Interactive visualization with Plotly integration
-
-### 🔧 0.1.0 Implementation Status
-
-#### SciRS2 POLICY Implementation (ONGOING)
-- [x] Integration with scirs2-core error handling
-- [ ] **In Progress**: Migration from `ndarray::` to `scirs2_core::array::*`
-- [ ] **In Progress**: Migration from `rand::` to `scirs2_core::random::*`
-- [ ] **Planned**: Update all examples and tests to use scirs2-core abstractions
-- [ ] **Planned**: Remove direct external dependency imports
+19,644 workspace tests pass (100% pass rate). All v0.3.0 features are complete and production-ready.
 
 ---
 
-## 🚀 Future Plans
+## v0.3.0 Completed
 
-### v0.2.0: Performance and Integration (Q1 2026)
+### Neural Architecture Forecasters
+- [x] Temporal Fusion Transformer (TFT): variable selection networks, gating (GLU), static covariate encoding, multi-horizon attention decoder
+- [x] N-BEATS: neural basis expansion with trend and seasonality stacks; generic and interpretable variants
+- [x] N-HiTS: hierarchical interpolation with multi-rate signal sampling and multi-resolution blocks
+- [x] DeepAR: autoregressive LSTM with probabilistic output distributions (Gaussian, negative binomial, student-t)
+- [x] Simple neural forecast API: common interface across all neural models with configurable training loops
 
-#### P0: Performance Enhancements
-- [ ] **Enhanced GPU Acceleration**
-  - [ ] Multi-GPU support for distributed forecasting
-  - [ ] GPU-optimized decomposition algorithms
-  - [ ] Batch processing optimizations
+### State-Space Models & Kalman Filtering
+- [x] Kalman filter and Rauch-Tung-Striebel smoother
+- [x] Extended Kalman filter (EKF) with analytical or numerical Jacobians
+- [x] Unscented Kalman filter (UKF) with sigma-point propagation (Merwe parametrization)
+- [x] Structural time series: local level, local linear trend, seasonal, cycle components
+- [x] Dynamic linear models (time-varying system matrices)
+- [x] Innovations state space representation (ETS models)
 
-- [ ] **Distributed Computing Improvements**
-  - [ ] Enhanced fault tolerance mechanisms
-  - [ ] Dynamic cluster scaling
-  - [ ] Advanced load balancing strategies
+### Volatility Models
+- [x] GARCH(p,q) — QMLE estimation, forecasting, simulation
+- [x] EGARCH — exponential GARCH with asymmetric leverage
+- [x] FIGARCH — fractionally integrated GARCH for long-memory volatility
+- [x] GJR-GARCH — asymmetric response to positive/negative shocks
+- [x] ARCH-LM test, Ljung-Box test on squared residuals
 
-#### P1: Advanced Analytics
-- [ ] **Causal Inference Extensions**
-  - [ ] Advanced causal discovery algorithms
-  - [ ] Time-varying causal relationships
-  - [ ] Counterfactual analysis
+### Long-Memory Processes
+- [x] ARFIMA estimation (Whittle, CSS, and exact ML)
+- [x] Hurst exponent: R/S analysis, DFA, Whittle spectral estimator, variogram method
+- [x] Fractional differencing operator (exact and fast approximate via convolution)
+- [x] FARIMA simulation with specified memory parameter
 
-- [ ] **Enhanced Neural Models**
-  - [ ] Attention mechanisms for time series
-  - [ ] Multi-task learning frameworks
-  - [ ] Transfer learning capabilities
+### Granger Causality & Cointegration
+- [x] Granger causality: Wald test (F-statistic), bootstrap p-values, multivariate block-exogeneity
+- [x] Transfer entropy with bootstrap significance testing and bias correction
+- [x] Convergent cross mapping (CCM) for nonlinear causal detection
+- [x] Engle-Granger two-step cointegration test
+- [x] Johansen trace and maximum-eigenvalue cointegration tests with critical values
+- [x] VECM estimation, impulse response functions, and forecast error variance decomposition
 
-### v0.3.0: Ecosystem and Interoperability (Q2 2026)
+### Conformal Prediction
+- [x] Split conformal prediction: exchangeable and time-series-adapted (EnbPI) variants
+- [x] Adaptive conformal inference (ACI) for online coverage guarantees
+- [x] Mondrian conformal for conditional coverage by covariate stratum
+- [x] Calibration diagnostics: empirical coverage plots, Winkler score, interval sharpness
 
-#### External Integration
-- [ ] **Enhanced Python Integration**
-  - [ ] Improved pandas DataFrame integration
-  - [ ] scikit-learn pipeline compatibility
-  - [ ] Jupyter notebook integration
+### Intermittent Demand Forecasting
+- [x] Croston's method (separated demand size and interval models)
+- [x] Syntetos-Boylan Approximation (SBA) with bias correction
+- [x] Teunter-Syntetos-Babai (TSB) model with demand probability update
+- [x] Intermittency classification (smooth, erratic, lumpy, intermittent)
 
-- [ ] **R Package Improvements**
-  - [ ] CRAN submission preparation
-  - [ ] Enhanced tidyverse compatibility
-  - [ ] R Markdown integration
+### Hierarchical Forecasting & Reconciliation
+- [x] Aggregation strategies: bottom-up, top-down (AHP, PHA, TDA), middle-out
+- [x] MinT (trace minimisation) with sample, shrinkage, and structural covariance estimates
+- [x] WLS (weighted least squares) reconciliation
+- [x] OLS reconciliation (equal weight)
+- [x] Cross-temporal reconciliation
 
-- [ ] **WASM Enhancements**
-  - [ ] Browser-based interactive demos
-  - [ ] Web-based dashboards
-  - [ ] Real-time visualization updates
+### Streaming / Online Algorithms
+- [x] ADWIN (Adaptive Windowing) concept drift detector with statistical guarantees
+- [x] Online ARIMA with recursive least squares coefficient tracking
+- [x] Streaming statistics: mean, variance (Welford), quantiles (P² and KLL sketch)
+- [x] Online anomaly: CUSUM, EWMA control charts, streaming isolation forest
+- [x] Reservoir sampling and sliding window aggregation
 
-#### Cloud Platform Extensions
-- [ ] **Multi-Cloud Deployment**
-  - [ ] Kubernetes orchestration
-  - [ ] Serverless function support
-  - [ ] Auto-scaling improvements
+### Functional Data Analysis (FDA)
+- [x] Functional PCA (FPCA) with PACE algorithm for sparse and irregular observations
+- [x] B-spline and Fourier basis expansions, smoothing spline roughness penalties
+- [x] Scalar-on-function regression (functional linear model)
+- [x] Functional clustering (k-centres functional, hierarchical functional)
+- [x] Dynamic time warping barycenter averaging (DBA)
 
-### 1.0 Stable Release (Q4 2026)
+### Regime-Switching Models
+- [x] Markov-switching autoregression (MS-AR) with Hamilton filter and EM estimation
+- [x] Threshold autoregressive (TAR) and self-exciting TAR (SETAR) models
+- [x] Smooth transition autoregressive (STAR) models (logistic and exponential)
+- [x] Bai-Perron multiple structural break test
 
-#### API Stabilization
-- [ ] Lock public APIs for 1.0 compatibility
-- [ ] Deprecation policy and migration guides
-- [ ] Semantic versioning guarantees
+### Probabilistic Forecasting & Evaluation
+- [x] CRPS (Continuous Ranked Probability Score) and log score
+- [x] Reliability diagrams and PIT histograms
+- [x] Diebold-Mariano test for forecast comparison
+- [x] MASE, SMAPE, WAPE, hierarchical MASE
 
-#### Performance Validation
-- [ ] Complete pandas/statsmodels benchmarking
-- [ ] Performance regression tests
-- [ ] Optimization guidelines
+### Classical Models (Enhanced)
+- [x] Auto-ARIMA: stepwise AIC/BIC search and grid search with parallel evaluation
+- [x] TBATS with automatic period selection
+- [x] Theta method and Theta-F (optimized theta)
+- [x] Prophet-style seasonality decomposition with Fourier-series seasonal components and holiday effects
 
-#### Documentation Excellence
-- [ ] Comprehensive API documentation
-- [ ] Domain-specific tutorials (finance, climate, biomedical)
-- [ ] Interactive Jupyter notebooks
-- [ ] Video tutorials
+### Change Detection & Anomaly Detection
+- [x] PELT with multiple cost functions (L1, L2, RBF, AR)
+- [x] Binary segmentation (greedy and exact)
+- [x] Bayesian online change point detection (BOCPD) with hazard function
+- [x] Kernel change detection via MMD statistics
+- [x] SPC charts: Shewhart, CUSUM, EWMA with control limits
+- [x] Matrix profile and motif/discord discovery
 
----
+### Feature Engineering (60+ features)
+- [x] Statistical: 20+ moment and distributional features
+- [x] Frequency domain: spectral entropy, centroid, bandwidth, dominant frequency ratio
+- [x] Complexity: ApEn, SampEn, permutation entropy, Lempel-Ziv, fractal dimension
+- [x] Lag-based: ACF/PACF at multiple lags, partial correlations
+- [x] Automated selection: filter (MI, F-test, variance), wrapper (forward/backward/RFE), embedded (LASSO, RF importance)
 
-## 📋 Feature Checklist
-
-### ✅ Time Series Decomposition (COMPLETE)
-- [x] STL, TBATS, SSA, STR decomposition
-- [x] Multi-seasonal patterns
-- [x] Classical additive/multiplicative methods
-- [x] Robust variants with outlier handling
-
-### ✅ Forecasting Models (COMPLETE)
-- [x] ARIMA/SARIMA with Auto-ARIMA
-- [x] Exponential smoothing (ETS, Holt-Winters)
-- [x] State-space models (Kalman filtering)
-- [x] Neural models (LSTM, Transformer, N-BEATS)
-
-### ✅ Analysis & Detection (COMPLETE)
-- [x] Change point detection
-- [x] Anomaly detection
-- [x] Causality analysis
-- [x] Correlation analysis
-
-### ✅ Feature Engineering (COMPLETE)
-- [x] 60+ statistical features
-- [x] Automated feature selection
-- [x] Transformations and normalization
-- [x] Dimensionality reduction
-
-### ✅ Domain-Specific Extensions (COMPLETE)
-- [x] Financial toolkit with technical indicators
-- [x] Environmental/climate analysis
-- [x] Biomedical signal processing
-- [x] IoT sensor data analysis
-
-### ✅ Performance & Infrastructure (COMPLETE)
-- [x] GPU acceleration
-- [x] Distributed computing
-- [x] Out-of-core processing
-- [x] Streaming analysis
-
-### 🔄 Integration Enhancements (PLANNED)
-- [x] Python interoperability (PyO3 bindings)
-- [x] R integration package
-- [x] WASM bindings for browser deployment
-- [x] Cloud deployment utilities
-- [ ] **Future**: Enhanced cross-platform integration
-- [ ] **Future**: Advanced cloud orchestration
+### Domain-Specific Extensions
+- [x] Financial: GARCH volatility, 15+ technical indicators (RSI, MACD, Bollinger Bands, CCI, MFI, OBV, ATR, Parabolic SAR)
+- [x] Environmental: heat wave detection, SPI drought index, growing degree days, SOI/NAO climate indices, atmospheric storm detection
+- [x] Biomedical: ECG R-peak detection (Pan-Tompkins), HRV analysis, EEG frequency bands, EMG onset detection
+- [x] IoT sensors: environmental sensor fusion, GPS activity recognition, predictive maintenance scoring, data quality assessment
 
 ---
 
-## 📊 Complete Feature Matrix
+## v0.4.0 Roadmap
 
-### ✅ Core Time Series Analysis (100% Complete)
-- Decomposition, forecasting, analysis, detection
-- Feature engineering, pattern mining
-- Causality analysis, correlation methods
+### Foundation Model Interface
+- [ ] Fine-tuning interface for pre-trained time series foundation models (TimeGPT-style)
+- [ ] Zero-shot forecasting adapter layer
+- [ ] Prompt-based time series conditioning API
 
-### ✅ Advanced Analytics (100% Complete)
-- Neural forecasting models
-- AutoML and ensemble methods
-- Clustering and pattern discovery
+### Neural ODE for Time Series
+- [ ] Latent ODE / ODE-RNN for irregular time series
+- [ ] Continuous normalizing flow models for density estimation
+- [ ] Physics-informed neural time series models
 
-### ✅ Domain-Specific Tools (100% Complete)
-- Financial analysis (GARCH, technical indicators)
-- Environmental/climate analysis
-- Biomedical signal processing
-- IoT sensor analytics
+### Ultra-Long Context Handling
+- [ ] FlashAttention integration for TFT with very long lookback windows (10k+)
+- [ ] State-space sequence models (Mamba / S4) for linear-time long-range dependencies
+- [ ] Hierarchical attention with sparse patterns for ultra-long sequences
 
-### ✅ Performance Optimization (100% Complete)
-- GPU acceleration
-- Distributed computing
-- Out-of-core processing
-- Streaming analysis
+### Advanced Causality
+- [ ] PC algorithm for causal structure learning from time series
+- [ ] PCMCI algorithm (Peter and Clark Momentary Conditional Independence)
+- [ ] Causal discovery with latent confounders (FCI for time series)
 
-### 🔄 Future Extensions (Post-0.1.0)
-- Enhanced causal inference
-- Advanced neural architectures
-- Extended cloud deployment
-- Real-time streaming improvements
+### Bayesian Nonparametric Time Series
+- [ ] GP-state-space models (GP-SSM) with particle MCMC fitting
+- [ ] Infinite hidden Markov model (iHMM) via stick-breaking construction
+- [ ] Nonparametric GARCH via GP volatility functions
 
----
-
-## 🎯 Production Release Summary
-
-**v0.1.5 delivers:**
-- ✅ **Comprehensive Functionality**: Feature parity with pandas/statsmodels
-- ✅ **Production Stability**: 188 tests with 100% pass rate
-- ✅ **Advanced Analytics**: Neural models, AutoML, ensemble methods
-- ✅ **Domain Expertise**: Financial, environmental, biomedical, IoT tools
-- ✅ **High Performance**: GPU, distributed, out-of-core, streaming support
-- ✅ **Documentation**: Complete guides, examples, interactive demos
-
-## 🎉 Ready for Production Use!
-
-This release is suitable for:
-- ✅ Time series forecasting applications
-- ✅ Anomaly detection systems
-- ✅ Financial market analysis
-- ✅ Environmental monitoring
-- ✅ Biomedical signal processing
-- ✅ IoT analytics platforms
+### Streaming Enhancements
+- [ ] RIVER integration bridge for additional online learners
+- [ ] Incremental cointegration testing in streaming VAR
+- [ ] Online hierarchical reconciliation with incremental MinT
 
 ---
 
-## 🗺️ Roadmap
+## Known Issues
 
-- **✅ 0.1.0** (2025-12-29): **CURRENT** - Production-ready with comprehensive features
-- **🎯 0.1.0** (2026-Q4): First stable release with full feature parity and API guarantees
-- **🎯 0.2.0** (2027+): Ecosystem integration and advanced features
-
----
-
-**Built with ❤️ for the time series analysis community**
-
-*Version: 0.1.5 | Released: December 29, 2025 | Next: 0.1.0 (Q4 2026)*
+- DeepAR with negative-binomial output can exhibit numerical instability when series contain long runs of zeros; use TSB for highly intermittent demand instead
+- FIGARCH estimation is slow for series longer than 10,000 points without the `parallel` feature enabled
+- FPCA with very sparse observations (fewer than 5 observations per subject) may produce poorly estimated eigenfunctions

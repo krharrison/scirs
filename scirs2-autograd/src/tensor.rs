@@ -772,7 +772,10 @@ impl KnownShape {
         for &a in shape {
             if a == -1 {
                 is_fully_defined = false;
-            } else if a <= -1 || a == 0 {
+            } else if a == 0 {
+                // Zero-sized dimensions are valid (e.g., empty arrays)
+                // but the shape is still fully defined
+            } else if a < -1 {
                 panic!("Given shape ({:?}) contains invalid dim size(s)", &shape);
             }
         }

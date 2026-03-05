@@ -17,7 +17,7 @@ use std::fmt::Debug;
 /// use scirs2_core::ndarray::Array;
 /// let sigmoid = Sigmoid::new();
 /// let input = Array::from_vec(vec![0.0f64, 1.0, -1.0]).into_dyn();
-/// let output = sigmoid.forward(&input).unwrap();
+/// let output = sigmoid.forward(&input).expect("operation should succeed");
 /// // Check that values are in the expected range
 /// assert!(output.iter().all(|&x| x >= 0.0f64 && x <= 1.0f64));
 /// // Sigmoid(0) should be 0.5

@@ -1,383 +1,188 @@
 # scirs2-linalg
 
-[![crates.io](https://img.shields.io/crates/v/scirs2-linalg.svg)](https://crates.io/crates/scirs2-linalg)
+[![crates.io](https://img.shields.io/crates/v/scirs2-linalg)](https://crates.io/crates/scirs2-linalg)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-linalg)](https://docs.rs/scirs2-linalg)
-[![Production Ready](https://img.shields.io/badge/status-production--ready-green.svg)]()
 
-## 🚀 Production-Ready Linear Algebra for Rust
+**High-performance linear algebra for Rust, modeled after SciPy/NumPy linalg.**
 
-**v0.1.5** - SciRS2 POLICY & Enhanced Performance
-
-`scirs2-linalg` delivers comprehensive linear algebra functionality comparable to NumPy/SciPy's linalg module, providing a robust mathematical foundation for scientific computing, machine learning, and data analysis in Rust. Following the new [SciRS2 POLICY](../SCIRS2_POLICY.md), this release ensures ecosystem consistency through scirs2-core abstractions. With 549 passing tests and comprehensive feature coverage, this library is production-ready for demanding applications.
-
-## Features
-
-### Core Linear Algebra
-- **Basic Operations**: Determinants, inverses, matrix multiplication, matrix powers
-- **Decompositions**: LU, QR, SVD, Cholesky, Eigendecomposition, Schur, Polar
-- **Solvers**: Direct methods, least squares, triangular systems
-- **Eigenvalue Problems**: Standard and specialized eigenvalue/eigenvector computations
-- **Matrix Functions**: Matrix exponential, logarithm, square root
-- **Norms and Condition Numbers**: Various matrix and vector norms
-
-### Advanced Capabilities
-- **Iterative Solvers**: Conjugate gradient, GMRES, Jacobi, Gauss-Seidel, multigrid
-- **Structured Matrices**: Efficient operations on Toeplitz, Hankel, circulant matrices
-- **Specialized Matrices**: Optimized algorithms for tridiagonal, banded, symmetric matrices
-- **BLAS/LAPACK Integration**: High-performance native library support when available
-
-### Machine Learning & AI Support
-- **Attention Mechanisms**: Scaled dot-product, multi-head, flash attention
-- **Batch Operations**: Vectorized operations for mini-batch processing
-- **Gradient Computations**: Automatic differentiation support for matrix operations
-- **Low-Rank Approximations**: SVD-based dimensionality reduction
-- **Tensor Operations**: Einstein summation, tensor contractions, mode products
-- **Memory-Efficient Algorithms**: Flash attention, linear attention variants
-- **Quantization-Aware Operations**: 4-bit, 8-bit and 16-bit precision support with advanced calibration and numerical stability analysis
-  - Matrix-free operations for quantized tensors
-  - Fusion operations for consecutive quantized operations
-  - Specialized solvers for quantized matrices
-- **Mixed Precision**: Operations across different numeric types
-- **Sparse-Dense Operations**: Efficient handling of sparse matrices
-
-## Performance
-
-SciRS2 is designed for high performance with multiple optimization strategies:
-
-- **BLAS/LAPACK Integration**: Native acceleration through optimized libraries
-- **SIMD Vectorization**: Hand-tuned SIMD kernels for critical operations  
-- **Memory Efficiency**: Cache-friendly algorithms and reduced allocations
-- **Parallel Processing**: Multi-core acceleration for large matrices
-- **SciPy API Compatibility**: Zero-overhead wrappers maintaining familiar interfaces
-
-📊 **Performance Guides**: See [docs/PERFORMANCE_GUIDE.md](docs/PERFORMANCE_GUIDE.md) for detailed benchmarks and [docs/OPTIMIZATION_GUIDELINES.md](docs/OPTIMIZATION_GUIDELINES.md) for practical optimization strategies.
-
-### Performance Highlights
-
-| Operation | Small Matrices | Medium Matrices | Large Matrices |
-|-----------|---------------|----------------|----------------|
-| Basic Ops | 0.1-1 μs | 10-100 μs | 1-10 ms |
-| Decompositions | 1-10 μs | 100 μs-1 ms | 10-100 ms |
-| Eigenvalues | 5-50 μs | 500 μs-5 ms | 50-500 ms |
-
-For detailed performance analysis, benchmarking guides, and optimization tips:
-- **[Performance Guide](docs/PERFORMANCE_GUIDE.md)** - Comprehensive performance analysis and best practices
-- **[Benchmarking Guide](docs/BENCHMARKING.md)** - Instructions for running and creating custom benchmarks
+`scirs2-linalg` provides a comprehensive linear algebra library with SciPy-compatible APIs, pure-Rust BLAS/LAPACK via OxiBLAS (no C or Fortran dependencies), SIMD acceleration, randomized methods, tensor decompositions, and iterative solvers suitable for large-scale scientific computing and machine learning.
 
 ## Installation
 
-Add scirs2-linalg to your Cargo.toml:
+```toml
+[dependencies]
+scirs2-linalg = "0.3.0"
+```
+
+With optional acceleration:
 
 ```toml
 [dependencies]
-scirs2-linalg = "0.1.5"
-ndarray = "0.16.1"
+scirs2-linalg = { version = "0.3.0", features = ["simd", "parallel"] }
 ```
 
-For accelerated performance with OxiBLAS (Pure Rust BLAS/LAPACK):
+## Features (v0.3.0)
 
-```toml
-[dependencies]
-scirs2-linalg = { version = "0.1.5", features = ["linalg"] }
-# OxiBLAS is automatically enabled with linalg feature (Pure Rust, no system dependencies)
-# SIMD acceleration available with simd feature
-scirs2-linalg = { version = "0.1.5", features = ["linalg", "simd"] }
-```
-
-**Note:** v0.1.5+ uses OxiBLAS (Pure Rust) instead of system BLAS libraries (OpenBLAS/MKL/Accelerate). No C/Fortran compiler or system libraries required.
-
-## Quick Start
-
-### Basic Usage
-
-```rust
-use ndarray::array;
-use scirs2_linalg::prelude::*;
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create a matrix
-    let a = array![[3.0, 1.0], [1.0, 2.0]];
-    
-    // Compute determinant
-    let det = det(&a.view())?;
-    println!("Determinant: {}", det);
-    
-    // Solve linear system Ax = b
-    let b = array![9.0, 8.0];
-    let x = solve(&a.view(), &b.view())?;
-    println!("Solution: {:?}", x);
-    
-    // Compute eigenvalues and eigenvectors
-    let (eigenvalues, eigenvectors) = eigh(&a.view())?;
-    println!("Eigenvalues: {:?}", eigenvalues);
-    
-    Ok(())
-}
-```
-
-### ndarray-linalg Compatibility
-
-For users migrating from ndarray-linalg or familiar with Rust linear algebra:
-
-```rust
-use scirs2_linalg::compat::{self, UPLO};
-
-// Simplified, Rust-idiomatic API (v0.2.0+)
-let det = compat::det(&a.view())?;
-let inv = compat::inv(&a.view())?;
-let (u, s, vt) = compat::svd(&a.view(), true)?;
-let (eigenvals, eigenvecs) = compat::eigh(&a.view(), UPLO::Lower)?;
-
-// Or use trait-based API
-use scirs2_linalg::compat::ArrayLinalgExt;
-let det = a.det()?;
-let inv = a.inv()?;
-```
-
-**Note:** v0.1.5 used SciPy-style parameters (e.g., `det(&a, false, true)`), but these were simplified in v0.2.0 as most parameters were ignored in the Rust implementation.
-
-### Matrix Decompositions
-
-```rust
-use ndarray::array;
-use scirs2_linalg::{lu, qr, svd, cholesky};
-
-// Create a test matrix
-let a = array![[4.0, 2.0], [2.0, 5.0]];
-
-// LU decomposition
-let (p, l, u) = lu(&a.view())?;
-assert_eq!(p.dot(&a), l.dot(&u)); // P·A = L·U
-
-// QR decomposition  
-let (q, r) = qr(&a.view())?;
-assert_eq!(a, q.dot(&r)); // A = Q·R
-
-// Singular Value Decomposition
-let (u, s, vt) = svd(&a.view(), false)?;
-// Note: reconstruction requires proper diagonal matrix construction
-
-// Cholesky decomposition (for positive definite matrices)
-let l = cholesky(&a.view())?;
-assert_eq!(a, l.dot(&l.t())); // A = L·L^T
-```
+### Core Decompositions
+- LU (with partial/rook/complete pivoting), QR, SVD, Cholesky, LDL^T
+- Eigendecomposition: `eig`, `eigh` (symmetric), generalized eigenproblem
+- Schur decomposition (real and complex), QZ decomposition
+- Polar decomposition, complete orthogonal decomposition
+- Tall-and-Skinny QR (TSQR), LQ decomposition for wide matrices
+- Randomized SVD (Halko, Martinsson, Tropp), Nystrom approximation
 
 ### Iterative Solvers
+- GMRES (restarted, deflated, recycled/GCRO-DR style)
+- Preconditioned Conjugate Gradient (PCG)
+- BiCGStab (stabilized bi-conjugate gradient)
+- MINRES, SYMMLQ
+- Arnoldi iteration, Lanczos iteration (with thick restarts)
+- SOR, SSOR, Gauss-Seidel, Jacobi
+
+### Matrix Functions
+- Matrix exponential `expm` (Pade approximant + scaling/squaring)
+- Matrix logarithm `logm` (inverse scaling/squaring)
+- Matrix square root `sqrtm` (Schur-based)
+- Matrix sign function `signm`
+- Matrix trigonometric functions (sin, cos, tan, sinh, cosh via Schur)
+- Polar decomposition
+- Matrix polynomial evaluation
+
+### Control Theory
+- Algebraic Riccati equations (CARE, DARE): Newton iteration, Hamiltonian Schur
+- Lyapunov equations (continuous and discrete)
+- Sylvester equations (Bartels-Stewart, Hessenberg-Schur)
+- Controllability and observability Gramians
+
+### Tensor Operations
+- CP decomposition (Canonical Polyadic via ALS)
+- Tucker decomposition (Higher-Order SVD / HOOI)
+- Tensor contractions and mode-n products
+- Einstein summation (`einsum`)
+- Hierarchical Tucker (HT) decomposition
+- Tensor-train format basics
+
+### Randomized Linear Algebra
+- Randomized SVD with power iteration and oversampling
+- Nystrom extension for kernel matrices
+- Randomized eigensolvers (subspace iteration)
+- Sketching: CountSketch, Gaussian sketch, SRHT
+
+### Structured and Specialized Matrices
+- Toeplitz, Hankel, Circulant (FFT-based O(n log n) matvec)
+- Cauchy matrix, companion matrix
+- Banded matrices (tridiagonal, pentadiagonal), block tridiagonal
+- Block diagonal, block sparse row
+- Indefinite systems (symmetric indefinite factorization)
+
+### Matrix Completion and Low-Rank
+- Nuclear norm minimization via alternating projections
+- Soft-impute algorithm for matrix completion
+- CUR decomposition (column-row factorization)
+- Sparse-dense hybrid operations
+
+### Numerical Analysis
+- Perturbation theory: condition number bounds, backward error analysis
+- Numerical range (field of values) computation
+- Matrix pencil problems (regular and singular pencils)
+- Error analysis for linear systems and least squares
+
+### ML / AI Support
+- Scaled dot-product attention, multi-head attention
+- Flash attention (memory-efficient)
+- Sparse attention patterns
+- Positional encodings: RoPE, ALiBi
+- Quantization-aware matrix multiply (4-bit, 8-bit, 16-bit)
+- Mixed-precision operations with iterative refinement
+- Batch matrix operations for mini-batch processing
+
+## Usage Examples
+
+### Basic operations
 
 ```rust
-use scirs2_linalg::{conjugate_gradient, gmres};
+use scirs2_linalg::{det, inv, solve, svd, eigh};
+use scirs2_core::ndarray::array;
 
-// Solve using conjugate gradient (for symmetric positive definite)
-let x = conjugate_gradient(&a.view(), &b.view(), 100, 1e-10)?;
+let a = array![[4.0_f64, 2.0], [2.0, 3.0]];
+let b = array![6.0_f64, 7.0];
 
-// Solve using GMRES (for general matrices)
-let x = gmres(&a.view(), &b.view(), 10, 100, 1e-10)?;
+let d = det(&a.view(), None)?;
+let a_inv = inv(&a.view(), None)?;
+let x = solve(&a.view(), &b.view(), None)?;
+
+let (u, s, vt) = svd(&a.view(), true, None)?;
+let (eigenvals, eigenvecs) = eigh(&a.view(), None)?;
 ```
 
-### Advanced Matrix Operations
+### Iterative solvers
+
+```rust
+use scirs2_linalg::iterative::{gmres, pcg, bicgstab};
+
+// GMRES for a general non-symmetric system
+let x = gmres(&a.view(), &b.view(), None, Some(30), Some(200), Some(1e-10))?;
+
+// PCG for symmetric positive definite
+let x = pcg(&a_spd.view(), &b.view(), None, Some(500), Some(1e-12))?;
+
+// BiCGStab for non-symmetric
+let x = bicgstab(&a.view(), &b.view(), None, Some(500), Some(1e-10))?;
+```
+
+### Matrix functions
 
 ```rust
 use scirs2_linalg::matrix_functions::{expm, logm, sqrtm};
-use scirs2_linalg::specialized::{TridiagonalMatrix, BandedMatrix};
-use scirs2_linalg::structured::{ToeplitzMatrix, CirculantMatrix};
 
-// Matrix functions
-let exp_a = expm(&a.view())?; // Matrix exponential
-let log_a = logm(&a.view())?; // Matrix logarithm
-let sqrt_a = sqrtm(&a.view())?; // Matrix square root
-
-// Specialized matrices for efficiency
-let tridiag = TridiagonalMatrix::from_diagonals(&main_diag, &upper, &lower);
-let x = tridiag.solve(&b)?;
-
-// Structured matrices
-let toeplitz = ToeplitzMatrix::from_column_and_row(&first_col, &first_row);
-let result = toeplitz.matvec(&x)?;
+let exp_a = expm(&a.view())?;
+let log_a = logm(&a.view())?;
+let sqrt_a = sqrtm(&a.view())?;
 ```
 
-### Machine Learning Operations
+### Tensor decompositions
 
 ```rust
-use ndarray::Array3;
-use scirs2_linalg::attention::{scaled_dot_product_attention, multi_head_attention};
-use scirs2_linalg::batch::attention::batch_multi_head_attention;
+use scirs2_linalg::tensor::{cp_als, tucker_hooi};
 
-// Attention mechanism for transformers
-let batch_size = 2;
-let seq_len = 4;
-let d_model = 64;
+// CP decomposition with 5 components, 200 ALS iterations
+let cp = cp_als(&tensor, 5, Some(200), Some(1e-8))?;
 
-// Create query, key, value tensors
-let query = Array3::from_shape_fn((batch_size, seq_len, d_model), |_| rand::random());
-let key = Array3::from_shape_fn((batch_size, seq_len, d_model), |_| rand::random());
-let value = Array3::from_shape_fn((batch_size, seq_len, d_model), |_| rand::random());
-
-// Scaled dot-product attention
-let scale = 1.0 / (d_model as f32).sqrt();
-let output = scaled_dot_product_attention(
-    &query.view(),
-    &key.view(),
-    &value.view(),
-    None, // Optional mask
-    scale
-)?;
-
-// Multi-head attention
-let num_heads = 8;
-let output = multi_head_attention(
-    &query.view(),
-    &key.view(),
-    &value.view(),
-    num_heads,
-    None, // Optional mask
-)?;
+// Tucker decomposition with rank [3, 3, 3]
+let tucker = tucker_hooi(&tensor, &[3, 3, 3], Some(100), Some(1e-8))?;
 ```
 
-### Quantization and Model Compression
+### Control theory
 
 ```rust
-use scirs2_linalg::quantization::{
-    quantize_matrix, dequantize_matrix, quantized_matmul,
-    fusion::fused_quantized_matmul_chain,
-    quantized_matrixfree::QuantizedMatrixFreeOp,
-    stability::analyze_quantization_stability,
-    calibration::{calibrate_matrix, CalibrationConfig, CalibrationMethod}
-};
+use scirs2_linalg::control::{solve_care, solve_dare, solve_lyapunov};
 
-// Create a neural network weight matrix
-let weights = Array2::from_shape_fn((1024, 1024), |_| rand::random::<f32>() * 0.1);
-let activations = Array2::from_shape_fn((32, 1024), |_| rand::random::<f32>());
+// Continuous algebraic Riccati equation: A^T X + X A - X B R^{-1} B^T X + Q = 0
+let x = solve_care(&a.view(), &b.view(), &q.view(), &r.view())?;
 
-// Calibrate quantization parameters using advanced methods
-let weight_config = CalibrationConfig {
-    method: CalibrationMethod::EntropyCalibration,
-    symmetric: true,
-    num_bins: 2048,
-    ..Default::default()
-};
+// Discrete algebraic Riccati equation
+let x = solve_dare(&a.view(), &b.view(), &q.view(), &r.view())?;
 
-// Dynamic calibration for activations that change over time
-let activation_config = CalibrationConfig {
-    method: CalibrationMethod::ExponentialMovingAverage,
-    symmetric: false, // Asymmetric for ReLU activations
-    ema_factor: 0.1,
-    ..Default::default()
-};
-
-// Calibrate and quantize weights (to 8-bit)
-let weight_params = calibrate_matrix(&weights.view(), 8, &weight_config)?;
-let (quantized_weights, _) = quantize_matrix(&weights.view(), 8, weight_params.method);
-
-// Calibrate and quantize activations
-let activation_params = calibrate_matrix(&activations.view(), 8, &activation_config)?;
-let (quantized_activations, _) = quantize_matrix(&activations.view(), 8, activation_params.method);
-
-// Perform matrix multiplication with quantized matrices
-let result = quantized_matmul(
-    &quantized_weights,
-    &weight_params,
-    &quantized_activations,
-    &activation_params,
-)?;
-
-// Calculate quantization error
-let reference = activations.dot(&weights.t());
-let rel_error = (&reference - &result).mapv(|x| x.abs()).sum() /
-                reference.mapv(|x| x.abs()).sum();
-println!("Relative Error: {:.6}%", rel_error * 100.0);
-println!("Memory Reduction: {:.1}%", (1.0 - 8.0/32.0) * 100.0);
+// Lyapunov equation: A X + X A^T + Q = 0
+let x = solve_lyapunov(&a.view(), &q.view())?;
 ```
 
-## Performance Considerations
+## Feature Flags
 
-### Backend Selection
+| Feature | Description |
+|---------|-------------|
+| `simd` | SIMD-accelerated kernels (AVX/AVX2/AVX-512/NEON) |
+| `parallel` | Multi-threaded operations via Rayon |
+| `gpu` | GPU acceleration (requires `scirs2-core` gpu feature) |
+| `linalg` | Enable OxiBLAS pure-Rust BLAS/LAPACK backend |
+| `serde` | Serialization for matrix types |
 
-**v0.1.5+ uses OxiBLAS (Pure Rust BLAS/LAPACK):**
+## Links
 
-```toml
-# OxiBLAS - Pure Rust implementation (default, all platforms)
-scirs2-linalg = { version = "0.1.5", features = ["linalg"] }
-
-# With SIMD acceleration
-scirs2-linalg = { version = "0.1.5", features = ["linalg", "simd"] }
-```
-
-**Legacy backends (removed in v0.1.5):**
-- ~~`openblas`~~ - Removed, use OxiBLAS
-- ~~`mkl`~~ - Removed, use OxiBLAS
-- ~~`netlib`~~ - Removed, use OxiBLAS
-- ~~`accelerate`~~ - Removed, use OxiBLAS
-
-### Optimization Features
-
-- **SIMD Acceleration**: Enable with `features = ["simd"]`
-- **Parallel Operations**: Built-in Rayon support for large matrices
-- **Memory-Efficient Algorithms**: Automatic selection based on matrix size
-- **Cache-Friendly Implementations**: Blocked algorithms for better cache usage
-
-### 📈 Production Performance Benchmarks
-
-**Production-validated performance** (1000×1000 matrices, optimized builds, v0.1.5+):
-
-| Operation | OxiBLAS (Pure Rust) | OxiBLAS + SIMD | Status |
-|-----------|---------------------|----------------|--------|
-| Matrix Multiply | 245ms | 89ms | ✅ Production |
-| LU Decomposition | 185ms | 165ms | ✅ Production |
-| SVD | 892ms | 820ms | ✅ Production |
-| Eigenvalues | 1.2s | 1.1s | ✅ Production |
-
-**Note:** OpenBLAS/MKL backends were removed in v0.1.5. OxiBLAS provides competitive performance with zero system dependencies.
-
-**Performance is competitive with industry-standard libraries and ready for production deployment.**
-
-## Error Handling
-
-The library uses a comprehensive error system:
-
-```rust
-use scirs2_linalg::{LinalgError, LinalgResult};
-
-match inv(&singular_matrix.view()) {
-    Ok(inverse) => println!("Inverse computed"),
-    Err(LinalgError::SingularMatrixError(msg)) => println!("Matrix is singular: {}", msg),
-    Err(e) => println!("Other error: {}", e),
-}
-```
-
-## 🎯 Production Readiness
-
-**✅ Comprehensive Implementation**: All major linear algebra operations implemented and tested
-**✅ Performance Optimized**: Native BLAS/LAPACK integration with SIMD acceleration
-**✅ API Stable**: Backward compatible with comprehensive error handling
-**✅ Test Coverage**: 549 tests with 100% pass rate ensuring reliability
-**✅ Documentation**: Complete API documentation with examples and guides
-
-**🚀 Deployment Ready**: This library is suitable for production use in scientific computing, machine learning frameworks, and high-performance numerical applications.
-
-For detailed feature status, see [TODO.md](TODO.md).
-
-## Contributing
-
-Contributions are welcome! Please see our [contributing guidelines](https://github.com/cool-japan/scirs/blob/master/CONTRIBUTING.md).
-
-**Current priorities for v0.1.5 stable:**
-- Performance benchmarking and optimization
-- Additional documentation and examples  
-- Integration testing with downstream applications
-- Community feedback and API refinement
-
-**Future enhancements (post-v0.1.5):**
-- GPU acceleration support
-- Additional specialized algorithms
-- Distributed computing integration
+- [API Documentation](https://docs.rs/scirs2-linalg)
+- [SciRS2 Repository](https://github.com/cool-japan/scirs)
 
 ## License
 
-This project is Licensed under the Apache License 2.0. See LICENSE for details.
-
-You can choose to use either license. See the [LICENSE](../LICENSE) file for details.
-
-## Acknowledgments
-
-This library is inspired by NumPy and SciPy's excellent linear algebra implementations. We aim to bring similar functionality to the Rust ecosystem while leveraging Rust's performance and safety guarantees.
+Licensed under the Apache License 2.0. See [LICENSE](../LICENSE) for details.

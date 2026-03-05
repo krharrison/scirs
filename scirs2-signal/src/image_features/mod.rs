@@ -60,11 +60,11 @@ pub use types::ImageFeatureOptions;
 /// }
 ///
 /// // Extract features with default options
-/// let features = extract_image_features(&image, &ImageFeatureOptions::default()).unwrap();
+/// let features = extract_image_features(&image, &ImageFeatureOptions::default()).expect("operation should succeed");
 ///
 /// // Access individual features
-/// let contrast = *features.get("haralick_contrast").unwrap();
-/// let mean = *features.get("intensity_mean").unwrap();
+/// let contrast = *features.get("haralick_contrast").expect("operation should succeed");
+/// let mean = *features.get("intensity_mean").expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn extract_image_features<T>(
@@ -151,12 +151,12 @@ where
 /// }
 ///
 /// // Extract features with default options
-/// let features = extract_color_image_features(&image, &ImageFeatureOptions::default()).unwrap();
+/// let features = extract_color_image_features(&image, &ImageFeatureOptions::default()).expect("operation should succeed");
 ///
 /// // Access individual features
-/// let r_mean = *features.get("r_intensity_mean").unwrap();
-/// let g_mean = *features.get("g_intensity_mean").unwrap();
-/// let b_mean = *features.get("b_intensity_mean").unwrap();
+/// let r_mean = *features.get("r_intensity_mean").expect("operation should succeed");
+/// let g_mean = *features.get("g_intensity_mean").expect("operation should succeed");
+/// let b_mean = *features.get("b_intensity_mean").expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn extract_color_image_features<T>(

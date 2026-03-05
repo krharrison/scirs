@@ -1,7 +1,7 @@
 // Integration tests for scirs2-fft + scirs2-signal
 // Tests spectral analysis pipelines, filter design, and FFT-based operations
 
-use ndarray::{Array1, Array2, Axis};
+use scirs2_core::ndarray::{Array1, Array2, Axis};
 use proptest::prelude::*;
 use scirs2_fft::*;
 use scirs2_signal::*;

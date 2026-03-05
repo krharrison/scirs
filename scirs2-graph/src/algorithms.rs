@@ -41,6 +41,9 @@ pub use coloring::*;
 pub use community::{
     // Standardized community detection algorithms - stable for 1.0
     fluid_communities_result,
+    // Girvan-Newman edge betweenness community detection
+    girvan_newman_communities_result,
+    girvan_newman_result,
     greedy_modularity_optimization_result,
     hierarchical_communities_result,
     infomap_communities,
@@ -51,6 +54,9 @@ pub use community::{
     // Standardized result types - stable for 1.0
     CommunityResult,
     CommunityStructure,
+    DendrogramLevel,
+    GirvanNewmanConfig,
+    GirvanNewmanResult,
     InfomapResult,
 };
 
@@ -89,7 +95,14 @@ pub use community::greedy_modularity_optimization;
 pub use community::parallel_louvain_communities;
 pub use connectivity::*;
 pub use decomposition::*;
-pub use flow::{dinic_max_flow, minimum_cut, push_relabel_max_flow};
+pub use flow::{
+    capacity_scaling_max_flow, dinic_max_flow, dinic_max_flow_full, edmonds_karp_max_flow,
+    ford_fulkerson_max_flow, hopcroft_karp, isap_max_flow, min_cost_max_flow,
+    min_cost_max_flow_graph, minimum_cut, minimum_st_cut, multi_commodity_flow,
+    multi_source_multi_sink_max_flow, parallel_max_flow, push_relabel_max_flow,
+    push_relabel_max_flow_full, CostEdge, HopcroftKarpResult, MaxFlowResult, MinCostFlowResult,
+    MultiCommodityFlowResult,
+};
 pub use hypergraph::*;
 pub use isomorphism::*;
 pub use matching::*;

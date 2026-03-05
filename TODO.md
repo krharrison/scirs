@@ -1,540 +1,531 @@
 # SciRS2 Development Roadmap
 
-**Current Version**: 0.2.0 (February 10, 2026)
-**Status**: Stable Release - Production Ready
-**Focus**: First stable release with production-ready code quality, comprehensive test coverage, and excellent module organization
+**Current Version**: 0.3.0 (Released: February 26, 2026)
+**Status**: Production Ready — All 19,644 tests passing (100% pass rate)
+**Scale**: 2,584,620 lines of Rust, 6,660 source files, 45+ workspace crates
 
-This document outlines the development plan for the SciRS2 project, a scientific computing and machine learning ecosystem in Rust. For detailed module-specific plans, see individual module TODO.md files.
+This document tracks the development roadmap for SciRS2. Completed items in v0.3.0 are documented here for historical reference; the active roadmap is the v0.4.0 section.
 
 ---
 
-## 📦 Module Reference
+## Module Reference
 
-**Scientific Computing Core**
-- [scirs2-core](./scirs2-core/TODO.md): Core utilities and abstractions (MANDATORY base for all modules)
-- [scirs2-linalg](./scirs2-linalg/TODO.md): Linear algebra with BLAS/LAPACK
-- [scirs2-stats](./scirs2-stats/TODO.md): Statistical distributions and tests
-- [scirs2-optimize](./scirs2-optimize/TODO.md): Scientific optimization algorithms
-- [scirs2-integrate](./scirs2-integrate/TODO.md): Numerical integration and ODE/PDE solvers
-- [scirs2-interpolate](./scirs2-interpolate/TODO.md): Interpolation and approximation
-- [scirs2-special](./scirs2-special/TODO.md): Special mathematical functions
-- [scirs2-fft](./scirs2-fft/TODO.md): Fast Fourier Transform
-- [scirs2-signal](./scirs2-signal/TODO.md): Signal processing
-- [scirs2-sparse](./scirs2-sparse/TODO.md): Sparse matrix operations
-- [scirs2-spatial](./scirs2-spatial/TODO.md): Spatial algorithms and KD-trees
+**Core Scientific Computing**
+- [scirs2-core](./scirs2-core/TODO.md): Core utilities and abstractions (mandatory base for all modules)
+- [scirs2-linalg](./scirs2-linalg/TODO.md): Linear algebra with iterative solvers, tensor decompositions, matrix functions
+- [scirs2-stats](./scirs2-stats/TODO.md): Statistical distributions, Bayesian inference, survival analysis, copulas
+- [scirs2-optimize](./scirs2-optimize/TODO.md): Scientific optimization — MIP/SDP/SOCP, metaheuristics, Bayesian BO, NSGA-III
+- [scirs2-integrate](./scirs2-integrate/TODO.md): Numerical integration and ODE/PDE/SDE solvers (LBM, DG, phase-field, BEM)
+- [scirs2-interpolate](./scirs2-interpolate/TODO.md): Interpolation — RBF, PCHIP, MLS, kriging, spherical harmonics
+- [scirs2-special](./scirs2-special/TODO.md): Special functions — Mathieu, Coulomb, Wigner, Jacobi theta, Fox H-function
+- [scirs2-fft](./scirs2-fft/TODO.md): FFT and spectral — sparse FFT, Prony, MUSIC, Lomb-Scargle, NTT
+- [scirs2-signal](./scirs2-signal/TODO.md): Signal processing — CFAR radar, Kalman/EKF/UKF, compressed sensing, MFCC
+- [scirs2-sparse](./scirs2-sparse/TODO.md): Sparse matrices — LOBPCG/IRAM, AMG, BCSR/ELLPACK, recycled Krylov
+- [scirs2-spatial](./scirs2-spatial/TODO.md): Spatial — R*-Tree, Fortune's Voronoi, geodata, trajectory analysis
 
 **Advanced Modules**
-- [scirs2-cluster](./scirs2-cluster/TODO.md): Clustering algorithms (k-means, DBSCAN, GMM)
-- [scirs2-ndimage](./scirs2-ndimage/TODO.md): N-dimensional image processing
-- [scirs2-io](./scirs2-io/TODO.md): Scientific data I/O (MATLAB, HDF5, NetCDF)
-- [scirs2-datasets](./scirs2-datasets/TODO.md): Sample datasets and generators
+- [scirs2-cluster](./scirs2-cluster/TODO.md): Clustering — GMM, SOM, HDBSCAN, Dirichlet process, biclustering, topological
+- [scirs2-ndimage](./scirs2-ndimage/TODO.md): N-dimensional image processing — SIFT, watershed, optical flow, 3D morphology
+- [scirs2-io](./scirs2-io/TODO.md): Scientific data I/O — Protobuf/CBOR/BSON/Avro/Parquet/Feather, streaming, ETL
+- [scirs2-datasets](./scirs2-datasets/TODO.md): Datasets and generators for benchmarking and testing
 
 **AI/ML Modules**
-- [scirs2-autograd](./scirs2-autograd/TODO.md): Automatic differentiation engine
-- [scirs2-neural](./scirs2-neural/TODO.md): Neural network building blocks
-- **scirs2-optim**: Separated to independent [OptiRS](https://github.com/cool-japan/optirs) project 
-- [scirs2-graph](./scirs2-graph/TODO.md): Graph processing and network analysis
-- [scirs2-transform](./scirs2-transform/TODO.md): Data transformation and preprocessing
-- [scirs2-metrics](./scirs2-metrics/TODO.md): ML evaluation metrics
-- [scirs2-text](./scirs2-text/TODO.md): Natural language processing
-- [scirs2-vision](./scirs2-vision/TODO.md): Computer vision operations
-- [scirs2-series](./scirs2-series/TODO.md): Time series analysis
+- [scirs2-autograd](./scirs2-autograd/TODO.md): Automatic differentiation — JVP/VJP, checkpointing, mixed precision
+- [scirs2-neural](./scirs2-neural/TODO.md): Neural networks — Transformers, GNNs, diffusion models, SNN, PPO/DPO, MoE
+- [scirs2-graph](./scirs2-graph/TODO.md): Graph algorithms — community detection, VF2 isomorphism, Node2Vec, max-flow
+- [scirs2-transform](./scirs2-transform/TODO.md): Dimensionality reduction — UMAP, t-SNE, sparse PCA, persistent homology
+- [scirs2-metrics](./scirs2-metrics/TODO.md): ML metrics — IoU/AP/mAP, NDCG, FID/IS, fairness, streaming
+- [scirs2-text](./scirs2-text/TODO.md): NLP — BPE/WordPiece, CRF, FastText, NER, LDA, coreference resolution
+- [scirs2-vision](./scirs2-vision/TODO.md): Computer vision — stereo depth, ICP, PnP, SLAM, panoptic segmentation, SfM
+- [scirs2-series](./scirs2-series/TODO.md): Time series — TFT/N-BEATS/DeepAR, VAR/VECM, EGARCH, FDA, conformal prediction
+- [scirs2-wasm](./scirs2-wasm/TODO.md): WebAssembly — WasmMatrix, TypeScript bindings, WASM SIMD, Web Workers
+- [scirs2-python](./scirs2-python/TODO.md): Python bindings via PyO3 for 15+ modules
 
 ---
 
-## 🎉 Current Release: 0.2.0 (February 10, 2026)
+## v0.3.0 — RELEASED (February 26, 2026)
 
-### ✅ Major Achievements (v0.2.0)
+### Release Statistics
+- 19,644 tests — 100% pass rate (72% increase from v0.2.0's ~11,400)
+- 2,584,620 lines of Rust (35% increase from ~1.9M)
+- 6,660 source files, 45+ workspace crates
+- 0 compilation errors, 0 test failures (165 skipped by design)
+- 0 unwrap() in new code — no-unwrap policy enforced throughout
 
-#### Workspace-Wide Compilation Fixes
-- ✅ **200+ Compilation Errors Resolved** across entire workspace
-  - Complete reconstruction of scirs2-neural module
-  - 2,097 NumAssign trait bound fixes
-  - Fixed all transformer architectures and optimizers
+### Completed — scirs2-neural
+- [x] Attention variants: RoPE, GQA, linear/efficient/sparse attention, multi-head latent attention
+- [x] Mixture of Experts (MoE): top-k routing, load balancing, expert capacity management
+- [x] Capsule networks with dynamic routing and squash activation
+- [x] Spiking Neural Networks (SNN): LIF neurons, spike timing, plasticity rules
+- [x] Reinforcement learning: PPO, DPO, reward modeling, preference data handling
+- [x] Graph Neural Networks: GCN, GAT, GraphSAGE, GIN, graph pooling (DiffPool/SAGPool)
+- [x] Vision architectures: SWIN Transformer, UNet, CLIP dual-encoder, ConvNeXt, ViT, PatchEmbedding
+- [x] Transformer architectures: GPT-2 (causal masking), T5 (encoder-decoder), full transformer with cross-attention
+- [x] Generative models: DDPM/DDIM diffusion models, VAE, GAN, normalizing flows, energy-based models
+- [x] Training techniques: federated learning, knowledge distillation, pruning, quantization, continual learning, MAML, contrastive learning, self-supervised learning
+- [x] Gradient checkpointing: segment-based memory-efficient backpropagation
+- [x] Model serialization: weight format v2 with quantization, computational graph export
+- [x] Normalization: LayerNorm2D, RMSNorm, GroupNorm, AdaptiveLayerNorm
+- [x] Recurrent cells: GRU/LSTM with peephole connections and layer normalization variants
 
-- ✅ **OpenTelemetry 0.30.0 Migration** (scirs2-core)
-  - Updated all profiling and metrics integration
-  - Enhanced GPU backend capabilities
+### Completed — scirs2-stats
+- [x] Sequential Monte Carlo (SMC): particle filter with systematic/stratified/multinomial resampling, adaptive tempering
+- [x] MCMC: Gibbs sampler, slice sampler, NUTS, HMC
+- [x] Distributions: stable (alpha-stable, Levy), GPD, von Mises-Fisher, Tweedie, truncated
+- [x] Copulas: Frank, Clayton, Gumbel, Gaussian, Student-t with tail dependence
+- [x] Gaussian process regression: Matern/RBF/periodic kernels, sparse GP, deep kernel learning, GP classification
+- [x] Hierarchical Bayesian models: mixed effects, multilevel regression, empirical Bayes
+- [x] Nonparametric Bayes: Dirichlet process mixtures, CRP, stick-breaking
+- [x] Survival analysis: Cox PH (time-varying covariates), Kaplan-Meier, Nelson-Aalen, AFT, competing risks (Fine-Gray)
+- [x] Panel data: fixed/random effects, Hausman test, within/between estimators
+- [x] Causal inference: causal graph learning, do-calculus, instrumental variables, diff-in-diff
+- [x] Bayesian networks: structure learning (PC algorithm, score-based), parameter estimation, exact/approximate inference
+- [x] Extreme value theory: GEV/GPD fitting, return level estimation, block maxima, peaks over threshold
+- [x] Spatial statistics: variogram, kriging (ordinary/universal/co-kriging), Moran's I, Geary's C
+- [x] Information theory: mutual information, KL divergence, Jensen-Shannon divergence, entropy estimators
+- [x] Multiple testing corrections: Bonferroni, Holm, Benjamini-Hochberg, Benjamini-Yekutieli
+- [x] Effect sizes: Cohen's d, eta-squared, omega-squared, Glass's delta, Hedges' g
+- [x] Robust statistics: M-estimators, S-estimators, MM-estimators, minimum covariance determinant
 
-- ✅ **Test Suite Restoration**
-  - Fixed test compilation across 8 crates
-  - All test code now compiles successfully
+### Completed — scirs2-core
+- [x] Work-stealing task scheduler: deque-based stealing, adaptive thread pool sizing, task priorities
+- [x] Parallel iterators: parallel map/filter/fold/scan with automatic chunking
+- [x] Async utilities: semaphore, barrier, rwlock, channel
+- [x] Validation framework: schema validation, type coercion, constraint checking, assertions
+- [x] Cache-oblivious algorithms: matrix transpose, merge sort, van Emde Boas layout
+- [x] Persistent data structures: HAMT, Red-Black tree with path copying, persistent queue
+- [x] Memory management: NUMA-aware allocator, object pool, slab allocator, arena allocator, zero-copy buffers
+- [x] Distributed computing: AllReduce/Broadcast/Scatter/Gather, parameter server, ring-AllReduce
+- [x] String algorithms: KMP, Boyer-Moore, Rabin-Karp, Aho-Corasick, suffix arrays
+- [x] Quantum simulation: qubit state management, quantum gate library, quantum circuit simulation
+- [x] Combinatorics: permutations, combinations, partitions with iterator support
+- [x] Metrics collection: Prometheus-compatible histograms, counters, gauges
+- [x] ML pipeline abstractions: transformer, predictor, evaluator, pipeline
+- [x] Interval arithmetic: interval types with basic arithmetic and relational operations
 
-#### Code Quality & Modernization
-- ✅ Eliminated deprecated API usage (rng.gen → rng.random)
-- ✅ Fixed all anti-patterns (drop(&reference))
-- ✅ Systematic trait bound improvements
-- ✅ Production-ready codebase with 0 errors
+### Completed — scirs2-linalg
+- [x] Iterative solvers: GMRES (standard/restarted), PCG, BiCGStab, MINRES, SYMMLQ, QMR
+- [x] Tensor decompositions: CP-ALS, Tucker, tensor train, hierarchical Tucker, NTT
+- [x] Matrix functions: expm, logm, sqrtm, signm, cosm/sinm/tanm via Schur/Pade
+- [x] Structured matrices: Cauchy, companion, Vandermonde, circulant solvers
+- [x] Matrix ODEs: Riccati, Lyapunov, Sylvester ODE solvers
+- [x] Randomized algorithms: Nystrom approximation, randomized range finder, sketch-and-solve
+- [x] Control theory: ARE/DARE solvers, Lyapunov stability, controllability/observability
+- [x] Perturbation theory: condition number estimation, backward error analysis, componentwise bounds
 
-## 🎉 Previous Release: 0.1.3 (January 25, 2026)
+### Completed — scirs2-signal
+- [x] Radar signal processing: matched filter, CA-CFAR/OS-CFAR/GO-CFAR/SO-CFAR, range-Doppler, pulse compression
+- [x] State estimation filters: Kalman, EKF, UKF, particle filter, adaptive Kalman
+- [x] Compressed sensing: OMP, ISTA/FISTA, CoSaMP, subspace pursuit
+- [x] Audio/speech features: MFCC, chroma features, spectral centroid/bandwidth/rolloff, ZCR
+- [x] Time-frequency analysis: EMD, HHT, synchrosqueezing, Wigner-Ville, Zoom FFT
+- [x] Wavelet processing: wavelet packet transform, wavelet denoising, continuous wavelet transform
+- [x] Array signal processing: MUSIC, ESPRIT, beamforming (delay-and-sum, MVDR/Capon), DOA estimation
+- [x] Source separation: FastICA, JADE, SOBI, NMF for audio, convolutive BSS
+- [x] Adaptive filtering: LMS, RLS, NLMS, affine projection, Kalman-based adaptive
 
-### ✅ Recent Updates (v0.1.5)
+### Completed — scirs2-graph
+- [x] Community detection: Louvain, Girvan-Newman, label propagation, Leiden algorithm
+- [x] GNNs: GCN, GAT, Node2Vec, spectral graph convolution
+- [x] Graph isomorphism: VF2 algorithm, Weisfeiler-Lehman graph kernels
+- [x] Maximum flow: Dinic's algorithm, push-relabel, min-cut, multi-commodity flow
+- [x] Layout algorithms: Fruchterman-Reingold, Sugiyama hierarchical, circular, spectral layout
+- [x] Visualization: SVG rendering, JSON/DOT export
+- [x] Temporal graphs: time-expanded graphs, temporal reachability, contact sequences
+- [x] Hypergraphs: hyperedge operations, clique expansion, star expansion, partitioning
+- [x] Planarity: LR-planarity testing, planar embedding, Kuratowski subgraph extraction
+- [x] Social network analysis: betweenness/closeness/eigenvector/PageRank centrality, structural holes
 
-#### GitHub Issues Resolved
-- ✅ **Issue #96: PCHIP Extrapolation Bug** (scirs2-interpolate)
-  - Fixed cubic polynomial extrapolation producing -24008 at x=50
-  - Implemented linear extrapolation using endpoint derivatives
-  - Added comprehensive regression tests
-  - Commit: 49817afbd (2026-01-16)
+### Completed — scirs2-series
+- [x] Deep learning forecasting: TFT, N-BEATS (interpretable/generic), DeepAR (probabilistic), neural ODE
+- [x] VAR/VECM: Granger causality, impulse response functions, FEVD, Johansen cointegration
+- [x] Dynamic Factor Model (DFM): EM algorithm, Kalman filter/smoother, factor extraction
+- [x] Volatility models: EGARCH, FIGARCH, GJR-GARCH, APARCH, realized volatility
+- [x] Functional Data Analysis (FDA): B-spline basis, functional PCA, functional regression/clustering
+- [x] Classical methods: Prophet decomposition, Theta method, BATS/TBATS
+- [x] Online learning: ADWIN drift detection, online ARIMA, reservoir sampling
+- [x] Conformal prediction: time series conformal intervals, rolling/adaptive conformal sets
+- [x] Hierarchical forecasting: bottom-up/top-down, MinT reconciliation, OLS reconciliation
+- [x] Long memory: ARFIMA, FIGARCH, fractional differencing, Hurst exponent estimation
+- [x] Panel time series: common factor models, cross-sectional dependence, panel unit root tests
 
-- ✅ **Issue #98: Adam Optimizer Scalar/1×1 Parameters** (scirs2-autograd)
-  - Fixed panic on scalar and 1-element array parameters
-  - Added `is_scalar()` and `extract_scalar()` helper functions
-  - Enhanced integration layer documentation
-  - Added comprehensive regression tests
-  - Fixed: 2026-01-25
+### Completed — scirs2-optimize
+- [x] MIP: branch-and-bound with LP relaxation, cutting planes (Gomory cuts), heuristic upper bounds
+- [x] Conic programming: SDP via ADMM, SOCP, self-dual embedding
+- [x] Bayesian optimization: constrained BO, multi-fidelity BO (MFBO), transfer BO, warm-start BO
+- [x] Metaheuristics: ACO, Differential Evolution, Simulated Annealing, Harmony Search
+- [x] Multi-objective: NSGA-III with reference point adaptation, MOEA/D, hypervolume-based selection
+- [x] Stochastic: SGD/Nesterov, Adam/AdaW/AMSGrad, SVRG/SARAH/SPIDER variance reduction
+- [x] Convex: ADMM, proximal gradient, LASSO, ridge, elastic net, SVM dual, NNLS
+- [x] Combinatorial: TSP (2-opt/3-opt/LKH), knapsack (DP/greedy/FPTAS), graph coloring
 
-#### Python Bindings Expansion (scirs2-python)
-- ✅ Added 11 new Python binding modules: autograd, datasets, graph, io, metrics, ndimage, neural, sparse, text, transform, vision
-- ✅ PyO3 configuration improvements for manylinux compatibility
-- ✅ Version synchronized to 0.1.3
+### Completed — scirs2-fft
+- [x] Sparse FFT, Prony method, Lomb-Scargle, Burg AR spectral estimation
+- [x] MUSIC spectral estimator for non-uniform sampling
+- [x] Advanced transforms: CZT, FRFT, NTT over finite fields
+- [x] Mixed-radix FFT: generalized mixed-radix, Rader's and Bluestein's algorithms
+- [x] Polyphase filterbank: analysis/synthesis with perfect reconstruction
+- [x] DCT/DST all 8 variants (Type I-IV), Modulated Lapped Transform
+- [x] Reassigned spectrogram, multi-taper spectrogram, superlet transform
 
-#### Build System & Quality
-- ✅ Workspace policy compliance (version.workspace = true)
-- ✅ Version consistency across all 27 crates
-- ✅ CHANGELOG.md updated with v0.1.5 release notes
-- ✅ Zero warnings policy maintained
+### Completed — scirs2-cluster
+- [x] GMM via EM algorithm, Dirichlet process mixture, variational Bayes GMM
+- [x] SOM: batch/online learning, Gaussian/Mexican-hat neighborhoods
+- [x] HDBSCAN, density peaks, OPTICS, density ratio clustering
+- [x] Topological clustering: Mapper (TDA), Vietoris-Rips, Reeb graph clustering
+- [x] Deep clustering: DEC, deep k-means, self-supervised clustering
+- [x] Stream/online: CluStream, DenStream, D-Stream, BIRCH
+- [x] Biclustering: Cheng-Church, FABIA, PLAID, spectral biclustering
+- [x] Subspace clustering: SSC, LRR (low-rank representation), ORCLUS
+- [x] Time series clustering: DTW-based, feature-based, HMM-based, shapelet-based
 
-## 🎉 Stable Release: 0.1.0 - 0.1.2 (December 29, 2025 - January 15, 2026)
+### Completed — scirs2-sparse
+- [x] Preconditioners: Block Jacobi, SPAI, Additive Schwarz, polynomial preconditioners
+- [x] Storage formats: BCSR, ELLPACK, DIA, SELL-C-sigma
+- [x] Eigensolvers: LOBPCG, IRAM (Implicitly Restarted Arnoldi), Krylov-Schur
+- [x] AMG: classical AMG, smoothed aggregation, unsmoothed aggregation
+- [x] Augmented Krylov: GCRO-DR, recycled GMRES, flexible GMRES
+- [x] Saddle point systems: block preconditioners, constraint preconditioners
+- [x] Domain decomposition: overlapping/non-overlapping Schwarz, FETI, balancing Neumann-Neumann
+- [x] Ordering: AMD, Nested Dissection, Reverse Cuthill-McKee
 
-### ✅ Major Achievements
+### Completed — scirs2-ndimage
+- [x] Feature detection: Gabor filter bank, SIFT, HOG, FAST corners, Harris corner detector
+- [x] Segmentation: GrabCut, watershed, SLIC superpixels, random walker, atlas-based
+- [x] Quality metrics: PSNR, SSIM, MS-SSIM, FSIM, perceptual quality metrics
+- [x] Optical flow: Farneback dense, Lucas-Kanade sparse, Horn-Schunck variational
+- [x] 3D operations: 3D morphology, 3D convolution, volumetric analysis, 3D connected components
+- [x] Medical imaging: DICOM-like metadata, Hounsfield unit conversion, MRI utilities
+- [x] Texture analysis: GLCM, LBP, Gabor texture features, fractal dimension
 
-#### Production Release Milestones
-- ✅ **Refactoring Policy Compliance**: All files meet <2000 line policy (21 files → 150+ modules)
-- ✅ **Zero Warnings Policy**: 0 compilation errors, 0 non-doc warnings, full clippy compliance
-- ✅ **Comprehensive Testing**: 11,416 tests passing across 170 binaries
-- ✅ **Code Quality**: 1.68M lines of production-ready Rust code with excellent organization
-- ✅ **Documentation**: Complete CHANGELOG.md and README.md updates for stable release
+### Completed — scirs2-special
+- [x] Mathieu functions, Mathieu characteristic values
+- [x] Coulomb wave functions, regular/irregular, phase shift
+- [x] Spherical harmonics Y_lm (real/complex), vector spherical harmonics
+- [x] Wigner 3j/6j/9j symbols, Gaunt coefficients, Clebsch-Gordan coefficients
+- [x] Jacobi theta functions (theta 1/2/3/4, nome, elliptic nome)
+- [x] Debye D_n functions, Clausen function, Fox H-function (Talbot method)
+- [x] Heun functions, Appell F1/F2/F3/F4, q-analogs (q-Pochhammer, q-Bessel)
+- [x] Parabolic cylinder functions, Whittaker M and W functions
+- [x] Weierstrass p-function, Lerch transcendent, Bose-Einstein/Fermi-Dirac integrals
+- [x] Extended combinatorics: Bell/Bernoulli/Stirling/Eulerian numbers, partition functions
+- [x] Lattice functions: Epstein zeta, lattice theta series, Madelung constants
 
-#### SciRS2 POLICY Framework (COMPLETE)
-- ✅ Comprehensive ecosystem policy document (SCIRS2_POLICY.md)
-- ✅ Layered abstraction architecture with core-only external dependencies
-- ✅ Mandatory scirs2-core module usage across all non-core crates
-- ✅ Migration guide and module boundaries documentation
-- ✅ API completeness for random, metrics, profiling modules
-- ✅ Prelude module for common imports (`scirs2_core::prelude`)
+### Completed — scirs2-transform
+- [x] UMAP with fuzzy simplicial set construction
+- [x] Barnes-Hut t-SNE with quad/oct-tree acceleration (O(N log N))
+- [x] Sparse PCA: LASSO-penalized PCA, dictionary learning-based sparse coding
+- [x] Persistent homology: Vietoris-Rips complex, persistent diagram, Betti numbers
+- [x] Optimal transport: Wasserstein distance (exact LP), Sinkhorn (regularized), sliced Wasserstein
+- [x] Archetypal analysis: simplex-constrained factorization, convex hull approximation
+- [x] Metric learning: LMNN, ITML, Siamese/triplet loss
+- [x] Multiview learning: CCA, kernel CCA, deep CCA, multiview clustering
+- [x] Nonlinear methods: Isomap, LLE, Laplacian eigenmaps, diffusion maps
+- [x] NMF variants: L1/L2/KL/Itakura-Saito, convex NMF, semi-NMF
+- [x] Feature selection: mRMR, ReliefF, SPEC spectral feature selection, stability selection
+- [x] Online methods: incremental PCA, online NMF, streaming UMAP
 
-#### Critical Bug Fixes (COMPLETE)
-- ✅ Fixed Gamma distribution parameterization bug (was 4x off on mean, 16x on variance)
-- ✅ Clarified Exponential distribution documentation (rate vs scale)
-- ✅ Added statistical validation tests (280+ lines) to prevent future regressions
-- ✅ All distributions validated against NumPy/SciPy statistical properties
+### Completed — scirs2-vision
+- [x] Stereo vision: rectification, SGM/BM disparity estimation, depth from stereo, calibration
+- [x] Point cloud: ICP registration, normal estimation, plane fitting, RANSAC alignment
+- [x] Camera pose (PnP): EPnP solver, RANSAC-based robust PnP, camera calibration
+- [x] Dense optical flow: Farneback, TV-L1, evaluation (EPE, F1 metrics)
+- [x] SLAM interface: feature-based SLAM, map management, loop closure detection
+- [x] Segmentation: panoptic segmentation, semantic segmentation, instance segmentation
+- [x] 3D reconstruction: SfM pipeline, bundle adjustment interface, dense reconstruction
+- [x] Image quality: BRISQUE, NIQE, perceptual hash, image fingerprinting
 
-#### Dependency Updates and Modernization (COMPLETE)
-- ✅ Updated all dependencies to latest crates.io versions (156 files changed)
-- ✅ Enhanced random number generation ecosystem integration
-- ✅ Improved SIMD performance validation and spatial enhancements
-- ✅ Updated neural sampling and quantum-inspired algorithms
-- ✅ Enhanced GPU backend support (CUDA, WebGPU, Metal)
+### Completed — scirs2-interpolate
+- [x] RBF: thin-plate spline, multiquadric, inverse multiquadric, compact support RBF
+- [x] MLS: weighted polynomial fitting, adaptive bandwidth selection
+- [x] PCHIP: shape-preserving cubic Hermite interpolation
+- [x] Spherical interpolation: spherical harmonics expansion, SLERP, spherical RBF
+- [x] Kriging: ordinary, universal, co-kriging, indicator kriging
+- [x] Barycentric: Floater-Hormann weights, Lebesgue constant minimization
+- [x] B-spline surfaces: bivariate B-spline fitting, NURBS surfaces, surface refinement
+- [x] Tensor product: full tensor product, sparse grid, dimension-adaptive
+- [x] Natural neighbor interpolation: Sibson/Laplace weights, Voronoi-based
 
-#### Ultra-Performance SIMD Optimization (COMPLETE)
-- ✅ Achieved 14.17x performance improvement over scalar operations
-- ✅ Cache-line aware processing with non-temporal stores
-- ✅ Software pipelining with register blocking
-- ✅ TLB-optimized memory access patterns
-- ✅ Adaptive selector combining all optimization techniques
-- ✅ Comprehensive benchmarking framework with numerical accuracy verification
+### Completed — scirs2-spatial
+- [x] R*-Tree: STR bulk loading, forced reinsertion, split algorithm selection
+- [x] Fortune's Voronoi: sweep line algorithm, half-edge data structure
+- [x] Geodata: WGS84/GRS80 ellipsoid, Mercator/UTM/Lambert/Albers projections, datum transformations
+- [x] Spatial statistics: Ripley's K/L functions, pair correlation, spatial scan statistics
+- [x] Trajectory analysis: Douglas-Peucker simplification, Frechet distance, trajectory clustering
+- [x] Sweep line: Bentley-Ottmann intersection, polygon clipping (Sutherland-Hodgman, Weiler-Atherton)
+- [x] 3D convex hull: Quickhull, half-edge mesh, convex hull properties
 
-#### Ecosystem-Wide SIMD Integration (COMPLETE)
-- ✅ Signal processing: 15-25x speedup (convolution, filtering)
-- ✅ Autograd: Thread-safe environments with PyTorch-compatible APIs
-- ✅ FFT/Spectral: 12-25x speedup (DCT/DST, FrFT, FHT)
-- ✅ Statistics: 20-40x speedup (moments, Monte Carlo, bootstrap, QMC)
+### Completed — scirs2-io
+- [x] Protocol Buffers (lite), MessagePack, CBOR, BSON, Avro with schema registry
+- [x] Parquet (lite), Feather/Arrow IPC, ORC (lite) columnar formats
+- [x] Streaming: NDJSON, streaming CSV with schema inference, streaming Arrow
+- [x] Cloud storage: S3/GCS/Azure-compatible abstraction, presigned URLs, multipart upload
+- [x] Schema management: schema registry, evolution with compatibility modes, versioning
+- [x] Data catalog: metadata catalog, lineage tracking, data versioning
+- [x] ETL pipeline: source/transform/sink, backpressure handling, typed transforms
+- [x] HDF5-lite: pure Rust HDF5-like hierarchical data format
 
-#### GPU Kernel Infrastructure (COMPLETE)
-- ✅ Multi-backend GPU support (CUDA, ROCm, Metal, WGPU, OpenCL)
-- ✅ Comprehensive elementwise operation kernels
-- ✅ Advanced optimization kernels (Adam, SGD, RMSprop, AdaGrad)
-- ✅ Utility kernels (Reduce, Scan, MatMul, Transpose)
-- ✅ Backend-specific implementations with automatic fallback
+### Completed — scirs2-autograd
+- [x] Custom gradient rules: user-defined backward passes, gradient overrides
+- [x] Gradient checkpointing: segment-based rematerialization
+- [x] Finite differences: forward/backward/central, Richardson extrapolation
+- [x] JVP (Jacobian-vector product, forward mode) and VJP (vector-Jacobian product, reverse mode)
+- [x] Implicit differentiation: implicit function theorem, fixed-point differentiation
+- [x] Mixed precision: FP16/BF16/FP32 mixed precision, loss scaling
+- [x] Distributed gradient: gradient synchronization, gradient compression (top-k), accumulation
+- [x] Higher-order: Hessian, Jacobian, Taylor-mode AD
 
-#### Advanced Core Infrastructure (COMPLETE)
-- ✅ Tree reduction algorithms with configurable strategies
-- ✅ Parallel scan operations (inclusive/exclusive)
-- ✅ NUMA-aware processing with topology detection
-- ✅ Advanced error recovery with circuit breaker patterns
-- ✅ 30+ mathematical constants, 40+ physical constants
-- ✅ 10+ specialized chunking strategies
-- ✅ Smart allocators and bandwidth optimizers
-- ✅ Comprehensive testing framework with property-based testing
+### Completed — scirs2-wasm
+- [x] TypeScript bindings: complete TS type definitions auto-generated from Rust types
+- [x] WasmMatrix: matrix operations exposed to JS/TS, zero-copy where possible
+- [x] WASM workers: Web Worker-based parallel computation, message passing protocol
+- [x] SIMD operations: WebAssembly SIMD (128-bit), vectorized math in browser
 
-#### Documentation and Developer Experience (COMPLETE)
-- ✅ Enhanced lib.rs documentation for all 25 crates (docs.rs ready)
-- ✅ Comprehensive migration guide (18KB) with recipes and best practices
-- ✅ Module boundaries document (12KB) with clear anti-patterns
-- ✅ API reference documentation with extensive examples
-- ✅ Getting started guides and performance optimization guides
-- ✅ Cross-platform compatibility documentation
+### Completed — scirs2-metrics
+- [x] Detection metrics: IoU, AP, mAP, NMS
+- [x] Ranking metrics: NDCG, MAP, MRR, Precision@K, Recall@K, BPREF, infAP, GMAP
+- [x] Generative metrics: FID, IS, LPIPS, CLIP score
+- [x] Fairness metrics: demographic parity, equalized odds, individual fairness, counterfactual fairness
+- [x] Segmentation metrics: panoptic quality, semantic IoU, instance AP, boundary F-measure
+- [x] Streaming metrics: online sliding window, incremental updates, batching/buffering/partitioning/windowing patterns
 
-#### Quality Metrics (COMPLETE)
-- ✅ 100% compilation success across all modules
-- ✅ 478/480 tests passing (2 ignored, 0 failed)
-- ✅ Zero build warnings with comprehensive linting
-- ✅ Memory safety verification with thread-safe implementations
-- ✅ Cross-platform compatibility (Linux, macOS, Windows)
+### Completed — scirs2-text
+- [x] BPE (Byte-Pair Encoding) with merges vocabulary, WordPiece tokenizer, Unigram language model tokenizer
+- [x] CRF, HMM-based sequence labeling, BiLSTM-CRF interface
+- [x] FastText: subword n-gram embeddings, OOV handling, FastText classification
+- [x] NER: rule-based, statistical NER, neural NER interface
+- [x] Topic modeling: LDA (collapsed Gibbs), NMF-based, hierarchical LDA
+- [x] Semantic parsing: constituency/dependency parsing, CCG supertags
+- [x] Coreference resolution: rule-based, mention detection, entity clustering
+- [x] Discourse analysis: RST, discourse relation detection
+- [x] Knowledge graphs: triple extraction, relation classification, entity linking
 
-### 🔧 RC.4 Completed Work
-
-#### Documentation & Release Preparation (COMPLETE)
-- [x] Comprehensive documentation updates across all major files
-- [x] Version synchronization to 0.1.0 across workspace
-- [x] CHANGELOG.md entry for RC.4 release
-- [x] README.md updates with current status and features
-- [x] TODO.md synchronization with development roadmap
-- [x] CLAUDE.md enhancement with latest guidelines
-- [x] Cross-reference verification and link fixes
-
-### 🔧 Ongoing Work
-
-#### SciRS2 POLICY Implementation (ONGOING)
-- [x] Framework established and documented
-- [x] Core abstractions implemented (rand, ndarray, num_complex)
-- [ ] **In Progress**: Full migration to core abstractions across all modules
-- [ ] **Planned**: CI enforcement for SciRS2 POLICY compliance
-- [ ] **Planned**: cargo-scirs2-policy linter for automated compliance checking
-
-#### API Stabilization (ONGOING)
-- [ ] Standardize function signatures across all modules
-- [ ] Implement consistent error handling patterns
-- [ ] Unify parameter naming conventions
-- [ ] Create comprehensive API documentation with examples
-- [ ] Design fluent interface patterns where appropriate
-
-#### Performance Optimization (ONGOING)
-- [x] SIMD optimization framework complete
-- [x] GPU kernel infrastructure complete
-- [ ] Address remaining bottlenecks from benchmarking framework
-- [ ] Implement algorithmic optimizations for critical paths
-- [ ] Optimize memory allocation patterns
-- [ ] Enhance SIMD and parallel processing coverage
-
----
-
-## 🚀 Future Plans
-
-### v0.2.0: Performance and Scale (Q1 2026)
-
-#### P0: Performance Enhancements
-- [ ] **SIMD Operations for Remaining Modules**
-  - [ ] `scirs2_core::simd_ops::simd_dot_product(a: &[f32], b: &[f32]) -> f32`
-  - [ ] `scirs2_core::simd_ops::simd_matrix_multiply(...)`
-  - [ ] Use Case: OxiRS vectorized executor, high-performance triple pattern matching
-
-- [ ] **Memory Management APIs**
-  - [ ] `scirs2_core::memory_efficient::AdaptiveChunking`
-  - [ ] Support for processing large datasets without OOM
-  - [ ] Integration with existing chunking strategies
-  - [ ] Use Case: Processing multi-GB RDF datasets in OxiRS
-
-- [ ] **Advanced ndimage Features**
-  - [ ] Chunked image processing for large images
-  - [ ] Memory-efficient filters with zero-copy transformations
-  - [ ] GPU-accelerated image operations
-
-#### P1: API Refinement and Integration
-- [ ] **Cross-Module Integration Improvements**
-  - [ ] Optimize data flow between modules
-  - [ ] Implement zero-copy operations between compatible modules
-  - [ ] Create unified configuration system
-  - [ ] Establish consistent type conversion patterns
-
-- [ ] **Neural Network Enhancements** (scirs2-neural)
-  - [ ] GPU-accelerated training with multi-device support
-  - [ ] Memory-efficient backpropagation
-  - [ ] Profiled training loops with automatic optimization
-  - [ ] Optimized data loading pipelines
-
-- [ ] **FFT Optimizations** (scirs2-fft)
-  - [ ] Performance analysis of different algorithms
-  - [ ] Memory usage optimization
-  - [ ] Automatic algorithm selection based on input characteristics
-
-#### P2: Numerical Computation
-- [ ] **Enhanced Special Functions** (scirs2-special)
-  - [ ] More efficient implementations of special mathematical functions
-  - [ ] Better handling of edge cases in numeric operations
-  - [ ] Arbitrary precision support for critical functions
-
-- [ ] **Distributed Computing Support** (scirs2-core)
-  - [ ] Building on memory-mapped chunking for distributed processing
-  - [ ] Support for multi-node computation
-  - [ ] Resource management across compute clusters
-
-### v0.3.0: Ecosystem and Interoperability (Q2 2026)
-
-#### External Ecosystem Integration
-- [ ] **Python Bindings** (PyO3)
-  - [ ] Create ergonomic Python APIs
-  - [ ] Support for NumPy/SciPy compatibility
-  - [ ] Performance benchmarking against native Python
-  - [ ] Documentation and examples for Python users
-
-- [ ] **Julia Interoperability** (C ABI)
-  - [ ] C-compatible API surface
-  - [ ] Julia package wrapper
-  - [ ] Integration examples
-
-- [ ] **WebAssembly Support**
-  - [ ] Compile to WASM targets
-  - [ ] Browser-based scientific computing
-  - [ ] Visualization integration
-
-#### Community and Contribution
-- [ ] **Contribution Framework**
-  - [ ] Detailed contribution guidelines
-  - [ ] Good first issue tagging
-  - [ ] Mentoring program for contributors
-  - [ ] Documentation contribution process
-
-- [ ] **Ecosystem Health Metrics**
-  - [ ] Track API completeness percentage
-  - [ ] Track dependent project build success rate
-  - [ ] Track documentation coverage
-  - [ ] Track critical bug count (target: 0)
-
-### v0.4.0: Advanced Features and ML Pipeline (Q3 2026)
-
-#### ML Pipeline APIs
-- [ ] **High-Level ML Pipeline** (scirs2-core)
-  - [ ] `scirs2_core::ml_pipeline::MLPipeline`
-  - [ ] `ModelPredictor`, `FeatureTransformer` types
-  - [ ] Use Case: OxiRS AI features, semantic search
-
-- [ ] **Advanced Text Processing** (scirs2-text)
-  - [ ] Stemming and lemmatization
-  - [ ] Advanced NLP pipelines
-  - [ ] Transformer model support
-
-- [ ] **Domain-Specific Extensions**
-  - [ ] Financial computing extensions
-  - [ ] Bioinformatics utilities
-  - [ ] Computational physics tools
-  - [ ] Geospatial analysis components
-
-#### Advanced Hardware Support
-- [ ] **Extended Platform Support**
-  - [ ] ARM-specific optimizations
-  - [ ] RISC-V support
-  - [ ] Mobile device compatibility
-  - [ ] Embedded system compatibility
-
-- [ ] **Cloud Deployment Utilities**
-  - [ ] Containerization tools
-  - [ ] Deployment optimization guidelines
-  - [ ] Serverless function compatibility
-  - [ ] Kubernetes operator patterns
-
-### 1.0 Stable Release (Q4 2026)
-
-#### Production Readiness
-- [ ] **API Stability Guarantees**
-  - [ ] Semantic versioning commitment
-  - [ ] Backward compatibility policy
-  - [ ] Deprecation timeline guidelines
-  - [ ] Long-term support plan
-
-- [ ] **Comprehensive Testing**
-  - [ ] 95%+ code coverage across all modules
-  - [ ] Statistical validation for all distributions
-  - [ ] Performance regression tests
-  - [ ] Cross-platform compatibility tests
-
-- [ ] **Enterprise Features**
-  - [ ] Commercial support options
-  - [ ] Security audit and compliance
-  - [ ] Performance SLA guarantees
-  - [ ] Enterprise deployment guides
-
-#### Documentation Excellence
-- [ ] **Complete Documentation Suite**
-  - [ ] Beginner tutorials for all major features
-  - [ ] Advanced use case guides
-  - [ ] Migration guides from SciPy/NumPy/scikit-learn
-  - [ ] Video tutorials and interactive examples
-  - [ ] Multi-language documentation (EN, JP)
-
-### Post-1.0: Research and Innovation (2027+)
-
-#### Experimental Features
-- [ ] **Neural Architecture Search**
-  - [ ] AutoML capabilities
-  - [ ] Hyperparameter optimization
-  - [ ] Model compression techniques
-
-- [ ] **Quantum Computing Integration**
-  - [ ] Quantum circuit simulation
-  - [ ] Hybrid quantum-classical algorithms
-  - [ ] Quantum machine learning
-
-- [ ] **Advanced Distributed Computing**
-  - [ ] Federated learning support
-  - [ ] Edge computing optimization
-  - [ ] Streaming data pipelines
+### Bug Fixes Completed in v0.3.0
+- [x] Bicubic Hermite matrix transpose — incorrect transpose in tensor product kernel construction
+- [x] Lanczos QL eigensolver — rewrote tqli with proper implicit shifted QL and deflation
+- [x] Bartels-Stewart Sylvester solver — fixed 2x2 Schur block handling for quasi-triangular forms
+- [x] LockFreeQueue race condition — eliminated CAS-before-read race (ManuallyDrop + ptr::read, UB-free)
+- [x] BDF ODE solver sign error — fixed sign error in residual computation
+- [x] PnP RANSAC degeneracy — coplanar point detection and fallback in P3P solver
+- [x] External merge sort key mismatch — fixed key function application in scirs2-io
+- [x] Burg AR PSD early-stopping — fixed premature termination in Burg's method
+- [x] Wavelet polyphase decimation — fixed aliasing in polyphase decimation step
+- [x] lfilter off-by-one — corrected IIR filter initial condition computation
+- [x] STFT frequency bin count — fixed formula for number of frequency bins
+- [x] ReLU gradient mask — corrected subgradient mask (>=0 vs >0) in autograd backward
+- [x] DFM Kalman covariance — added symmetrization and Tikhonov regularization
+- [x] Watts-Strogatz edge accumulation — fixed duplicate edge accumulation in rewiring
+- [x] Spectral clustering eigenvalue sort — corrected ascending/descending sort order
+- [x] GPT causal masking — fixed causal attention mask broadcasting for variable lengths
+- [x] Frank copula Debye integral — fixed Debye D_1 function in Frank copula parameter estimation
+- [x] NUTS MCMC tolerances — adjusted energy conservation tolerance
+- [x] GMRES-DR/recycled Krylov — rewrote GCRO-style deflated GMRES with correct harmonic Ritz pairs
 
 ---
 
-## 📊 Quality Gates and CI Enhancements
+## v0.4.0 — PLANNED (Q2-Q3 2026)
+
+### scirs2-neural
+- [ ] Flash Attention v2 — memory-efficient attention with O(N) memory complexity
+- [ ] Quantization-aware training (INT4/INT8/FP8) with calibration
+- [ ] ONNX export support for neural network models
+- [ ] Model tracing/compilation (TorchScript-like static graph)
+- [ ] Distributed data-parallel training with gradient compression (top-k, random-k)
+- [ ] LoRA / adapter layers for parameter-efficient fine-tuning
+- [ ] Speculative decoding for language model inference acceleration
+- [ ] Mixture-of-Experts load-balancing improvements (auxiliary loss tuning)
+- [ ] Sparse attention patterns (BigBird, Longformer-style for long sequences)
+- [ ] 3D convolution layers for video understanding
+
+### scirs2-linalg
+- [ ] GPU-accelerated matrix operations via OxiBLAS GPU backend
+- [ ] Structured matrix solvers: Toeplitz, circulant, Hankel in O(N log N)
+- [ ] Mixed-precision arithmetic: f16/bf16 matrix operations
+- [ ] Randomized NLA improvements: block Krylov, subspace iteration with deflation
+- [ ] Hierarchical matrix (H-matrix) representation for dense-but-compressible systems
+- [ ] Extended precision accumulation in GEMM (for better numerical stability)
+
+### scirs2-stats
+- [ ] Variational inference: ADVI (automatic differentiation variational inference), ELBO optimization
+- [ ] INLA (integrated nested Laplace approximation) for latent Gaussian models
+- [ ] Causal discovery: FCI algorithm, LiNGAM, continuous-time causal discovery
+- [ ] Frailty models and multilevel survival analysis
+- [ ] Functional regression enhancements: scalar-on-function, function-on-function
+- [ ] Improved SMC with adaptive resampling thresholds and parallel particle propagation
+- [ ] Bayesian neural network approximations (Laplace approximation, SWAG)
+
+### scirs2-signal
+- [ ] GPU-accelerated FFT pipeline for large-scale signal processing
+- [ ] Real-time streaming signal processing with bounded latency guarantees
+- [ ] Advanced beamforming: STAP (space-time adaptive processing), MVDR with diagonal loading
+- [ ] Deep learning-based denoising: denoising autoencoders, diffusion-model denoisers
+- [ ] Phase estimation: ESPRIT phase estimation, instantaneous frequency estimation
+- [ ] Acoustic echo cancellation (AEC) with multi-delay filter bank
+
+### scirs2-graph
+- [ ] Temporal graph neural networks (TGNN): TGAT, TGN architectures
+- [ ] Graph transformers: GraphGPS, Graphormer, Exphormer
+- [ ] Heterogeneous graph learning: HAN (heterogeneous attention network), R-GCN
+- [ ] Large-scale graph partitioning: METIS-like recursive bisection, streaming partitioning
+- [ ] Graph condensation: dataset distillation for graphs
+- [ ] Signed and directed graph learning with specialized embeddings
+- [ ] Network alignment algorithms (IsoRank, Grasp)
+
+### scirs2-optimize
+- [ ] Differentiable programming integration: differentiable LP/QP layers (OptNet-style)
+- [ ] Second-order stochastic optimization: L-BFGS-B improvements, SR1, SLBFGS
+- [ ] Distributed optimization: ADMM with warm-starting, PDMM, EXTRA
+- [ ] Hardware-aware neural architecture search (NAS): hardware performance predictor
+- [ ] Quantum-inspired optimization: QAOA simulation, VQE for combinatorial problems
+- [ ] Robust optimization: distributionally robust optimization (DRO) with Wasserstein ball constraints
+- [ ] Multi-fidelity optimization: Hyperband, successive halving, Fabolas
+
+### scirs2-series
+- [ ] Improved conformal prediction: adaptive conformal sets with coverage guarantees
+- [ ] Online meta-learning for rapid adaptation to new time series
+- [ ] Multivariate deep learning models: iTransformer, PatchTST, TimesNet
+- [ ] Hierarchical forecasting enhancements: bottom-up deep learning reconciliation
+- [ ] Probabilistic electricity/energy market forecasting
+- [ ] Continuous-time state space models: HIPPO, S4, Mamba state space model
+- [ ] Causal time series discovery: PCMCI, structural VAR identification
+
+### scirs2-integrate
+- [ ] GPU-accelerated PDE solvers (FEM/FDM on GPU via OxiBLAS GPU backend)
+- [ ] Adaptive mesh refinement (AMR): h-refinement, p-refinement, hp-refinement
+- [ ] Discontinuous Galerkin improvements: curved elements, high-order DG, entropy-stable schemes
+- [ ] Port-Hamiltonian discretization: structure-preserving time integration
+- [ ] Neural-network-assisted PDE solvers: PINN (Physics-Informed Neural Networks) interface
+- [ ] Uncertainty quantification: polynomial chaos expansion, stochastic Galerkin
+
+### scirs2-vision
+- [ ] Neural Radiance Fields (NeRF): volume rendering, instant-NGP hash encoding
+- [ ] 3D object detection: PointPillar-like pillar feature extraction, VoxelNet-style
+- [ ] Foundation model integration: SAM-compatible prompt-based segmentation interface
+- [ ] Real-time multi-object tracking (MOT): SORT, DeepSORT, ByteTrack
+- [ ] Event camera support: event-based optical flow, event-to-frame conversion
+- [ ] Depth completion: sparse-to-dense depth from LiDAR + camera fusion
+
+### scirs2-core
+- [ ] GPU memory pooling improvements: defragmentation, async allocation
+- [ ] NUMA-aware work stealing: topology-aware task migration
+- [ ] Lock-free data structure enhancements: lock-free skiplist, lock-free B-tree
+- [ ] Distributed computing: fault-tolerant parameter server, gossip-based AllReduce
+- [ ] Reactive programming utilities: signal/slot, push-pull dataflow
+- [ ] Extended precision arithmetic integration: quad precision (f128), double-double
+- [ ] Task graph dependency tracking: topological execution ordering with cycle detection
+- [ ] Tracing improvements: OpenTelemetry 0.30+ compatibility, structured logging
+
+### scirs2-sparse
+- [ ] GPU-accelerated SpMV: cuSPARSE-compatible interface via OxiBLAS GPU backend
+- [ ] Parallel AMG coarsening: parallel strength-of-connection, parallel coarsening algorithms
+- [ ] Machine learning-guided preconditioner selection
+- [ ] Low-rank updates to sparse factorizations
+- [ ] Sparse Cholesky modifications (rank-1 updates/downdates)
+- [ ] Integrated multigrid with deep learning error smoothers
+
+### scirs2-fft
+- [ ] GPU-accelerated FFT pipeline via OxiFFT GPU backend
+- [ ] Adaptive sparse FFT: parameter-free sparsity estimation
+- [ ] High-performance multidimensional FFT with GPU tiling
+- [ ] Compressed sensing recovery via FFT-based measurements
+- [ ] Fast multipole method (FMM) integration for N-body problems
+
+### Infrastructure and Tooling
+- [ ] WebGPU backend for scirs2-wasm (browser-side GPU compute via WebGPU API)
+- [ ] Python PyPI wheel distribution via maturin (Linux/macOS/Windows wheels)
+- [ ] mdBook documentation website with interactive examples and tutorials
+- [ ] Comprehensive benchmark regression suite (criterion-based with CI integration)
+- [ ] Jupyter notebook examples via evcxr Rust kernel
+- [ ] cargo-scirs2-policy linter: detect direct `use rand::*` / `use ndarray::` in non-core crates
+- [ ] Cross-platform Windows test suite improvements (full parity with Linux/macOS)
+- [ ] Julia binding improvements: JLL-based distribution for easier Julia package installation
+- [ ] Protocol buffer schema registry integration for scirs2-io
+
+---
+
+## v1.0.0 — PLANNED (Q4 2026)
+
+### API Stability Guarantees
+- [ ] Semantic versioning commitment: backward-compatible across 1.x series
+- [ ] Deprecation timeline policy: 2-release warning cycle before removal
+- [ ] Long-term support (LTS) branch with security patches
+- [ ] Public API stability tests: compile-fail tests for removed APIs
+
+### Comprehensive Testing and Validation
+- [ ] 95%+ code coverage across all primary modules
+- [ ] Statistical validation for all 40+ distributions against NumPy/SciPy reference
+- [ ] Numerical benchmark comparisons: LAPACK, FFTW, SciPy for all algorithms
+- [ ] Performance regression tests in CI (nightly benchmarks with Bencher.dev integration)
+- [ ] Fuzzing coverage for all parsing code (io, text tokenizers)
+- [ ] Cross-platform compatibility tests on Windows, macOS, Linux (x86_64, ARM64)
+
+### Documentation Excellence
+- [ ] Complete tutorial series for all major modules (beginner to advanced)
+- [ ] Migration guide from SciPy/NumPy/scikit-learn with automated conversion hints
+- [ ] API reference with full examples and mathematical references
+- [ ] Video tutorials for key workflows
+- [ ] Multi-language documentation (EN, JP)
+
+### Enterprise Features
+- [ ] Security audit and supply chain verification (SBOM, cargo-audit CI)
+- [ ] Performance SLA guarantees with published benchmark baselines
+- [ ] Enterprise deployment guides (containerization, cloud)
+- [ ] Commercial support channel documentation
+
+---
+
+## Quality Gates and CI Enhancements
 
 ### Current CI Infrastructure
-- ✅ Rust stable toolchain with cargo-nextest
-- ✅ System dependencies (OpenBLAS, LAPACK, etc.)
-- ✅ Zero warnings enforcement
-- ✅ Comprehensive test coverage
+- Pure Rust toolchain with cargo-nextest
+- Zero warnings enforcement (clippy + rustc)
+- Comprehensive test coverage (19,644 tests)
+- No-unwrap policy enforced in code review
 
 ### Planned CI Enhancements
-- [ ] **Statistical Validation in CI**
-  - [ ] Automated statistical correctness tests for all distributions
-  - [ ] Compare against reference implementations (NumPy/SciPy)
-  - [ ] Prevent mathematical bugs like Gamma parameterization issue
-
-- [ ] **cargo-scirs2-policy Linter**
-  - [ ] Detect direct `use ndarray::` (should be `scirs2_core::ndarray`)
-  - [ ] Detect direct `use rand::` (should be `scirs2_core::random`)
-  - [ ] Detect `scirs2_autograd::ndarray` usage (should be `scirs2_core::ndarray`)
-  - [ ] Run in pre-commit hook and CI
-
-- [ ] **Performance Regression Detection**
-  - [ ] Nightly performance benchmarks
-  - [ ] Automated regression alerts
-  - [ ] Performance visualization dashboard
-
-- [ ] **Cross-Platform Testing**
-  - [ ] Linux (x86_64, ARM64)
-  - [ ] macOS (Intel, Apple Silicon)
-  - [ ] Windows (MSVC, GNU)
-  - [ ] WebAssembly targets
+- [ ] Statistical validation in CI: automated correctness tests for all distributions vs NumPy/SciPy
+- [ ] cargo-scirs2-policy linter: detect `use rand::*`, `use ndarray::` in non-core crates
+- [ ] Performance regression detection: nightly benchmarks with automated alerts
+- [ ] Cross-platform testing: Linux (x86_64, ARM64), macOS (Intel, Apple Silicon), Windows (MSVC, GNU)
+- [ ] WebAssembly target testing: wasm32-unknown-unknown, wasm32-wasi
+- [ ] Fuzzing: cargo-fuzz integration for IO parsing code
 
 ---
 
-## 🤝 Ecosystem Collaboration
+## Ecosystem Collaboration
 
 ### Current Integrations
-- ✅ **NumRS2**: 99%+ test pass rate with SciRS2-Core
-- ✅ **OxiRS**: 100% build success, removed 269-line compatibility shim
-- ✅ **SkleaRS**: 100% build success, resolved 76+ compilation errors
-- ✅ **TrustformeRS**: Active integration with scirs2-neural and scirs2-autograd
-- ✅ **OptiRS**: Independent project (former scirs2-optim) with full compatibility
+- **NumRS2**: Numerical computing ecosystem — 99%+ test pass rate with SciRS2-Core
+- **OxiRS**: RDF/SPARQL graph database — 100% build success, removed 269-line compatibility shim
+- **SkleaRS**: Scikit-learn compatibility layer — 100% build success
+- **TrustformeRS**: Transformer models — active integration with scirs2-neural and scirs2-autograd
+- **OptiRS**: Independent ML optimization project (former scirs2-optim)
+- **OxiBLAS**: Pure Rust BLAS/LAPACK (used throughout workspace)
+- **OxiFFT**: Pure Rust FFT (used in scirs2-fft, scirs2-signal)
 
 ### Future Collaborations
-- [ ] **NumRS2**: Share statistical validation framework
-- [ ] **OxiRS**: Validate metrics API against SPARQL workloads
-- [ ] **SkleaRS**: Provide test utilities for property-based testing
-- [ ] **TrustformeRS**: Enhance transformer model support
-- [ ] **ToRSh**: PyTorch compatibility improvements
+- [ ] NumRS2: share statistical validation framework and distribution correctness tests
+- [ ] OxiRS: validate metrics API against SPARQL workloads using scirs2-metrics
+- [ ] SkleaRS: provide property-based test utilities for ML algorithm validation
+- [ ] TrustformeRS: enhance Transformer support in scirs2-neural with Flash Attention
 
 ---
 
-## 🏆 Milestones
+## Policy References
 
-- **🎯 0.2.0** (2026): Enhanced performance and feature integration
-- **🎯 1.0.0** (2026): Complete implementation with Rust-specific optimizations
-- **🎯 2.0.0** (2027+): All major modules with advanced features
+All development must adhere to the following policies:
 
----
+- **No unwrap() Policy**: No `unwrap()` or `expect()` in production code; use `?` and proper error handling
+- **Pure Rust Policy**: Default feature set must be 100% Pure Rust (no C/Fortran); optional C-backed features must be feature-gated
+- **COOLJAPAN Ecosystem Policy**: Use OxiBLAS (not OpenBLAS/MKL), OxiFFT (not rustfft/FFTW), oxiarc-* (not zip), oxicode (not bincode)
+- **Workspace Policy**: All crate versions use `*.workspace = true`; no per-crate version declarations (except keywords/categories)
+- **File Size Policy**: No single file > 2000 lines; use `splitrs` for refactoring (installed at `~/work/splitrs/`)
+- **Naming Convention**: `snake_case` for all variables, functions, modules; `CamelCase` for types and traits
+- **SciRS2 POLICY**: All non-core crates must use `scirs2-core` abstractions for rand/ndarray/num_complex access
 
-## 🔬 Research and Development Focus Areas
-
-### Algorithmic Improvements
-- [ ] Rust-specific algorithm optimizations leveraging ownership and zero-cost abstractions
-- [ ] Novel implementation strategies for scientific computing
-- [ ] Hardware-aware algorithm selection with runtime adaptation
-- [ ] Adaptive computation techniques for variable workloads
-
-### Hardware Acceleration
-- [ ] Specialized SIMD instruction utilization (AVX-512, NEON, SVE)
-- [ ] Heterogeneous computing models (CPU+GPU+FPGA)
-- [ ] Custom hardware target support (TPU, NPU)
-- [ ] Auto-tuning frameworks for optimal performance
-
-### User Experience Research
-- [ ] API design studies with real-world user feedback
-- [ ] Error message effectiveness evaluation
-- [ ] Documentation structure optimization
-- [ ] IDE integration enhancement (rust-analyzer, VS Code)
-
-### Performance Monitoring
-- [ ] Runtime performance analyzers with minimal overhead
-- [ ] Memory usage visualization and optimization
-- [ ] Algorithm selection advisors based on input characteristics
-- [ ] Configuration optimizers with hardware detection
-
----
-
-## ⚠️ Technical Challenges
-
-### Type System and API Design
-- [x] Bridge Python's dynamic typing with Rust's static typing (ADDRESSED via traits)
-- [x] Design flexible generic interfaces (COMPLETE with scirs2-core abstractions)
-- [ ] Balance flexibility with compile-time safety
-- [ ] Create ergonomic APIs that feel natural in Rust
-- [ ] Maintain SciPy's API while using idiomatic Rust patterns
-
-### Performance and Scale
-- [x] Efficient memory management for large-scale computations (ADDRESSED via chunking)
-- [x] Leverage Rust's parallel processing capabilities (COMPLETE via scirs2-core::parallel)
-- [ ] Support out-of-core computations for datasets larger than RAM
-- [ ] Implement cache-aware algorithms
-- [ ] Handle large, distributed datasets
-
-### Safety and FFI
-- [x] Safe FFI bindings to C/Fortran libraries (COMPLETE for BLAS/LAPACK)
-- [x] Create robust memory safety wrappers (COMPLETE)
-- [ ] Handle resource cleanup correctly in all scenarios
-- [ ] Design idiomatic Rust interfaces for C libraries
-- [ ] Maintain performance while ensuring safety
-
-### Cross-Platform and Hardware
-- [x] GPU backend compatibility (ADDRESSED with multi-backend support)
-- [x] Cross-platform support (COMPLETE for major platforms)
-- [ ] Ensure consistent behavior across different GPU backends
-- [ ] Handle device capabilities gracefully
-- [ ] Abstract backend-specific memory management
-- [ ] Create portable kernel dialect
-
-### Advanced Features Integration
-- [x] Error propagation consistency (COMPLETE with circuit breaker patterns)
-- [x] Memory optimization balance (ADDRESSED via adaptive chunking)
-- [ ] Profiling overhead minimization
-- [ ] Documentation complexity management
-- [ ] Testing methodology for stochastic and hardware-dependent features
-
----
-
-## 📝 Development Process
-
-### Current Best Practices
-- ✅ Split large files into smaller, manageable modules (< 500 lines preferred)
-- ✅ Establish consistent patterns for file organization
-- ✅ Use feature flags to manage optional functionality
-- ✅ Implement core functionality first, then extend
-- ✅ Comprehensive summaries of implementation status
-
-### Future Improvements
-- [ ] **Task Management**
-  - [ ] Develop task dependency graphs
-  - [ ] Create explicit acceptance criteria
-  - [ ] Implement staged deliverables
-  - [ ] Set up incremental testing
-
-- [ ] **Status Reporting**
-  - [ ] Create automated status reporting
-  - [ ] Implement progress visualization
-  - [ ] Develop module interdependency tracking
-  - [ ] Establish roadmap alignment reviews
-
-- [ ] **Optimization Methodology**
-  - [ ] Performance profiling guidelines
-  - [ ] Bottleneck identification framework
-  - [ ] Optimization verification process
-  - [ ] Implementation trade-off documentation
-
----
-
-## 📚 Reference
-
-### Documentation
-- [SciRS2 POLICY](SCIRS2_POLICY.md): Ecosystem architecture and core abstractions
-- [RELEASE_NOTES.md](RELEASE_NOTES.md): Detailed changelog for each release
+### Reference Documents
+- [SCIRS2_POLICY.md](SCIRS2_POLICY.md): Ecosystem architecture and core abstractions
+- [CHANGELOG.md](CHANGELOG.md): Detailed changelog for each release
 - [CLAUDE.md](CLAUDE.md): Development guidelines and best practices
 - [README.md](README.md): Project overview and quick start
 
@@ -542,15 +533,14 @@ This document outlines the development plan for the SciRS2 project, a scientific
 - GitHub Repository: https://github.com/cool-japan/scirs
 - Documentation: https://docs.rs/scirs2
 - OptiRS Project: https://github.com/cool-japan/optirs
-
-### Related Projects
-- **NumRS2**: Numerical computing (https://github.com/cool-japan/numrs)
-- **ToRSh**: PyTorch-compatible tensor library (https://github.com/cool-japan/torsh)
-- **SkleaRS**: Scikit-learn compatibility (https://github.com/cool-japan/sklears)
-- **TrustformeRS**: Transformer models (https://github.com/cool-japan/trustformers)
-- **OxiRS**: RDF/SPARQL graph database (https://github.com/cool-japan/oxirs)
+- NumRS2: https://github.com/cool-japan/numrs
+- ToRSh (PyTorch-compatible): https://github.com/cool-japan/torsh
+- SkleaRS (Scikit-learn compatibility): https://github.com/cool-japan/sklears
+- TrustformeRS (Transformers): https://github.com/cool-japan/trustformers
+- OxiRS (RDF/SPARQL): https://github.com/cool-japan/oxirs
 
 ---
 
-**Last Updated**: December 29, 2025
-**Status**: stable Released - Stable with comprehensive documentation updates, version synchronization, and production readiness validation
+**Last Updated**: February 26, 2026
+**Branch**: 0.3.0 (release day)
+**Status**: v0.3.0 released — v0.4.0 planning phase

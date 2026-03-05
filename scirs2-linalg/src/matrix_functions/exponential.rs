@@ -874,7 +874,15 @@ where
 #[allow(dead_code)]
 pub fn matrix_power<F>(a: &ArrayView2<F>, p: F) -> LinalgResult<Array2<F>>
 where
-    F: Float + NumAssign + Sum + One + 'static + Send + Sync + scirs2_core::ndarray::ScalarOperand,
+    F: Float
+        + NumAssign
+        + Sum
+        + One
+        + 'static
+        + Send
+        + Sync
+        + scirs2_core::ndarray::ScalarOperand
+        + std::fmt::Display,
 {
     validate_decomposition(a, "Matrix power computation", true)?;
 
@@ -956,12 +964,8 @@ where
         }
     }
 
-    // For non-integer powers on general matrices, return a simplified error for now
-    // A full implementation would require complex eigenvalue handling
-    Err(LinalgError::ImplementationError(
-        "Matrix power for non-integer powers on general matrices is not yet fully implemented"
-            .to_string(),
-    ))
+    // For non-integer powers, delegate to the fractional module
+    super::fractional::fractionalmatrix_power(a, p, "eigen")
 }
 
 /// Helper function to check if a floating point number is close to an integer

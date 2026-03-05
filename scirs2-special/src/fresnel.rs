@@ -37,7 +37,7 @@ use crate::error::{SpecialError, SpecialResult};
 /// ```
 /// use scirs2_special::fresnel;
 ///
-/// let (s, c) = fresnel(1.0).unwrap();
+/// let (s, c) = fresnel(1.0).expect("fresnel failed");
 /// println!("S(1.0) = {}, C(1.0) = {}", s, c);
 /// ```
 #[allow(dead_code)]
@@ -79,7 +79,7 @@ pub fn fresnel(x: f64) -> SpecialResult<(f64, f64)> {
 /// use scirs2_core::numeric::Complex64;
 ///
 /// let z = Complex64::new(1.0, 0.5);
-/// let (s, c) = fresnel_complex(z).unwrap();
+/// let (s, c) = fresnel_complex(z).expect("fresnel_complex failed");
 /// println!("S({} + {}i) = {} + {}i", z.re, z.im, s.re, s.im);
 /// println!("C({} + {}i) = {} + {}i", z.re, z.im, c.re, c.im);
 /// ```
@@ -105,165 +105,73 @@ pub fn fresnel_complex(z: Complex64) -> SpecialResult<(Complex64, Complex64)> {
     fresnel_complex_power_series(z)
 }
 
-/// Implementation of Fresnel integrals using power series for small x.
+/// Implementation of Fresnel integrals using power series.
+///
+/// Uses the standard Taylor series:
+///   S(x) = sum_{n=0}^inf (-1)^n * (pi/2)^(2n+1) * x^(4n+3) / ((2n+1)! * (4n+3))
+///   C(x) = sum_{n=0}^inf (-1)^n * (pi/2)^(2n) * x^(4n+1) / ((2n)! * (4n+1))
 #[allow(dead_code)]
 fn fresnel_power_series(x: f64) -> SpecialResult<(f64, f64)> {
     let sign = x.signum();
-    let x = x.abs();
+    let ax = x.abs();
 
     // Special case for very small x to avoid underflow
-    if x < 1e-100 {
+    if ax < 1e-100 {
         return Ok((0.0, 0.0));
     }
 
-    // Coefficients for the power series
-    // S(x) = x³(1/3! - πx⁴/2·5! + π²x⁸/2²·7! - π³x¹²/2³·9! + ...)
-    // C(x) = x(1 - πx⁴/2·4! + π²x⁸/2²·6! - π³x¹²/2³·8! + ...)
-
-    // Parameters for computation
     let pi_half = PI / 2.0;
-    let x2 = x * x;
-    let x4 = x2 * x2;
+    let t = pi_half * ax * ax;
 
-    // Choose the optimal method based on x size
-    if x < 0.5 {
-        // For smaller x, direct power series evaluation is stable
-        // Compute the sine integral
-        let mut s = 0.0;
-        let mut term = x * x2 / 6.0; // First term: x³/3!
-        let mut prev_s = 0.0;
-        let mut num_equal_terms_s = 0;
+    // For the series, compute in terms of t = pi*x^2/2
+    // S(x) = x * sum_{n=0}^inf (-t)^n * t / ((2n+1)*(4n+3))  -- not quite, use direct approach
+    //
+    // Direct series:
+    //   S(x) = sum_{n=0}^inf (-1)^n (pi/2)^{2n+1} x^{4n+3} / ((2n+1)! (4n+3))
+    //   C(x) = sum_{n=0}^inf (-1)^n (pi/2)^{2n} x^{4n+1} / ((2n)! (4n+1))
+    //
+    // Rearranged for stable computation:
+    //   S(x) = x^3 * pi/2 * sum_{n=0} (-1)^n (pi*x^2/2)^{2n} / ((2n+1)! (4n+3))
+    //   C(x) = x * sum_{n=0} (-1)^n (pi*x^2/2)^{2n} / ((2n)! (4n+1))
 
-        for k in 0..35 {
-            // Increased iteration limit for small x
-            if k > 0 {
-                // More stable formula that avoids potential overflow in factorial-like calculations
-                let denom =
-                    (4 * k + 3) as f64 * (4 * k + 2) as f64 * (4 * k + 1) as f64 * (4 * k) as f64;
-                let factor = -pi_half * x4 / denom;
-                term *= factor;
-            }
+    // Use the t-based formulation for stability
+    let t2 = t * t; // (pi*x^2/2)^2
 
-            // Skip terms that could cause numerical instability
-            if !term.is_finite() {
-                break;
-            }
+    // Compute C(x)
+    let mut c_sum = 0.0;
+    let mut c_term = 1.0; // n=0 term coefficient: 1 / (0! * 1) = 1
+    for n in 0..50 {
+        let denom = (4 * n + 1) as f64;
+        c_sum += c_term / denom;
 
-            s += term;
+        // Prepare for next term: multiply by -t^2 / ((2n+1)*(2n+2))
+        let next_factor = -t2 / (((2 * n + 1) * (2 * n + 2)) as f64);
+        c_term *= next_factor;
 
-            // Multiple convergence criteria for better stability
-            let abs_term = term.abs();
-            let abs_s = s.abs().max(1e-300); // Avoid division by zero
-
-            if abs_term < 1e-15 || abs_term < 1e-15 * abs_s {
-                break;
-            }
-
-            // Check if sum is stabilizing (no significant changes)
-            if (s - prev_s).abs() < 1e-15 * abs_s {
-                num_equal_terms_s += 1;
-                if num_equal_terms_s > 3 {
-                    // Several iterations with no significant change
-                    break;
-                }
-            } else {
-                num_equal_terms_s = 0;
-            }
-
-            prev_s = s;
+        if c_term.abs() / denom < 1e-16 * c_sum.abs().max(1e-300) {
+            break;
         }
-
-        // Compute the cosine integral
-        let mut c = 0.0;
-        let mut term = x; // First term: x
-        let mut prev_c = 0.0;
-        let mut num_equal_terms_c = 0;
-
-        for k in 0..35 {
-            if k > 0 {
-                // More stable formula
-                let denom =
-                    (4 * k + 2) as f64 * (4 * k + 1) as f64 * (4 * k) as f64 * (4 * k - 1) as f64;
-
-                // Handle potential divide-by-zero for k=0
-                if denom == 0.0 {
-                    continue;
-                }
-
-                let factor = -pi_half * x4 / denom;
-                term *= factor;
-            }
-
-            // Skip terms that could cause numerical instability
-            if !term.is_finite() {
-                break;
-            }
-
-            c += term;
-
-            // Multiple convergence criteria
-            let abs_term = term.abs();
-            let abs_c = c.abs().max(1e-300);
-
-            if abs_term < 1e-15 || abs_term < 1e-15 * abs_c {
-                break;
-            }
-
-            // Check if sum is stabilizing
-            if (c - prev_c).abs() < 1e-15 * abs_c {
-                num_equal_terms_c += 1;
-                if num_equal_terms_c > 3 {
-                    break;
-                }
-            } else {
-                num_equal_terms_c = 0;
-            }
-
-            prev_c = c;
-        }
-
-        // Apply the sign
-        Ok((sign * s, sign * c))
-    } else {
-        // For larger x, use a more stable approach with continued fractions
-        // This is based on the fact that Fresnel integrals can be expressed in terms of
-        // the Error function erf, which has stable continued fraction representations
-
-        // Use auxiliary functions f(x) and g(x) that maintain precision better
-        let z = pi_half * x2;
-        let sin_z = z.sin();
-        let cos_z = z.cos();
-
-        // Compute auxiliary series for improved stability
-        let mut f_sum = 0.0;
-        let mut g_sum = 0.0;
-        let mut term_f = 1.0;
-        let mut term_g = 1.0;
-
-        for k in 1..25 {
-            // Terms for f series
-            let f_factor = -1.0 / ((2 * k - 1) as f64 * z);
-            term_f *= f_factor;
-            f_sum += term_f;
-
-            // Terms for g series
-            let g_factor = -1.0 / (2.0 * k as f64 * z);
-            term_g *= g_factor;
-            g_sum += term_g;
-
-            // Convergence check
-            if term_f.abs() < 1e-15 && term_g.abs() < 1e-15 {
-                break;
-            }
-        }
-
-        // Calculate S(x) and C(x) from auxiliary functions
-        let s = 0.5 - (cos_z * (0.5 + f_sum) + sin_z * g_sum) / (PI * x);
-        let c = 0.5 - (sin_z * (0.5 + f_sum) - cos_z * g_sum) / (PI * x);
-
-        // Apply the sign and return
-        Ok((sign * s, sign * c))
     }
+    let c = ax * c_sum;
+
+    // Compute S(x)
+    let mut s_sum = 0.0;
+    let mut s_term = 1.0; // n=0 term coefficient: 1 / (1! * 3) but we factor out t*x below
+    for n in 0..50 {
+        let denom = (4 * n + 3) as f64;
+        s_sum += s_term / denom;
+
+        // Prepare for next term: multiply by -t^2 / ((2n+2)*(2n+3))
+        let next_factor = -t2 / (((2 * n + 2) * (2 * n + 3)) as f64);
+        s_term *= next_factor;
+
+        if s_term.abs() / denom < 1e-16 * s_sum.abs().max(1e-300) {
+            break;
+        }
+    }
+    let s = ax * t * s_sum;
+
+    Ok((sign * s, sign * c))
 }
 
 /// Implementation of Fresnel integrals using asymptotic expansions for large x.
@@ -421,165 +329,62 @@ fn fresnel_complex_power_series(z: Complex64) -> SpecialResult<(Complex64, Compl
         return Ok((Complex64::new(0.0, 0.0), Complex64::new(0.0, 0.0)));
     }
 
-    // Basic variables
-    let z2 = z * z;
-    let z4 = z2 * z2;
+    // Use the same approach as the real-valued fresnel_power_series but with complex z.
+    // The Fresnel integrals are:
+    //   C(z) = integral_0^z cos(pi*t^2/2) dt
+    //   S(z) = integral_0^z sin(pi*t^2/2) dt
+    //
+    // Taylor series with t = pi*z^2/2:
+    //   C(z) = z * sum_{n=0}^inf (-1)^n t^{2n} / ((2n)! * (4n+1))
+    //   S(z) = z * t * sum_{n=0}^inf (-1)^n t^{2n} / ((2n+1)! * (4n+3))
+    //
+    // Using recurrence for the factorial-weighted terms.
+
     let pi_half = Complex64::new(PI / 2.0, 0.0);
+    let t = pi_half * z * z;
+    let t2 = t * t;
 
-    // Choose appropriate method based on |z|
-    if z.norm() < 0.5 {
-        // For small |z|, direct power series evaluation is stable
+    // Compute C(z)
+    let mut c_sum = Complex64::new(0.0, 0.0);
+    let mut c_term = Complex64::new(1.0, 0.0);
+    for n in 0..80 {
+        let denom = (4 * n + 1) as f64;
+        c_sum += c_term / denom;
 
-        // Compute the sine integral
-        let mut s = Complex64::new(0.0, 0.0);
-        let mut term = z * z2 / 3.0; // First term: z³/3!
-        let mut prev_s = Complex64::new(0.0, 0.0);
-        let mut num_equal_terms_s = 0;
+        // Next term: multiply by -t^2 / ((2n+1)*(2n+2))
+        let next_factor = -t2 / Complex64::new(((2 * n + 1) * (2 * n + 2)) as f64, 0.0);
+        c_term *= next_factor;
 
-        // Compute using power series with enhanced stability
-        for k in 0..45 {
-            // Extended limit for better accuracy
-            if k > 0 {
-                // Compute factorial-like denominator carefully
-                let denom =
-                    (4 * k + 3) as f64 * (4 * k + 2) as f64 * (4 * k + 1) as f64 * (4 * k) as f64;
-                let factor = -pi_half * z4 / denom;
-                term *= factor;
-            }
-
-            // Skip terms that could cause numerical instability
-            if !term.is_finite() {
-                break;
-            }
-
-            s += term;
-
-            // Multiple convergence criteria for better stability
-            let norm_term = term.norm();
-            let norm_s = s.norm().max(1e-300); // Avoid division by zero
-
-            // Absolute and relative tolerance checks
-            if norm_term < 1e-15 || norm_term < 1e-15 * norm_s {
-                break;
-            }
-
-            // Check if sum is stabilizing (no significant changes)
-            if (s - prev_s).norm() < 1e-15 * norm_s {
-                num_equal_terms_s += 1;
-                if num_equal_terms_s > 3 {
-                    // Several iterations with no significant change
-                    break;
-                }
-            } else {
-                num_equal_terms_s = 0;
-            }
-
-            prev_s = s;
+        if !c_term.is_finite() {
+            break;
         }
-
-        // Compute the cosine integral with similar improvements
-        let mut c = Complex64::new(0.0, 0.0);
-        let mut term = z; // First term: z
-        let mut prev_c = Complex64::new(0.0, 0.0);
-        let mut num_equal_terms_c = 0;
-
-        for k in 0..45 {
-            if k > 0 {
-                // Handle the case where k=0 separately to avoid division by zero
-                if k == 1 {
-                    // Special handling for k=1 (denominator involves 4*k-1 = 3)
-                    let denom = (4 * k + 2) as f64 * (4 * k + 1) as f64 * (4 * k) as f64 * 3.0;
-                    let factor = -pi_half * z4 / denom;
-                    term *= factor;
-                } else {
-                    // Normal case for k > 1
-                    let denom = (4 * k + 2) as f64
-                        * (4 * k + 1) as f64
-                        * (4 * k) as f64
-                        * (4 * k - 1) as f64;
-                    let factor = -pi_half * z4 / denom;
-                    term *= factor;
-                }
-            }
-
-            // Skip terms that could cause numerical instability
-            if !term.is_finite() {
-                break;
-            }
-
-            c += term;
-
-            // Multiple convergence criteria
-            let norm_term = term.norm();
-            let norm_c = c.norm().max(1e-300);
-
-            if norm_term < 1e-15 || norm_term < 1e-15 * norm_c {
-                break;
-            }
-
-            // Check if sum is stabilizing
-            if (c - prev_c).norm() < 1e-15 * norm_c {
-                num_equal_terms_c += 1;
-                if num_equal_terms_c > 3 {
-                    break;
-                }
-            } else {
-                num_equal_terms_c = 0;
-            }
-
-            prev_c = c;
+        if c_term.norm() / denom < 1e-16 * c_sum.norm().max(1e-300) && n > 3 {
+            break;
         }
-
-        Ok((s, c))
-    } else {
-        // For larger |z|, use auxiliary functions that maintain precision better
-        // Similar approach to the real-valued case for moderate arguments
-
-        // Use series related to the complex error function
-        let pi_z2_half = pi_half * z2;
-        let sin_pi_z2_half = pi_z2_half.sin();
-        let cos_pi_z2_half = pi_z2_half.cos();
-
-        // Compute auxiliary series
-        let mut f_sum = Complex64::new(0.0, 0.0);
-        let mut g_sum = Complex64::new(0.0, 0.0);
-        let mut term_f = Complex64::new(1.0, 0.0);
-        let mut term_g = Complex64::new(1.0, 0.0);
-
-        // Compute these auxiliary series with good stability
-        for k in 1..35 {
-            // Terms for f series
-            let f_factor = Complex64::new(-1.0, 0.0) / ((2.0 * k as f64 - 1.0) * pi_z2_half);
-            term_f *= f_factor;
-
-            // Terms for g series
-            let g_factor = Complex64::new(-1.0, 0.0) / (2.0 * k as f64 * pi_z2_half);
-            term_g *= g_factor;
-
-            // Only add terms that won't cause numerical issues
-            if term_f.is_finite() {
-                f_sum += term_f;
-            }
-
-            if term_g.is_finite() {
-                g_sum += term_g;
-            }
-
-            // Convergence check
-            if term_f.norm() < 1e-15 && term_g.norm() < 1e-15 {
-                break;
-            }
-        }
-
-        // Calculate S(z) and C(z) from auxiliary functions
-        let half = Complex64::new(0.5, 0.0);
-        let pi_z_inv = Complex64::new(1.0 / (PI * z.norm()), 0.0) * (z / z.norm()).conj();
-
-        let s = half - (cos_pi_z2_half * (half + f_sum) + sin_pi_z2_half * g_sum) * pi_z_inv;
-        let c = half - (sin_pi_z2_half * (half + f_sum) - cos_pi_z2_half * g_sum) * pi_z_inv;
-
-        Ok((s, c))
     }
+    let c = z * c_sum;
+
+    // Compute S(z)
+    let mut s_sum = Complex64::new(0.0, 0.0);
+    let mut s_term = Complex64::new(1.0, 0.0);
+    for n in 0..80 {
+        let denom = (4 * n + 3) as f64;
+        s_sum += s_term / denom;
+
+        // Next term: multiply by -t^2 / ((2n+2)*(2n+3))
+        let next_factor = -t2 / Complex64::new(((2 * n + 2) * (2 * n + 3)) as f64, 0.0);
+        s_term *= next_factor;
+
+        if !s_term.is_finite() {
+            break;
+        }
+        if s_term.norm() / denom < 1e-16 * s_sum.norm().max(1e-300) && n > 3 {
+            break;
+        }
+    }
+    let s = z * t * s_sum;
+
+    Ok((s, c))
 }
 
 /// Implementation of complex Fresnel integrals using asymptotic expansions.
@@ -756,7 +561,7 @@ fn fresnel_complex_asymptotic(z: Complex64) -> SpecialResult<(Complex64, Complex
 /// ```
 /// use scirs2_special::fresnels;
 ///
-/// let s = fresnels(1.0).unwrap();
+/// let s = fresnels(1.0).expect("fresnels failed");
 /// println!("S(1.0) = {}", s);
 /// ```
 #[allow(dead_code)]
@@ -786,7 +591,7 @@ pub fn fresnels(x: f64) -> SpecialResult<f64> {
 /// ```
 /// use scirs2_special::fresnelc;
 ///
-/// let c = fresnelc(1.0).unwrap();
+/// let c = fresnelc(1.0).expect("fresnelc failed");
 /// println!("C(1.0) = {}", c);
 /// ```
 #[allow(dead_code)]
@@ -817,7 +622,7 @@ pub fn fresnelc(x: f64) -> SpecialResult<f64> {
 /// ```
 /// use scirs2_special::mod_fresnel_plus;
 ///
-/// let (f_plus, k_plus) = mod_fresnel_plus(1.0).unwrap();
+/// let (f_plus, k_plus) = mod_fresnel_plus(1.0).expect("mod_fresnel_plus failed");
 /// println!("F₊(1.0) = {} + {}i", f_plus.re, f_plus.im);
 /// println!("K₊(1.0) = {} + {}i", k_plus.re, k_plus.im);
 /// ```
@@ -972,7 +777,7 @@ pub fn mod_fresnel_plus(x: f64) -> SpecialResult<(Complex64, Complex64)> {
 /// ```
 /// use scirs2_special::mod_fresnelminus;
 ///
-/// let (fminus, kminus) = mod_fresnelminus(1.0).unwrap();
+/// let (fminus, kminus) = mod_fresnelminus(1.0).expect("mod_fresnelminus failed");
 /// println!("F₋(1.0) = {} + {}i", fminus.re, fminus.im);
 /// println!("K₋(1.0) = {} + {}i", kminus.re, kminus.im);
 /// ```
@@ -1099,4 +904,276 @@ pub fn mod_fresnelminus(x: f64) -> SpecialResult<(Complex64, Complex64)> {
     }
 
     Ok((fminus, kminus))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ====== Fresnel S(x) and C(x) combined tests ======
+
+    #[test]
+    fn test_fresnel_at_zero() {
+        let (s, c) = fresnel(0.0).expect("fresnel(0) failed");
+        assert!((s - 0.0).abs() < 1e-14, "S(0) should be 0, got {s}");
+        assert!((c - 0.0).abs() < 1e-14, "C(0) should be 0, got {c}");
+    }
+
+    #[test]
+    fn test_fresnel_at_one() {
+        // Reference: S(1) ~ 0.438259147, C(1) ~ 0.779893400
+        let (s, c) = fresnel(1.0).expect("fresnel(1) failed");
+        assert!((s - 0.438_259_147).abs() < 1e-6, "S(1) ~ 0.438259, got {s}");
+        assert!((c - 0.779_893_400).abs() < 1e-6, "C(1) ~ 0.779893, got {c}");
+    }
+
+    #[test]
+    fn test_fresnel_at_two() {
+        // Reference: S(2) ~ 0.343415, C(2) ~ 0.488253
+        let (s, c) = fresnel(2.0).expect("fresnel(2) failed");
+        assert!((s - 0.343_415).abs() < 1e-4, "S(2) ~ 0.3434, got {s}");
+        assert!((c - 0.488_253).abs() < 1e-4, "C(2) ~ 0.4883, got {c}");
+    }
+
+    #[test]
+    fn test_fresnel_large_x_approaches_half() {
+        // For large x, S(x) and C(x) should approach 0.5
+        let (s, c) = fresnel(50.0).expect("fresnel(50) failed");
+        assert!((s - 0.5).abs() < 0.05, "S(50) should be near 0.5, got {s}");
+        assert!((c - 0.5).abs() < 0.05, "C(50) should be near 0.5, got {c}");
+    }
+
+    #[test]
+    fn test_fresnel_odd_symmetry() {
+        // S(-x) = -S(x), C(-x) = -C(x) (odd functions)
+        let (s_pos, c_pos) = fresnel(1.5).expect("fresnel(1.5) failed");
+        let (s_neg, c_neg) = fresnel(-1.5).expect("fresnel(-1.5) failed");
+        assert!(
+            (s_neg + s_pos).abs() < 1e-10,
+            "S should be odd: S(1.5)={s_pos}, S(-1.5)={s_neg}"
+        );
+        assert!(
+            (c_neg + c_pos).abs() < 1e-10,
+            "C should be odd: C(1.5)={c_pos}, C(-1.5)={c_neg}"
+        );
+    }
+
+    #[test]
+    fn test_fresnel_nan_input() {
+        let result = fresnel(f64::NAN);
+        assert!(
+            result.is_err(),
+            "fresnel with NaN input should return error"
+        );
+    }
+
+    // ====== fresnels tests ======
+
+    #[test]
+    fn test_fresnels_at_zero() {
+        let s = fresnels(0.0).expect("fresnels(0) failed");
+        assert!((s - 0.0).abs() < 1e-14, "S(0) should be 0, got {s}");
+    }
+
+    #[test]
+    fn test_fresnels_at_one() {
+        let s = fresnels(1.0).expect("fresnels(1) failed");
+        assert!((s - 0.438_259_147).abs() < 1e-6, "S(1) ~ 0.438259, got {s}");
+    }
+
+    #[test]
+    fn test_fresnels_matches_fresnel() {
+        let s1 = fresnels(2.5).expect("fresnels(2.5) failed");
+        let (s2, _) = fresnel(2.5).expect("fresnel(2.5) failed");
+        assert!(
+            (s1 - s2).abs() < 1e-10,
+            "fresnels should match fresnel: {s1} vs {s2}"
+        );
+    }
+
+    #[test]
+    fn test_fresnels_nan() {
+        let result = fresnels(f64::NAN);
+        assert!(
+            result.is_err(),
+            "fresnels with NaN input should return error"
+        );
+    }
+
+    #[test]
+    fn test_fresnels_negative() {
+        let s_pos = fresnels(1.0).expect("fresnels(1) failed");
+        let s_neg = fresnels(-1.0).expect("fresnels(-1) failed");
+        assert!((s_neg + s_pos).abs() < 1e-10, "S should be odd function");
+    }
+
+    // ====== fresnelc tests ======
+
+    #[test]
+    fn test_fresnelc_at_zero() {
+        let c = fresnelc(0.0).expect("fresnelc(0) failed");
+        assert!((c - 0.0).abs() < 1e-14, "C(0) should be 0, got {c}");
+    }
+
+    #[test]
+    fn test_fresnelc_at_one() {
+        let c = fresnelc(1.0).expect("fresnelc(1) failed");
+        assert!((c - 0.779_893_400).abs() < 1e-6, "C(1) ~ 0.779893, got {c}");
+    }
+
+    #[test]
+    fn test_fresnelc_matches_fresnel() {
+        let c1 = fresnelc(2.5).expect("fresnelc(2.5) failed");
+        let (_, c2) = fresnel(2.5).expect("fresnel(2.5) failed");
+        assert!(
+            (c1 - c2).abs() < 1e-10,
+            "fresnelc should match fresnel: {c1} vs {c2}"
+        );
+    }
+
+    #[test]
+    fn test_fresnelc_nan() {
+        let result = fresnelc(f64::NAN);
+        assert!(
+            result.is_err(),
+            "fresnelc with NaN input should return error"
+        );
+    }
+
+    #[test]
+    fn test_fresnelc_negative() {
+        let c_pos = fresnelc(1.0).expect("fresnelc(1) failed");
+        let c_neg = fresnelc(-1.0).expect("fresnelc(-1) failed");
+        assert!((c_neg + c_pos).abs() < 1e-10, "C should be odd function");
+    }
+
+    // ====== fresnel_complex tests ======
+
+    #[test]
+    fn test_fresnel_complex_real_axis() {
+        // On the real axis, fresnel_complex should match fresnel
+        let z = Complex64::new(1.0, 0.0);
+        let (s_c, c_c) = fresnel_complex(z).expect("fresnel_complex failed");
+        let (s_r, c_r) = fresnel(1.0).expect("fresnel failed");
+        assert!(
+            (s_c.re - s_r).abs() < 1e-8,
+            "complex fresnel S on real axis should match: {s_c} vs {s_r}"
+        );
+        assert!(
+            s_c.im.abs() < 1e-8,
+            "imaginary part of S on real axis should be ~0"
+        );
+        assert!(
+            (c_c.re - c_r).abs() < 1e-8,
+            "complex fresnel C on real axis should match: {c_c} vs {c_r}"
+        );
+    }
+
+    #[test]
+    fn test_fresnel_complex_at_zero() {
+        let z = Complex64::new(0.0, 0.0);
+        let (s, c) = fresnel_complex(z).expect("fresnel_complex(0) failed");
+        assert!(s.norm() < 1e-14, "S(0) should be 0");
+        assert!(c.norm() < 1e-14, "C(0) should be 0");
+    }
+
+    #[test]
+    fn test_fresnel_complex_purely_imaginary() {
+        let z = Complex64::new(0.0, 1.0);
+        let (s, c) = fresnel_complex(z).expect("fresnel_complex(i) failed");
+        assert!(s.is_finite(), "S(i) should be finite");
+        assert!(c.is_finite(), "C(i) should be finite");
+    }
+
+    #[test]
+    fn test_fresnel_complex_nan() {
+        let z = Complex64::new(f64::NAN, 0.0);
+        let result = fresnel_complex(z);
+        assert!(
+            result.is_err(),
+            "fresnel_complex with NaN should return error"
+        );
+    }
+
+    #[test]
+    fn test_fresnel_complex_moderate() {
+        let z = Complex64::new(1.0, 0.5);
+        let (s, c) = fresnel_complex(z).expect("fresnel_complex(1+0.5i) failed");
+        assert!(s.is_finite(), "S(1+0.5i) should be finite");
+        assert!(c.is_finite(), "C(1+0.5i) should be finite");
+    }
+
+    // ====== mod_fresnel_plus tests ======
+
+    #[test]
+    fn test_mod_fresnel_plus_at_zero() {
+        let (f_plus, k_plus) = mod_fresnel_plus(0.0).expect("mod_fresnel_plus(0) failed");
+        assert!(f_plus.is_finite(), "F+(0) should be finite");
+        assert!(k_plus.is_finite(), "K+(0) should be finite");
+    }
+
+    #[test]
+    fn test_mod_fresnel_plus_at_one() {
+        let (f_plus, k_plus) = mod_fresnel_plus(1.0).expect("mod_fresnel_plus(1) failed");
+        assert!(f_plus.is_finite(), "F+(1) should be finite");
+        assert!(k_plus.is_finite(), "K+(1) should be finite");
+    }
+
+    #[test]
+    fn test_mod_fresnel_plus_moderate_x() {
+        let (f_plus, k_plus) = mod_fresnel_plus(5.0).expect("mod_fresnel_plus(5) failed");
+        assert!(f_plus.is_finite(), "F+(5) should be finite");
+        assert!(k_plus.is_finite(), "K+(5) should be finite");
+    }
+
+    #[test]
+    fn test_mod_fresnel_plus_negative() {
+        let (f_plus, k_plus) = mod_fresnel_plus(-1.0).expect("mod_fresnel_plus(-1) failed");
+        assert!(f_plus.is_finite(), "F+(-1) should be finite");
+        assert!(k_plus.is_finite(), "K+(-1) should be finite");
+    }
+
+    #[test]
+    fn test_mod_fresnel_plus_large_x() {
+        let (f_plus, k_plus) = mod_fresnel_plus(20.0).expect("mod_fresnel_plus(20) failed");
+        assert!(f_plus.is_finite(), "F+(20) should be finite");
+        assert!(k_plus.is_finite(), "K+(20) should be finite");
+    }
+
+    // ====== mod_fresnelminus tests ======
+
+    #[test]
+    fn test_mod_fresnelminus_at_zero() {
+        let (fminus, kminus) = mod_fresnelminus(0.0).expect("mod_fresnelminus(0) failed");
+        assert!(fminus.is_finite(), "F-(0) should be finite");
+        assert!(kminus.is_finite(), "K-(0) should be finite");
+    }
+
+    #[test]
+    fn test_mod_fresnelminus_at_one() {
+        let (fminus, kminus) = mod_fresnelminus(1.0).expect("mod_fresnelminus(1) failed");
+        assert!(fminus.is_finite(), "F-(1) should be finite");
+        assert!(kminus.is_finite(), "K-(1) should be finite");
+    }
+
+    #[test]
+    fn test_mod_fresnelminus_moderate_x() {
+        let (fminus, kminus) = mod_fresnelminus(5.0).expect("mod_fresnelminus(5) failed");
+        assert!(fminus.is_finite(), "F-(5) should be finite");
+        assert!(kminus.is_finite(), "K-(5) should be finite");
+    }
+
+    #[test]
+    fn test_mod_fresnelminus_negative() {
+        let (fminus, kminus) = mod_fresnelminus(-1.0).expect("mod_fresnelminus(-1) failed");
+        assert!(fminus.is_finite(), "F-(-1) should be finite");
+        assert!(kminus.is_finite(), "K-(-1) should be finite");
+    }
+
+    #[test]
+    fn test_mod_fresnelminus_large_x() {
+        let (fminus, kminus) = mod_fresnelminus(20.0).expect("mod_fresnelminus(20) failed");
+        assert!(fminus.is_finite(), "F-(20) should be finite");
+        assert!(kminus.is_finite(), "K-(20) should be finite");
+    }
 }

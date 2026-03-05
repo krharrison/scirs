@@ -54,7 +54,7 @@ use std::fmt::Debug;
 ///     None,      // nfft = signal length
 ///     Some(true), // adaptive weighting
 ///     Some(true), // one-sided spectrum
-/// ).unwrap();
+/// ).expect("operation should succeed");
 ///
 /// // Basic verification - function should succeed
 /// assert!(freqs.len() > 0);

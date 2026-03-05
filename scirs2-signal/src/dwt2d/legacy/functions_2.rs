@@ -40,11 +40,11 @@ use super::functions::{div_ceil, get_temp_buffer, return_temp_buffer};
 /// use scirs2_signal::dwt2d::{dwt2d_decompose_optimized, Dwt2dConfig};
 ///
 /// // Create a sample image
-/// let data = Array2::from_shape_vec((8, 8), (0..64).map(|x| x as f64).collect()).unwrap();
+/// let data = Array2::from_shape_vec((8, 8), (0..64).map(|x| x as f64).collect()).expect("operation should succeed");
 ///
 /// // Use optimized decomposition with default configuration
 /// let config = Dwt2dConfig::default();
-/// let result = dwt2d_decompose_optimized(&data, Wavelet::Haar, None, &config).unwrap();
+/// let result = dwt2d_decompose_optimized(&data, Wavelet::Haar, None, &config).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn dwt2d_decompose_optimized<T>(
@@ -282,13 +282,13 @@ where
 ///     5.0, 6.0, 7.0, 8.0,
 ///     9.0, 10.0, 11.0, 12.0,
 ///     13.0, 14.0, 15.0, 16.0
-/// ]).unwrap();
+/// ]).expect("operation should succeed");
 ///
 /// // Decompose
-/// let decomposition = dwt2d_decompose(&data, Wavelet::Haar, None).unwrap();
+/// let decomposition = dwt2d_decompose(&data, Wavelet::Haar, None).expect("operation should succeed");
 ///
 /// // Reconstruct
-/// let reconstructed = dwt2d_reconstruct(&decomposition, Wavelet::Haar, None).unwrap();
+/// let reconstructed = dwt2d_reconstruct(&decomposition, Wavelet::Haar, None).expect("operation should succeed");
 ///
 /// // The reconstructed image should have the same shape as the original
 /// assert_eq!(reconstructed.shape(), data.shape());
@@ -310,7 +310,7 @@ where
 /// }
 ///
 /// // Decompose using Haar wavelet
-/// let mut decomposition = dwt2d_decompose(&data, Wavelet::Haar, None).unwrap();
+/// let mut decomposition = dwt2d_decompose(&data, Wavelet::Haar, None).expect("operation should succeed");
 ///
 /// // Simple denoising by zeroing out small detail coefficients
 /// let threshold = 2.0;
@@ -331,7 +331,7 @@ where
 /// }
 ///
 /// // Reconstruct from modified coefficients
-/// let denoised = dwt2d_reconstruct(&decomposition, Wavelet::Haar, None).unwrap();
+/// let denoised = dwt2d_reconstruct(&decomposition, Wavelet::Haar, None).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn dwt2d_reconstruct(

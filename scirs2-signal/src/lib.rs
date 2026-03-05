@@ -46,7 +46,7 @@
 //! // Convolution
 //! let signal = vec![1.0, 2.0, 3.0];
 //! let kernel = vec![0.25, 0.5, 0.25];
-//! let filtered = convolve(&signal, &kernel, "same").unwrap();
+//! let filtered = convolve(&signal, &kernel, "same").expect("operation should succeed");
 //! ```
 //!
 //! ## 🔒 Version: 0.2.0 (February 8, 2026)
@@ -128,12 +128,51 @@ pub mod simd_advanced;
 // pub mod features;
 pub mod multitaper;
 
+// v0.3.0 Enhanced Spectral Analysis (multitaper, Lomb-Scargle, parametric)
+pub mod spectral_advanced;
+
 // v0.2.0 Advanced Spectral Analysis Modules
 pub mod advanced_spectral_v2;
 pub mod memory_optimized;
 pub mod parallel_filtering_v2;
 pub mod parallel_spectral;
 pub mod spectral_scipy_validation_v2;
+
+// v0.3.0 Real-time / streaming signal processing
+pub mod streaming;
+
+// v0.3.0 Adaptive filters (LMS, NLMS, RLS, VS-LMS, APA, FDLMS, LMF, SM-LMS)
+pub mod adaptive;
+
+// v0.3.0 Cepstral analysis (real/complex cepstrum, MFCC, Mel filter banks)
+pub mod cepstral;
+
+// v0.3.0 Modulation / demodulation (AM, FM, QAM)
+pub mod modulation;
+
+// v0.3.0 Beamforming (delay-and-sum, MVDR/Capon, steering vectors)
+pub mod beamforming;
+
+// v0.3.0 System Identification (ARX, ARMAX, OE, N4SID, RLS, PEM)
+pub mod system_identification;
+
+// v0.3.0 Enhanced Transfer Function Analysis (pole-zero, root locus, Nyquist, Nichols, margins)
+pub mod tf_analysis;
+
+// v0.3.0 State Space Operations (Gramians, balanced realization, model reduction, conversions)
+pub mod state_space_ops;
+
+// v0.3.0 Multi-channel signal processing (mixing, ICA, CSP, cross-correlation)
+pub mod multichannel;
+
+// v0.3.0 Time-Frequency Analysis (WVD, Choi-Williams, Cohen's class, reassignment)
+pub mod time_frequency;
+
+// v0.3.0 Signal Quality Metrics (SNR, SDR, PESQ-like, spectral flatness, crest factor)
+pub mod signal_quality;
+
+// v0.3.0 Resampling (polyphase, sinc interpolation, fractional delay, anti-aliasing)
+pub mod resampling;
 
 // Re-export core functionality
 pub use convolve::{convolve, convolve_simd_ultra, correlate};
@@ -175,8 +214,8 @@ pub use dwt2d_advanced::{
     MultilevelDwt2D,
 };
 pub use wavelet_advanced::{
-    advanced_denoise_1d, select_best_basis, BestBasisResult, CostFunction as WaveletCostFunction,
-    DenoisingConfig, ThresholdMode, ThresholdRule,
+    advanced_denoise_1d, block_denoise_1d, select_best_basis, BestBasisResult,
+    CostFunction as WaveletCostFunction, DenoisingConfig, ThresholdMode, ThresholdRule,
 };
 pub use wpt_enhanced::{
     best_basis_analysis, wpt_denoise, CostFunction as WptCostFunction, WaveletPacketTree, WptNode,
@@ -198,6 +237,116 @@ pub use parallel_filtering_v2::{
 };
 pub use spectral_scipy_validation_v2::{
     generate_validation_report, run_comprehensive_validation, ValidationResult, ValidationSuite,
+};
+
+// Re-export v0.3.0 adaptive filter functionality
+pub use adaptive::{
+    AdaptiveFilter, AdaptiveFilterConfig, AdaptiveMethod, ApaFilter, FdlmsFilter, LmfFilter,
+    LmsFilter, NlmsFilter, RlsFilter, SmLmsFilter, VsLmsFilter,
+};
+
+// Re-export v0.3.0 cepstral analysis functionality
+pub use cepstral::{
+    complex_cepstrum, compute_deltas, mel_filter_bank, mfcc, mfcc_extract, mfcc_frame,
+    real_cepstrum, MelFilterBankConfig, MfccConfig,
+};
+
+// Re-export v0.3.0 modulation/demodulation functionality
+pub use modulation::{
+    am_demodulate, am_modulate, demodulate, fm_demodulate, fm_modulate, modulate,
+    qam_constellation, qam_demodulate_bits, qam_modulate_bits, qam_modulate_passband, AmMode,
+    ModulationMethod, QamOrder, QamSymbol,
+};
+
+// Re-export v0.3.0 beamforming functionality
+pub use beamforming::{
+    beamform, delay_and_sum_filter, delay_and_sum_power, estimate_covariance,
+    estimate_covariance_real, mvdr_power, mvdr_weights, scan_angles_degrees, steering_vector_ula,
+    steering_vectors_ula, BeamformMethod,
+};
+
+// Re-export v0.3.0 system identification functionality
+pub use system_identification::{
+    armax_estimate, arx_estimate, n4sid_estimate, oe_estimate, pem_estimate, rls_batch,
+    ArmaxConfig, ArxConfig, N4sidConfig, OeConfig, PemConfig, RlsConfig, RlsEstimator,
+    SubspaceIdResult, SysIdResult,
+};
+
+// Re-export v0.3.0 transfer function analysis functionality
+pub use tf_analysis::{
+    nichols_chart, nyquist_diagram, pole_zero_analysis, root_locus, sensitivity_functions,
+    stability_margins, NicholsResult, NyquistResult, PoleZeroResult, RootLocusResult,
+    SensitivityResult, StabilityMargins,
+};
+
+// Re-export v0.3.0 state space operations functionality
+pub use state_space_ops::{
+    balanced_realization, balanced_truncation, compute_gramians, hankel_norm_reduction,
+    minimal_realization, ss_feedback, ss_parallel, ss_series, ss_to_tf, tf_to_ss_controllable,
+    tf_to_ss_observable, BalancedRealization, GramianResult, MinimalRealization, ReducedModel,
+};
+
+// Re-export v0.3.0 enhanced spectral analysis functionality
+pub use spectral_advanced::{
+    // Parametric methods
+    burg_spectral,
+    esprit_spectral,
+    // Lomb-Scargle
+    false_alarm_level,
+    false_alarm_probability,
+    lomb_scargle_periodogram,
+    // Multitaper
+    multitaper_ftest_line_detection,
+    multitaper_psd,
+    music_spectral,
+    yule_walker_spectral,
+    BurgConfig,
+    BurgResult,
+    EspritConfig,
+    EspritResult,
+    FTestResult as MultitaperFTestResult,
+    FalseAlarmResult,
+    FapMethod,
+    LombScargleConfig,
+    LombScargleNormalization,
+    LombScargleResult,
+    MultitaperConfig,
+    MultitaperResult,
+    MusicConfig,
+    MusicResult,
+    YuleWalkerConfig,
+    YuleWalkerResult,
+};
+
+// Re-export v0.3.0 multi-channel processing functionality
+pub use multichannel::{
+    apply_mixing_matrix, cross_channel_correlation, cross_correlation_lag, csp, csp_apply, fastica,
+    mix_to_mono, mono_to_multichannel, reorder_channels, select_channels, CspConfig, CspResult,
+    FastIcaConfig, FastIcaResult, MixMode, MultiChannelSignal,
+};
+
+// Re-export v0.3.0 time-frequency analysis functionality
+pub use time_frequency::{
+    choi_williams, cohens_class, gaussian_window as tf_gaussian_window,
+    hann_window as tf_hann_window, instantaneous_amplitude, instantaneous_frequency,
+    kernel_born_jordan, kernel_wigner_ville, pseudo_wigner_ville, reassigned_spectrogram,
+    smoothed_pseudo_wigner_ville, wigner_ville, CohenKernelFn, ReassignedTfDistribution,
+    TfDistribution,
+};
+
+// Re-export v0.3.0 signal quality metrics functionality
+pub use signal_quality::{
+    crest_factor as signal_crest_factor, crest_factor_db, dynamic_range, enob, perceptual_quality,
+    segmental_snr, si_sdr, sinad, snr_blind, snr_from_noise_floor, snr_reference,
+    spectral_flatness, spectral_flatness_frames, zero_crossing_rate, zero_crossing_rate_frames,
+    BlindSnrConfig, DynamicRangeResult, PerceptualQualityResult,
+};
+
+// Re-export v0.3.0 resampling functionality
+pub use resampling::{
+    decimate, design_anti_alias_filter, downsample, fractional_delay, interpolate,
+    lagrange_delay_filter, resample, resample_poly, resample_to_length, sinc_delay_filter,
+    upsample, ResamplingConfig, ResamplingQuality, WindowType as ResamplingWindowType,
 };
 
 #[cfg(test)]

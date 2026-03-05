@@ -23,6 +23,8 @@ fn main() {
                 threshold,
                 n_clusters: *n_clusters,
                 branching_factor: 50,
+                max_leaf_entries: None,
+                n_refinement_iter: 5,
             };
 
             match birch(data.view(), options) {

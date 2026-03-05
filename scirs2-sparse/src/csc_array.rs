@@ -13,6 +13,15 @@ use crate::csr_array::CsrArray;
 use crate::error::{SparseError, SparseResult};
 use crate::sparray::{SparseArray, SparseSum};
 
+/// Insert a value into an `Array1` at position `idx`, shifting subsequent
+/// elements to the right.  ndarray's `Array1` does not provide an insert
+/// method, so we convert to `Vec`, insert, and convert back.
+fn array1_insert<T: Clone + Default>(arr: &Array1<T>, idx: usize, value: T) -> Array1<T> {
+    let mut v = arr.to_vec();
+    v.insert(idx, value);
+    Array1::from_vec(v)
+}
+
 /// CSC Array format
 ///
 /// The CSC (Compressed Sparse Column) format stores a sparse array in three arrays:
@@ -426,8 +435,6 @@ where
     }
 
     fn set(&mut self, i: usize, j: usize, value: T) -> SparseResult<()> {
-        // Setting elements in CSC format is non-trivial
-        // This is a placeholder implementation that doesn't actually modify the structure
         if i >= self.shape.0 || j >= self.shape.1 {
             return Err(SparseError::IndexOutOfBounds {
                 index: (i, j),
@@ -441,26 +448,40 @@ where
         // Try to find existing element
         for idx in start..end {
             if self.indices[idx] == i {
-                // Update value
                 self.data[idx] = value;
                 return Ok(());
             }
-
-            // If indices are sorted, we can insert at the right position
             if self.has_sorted_indices && self.indices[idx] > i {
-                // Insert here - this would require restructuring indices and data
-                // Not implemented in this placeholder
-                return Err(SparseError::NotImplemented(
-                    "Inserting new elements in CSC format".to_string(),
-                ));
+                // Insert at position `idx` to maintain sorted order
+                self.data = array1_insert(&self.data, idx, value);
+                self.indices = array1_insert(&self.indices, idx, i);
+                // Increment indptr for all subsequent columns
+                for col_ptr in self.indptr.iter_mut().skip(j + 1) {
+                    *col_ptr += 1;
+                }
+                return Ok(());
             }
         }
 
-        // Element not found, would need to insert
-        // This would require restructuring indices and data
-        Err(SparseError::NotImplemented(
-            "Inserting new elements in CSC format".to_string(),
-        ))
+        // Element not found - insert at end of this column's range
+        self.data = array1_insert(&self.data, end, value);
+        self.indices = array1_insert(&self.indices, end, i);
+        // Increment indptr for all subsequent columns
+        for col_ptr in self.indptr.iter_mut().skip(j + 1) {
+            *col_ptr += 1;
+        }
+        // Re-check sorted state for this column
+        if self.has_sorted_indices {
+            let new_end = self.indptr[j + 1];
+            let new_start = self.indptr[j];
+            for k in new_start..new_end.saturating_sub(1) {
+                if self.indices[k] > self.indices[k + 1] {
+                    self.has_sorted_indices = false;
+                    break;
+                }
+            }
+        }
+        Ok(())
     }
 
     fn eliminate_zeros(&mut self) {

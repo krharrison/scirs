@@ -722,6 +722,17 @@ where
 }
 
 /// Perform global optimization using differential evolution
+///
+/// # Arguments
+///
+/// * `func` - Objective function to minimize
+/// * `bounds` - Variable bounds as Vec<(lower, upper)>
+/// * `options` - DE configuration options
+/// * `strategy` - Mutation strategy name (e.g., "best1bin", "rand1bin")
+///
+/// # Returns
+///
+/// `OptimizeResult<f64>` with the optimization result
 #[allow(dead_code)]
 pub fn differential_evolution<F>(
     func: F,
@@ -732,9 +743,251 @@ pub fn differential_evolution<F>(
 where
     F: Fn(&ArrayView1<f64>) -> f64 + Clone + Sync,
 {
+    if bounds.is_empty() {
+        return Err(OptimizeError::InvalidInput(
+            "Bounds must not be empty".to_string(),
+        ));
+    }
+    for (i, &(lb, ub)) in bounds.iter().enumerate() {
+        if !lb.is_finite() || !ub.is_finite() {
+            return Err(OptimizeError::InvalidInput(format!(
+                "Bounds must be finite for dimension {} ({}, {})",
+                i, lb, ub
+            )));
+        }
+        if lb >= ub {
+            return Err(OptimizeError::InvalidInput(format!(
+                "Lower bound must be less than upper bound for dimension {} ({} >= {})",
+                i, lb, ub
+            )));
+        }
+    }
+
     let options = options.unwrap_or_default();
     let strategy = strategy.unwrap_or("best1bin");
 
     let mut solver = DifferentialEvolution::new(func, bounds, options, strategy);
     Ok(solver.run())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sphere(x: &ArrayView1<f64>) -> f64 {
+        x.iter().map(|xi| xi * xi).sum()
+    }
+
+    fn rastrigin(x: &ArrayView1<f64>) -> f64 {
+        let n = x.len() as f64;
+        10.0 * n
+            + x.iter()
+                .map(|xi| xi * xi - 10.0 * (2.0 * std::f64::consts::PI * xi).cos())
+                .sum::<f64>()
+    }
+
+    fn rosenbrock(x: &ArrayView1<f64>) -> f64 {
+        let mut sum = 0.0;
+        for i in 0..x.len() - 1 {
+            sum += 100.0 * (x[i + 1] - x[i].powi(2)).powi(2) + (1.0 - x[i]).powi(2);
+        }
+        sum
+    }
+
+    #[test]
+    fn test_de_sphere_best1bin() {
+        let bounds = vec![(-5.0, 5.0), (-5.0, 5.0)];
+        let mut opts = DifferentialEvolutionOptions::default();
+        opts.seed = Some(42);
+        opts.maxiter = 200;
+        opts.polish = false;
+
+        let result = differential_evolution(sphere, bounds, Some(opts), Some("best1bin"));
+        assert!(result.is_ok());
+        let res = result.expect("should succeed");
+        assert!(res.fun < 0.01, "Sphere min should be ~0, got {}", res.fun);
+    }
+
+    #[test]
+    fn test_de_sphere_rand1bin() {
+        let bounds = vec![(-5.0, 5.0), (-5.0, 5.0)];
+        let mut opts = DifferentialEvolutionOptions::default();
+        opts.seed = Some(42);
+        opts.maxiter = 300;
+        opts.polish = false;
+
+        let result = differential_evolution(sphere, bounds, Some(opts), Some("rand1bin"));
+        assert!(result.is_ok());
+        let res = result.expect("should succeed");
+        assert!(
+            res.fun < 0.1,
+            "Sphere with rand1bin should be near 0, got {}",
+            res.fun
+        );
+    }
+
+    #[test]
+    fn test_de_currenttobest1bin() {
+        let bounds = vec![(-5.0, 5.0), (-5.0, 5.0)];
+        let mut opts = DifferentialEvolutionOptions::default();
+        opts.seed = Some(42);
+        opts.maxiter = 300;
+        opts.polish = false;
+
+        let result = differential_evolution(sphere, bounds, Some(opts), Some("currenttobest1bin"));
+        assert!(result.is_ok());
+        let res = result.expect("should succeed");
+        assert!(
+            res.fun < 0.1,
+            "currenttobest1bin should be near 0, got {}",
+            res.fun
+        );
+    }
+
+    #[test]
+    fn test_de_rastrigin() {
+        let bounds = vec![(-5.12, 5.12), (-5.12, 5.12)];
+        let mut opts = DifferentialEvolutionOptions::default();
+        opts.seed = Some(42);
+        opts.popsize = 30;
+        opts.maxiter = 500;
+        opts.polish = false;
+
+        let result = differential_evolution(rastrigin, bounds, Some(opts), None);
+        assert!(result.is_ok());
+        let res = result.expect("should succeed");
+        assert!(
+            res.fun < 10.0,
+            "DE should find reasonable Rastrigin value, got {}",
+            res.fun
+        );
+    }
+
+    #[test]
+    fn test_de_rosenbrock() {
+        let bounds = vec![(-5.0, 5.0), (-5.0, 5.0)];
+        let mut opts = DifferentialEvolutionOptions::default();
+        opts.seed = Some(42);
+        opts.popsize = 30;
+        opts.maxiter = 500;
+        opts.polish = false;
+
+        let result = differential_evolution(rosenbrock, bounds, Some(opts), None);
+        assert!(result.is_ok());
+        let res = result.expect("should succeed");
+        assert!(
+            res.fun < 5.0,
+            "DE should find reasonable Rosenbrock value, got {}",
+            res.fun
+        );
+    }
+
+    #[test]
+    fn test_de_with_initial_guess() {
+        let bounds = vec![(-5.0, 5.0), (-5.0, 5.0)];
+        let mut opts = DifferentialEvolutionOptions::default();
+        opts.seed = Some(42);
+        opts.maxiter = 100;
+        opts.polish = false;
+        opts.x0 = Some(Array1::from_vec(vec![0.1, 0.1]));
+
+        let result = differential_evolution(sphere, bounds, Some(opts), None);
+        assert!(result.is_ok());
+        let res = result.expect("should succeed");
+        assert!(res.fun < 0.1);
+    }
+
+    #[test]
+    fn test_de_init_methods() {
+        let bounds = vec![(-5.0, 5.0), (-5.0, 5.0)];
+
+        for init_method in &["latinhypercube", "halton", "sobol", "random"] {
+            let mut opts = DifferentialEvolutionOptions::default();
+            opts.seed = Some(42);
+            opts.maxiter = 50;
+            opts.polish = false;
+            opts.init = init_method.to_string();
+
+            let result = differential_evolution(sphere, bounds.clone(), Some(opts), None);
+            assert!(
+                result.is_ok(),
+                "Init method {} should not fail",
+                init_method
+            );
+        }
+    }
+
+    #[test]
+    fn test_de_invalid_bounds() {
+        // Empty bounds
+        let result = differential_evolution(sphere, vec![], None, None);
+        assert!(result.is_err());
+
+        // Lower >= upper
+        let bounds = vec![(5.0, 2.0)];
+        let result = differential_evolution(sphere, bounds, None, None);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_de_convergence() {
+        let bounds = vec![(-5.0, 5.0), (-5.0, 5.0)];
+        let mut opts = DifferentialEvolutionOptions::default();
+        opts.seed = Some(42);
+        opts.maxiter = 500;
+        opts.tol = 1.0; // Very relaxed tolerance so it converges quickly
+        opts.polish = false;
+
+        let result = differential_evolution(sphere, bounds, Some(opts), None);
+        assert!(result.is_ok());
+        let res = result.expect("should succeed");
+        assert!(res.nit > 0);
+        assert!(res.nfev > 0);
+    }
+
+    #[test]
+    fn test_de_options_default() {
+        let opts = DifferentialEvolutionOptions::default();
+        assert_eq!(opts.maxiter, 1000);
+        assert_eq!(opts.popsize, 15);
+        assert!((opts.tol - 0.01).abs() < 1e-12);
+        assert!((opts.recombination - 0.7).abs() < 1e-12);
+        assert!(opts.polish);
+        assert_eq!(opts.init, "latinhypercube");
+    }
+
+    #[test]
+    fn test_de_strategy_from_str() {
+        assert_eq!(Strategy::from_str("best1bin"), Some(Strategy::Best1Bin));
+        assert_eq!(Strategy::from_str("rand1bin"), Some(Strategy::Rand1Bin));
+        assert_eq!(
+            Strategy::from_str("currenttobest1bin"),
+            Some(Strategy::CurrentToBest1Bin)
+        );
+        assert_eq!(Strategy::from_str("best2bin"), Some(Strategy::Best2Bin));
+        assert_eq!(Strategy::from_str("rand2bin"), Some(Strategy::Rand2Bin));
+        assert_eq!(Strategy::from_str("best1exp"), Some(Strategy::Best1Exp));
+        assert_eq!(Strategy::from_str("rand1exp"), Some(Strategy::Rand1Exp));
+        assert_eq!(Strategy::from_str("unknown"), None);
+    }
+
+    #[test]
+    fn test_de_high_dimensional() {
+        let n = 5;
+        let bounds: Vec<(f64, f64)> = vec![(-5.0, 5.0); n];
+        let mut opts = DifferentialEvolutionOptions::default();
+        opts.seed = Some(42);
+        opts.popsize = 30;
+        opts.maxiter = 500;
+        opts.polish = false;
+
+        let result = differential_evolution(sphere, bounds, Some(opts), None);
+        assert!(result.is_ok());
+        let res = result.expect("should succeed");
+        assert!(
+            res.fun < 1.0,
+            "High-dim DE should converge reasonably, got {}",
+            res.fun
+        );
+    }
 }

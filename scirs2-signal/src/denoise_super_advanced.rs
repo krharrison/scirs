@@ -675,20 +675,83 @@ fn attention_based_denoise(
 #[allow(dead_code)]
 fn residual_learning_denoise(
     signal: &Array1<f64>,
-    _noise_analysis: &MultiScaleNoiseAnalysis,
+    noise_analysis: &MultiScaleNoiseAnalysis,
     _simd: &SimdOptimizer,
     _config: &AdvancedAdvancedDenoisingConfig,
 ) -> SignalResult<CoreDenoisingResult> {
-    // Residual learning approach
-    let denoised = signal.clone(); // Placeholder
-    let noise_estimate = Array1::zeros(signal.len());
-    let confidence_map = Array1::ones(signal.len()) * 0.85;
+    // Iterative residual learning: estimate noise, subtract, refine
+    let n = signal.len();
+    let mut denoised = signal.clone();
+    let max_iters = 10;
+    let mut converged = false;
+    let mut iterations = 0;
+
+    // Estimate noise sigma from MAD of signal differences
+    let mut diffs: Vec<f64> = (1..n).map(|i| (signal[i] - signal[i - 1]).abs()).collect();
+    diffs.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let median_diff = if diffs.is_empty() {
+        0.0
+    } else {
+        diffs[diffs.len() / 2]
+    };
+    let noise_sigma = median_diff / 0.6745 / 1.4142; // MAD estimator for Gaussian noise
+
+    // Use noise analysis band variance if available
+    let effective_sigma = if noise_analysis.frequency_band_variance.len() > 0 {
+        let avg_var = noise_analysis.frequency_band_variance.iter().sum::<f64>()
+            / noise_analysis.frequency_band_variance.len() as f64;
+        if avg_var > 1e-15 { avg_var.sqrt() } else { noise_sigma }
+    } else {
+        noise_sigma
+    };
+
+    let threshold = effective_sigma * 2.0; // Soft threshold
+
+    for iter in 0..max_iters {
+        let prev = denoised.clone();
+
+        // Estimate residual (noise component)
+        let residual = signal - &denoised;
+
+        // Soft-threshold the residual to separate structured noise from signal leakage
+        let mut refined_noise = Array1::zeros(n);
+        for i in 0..n {
+            let r = residual[i];
+            if r.abs() > threshold {
+                refined_noise[i] = r.signum() * (r.abs() - threshold);
+            }
+        }
+
+        // Update denoised signal: signal minus the noise that survived thresholding
+        let signal_leakage = &residual - &refined_noise;
+        denoised = &denoised + &signal_leakage * 0.5; // Conservative update
+
+        // Check convergence
+        let change: f64 = (&denoised - &prev).mapv(|x| x * x).sum();
+        let scale: f64 = prev.mapv(|x| x * x).sum().max(1e-15);
+        iterations = iter + 1;
+        if change / scale < 1e-8 {
+            converged = true;
+            break;
+        }
+    }
+
+    let noise_estimate = signal - &denoised;
+    let confidence_map = noise_estimate.mapv(|n_val| {
+        let snr = if n_val.abs() > 1e-15 { 1.0 / (1.0 + n_val.abs() / effective_sigma.max(1e-15)) } else { 0.95 };
+        snr.clamp(0.0, 1.0)
+    });
 
     Ok(CoreDenoisingResult {
         denoised_signal: denoised,
         noise_estimate,
         confidence_map,
-        convergence_info: ConvergenceInfo::default(),
+        convergence_info: ConvergenceInfo {
+            converged,
+            iterations,
+            final_residual: 0.0,
+            convergence_rate: 0.0,
+        },
     })
 }
 
@@ -699,76 +762,391 @@ fn multiscale_dictionary_denoise(
     _simd: &SimdOptimizer,
     _config: &AdvancedAdvancedDenoisingConfig,
 ) -> SignalResult<CoreDenoisingResult> {
-    // Multi-scale dictionary learning
-    let denoised = signal.clone(); // Placeholder
-    let noise_estimate = Array1::zeros(signal.len());
-    let confidence_map = Array1::ones(signal.len()) * 0.9;
+    // Multi-scale denoising using Haar wavelet decomposition with BayesShrink
+    let n = signal.len();
+
+    // Determine number of decomposition levels
+    let max_level = ((n as f64).log2().floor() as usize).min(6);
+    let level = max_level.max(1);
+
+    // Forward Haar wavelet transform (in-place style using arrays)
+    let mut coeffs = signal.to_vec();
+    let mut lengths = vec![n]; // Track lengths at each level
+
+    for _lev in 0..level {
+        let len = lengths.last().copied().unwrap_or(n);
+        if len < 2 {
+            break;
+        }
+        let half = len / 2;
+        let mut approx = vec![0.0; half];
+        let mut detail = vec![0.0; half];
+        let inv_sqrt2 = 1.0 / 2.0_f64.sqrt();
+        for i in 0..half {
+            approx[i] = (coeffs[2 * i] + coeffs[2 * i + 1]) * inv_sqrt2;
+            detail[i] = (coeffs[2 * i] - coeffs[2 * i + 1]) * inv_sqrt2;
+        }
+        // Store: [approx | detail | rest_of_coeffs]
+        coeffs[..half].copy_from_slice(&approx);
+        coeffs[half..len].copy_from_slice(&detail);
+        lengths.push(half);
+    }
+
+    // Estimate noise sigma from finest detail coefficients
+    let finest_start = lengths.last().copied().unwrap_or(0);
+    let finest_end = lengths[lengths.len().saturating_sub(2).max(0)];
+    let detail_slice = &coeffs[finest_start..finest_end.max(finest_start)];
+    let mut abs_detail: Vec<f64> = detail_slice.iter().map(|&x| x.abs()).collect();
+    abs_detail.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let sigma_n = if abs_detail.is_empty() {
+        1e-6
+    } else {
+        abs_detail[abs_detail.len() / 2] / 0.6745
+    };
+
+    // Apply BayesShrink to each level of detail coefficients
+    let num_levels = lengths.len() - 1;
+    for lev in 0..num_levels {
+        let d_start = lengths[num_levels - lev];
+        let d_end = lengths[(num_levels - lev).saturating_sub(1)];
+        if d_start >= d_end {
+            continue;
+        }
+
+        // Estimate signal variance at this level
+        let detail_var: f64 = coeffs[d_start..d_end]
+            .iter()
+            .map(|&x| x * x)
+            .sum::<f64>()
+            / (d_end - d_start) as f64;
+
+        let sigma_s_sq = (detail_var - sigma_n * sigma_n).max(0.0);
+        let threshold = if sigma_s_sq > 1e-15 {
+            sigma_n * sigma_n / sigma_s_sq.sqrt()
+        } else {
+            // Very noisy - kill all detail coefficients
+            detail_var.sqrt() * 3.0
+        };
+
+        // Soft thresholding
+        for c in &mut coeffs[d_start..d_end] {
+            let abs_c = c.abs();
+            if abs_c <= threshold {
+                *c = 0.0;
+            } else {
+                *c = c.signum() * (abs_c - threshold);
+            }
+        }
+    }
+
+    // Inverse Haar wavelet transform
+    let actual_levels = num_levels;
+    for lev in (0..actual_levels).rev() {
+        let half = lengths[actual_levels - lev];
+        let len = lengths[(actual_levels - lev).saturating_sub(1)];
+        if half == 0 || len < 2 {
+            continue;
+        }
+        let inv_sqrt2 = 1.0 / 2.0_f64.sqrt();
+        let approx: Vec<f64> = coeffs[..half].to_vec();
+        let detail: Vec<f64> = coeffs[half..len].to_vec();
+        for i in 0..half.min(detail.len()) {
+            coeffs[2 * i] = (approx[i] + detail[i]) * inv_sqrt2;
+            if 2 * i + 1 < len {
+                coeffs[2 * i + 1] = (approx[i] - detail[i]) * inv_sqrt2;
+            }
+        }
+    }
+
+    let denoised = Array1::from_vec(coeffs[..n].to_vec());
+    let noise_estimate = signal - &denoised;
+    let confidence_map = Array1::ones(n) * 0.9;
 
     Ok(CoreDenoisingResult {
         denoised_signal: denoised,
         noise_estimate,
         confidence_map,
-        convergence_info: ConvergenceInfo::default(),
+        convergence_info: ConvergenceInfo {
+            converged: true,
+            iterations: 1,
+            final_residual: 0.0,
+            convergence_rate: 0.0,
+        },
     })
 }
 
 #[allow(dead_code)]
 fn learned_sparse_denoise(
     signal: &Array1<f64>,
-    noise_analysis: &MultiScaleNoiseAnalysis,
-    simd_optimizer: &SimdOptimizer,
-    config: &AdvancedAdvancedDenoisingConfig,
+    _noise_analysis: &MultiScaleNoiseAnalysis,
+    _simd_optimizer: &SimdOptimizer,
+    _config: &AdvancedAdvancedDenoisingConfig,
 ) -> SignalResult<CoreDenoisingResult> {
-    // Learned sparse representation
-    let denoised = signal.clone(); // Placeholder
-    let noise_estimate = Array1::zeros(signal.len());
-    let confidence_map = Array1::ones(signal.len()) * 0.88;
+    // ISTA (Iterative Shrinkage-Thresholding Algorithm) with DCT dictionary
+    let n = signal.len();
+    let signal_vec: Vec<f64> = signal.to_vec();
+
+    // Forward DCT via manual computation (Type-II DCT)
+    let mut dct_coeffs = vec![0.0; n];
+    let pi = std::f64::consts::PI;
+    for k in 0..n {
+        let mut sum = 0.0;
+        for i in 0..n {
+            sum += signal_vec[i] * ((pi * (2 * i + 1) as f64 * k as f64) / (2.0 * n as f64)).cos();
+        }
+        dct_coeffs[k] = sum * if k == 0 { (1.0 / n as f64).sqrt() } else { (2.0 / n as f64).sqrt() };
+    }
+
+    // Estimate noise level from high-frequency DCT coefficients
+    let high_freq_start = n * 3 / 4;
+    let mut abs_high: Vec<f64> = dct_coeffs[high_freq_start..].iter().map(|&x| x.abs()).collect();
+    abs_high.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let sigma = if abs_high.is_empty() { 1e-6 } else { abs_high[abs_high.len() / 2] / 0.6745 };
+
+    // ISTA iterations
+    let lambda = sigma * (2.0 * (n as f64).ln()).sqrt(); // Universal threshold
+    let step_size = 0.5; // Conservative step size
+    let mut x = dct_coeffs.clone();
+    let mut converged = false;
+    let mut iterations = 0;
+
+    for iter in 0..50 {
+        let prev = x.clone();
+
+        // Gradient step (identity dictionary, so gradient is just x - dct_coeffs)
+        for i in 0..n {
+            x[i] = x[i] - step_size * (x[i] - dct_coeffs[i]);
+        }
+
+        // Soft thresholding (proximal step)
+        let thresh = lambda * step_size;
+        for xi in &mut x {
+            let abs_xi = xi.abs();
+            if abs_xi <= thresh {
+                *xi = 0.0;
+            } else {
+                *xi = xi.signum() * (abs_xi - thresh);
+            }
+        }
+
+        // Check convergence
+        let change: f64 = x.iter().zip(prev.iter()).map(|(a, b)| (a - b).powi(2)).sum();
+        let scale: f64 = prev.iter().map(|a| a.powi(2)).sum::<f64>().max(1e-15);
+        iterations = iter + 1;
+        if change / scale < 1e-8 {
+            converged = true;
+            break;
+        }
+    }
+
+    // Inverse DCT (Type-III)
+    let mut reconstructed = vec![0.0; n];
+    for i in 0..n {
+        let mut sum = x[0] * (1.0 / n as f64).sqrt();
+        for k in 1..n {
+            sum += x[k] * (2.0 / n as f64).sqrt()
+                * ((pi * (2 * i + 1) as f64 * k as f64) / (2.0 * n as f64)).cos();
+        }
+        reconstructed[i] = sum;
+    }
+
+    let denoised = Array1::from_vec(reconstructed);
+    let noise_estimate = signal - &denoised;
+    let confidence_map = Array1::ones(n) * 0.88;
 
     Ok(CoreDenoisingResult {
         denoised_signal: denoised,
         noise_estimate,
         confidence_map,
-        convergence_info: ConvergenceInfo::default(),
+        convergence_info: ConvergenceInfo {
+            converged,
+            iterations,
+            final_residual: 0.0,
+            convergence_rate: 0.0,
+        },
     })
 }
 
 #[allow(dead_code)]
 fn hybrid_wavelet_neural_denoise(
     signal: &Array1<f64>,
-    noise_analysis: &MultiScaleNoiseAnalysis,
-    simd_optimizer: &SimdOptimizer,
-    config: &AdvancedAdvancedDenoisingConfig,
+    _noise_analysis: &MultiScaleNoiseAnalysis,
+    _simd_optimizer: &SimdOptimizer,
+    _config: &AdvancedAdvancedDenoisingConfig,
 ) -> SignalResult<CoreDenoisingResult> {
-    // Hybrid wavelet-neural approach
-    let denoised = signal.clone(); // Placeholder
-    let noise_estimate = Array1::zeros(signal.len());
-    let confidence_map = Array1::ones(signal.len()) * 0.92;
+    // Hybrid wavelet + sigmoid-weighted adaptive shrinkage
+    // Uses wavelet decomposition with learned shrinkage function
+    let n = signal.len();
+
+    // Haar wavelet decomposition (single level for speed)
+    let half = n / 2;
+    if half == 0 {
+        return Ok(CoreDenoisingResult {
+            denoised_signal: signal.clone(),
+            noise_estimate: Array1::zeros(n),
+            confidence_map: Array1::ones(n),
+            convergence_info: ConvergenceInfo::default(),
+        });
+    }
+
+    let inv_sqrt2 = 1.0 / 2.0_f64.sqrt();
+    let mut approx = vec![0.0; half];
+    let mut detail = vec![0.0; half];
+    for i in 0..half {
+        approx[i] = (signal[2 * i] + signal[2 * i + 1]) * inv_sqrt2;
+        detail[i] = (signal[2 * i] - signal[2 * i + 1]) * inv_sqrt2;
+    }
+
+    // Estimate noise level from detail coefficients
+    let mut abs_detail: Vec<f64> = detail.iter().map(|&x| x.abs()).collect();
+    abs_detail.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let sigma = if abs_detail.is_empty() {
+        1e-6
+    } else {
+        abs_detail[abs_detail.len() / 2] / 0.6745
+    };
+
+    // Sigmoid-weighted shrinkage: w(x) = 1 / (1 + exp(-alpha * (|x| - threshold)))
+    // This is a "learned" nonlinear shrinkage that is smoother than hard/soft thresholding
+    let threshold = sigma * (2.0 * (half as f64).ln()).sqrt();
+    let alpha = 5.0 / sigma.max(1e-10); // Steepness parameter
+
+    for d in &mut detail {
+        let abs_d = d.abs();
+        // Sigmoid weight: transitions from 0 (below threshold) to 1 (above threshold)
+        let weight = 1.0 / (1.0 + (-alpha * (abs_d - threshold)).exp());
+        *d *= weight;
+    }
+
+    // Reconstruct
+    let mut reconstructed = vec![0.0; n];
+    for i in 0..half {
+        reconstructed[2 * i] = (approx[i] + detail[i]) * inv_sqrt2;
+        if 2 * i + 1 < n {
+            reconstructed[2 * i + 1] = (approx[i] - detail[i]) * inv_sqrt2;
+        }
+    }
+    // Handle odd-length signal
+    if n % 2 == 1 {
+        reconstructed[n - 1] = signal[n - 1];
+    }
+
+    let denoised = Array1::from_vec(reconstructed);
+    let noise_estimate = signal - &denoised;
+    let confidence_map = Array1::ones(n) * 0.92;
 
     Ok(CoreDenoisingResult {
         denoised_signal: denoised,
         noise_estimate,
         confidence_map,
-        convergence_info: ConvergenceInfo::default(),
+        convergence_info: ConvergenceInfo {
+            converged: true,
+            iterations: 1,
+            final_residual: 0.0,
+            convergence_rate: 0.0,
+        },
     })
 }
 
 #[allow(dead_code)]
 fn adaptive_basis_pursuit_denoise(
     signal: &Array1<f64>,
-    noise_analysis: &MultiScaleNoiseAnalysis,
-    simd_optimizer: &SimdOptimizer,
-    config: &AdvancedAdvancedDenoisingConfig,
+    _noise_analysis: &MultiScaleNoiseAnalysis,
+    _simd_optimizer: &SimdOptimizer,
+    _config: &AdvancedAdvancedDenoisingConfig,
 ) -> SignalResult<CoreDenoisingResult> {
-    // Adaptive basis pursuit
-    let denoised = signal.clone(); // Placeholder
-    let noise_estimate = Array1::zeros(signal.len());
-    let confidence_map = Array1::ones(signal.len()) * 0.86;
+    // ADMM-based Basis Pursuit Denoising (BPDN)
+    // Minimize ||x||_1 subject to ||Ax - b||_2 <= epsilon
+    // Using DCT as the sparsifying transform
+    let n = signal.len();
+    let pi = std::f64::consts::PI;
+
+    // Forward DCT
+    let mut b = vec![0.0; n];
+    for k in 0..n {
+        let mut sum = 0.0;
+        for i in 0..n {
+            sum += signal[i] * ((pi * (2 * i + 1) as f64 * k as f64) / (2.0 * n as f64)).cos();
+        }
+        b[k] = sum * if k == 0 { (1.0 / n as f64).sqrt() } else { (2.0 / n as f64).sqrt() };
+    }
+
+    // Estimate noise level
+    let high_start = n * 3 / 4;
+    let mut abs_high: Vec<f64> = b[high_start..].iter().map(|&x| x.abs()).collect();
+    abs_high.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let sigma = if abs_high.is_empty() { 1e-6 } else { abs_high[abs_high.len() / 2] / 0.6745 };
+
+    // ADMM parameters
+    let rho = 1.0;
+    let lambda = sigma * 1.5;
+    let mut x = b.clone(); // Primal variable (sparse coefficients)
+    let mut z = vec![0.0; n]; // Auxiliary variable
+    let mut u = vec![0.0; n]; // Dual variable (scaled)
+    let mut converged = false;
+    let mut iterations = 0;
+
+    for iter in 0..100 {
+        // x-update: minimize (1/2)||x - b||^2 + (rho/2)||x - z + u||^2
+        // Closed form: x = (b + rho*(z - u)) / (1 + rho)
+        for i in 0..n {
+            x[i] = (b[i] + rho * (z[i] - u[i])) / (1.0 + rho);
+        }
+
+        // z-update: soft thresholding
+        let thresh = lambda / rho;
+        let z_old = z.clone();
+        for i in 0..n {
+            let v = x[i] + u[i];
+            let abs_v = v.abs();
+            z[i] = if abs_v <= thresh {
+                0.0
+            } else {
+                v.signum() * (abs_v - thresh)
+            };
+        }
+
+        // u-update: dual variable
+        for i in 0..n {
+            u[i] += x[i] - z[i];
+        }
+
+        // Check convergence (primal and dual residuals)
+        let primal_res: f64 = x.iter().zip(z.iter()).map(|(a, b)| (a - b).powi(2)).sum::<f64>().sqrt();
+        let dual_res: f64 = z.iter().zip(z_old.iter()).map(|(a, b)| (rho * (a - b)).powi(2)).sum::<f64>().sqrt();
+        iterations = iter + 1;
+
+        if primal_res < 1e-6 * (n as f64).sqrt() && dual_res < 1e-6 * (n as f64).sqrt() {
+            converged = true;
+            break;
+        }
+    }
+
+    // Inverse DCT using the converged z (sparse solution)
+    let mut reconstructed = vec![0.0; n];
+    for i in 0..n {
+        let mut sum = z[0] * (1.0 / n as f64).sqrt();
+        for k in 1..n {
+            sum += z[k] * (2.0 / n as f64).sqrt()
+                * ((pi * (2 * i + 1) as f64 * k as f64) / (2.0 * n as f64)).cos();
+        }
+        reconstructed[i] = sum;
+    }
+
+    let denoised = Array1::from_vec(reconstructed);
+    let noise_estimate = signal - &denoised;
+    let confidence_map = Array1::ones(n) * 0.86;
 
     Ok(CoreDenoisingResult {
         denoised_signal: denoised,
         noise_estimate,
         confidence_map,
-        convergence_info: ConvergenceInfo::default(),
+        convergence_info: ConvergenceInfo {
+            converged,
+            iterations,
+            final_residual: 0.0,
+            convergence_rate: 0.0,
+        },
     })
 }
 
@@ -779,16 +1157,61 @@ fn ensemble_consensus_denoise(
     simd_optimizer: &SimdOptimizer,
     config: &AdvancedAdvancedDenoisingConfig,
 ) -> SignalResult<CoreDenoisingResult> {
-    // Ensemble consensus approach
-    let denoised = signal.clone(); // Placeholder
-    let noise_estimate = Array1::zeros(signal.len());
-    let confidence_map = Array1::ones(signal.len()) * 0.95;
+    // Ensemble consensus: combine multiple denoising methods with inverse-variance weighting
+    let n = signal.len();
+
+    // Run multiple denoisers
+    let result1 = residual_learning_denoise(signal, noise_analysis, simd_optimizer, config)?;
+    let result2 = multiscale_dictionary_denoise(signal, noise_analysis, simd_optimizer, config)?;
+    let result3 = hybrid_wavelet_neural_denoise(signal, noise_analysis, simd_optimizer, config)?;
+
+    // Estimate variance of each denoiser's output (using noise estimate variance)
+    let var1 = result1.noise_estimate.mapv(|x| x * x).sum() / n as f64;
+    let var2 = result2.noise_estimate.mapv(|x| x * x).sum() / n as f64;
+    let var3 = result3.noise_estimate.mapv(|x| x * x).sum() / n as f64;
+
+    // Inverse-variance weighting (higher weight for lower noise variance)
+    let inv_var1 = 1.0 / var1.max(1e-15);
+    let inv_var2 = 1.0 / var2.max(1e-15);
+    let inv_var3 = 1.0 / var3.max(1e-15);
+    let total_weight = inv_var1 + inv_var2 + inv_var3;
+
+    let w1 = inv_var1 / total_weight;
+    let w2 = inv_var2 / total_weight;
+    let w3 = inv_var3 / total_weight;
+
+    // Weighted combination
+    let denoised = &result1.denoised_signal * w1
+        + &result2.denoised_signal * w2
+        + &result3.denoised_signal * w3;
+
+    let noise_estimate = signal - &denoised;
+
+    // Confidence based on consensus: lower variance across methods = higher confidence
+    let mut confidence_map = Array1::zeros(n);
+    for i in 0..n {
+        let vals = [
+            result1.denoised_signal[i],
+            result2.denoised_signal[i],
+            result3.denoised_signal[i],
+        ];
+        let mean_val = vals.iter().sum::<f64>() / 3.0;
+        let var_val = vals.iter().map(|&v| (v - mean_val).powi(2)).sum::<f64>() / 3.0;
+        // High consensus (low variance) = high confidence
+        let signal_scale = signal[i].abs().max(1e-10);
+        confidence_map[i] = (1.0 - (var_val.sqrt() / signal_scale).min(1.0)).max(0.0);
+    }
 
     Ok(CoreDenoisingResult {
         denoised_signal: denoised,
         noise_estimate,
         confidence_map,
-        convergence_info: ConvergenceInfo::default(),
+        convergence_info: ConvergenceInfo {
+            converged: true,
+            iterations: 3, // 3 sub-methods
+            final_residual: 0.0,
+            convergence_rate: 0.0,
+        },
     })
 }
 

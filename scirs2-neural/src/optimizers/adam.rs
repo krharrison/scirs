@@ -20,7 +20,7 @@ use std::fmt::Debug;
 /// use scirs2_core::ndarray::Array1;
 /// use scirs2_neural::optimizers::{Adam, Optimizer};
 /// // Create a simple Adam optimizer with default parameters
-/// let mut adam = Adam::<f64>::default_with_lr(0.001).unwrap();
+/// let mut adam = Adam::<f64>::default_with_lr(0.001).expect("operation should succeed");
 /// // or with custom configuration
 /// let mut adam_custom = Adam::new(0.001, 0.9, 0.999, 1e-8);
 #[derive(Debug, Clone)]

@@ -21,6 +21,9 @@ pub mod krylov_dae;
 // Block-structured preconditioners for DAE systems
 pub mod block_precond;
 
+// Radau IIA implicit Runge-Kutta for stiff DAEs
+pub mod radau;
+
 // Re-export main solver functions
 pub use self::bdf_dae::{bdf_implicit_dae, bdf_semi_explicit_dae};
 pub use self::index_reduction_bdf::{bdf_implicit_with_index_reduction, bdf_with_index_reduction};

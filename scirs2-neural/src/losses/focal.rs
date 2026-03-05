@@ -31,9 +31,9 @@ use std::fmt::Debug;
 ///     [0.0, 1.0, 0.0]   // Second sample, true class is 1
 /// ]).into_dyn();
 /// // Forward pass to calculate loss
-/// let loss = focal.forward(&predictions, &targets).unwrap();
+/// let loss = focal.forward(&predictions, &targets).expect("operation should succeed");
 /// // Backward pass to calculate gradients
-/// let gradients = focal.backward(&predictions, &targets).unwrap();
+/// let gradients = focal.backward(&predictions, &targets).expect("operation should succeed");
 /// ```
 #[derive(Debug, Clone)]
 pub struct FocalLoss {

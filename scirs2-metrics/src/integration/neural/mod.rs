@@ -35,9 +35,9 @@
 //! let targets = Array::<f64, IxDyn>::zeros(IxDyn(&[10, 1]));
 //!
 //! // Compute metrics
-//! let acc = accuracy.compute(&predictions, &targets).unwrap();
-//! let prec = precision.compute(&predictions, &targets).unwrap();
-//! let f1 = f1_score.compute(&predictions, &targets).unwrap();
+//! let acc = accuracy.compute(&predictions, &targets).expect("should succeed");
+//! let prec = precision.compute(&predictions, &targets).expect("should succeed");
+//! let f1 = f1_score.compute(&predictions, &targets).expect("should succeed");
 //! # }
 //! ```
 //!
@@ -90,11 +90,11 @@
 //! ])];
 //!
 //! // Create visualizations
-//! let roc_viz = neural_roc_curve_visualization(&y_true, &y_score, Some(0.8)).unwrap();
-//! let pr_viz = neural_precision_recall_curve_visualization(&y_true, &y_score, Some(0.75)).unwrap();
+//! let roc_viz = neural_roc_curve_visualization(&y_true, &y_score, Some(0.8)).expect("should succeed");
+//! let pr_viz = neural_precision_recall_curve_visualization(&y_true, &y_score, Some(0.75)).expect("should succeed");
 //! let cm_viz = neural_confusion_matrix_visualization(
 //!     &y_true, &y_score, Some(vec!["Class 0".to_string(), "Class 1".to_string()]), false
-//! ).unwrap();
+//! ).expect("should succeed");
 //! let history_viz = training_history_visualization(
 //!     vec!["loss".to_string(), "accuracy".to_string()],
 //!     history,

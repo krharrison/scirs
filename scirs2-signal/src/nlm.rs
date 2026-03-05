@@ -33,7 +33,7 @@ use scirs2_core::ndarray::s;
 //
 // // Apply Non-Local Means denoising
 // let config = NlmConfig::default();
-// let denoised = nlm_denoise_1d(&noisy_signal, &config).unwrap();
+// let denoised = nlm_denoise_1d(&noisy_signal, &config).expect("operation should succeed");
 // ```
 
 use crate::error::{SignalError, SignalResult};
@@ -100,7 +100,7 @@ impl Default for NlmConfig {
 ///
 /// let signal = Array1::from_vec(vec![1.2, 2.3, 3.1, 2.2, 1.3, 0.2, -0.3, -1.1]);
 /// let config = NlmConfig::default();
-/// let denoised = nlm_denoise_1d(&signal, &config).unwrap();
+/// let denoised = nlm_denoise_1d(&signal, &config).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn nlm_denoise_1d(signal: &Array1<f64>, config: &NlmConfig) -> SignalResult<Array1<f64>> {
@@ -265,7 +265,7 @@ pub fn nlm_denoise_1d(signal: &Array1<f64>, config: &NlmConfig) -> SignalResult<
 ///
 /// let image = Array2::from_shape_fn((10, 10), |(i, j)| (i + j) as f64 / 20.0);
 /// let config = NlmConfig::default();
-/// let denoised = nlm_denoise_2d(&image, &config).unwrap();
+/// let denoised = nlm_denoise_2d(&image, &config).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn nlm_denoise_2d(image: &Array2<f64>, config: &NlmConfig) -> SignalResult<Array2<f64>> {

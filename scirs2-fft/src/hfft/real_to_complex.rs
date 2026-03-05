@@ -40,7 +40,7 @@ use super::utility::try_as_complex;
 /// let x = vec![5.0, -1.0, 2.0];
 ///
 /// // Compute the IHFFT (resulting in a complex array with Hermitian symmetry)
-/// let result = ihfft(&x, None, None).unwrap();
+/// let result = ihfft(&x, None, None).expect("valid input");
 ///
 /// // Verify Hermitian symmetry properties
 /// assert_eq!(result.len(), 3);

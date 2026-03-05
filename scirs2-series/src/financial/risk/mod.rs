@@ -70,15 +70,15 @@
 //! let market_returns = array![0.008, -0.018, 0.012, -0.006, 0.010, 0.004, -0.002, 0.006];
 //!
 //! // Risk metrics
-//! let var_95 = metrics::var_historical(&returns, 0.95).unwrap();
-//! let es_95 = metrics::expected_shortfall(&returns, 0.95).unwrap();
-//! let sharpe = metrics::sharpe_ratio(&returns, 0.02, 252).unwrap();
-//! let beta = metrics::beta(&returns, &market_returns).unwrap();
+//! let var_95 = metrics::var_historical(&returns, 0.95).expect("should succeed");
+//! let es_95 = metrics::expected_shortfall(&returns, 0.95).expect("should succeed");
+//! let sharpe = metrics::sharpe_ratio(&returns, 0.02, 252).expect("should succeed");
+//! let beta = metrics::beta(&returns, &market_returns).expect("should succeed");
 //!
 //! // Drawdown analysis
-//! let max_dd = drawdown::max_drawdown(&portfolio_values).unwrap();
-//! let pain_idx = drawdown::pain_index(&portfolio_values).unwrap();
-//! let ulcer_idx = drawdown::ulcer_index(&portfolio_values).unwrap();
+//! let max_dd = drawdown::max_drawdown(&portfolio_values).expect("should succeed");
+//! let pain_idx = drawdown::pain_index(&portfolio_values).expect("should succeed");
+//! let ulcer_idx = drawdown::ulcer_index(&portfolio_values).expect("should succeed");
 //!
 //! println!("Risk Assessment:");
 //! println!("VaR (95%): {:.4}", var_95);
@@ -101,14 +101,14 @@
 //! let risk_free = 0.02;
 //!
 //! // Compare risk-adjusted performance
-//! let sharpe_a = sharpe_ratio(&portfolio_a, risk_free, 252).unwrap();
-//! let sharpe_b = sharpe_ratio(&portfolio_b, risk_free, 252).unwrap();
+//! let sharpe_a = sharpe_ratio(&portfolio_a, risk_free, 252).expect("should succeed");
+//! let sharpe_b = sharpe_ratio(&portfolio_b, risk_free, 252).expect("should succeed");
 //!
-//! let sortino_a = sortino_ratio(&portfolio_a, risk_free, 252).unwrap();
-//! let sortino_b = sortino_ratio(&portfolio_b, risk_free, 252).unwrap();
+//! let sortino_a = sortino_ratio(&portfolio_a, risk_free, 252).expect("should succeed");
+//! let sortino_b = sortino_ratio(&portfolio_b, risk_free, 252).expect("should succeed");
 //!
-//! let info_a = information_ratio(&portfolio_a, &benchmark).unwrap();
-//! let info_b = information_ratio(&portfolio_b, &benchmark).unwrap();
+//! let info_a = information_ratio(&portfolio_a, &benchmark).expect("should succeed");
+//! let info_b = information_ratio(&portfolio_b, &benchmark).expect("should succeed");
 //!
 //! println!("Portfolio A - Sharpe: {:.3}, Sortino: {:.3}, Info: {:.3}", sharpe_a, sortino_a, info_a);
 //! println!("Portfolio B - Sharpe: {:.3}, Sortino: {:.3}, Info: {:.3}", sharpe_b, sortino_b, info_b);
@@ -125,9 +125,9 @@
 //! let returns = array![0.10, -0.045, -0.095, 0.263, -0.042, 0.130, -0.038, 0.120];
 //!
 //! // Detailed drawdown analysis
-//! let dd_periods = drawdown_recovery_analysis(&portfolio_values).unwrap();
+//! let dd_periods = drawdown_recovery_analysis(&portfolio_values).expect("should succeed");
 //! let max_losses = max_consecutive_losses(&returns);
-//! let avg_recovery = average_recovery_time(&portfolio_values).unwrap();
+//! let avg_recovery = average_recovery_time(&portfolio_values).expect("should succeed");
 //!
 //! println!("Drawdown Analysis:");
 //! println!("Number of drawdown periods: {}", dd_periods.len());

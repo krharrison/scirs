@@ -1,346 +1,361 @@
-# SciRS2 NDImage - Production Ready Image Processing
+# SciRS2 NDImage
 
 [![crates.io](https://img.shields.io/crates/v/scirs2-ndimage.svg)](https://crates.io/crates/scirs2-ndimage)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-ndimage)](https://docs.rs/scirs2-ndimage)
-[![Tests](https://img.shields.io/badge/tests-142%20passing-brightgreen.svg)]()
 
-**Production-ready multidimensional image processing** for the SciRS2 scientific computing ecosystem (v0.1.5). Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module delivers a comprehensive, high-performance toolkit for n-dimensional image processing with full SciPy ndimage API compatibility, ecosystem consistency, and optimization for enterprise and research applications.
+**scirs2-ndimage** is the N-dimensional image processing crate for the [SciRS2](https://github.com/cool-japan/scirs) scientific computing library. It provides a comprehensive toolkit for filtering, morphology, interpolation, measurements, segmentation, and feature detection on arrays of arbitrary dimensionality, modeled after SciPy's `ndimage` module.
 
-## 🚀 Production Status
+## What scirs2-ndimage Provides
 
-**Version 0.1.0** (SciRS2 POLICY & Enhanced Performance) - Production-grade stability with ecosystem consistency:
-- ✅ **142 unit tests + 39 doctests** - 100% passing
-- ✅ **Zero warnings** - Strict code quality standards
-- ✅ **Performance optimized** - SIMD and parallel processing
-- ✅ **Memory efficient** - Handles large datasets seamlessly
-- ✅ **Type safe** - Leverages Rust's compile-time guarantees
+Use scirs2-ndimage when you need to:
 
-## 🎯 Key Features
+- Filter N-dimensional arrays (Gaussian, median, rank, bilateral, edge detection)
+- Apply morphological operations to binary or grayscale images in any dimension
+- Measure region properties (area, centroid, moments, Hu moments) after labeling
+- Segment images with watershed, active contours, or graph cut methods
+- Transform arrays geometrically (rotate, zoom, shift, affine transform)
+- Analyze 3D volumetric data (medical images, electron microscopy)
+- Process hyperspectral imagery
+- Compute co-occurrence matrices and texture features
+- Detect features (corners, edges, SIFT descriptors, HOG)
+- Perform atlas-based segmentation
 
-### 🔧 Comprehensive Functionality
-- **Filters**: N-dimensional Gaussian, median, rank, edge detection (Sobel, Prewitt, Laplace, Canny)
-- **Morphology**: Binary/grayscale operations, distance transforms, hit-or-miss transforms
-- **Measurements**: Region analysis, moments (raw, central, normalized, Hu), statistical measures
-- **Segmentation**: Advanced thresholding (Otsu, adaptive), watershed algorithms
-- **Feature Detection**: Corner detection (Harris, FAST), unified edge detection
-- **Interpolation**: Spline interpolation, geometric transforms, affine transforms
+## Features (v0.3.0)
 
-### ⚡ Performance & Scalability
-- **SIMD Acceleration**: Vectorized operations for maximum performance
-- **Parallel Processing**: Multi-core optimization for large datasets
-- **Memory Efficiency**: Optimized algorithms for minimal memory footprint
-- **N-Dimensional**: Seamless support for 1D, 2D, 3D, and higher dimensions
+### Image Filtering
+- **Gaussian Filters**: `gaussian_filter`, `gaussian_filter1d`, `gaussian_gradient_magnitude`, `gaussian_laplace`
+- **Median Filter**: N-dimensional median filter with configurable footprint
+- **Rank Filters**: Minimum, maximum, percentile, generic rank filter (full n-dimensional support)
+- **Edge Detection**: Sobel, Prewitt, Laplacian, Scharr, Roberts cross-gradient
+- **Bilateral Filter**: Edge-preserving bilateral filtering
+- **Uniform Filter**: Box/uniform convolution filter
+- **Generic Filter**: Apply any custom function over a sliding window
+- **Convolution**: N-dimensional `convolve` and `convolve1d`
+- **Boundary Modes**: `reflect`, `nearest`, `wrap`, `mirror`, `constant`
+- **Fourier Filters**: Fourier Gaussian, uniform, ellipsoid, shift operations
 
-### 🛡️ Enterprise Grade
-- **Type Safety**: Compile-time correctness with Rust's type system
-- **Error Handling**: Comprehensive error handling with detailed diagnostics
-- **API Stability**: SciPy-compatible API for easy migration
-- **Benchmark Tested**: Comprehensive performance validation
+### Morphological Operations
+- **Binary Morphology**: Erosion, dilation, opening, closing, hit-or-miss transform, propagation, hole filling
+- **Grayscale Morphology**: Erosion, dilation, opening, closing, top-hat (white/black), morphological gradient, Laplace
+- **Distance Transforms**: Euclidean (EDT via Felzenszwalb-Huttenlocher O(n) algorithm), city-block, chessboard
+- **Connected Components**: Labeling, find objects, remove small objects
+- **Structuring Elements**: Generate disk, square, diamond, and arbitrary structuring elements
+- **Skeletonization**: Topological thinning to medial axis
 
-## 📦 Installation
+### Image Measurements
+- **Region Statistics**: Sum, mean, variance, standard deviation, min, max per label
+- **Moments**: Raw moments, central moments, normalized moments, Hu moments (rotation-invariant)
+- **Region Properties**: Area, perimeter, centroid, bounding box, eccentricity, orientation, principal axes
+- **Center of Mass**: N-dimensional center of mass computation
+- **Extrema**: Local and global minima/maxima with positions
+- **Histograms**: Per-label histogram computation
+- **Inertia Tensor**: Region inertia tensor for orientation analysis
 
-### Basic Installation
+### Image Segmentation
+- **Thresholding**: Binary, Otsu's automatic, adaptive (mean/Gaussian)
+- **Watershed**: Standard watershed and marker-controlled watershed
+- **Active Contours**: Snakes with gradient vector flow (GVF)
+- **Level Set Methods**: Chan-Vese segmentation (single and multi-phase)
+- **Graph Cuts**: Max-flow/min-cut segmentation with interactive refinement
+- **SLIC Superpixels**: Simple Linear Iterative Clustering (2D and 3D)
+- **Atlas-Based Segmentation**: Label transfer via registration atlas
+
+### Feature Detection
+- **Edge Detection**: Canny edge detector, unified edge detection API
+- **Corner Detection**: Harris corners, FAST corners
+- **SIFT Descriptor Computation**: Scale-space keypoint detection and description
+- **HOG (Histogram of Oriented Gradients)**: Cell-based gradient histogram features
+- **Template Matching**: Normalized cross-correlation, zero-mean NCC
+- **Gabor Filters**: 2D Gabor filter bank for texture analysis
+- **Shape Analysis**: Moments-based shape descriptors, shape matching
+
+### Geometric Interpolation
+- **Map Coordinates**: Interpolate array at arbitrary coordinates (0th-5th order splines)
+- **Affine Transform**: Apply an affine transformation matrix
+- **Geometric Transform**: General geometric transformation with custom mapping
+- **Shift**: Sub-pixel shift with spline interpolation
+- **Rotate**: Array rotation about any axis
+- **Zoom**: Uniform and anisotropic zooming
+- **Spline Filter**: Pre-filter for spline interpolation (`spline_filter`, `spline_filter1d`)
+
+### 3D Volume Analysis
+- **Volumetric Operations**: 3D morphology, filtering, distance transforms
+- **3D Filters**: 3D Gaussian, Sobel, Laplacian, bilateral
+- **Volume Measurements**: 3D region properties, surface area, Euler characteristic
+- **Slice Processing**: Per-slice operations on 3D stacks
+
+### Medical Image Processing
+- **Frangi Vesselness**: Multi-scale vessel enhancement filter
+- **Bone Enhancement**: Bone structure enhancement for CT data
+- **Lung Nodule Detection**: Basic nodule candidate generation
+- **DICOM-Compatible Arrays**: Works natively with 3D medical arrays
+
+### Hyperspectral Image Analysis
+- **Band Processing**: Per-band filtering and morphology
+- **Spectral Indices**: NDVI, NDWI, and custom spectral index computation
+- **Spectral Unmixing**: Linear unmixing of spectral signatures
+- **Cloud Detection**: Cloud and shadow masking for satellite imagery
+- **Pan-Sharpening**: Fusion of panchromatic and multispectral bands
+
+### Co-occurrence Matrices and Texture
+- **GLCM**: Gray-level co-occurrence matrix computation (2D and 3D)
+- **Texture Features**: Contrast, correlation, energy, homogeneity from GLCM
+- **LBP**: Local binary patterns
+- **Gabor Feature Maps**: Multi-scale multi-orientation Gabor responses
+
+### Deep Feature Extraction Interface
+- Interface for forwarding arrays through external feature extractors
+- Hooks for deep learning model integration (via scirs2-neural)
+
+## Installation
+
 ```toml
 [dependencies]
-scirs2-ndimage = "0.1.5"
+scirs2-ndimage = "0.3.0"
 ```
 
-### Production Configuration (Recommended)
-For maximum performance in production environments:
+For parallel processing and SIMD:
 
 ```toml
 [dependencies]
-scirs2-ndimage = { version = "0.1.5", features = ["parallel", "simd"] }
-ndarray = "0.16"  # Required for array operations
+scirs2-ndimage = { version = "0.3.0", features = ["parallel", "simd"] }
 ```
 
-### Feature Flags
-- `parallel`: Enable multi-core parallel processing (recommended for large datasets)
-- `simd`: Enable SIMD vectorization for performance-critical operations
-- Default: Core functionality without performance optimizations
+## Feature Flags
 
-## 🚀 Quick Start
+| Flag | Description |
+|------|-------------|
+| `parallel` | Enable Rayon-based multi-core parallel processing (recommended for arrays >10K elements) |
+| `simd` | Enable SIMD vectorization for filters and morphological operations |
+
+## Quick Start
 
 ```rust
 use scirs2_ndimage::{filters, morphology};
-use ndarray::Array2;
+use scirs2_core::ndarray::Array2;
 
-// Create test image
-let image = Array2::<f64>::from_shape_fn((100, 100), |(i, j)| {
-    ((i as f64 - 50.0).powi(2) + (j as f64 - 50.0).powi(2)).sqrt()
-});
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let image = Array2::<f64>::from_shape_fn((100, 100), |(i, j)| {
+        if (i > 30 && i < 70) && (j > 30 && j < 70) { 1.0 } else { 0.0 }
+    });
 
-// Apply Gaussian filter
-let filtered = filters::gaussian::gaussian_filter(&image, 2.0, None, None)?;
+    // Gaussian smoothing
+    let smoothed = filters::gaussian_filter(&image, 2.0, None, None)?;
 
-// Apply morphological operations  
-let dilated = morphology::binary::binary_dilation(&image, &structuring_element, None, None)?;
+    // Morphological dilation
+    let struct_elem = morphology::structuring::generate_disk(3)?;
+    let dilated = morphology::binary_dilation(&image, &struct_elem, None, None)?;
 
-// All operations support n-dimensional arrays seamlessly
-```
-
-## 📚 Comprehensive Examples
-
-```rust
-use scirs2_ndimage::{filters, morphology, measurements, interpolation};
-use ndarray::{Array2, Array3};
-
-// Create a sample 2D image
-let image = Array2::<f64>::from_shape_fn((10, 10), |(i, j)| {
-    if (i > 3 && i < 7) && (j > 3 && j < 7) {
-        1.0
-    } else {
-        0.0
-    }
-});
-
-// Apply Gaussian filter
-let sigma = 1.0;
-let filtered = filters::gaussian::gaussian_filter(&image, sigma, None, None).unwrap();
-
-// Apply rank filters (works on any dimension)
-let max_filtered = filters::rank::maximum_filter(&image, &[3, 3], None).unwrap();
-let min_filtered = filters::rank::minimum_filter(&image, &[3, 3], None).unwrap();
-
-// Apply binary dilation
-let struct_elem = morphology::structuring::generate_disk(2).unwrap();
-let dilated = morphology::binary::binary_dilation(&image, &struct_elem, None, None).unwrap();
-
-// Hit-or-miss transform for pattern detection
-let pattern = Array2::from_shape_vec((3, 3), vec![0, 1, 0, 1, 1, 1, 0, 1, 0]).unwrap();
-let hit_miss = morphology::binary::binary_hit_or_miss(&image, &pattern, None, None).unwrap();
-
-// Distance transform with multiple metrics
-use ndarray::IxDyn;
-let image_dyn = image.clone().into_dimensionality::<IxDyn>().unwrap();
-let (distances, _) = morphology::distance_transform_edt(&image_dyn, None, true, false);
-
-// Measure region properties
-let labels = measurements::region::label(&image, None).unwrap();
-let props = measurements::region::regionprops(&labels, Some(&image), None).unwrap();
-for region in props {
-    println!("Region: area={}, centroid={:?}", region.area, region.centroid);
+    println!("Image processed: {:?}", smoothed.shape());
+    Ok(())
 }
-
-// 3D example - rank filters work on any dimension
-let volume = Array3::<f64>::zeros((20, 20, 20));
-let filtered_3d = filters::rank::median_filter(&volume, &[3, 3, 3], None).unwrap();
-
-// Rotate image using spline interpolation
-let rotated = interpolation::geometric::rotate(&image, 45.0, None, None, None, None).unwrap();
 ```
 
-## 🔧 API Reference
+## Comprehensive Examples
 
-### Filters
-
-Image filtering functionality:
+### Filtering
 
 ```rust
-use scirs2_ndimage::filters::{
-    // Gaussian filters
-    gaussian::gaussian_filter,         // Apply Gaussian filter to an n-dimensional array
-    gaussian::gaussian_filter1d,       // Apply Gaussian filter along a single axis
-    gaussian::gaussian_gradient_magnitude, // Compute gradient magnitude using Gaussian derivatives
-    gaussian::gaussian_laplace,        // Compute Laplace filter using Gaussian 2nd derivatives
-    
-    // Median filters
-    median::median_filter,           // Apply median filter (n-dimensional)
-    
-    // Rank filters (full n-dimensional support)
-    rank::rank_filter,             // Generic rank filter (any dimension)
-    rank::percentile_filter,       // Percentile filter (nth_percentile)
-    rank::minimum_filter,          // Minimum filter
-    rank::maximum_filter,          // Maximum filter
-    
-    // Edge filters
-    edge::prewitt,                 // Apply Prewitt filter
-    edge::sobel,                   // Apply Sobel filter (n-dimensional)
-    edge::laplace,                 // Apply Laplace filter
-    edge::scharr,                  // Apply Scharr filter
-    edge::roberts,                 // Apply Roberts cross-gradient filter
-    
-    // Generic and specialized filters
-    generic::generic_filter,       // Apply custom function over sliding window
-    uniform::uniform_filter,       // Apply uniform/box filter
-    bilateral::bilateral_filter,   // Edge-preserving bilateral filter
-    
-    // Convolution
-    convolve::convolve,            // N-dimensional convolution
-    convolve::convolve1d,          // 1-dimensional convolution
-};
+use scirs2_ndimage::filters;
+use scirs2_core::ndarray::Array2;
+
+fn filtering_example() -> Result<(), Box<dyn std::error::Error>> {
+    let image = Array2::<f64>::from_shape_fn((256, 256), |(i, j)| {
+        (i as f64 * 0.1).sin() * (j as f64 * 0.1).cos()
+    });
+
+    // Gaussian filter
+    let gaussian = filters::gaussian_filter(&image, 2.0, None, None)?;
+
+    // Median filter (rank-based, N-dimensional)
+    let median = filters::median_filter(&image, &[5, 5], None)?;
+
+    // Maximum filter
+    let dilated = filters::maximum_filter(&image, &[3, 3], None)?;
+
+    // Sobel edge detection
+    let edges_x = filters::sobel(&image, 0, None)?;
+    let edges_y = filters::sobel(&image, 1, None)?;
+
+    // Custom generic filter (mean over 5x5 window)
+    let mean_filtered = filters::generic_filter(
+        &image, |window| window.iter().sum::<f64>() / window.len() as f64,
+        &[5, 5], None,
+    )?;
+
+    println!("All filters applied");
+    Ok(())
+}
 ```
 
-### Morphology
-
-Morphological operations:
+### Morphological Operations
 
 ```rust
-use scirs2_ndimage::morphology::{
-    // Binary morphology
-    binary::binary_erosion,          // Binary erosion
-    binary::binary_dilation,         // Binary dilation
-    binary::binary_opening,          // Binary opening
-    binary::binary_closing,          // Binary closing
-    binary::binary_hit_or_miss,      // Binary hit-or-miss transform
-    binary::binary_propagation,      // Binary propagation
-    binary::binary_fill_holes,       // Fill holes in binary objects
-    
-    // Grayscale morphology
-    grayscale::grey_erosion,         // Grayscale erosion
-    grayscale::grey_dilation,        // Grayscale dilation
-    grayscale::grey_opening,         // Grayscale opening
-    grayscale::grey_closing,         // Grayscale closing
-    grayscale::white_tophat,         // White top-hat transform
-    grayscale::black_tophat,         // Black top-hat transform
-    grayscale::morphological_gradient, // Morphological gradient
-    grayscale::morphological_laplace, // Morphological Laplace
-    
-    // Distance transforms (optimized)
-    distance_transform_edt,          // Euclidean distance transform
-    distance_transform_cdt,          // City-block (Manhattan) distance transform
-    distance_transform_bf,           // Brute-force distance transform (multiple metrics)
-    
-    // Connected components
-    connected::label,                // Label connected components
-    connected::find_objects,         // Find objects in labeled array
-    connected::remove_small_objects, // Remove small connected components
-    
-    // Structuring elements
-    structuring::generate_binary_structure, // Generate binary structuring element
-    structuring::iterate_structure,  // Iterate structure by successive dilations
-};
+use scirs2_ndimage::morphology;
+use scirs2_core::ndarray::Array2;
+
+fn morphology_example() -> Result<(), Box<dyn std::error::Error>> {
+    let binary = Array2::<f64>::from_shape_fn((100, 100), |(i, j)| {
+        if i > 30 && i < 70 && j > 30 && j < 70 { 1.0 } else { 0.0 }
+    });
+
+    let disk = morphology::structuring::generate_disk(5)?;
+
+    // Binary erosion and dilation
+    let eroded = morphology::binary_erosion(&binary, &disk, None, None)?;
+    let dilated = morphology::binary_dilation(&binary, &disk, None, None)?;
+
+    // Opening removes small bright regions
+    let opened = morphology::binary_opening(&binary, &disk, None, None)?;
+
+    // Distance transform (Euclidean, O(n) algorithm)
+    use scirs2_core::ndarray::IxDyn;
+    let dyn_img = binary.into_dimensionality::<IxDyn>().unwrap();
+    let (distances, _indices) = morphology::distance_transform_edt(&dyn_img, None, true, false);
+
+    // Hit-or-miss for pattern detection
+    let pattern = Array2::from_shape_vec((3, 3), vec![0i32, 1, 0, 1, 1, 1, 0, 1, 0]).unwrap();
+    // let hit_miss = morphology::binary_hit_or_miss(&binary, &pattern, None, None)?;
+
+    Ok(())
+}
 ```
 
-### Measurements
-
-Measurement functions:
+### Region Measurements
 
 ```rust
-use scirs2_ndimage::measurements::{
-    // Statistics
-    statistics::sum_labels,            // Sum of array elements over labeled regions
-    statistics::mean_labels,           // Mean of array elements over labeled regions
-    statistics::count_labels,          // Count elements in labeled regions
-    
-    // Extrema
-    extrema::extrema,                  // Min, max, min position, max position
-    extrema::local_extrema,            // Find local extrema in an array
-    
-    // Moments
-    moments::moments,                  // Calculate all raw moments
-    moments::moments_central,          // Calculate central moments
-    moments::moments_normalized,       // Calculate normalized moments
-    moments::moments_hu,               // Calculate Hu moments (rotation invariant)
-    moments::center_of_mass,           // Calculate center of mass
-    moments::inertia_tensor,           // Calculate inertia tensor
-    
+use scirs2_ndimage::{measurements, morphology};
+use scirs2_core::ndarray::Array2;
+
+fn measurement_example() -> Result<(), Box<dyn std::error::Error>> {
+    let image = Array2::<f64>::from_shape_fn((100, 100), |(i, j)| {
+        if (i as f64 - 50.0).hypot(j as f64 - 50.0) < 20.0 { 1.0 } else { 0.0 }
+    });
+
+    // Label connected components
+    let labels = measurements::label(&image, None)?;
+
     // Region properties
-    region::find_objects,              // Find objects in a labeled array
-    region::region_properties,         // Measure properties of labeled regions
-};
+    let props = measurements::regionprops(&labels, Some(&image), None)?;
+    for region in &props {
+        println!("Region {}: area={}, centroid={:?}",
+            region.label, region.area, region.centroid);
+    }
+
+    // Hu moments (rotation-invariant descriptors)
+    let hu = measurements::moments_hu(&image)?;
+    println!("Hu moments: {:?}", hu);
+
+    Ok(())
+}
 ```
 
-### Segmentation
-
-Image segmentation functions:
+### Watershed Segmentation
 
 ```rust
-use scirs2_ndimage::segmentation::{
-    // Thresholding
-    thresholding::otsu_threshold,      // Otsu's thresholding method
-    thresholding::threshold_binary,    // Basic binary thresholding
-    thresholding::adaptive_threshold,  // Adaptive thresholding
-    
-    // Watershed
-    watershed::watershed,              // Watershed algorithm
-    watershed::marker_watershed,       // Marker-controlled watershed
-};
+use scirs2_ndimage::segmentation::watershed;
+use scirs2_ndimage::filters;
+use scirs2_core::ndarray::Array2;
+
+fn watershed_example() -> Result<(), Box<dyn std::error::Error>> {
+    let image = Array2::<f64>::zeros((200, 200));
+    // ... populate image ...
+
+    // Compute gradient magnitude as elevation map
+    let grad_x = filters::sobel(&image, 0, None)?;
+    let grad_y = filters::sobel(&image, 1, None)?;
+    let gradient = grad_x.mapv(|v| v * v) + grad_y.mapv(|v| v * v);
+    let gradient = gradient.mapv(f64::sqrt);
+
+    // Watershed (seeds placed at local minima of gradient)
+    // let labels = watershed(&gradient, &markers, None)?;
+
+    Ok(())
+}
 ```
 
-### Features
-
-Feature detection:
+### 3D Volume Processing
 
 ```rust
-use scirs2_ndimage::features::{
-    // Corner detection
-    corners::harris_corners,           // Harris corner detector
-    corners::fast_corners,             // FAST corner detector
-    
-    // Edge detection
-    edges::canny,                      // Canny edge detector
-    edges::edge_detector,              // Unified edge detector with multiple methods
-    edges::edge_detector_simple,       // Simple edge detector
-    edges::gradient_edges,             // Gradient-based edge detection
-    edges::laplacian_edges,            // Laplacian-based edge detection
-};
+use scirs2_ndimage::filters;
+use scirs2_core::ndarray::Array3;
+
+fn volume_example() -> Result<(), Box<dyn std::error::Error>> {
+    let volume = Array3::<f64>::zeros((64, 256, 256));
+
+    // 3D Gaussian smoothing
+    let smoothed = filters::gaussian_filter(&volume, 1.5, None, None)?;
+
+    // 3D rank filter
+    let max_filtered = filters::maximum_filter(&volume, &[3, 3, 3], None)?;
+
+    // 3D median filter
+    let median = filters::median_filter(&volume, &[3, 3, 3], None)?;
+
+    println!("3D volume processed: {:?}", smoothed.shape());
+    Ok(())
+}
 ```
 
-### Interpolation
-
-Interpolation functions:
+### SLIC Superpixels
 
 ```rust
-use scirs2_ndimage::interpolation::{
-    // Coordinate mapping
-    coordinates::map_coordinates,      // Map input array to new coordinates using interpolation
-    coordinates::interpn,              // N-dimensional interpolation
-    coordinates::value_at_coordinates, // Interpolate value at specific coordinates
-    
-    // Spline interpolation
-    spline::spline_filter,             // Multi-dimensional spline filter
-    spline::spline_filter1d,           // Spline filter along a single axis
-    spline::bspline,                   // B-spline interpolation
-    
-    // Geometric transformations
-    geometric::shift,                  // Shift an array
-    geometric::rotate,                 // Rotate an array
-    geometric::zoom,                   // Zoom an array
-    
-    // Advanced transforms
-    transform::affine_transform,       // Apply an affine transformation
-    transform::geometric_transform,    // General geometric transformation
-};
+use scirs2_ndimage::segmentation::slic_superpixels;
+use scirs2_core::ndarray::Array3;
+
+fn slic_example() -> Result<(), Box<dyn std::error::Error>> {
+    // let image: Array3<f64> = ...;  // H x W x C color image
+    // let labels = slic_superpixels(&image, 100, 10.0, None)?;
+    // println!("Superpixel labels shape: {:?}", labels.shape());
+    Ok(())
+}
 ```
 
-## 📈 Performance & Benchmarks
+### Atlas-Based Segmentation
 
-### Benchmark Suite
-Production-grade performance validation with comprehensive benchmark coverage:
+```rust
+use scirs2_ndimage::segmentation::atlas::atlas_based_segment;
+use scirs2_core::error::CoreResult;
 
-| Operation Category | Benchmark Coverage |
-|-------------------|-------------------|
-| **Filters** | Rank, generic, edge filters, boundary modes |
-| **Morphology** | Binary/grayscale operations, distance transforms |
-| **Interpolation** | Affine transforms, coordinate mapping, spline orders |
-| **Multi-dimensional** | Performance scaling across 1D-3D+ dimensions |
-
-### Running Benchmarks
-```bash
-# Complete benchmark suite
-cargo bench
-
-# Category-specific benchmarks
-cargo bench --bench filters_bench
-cargo bench --bench morphology_bench
-cargo bench --bench interpolation_bench
-cargo bench --bench distance_transform_bench
+fn atlas_example() -> CoreResult<()> {
+    // Register atlas to subject, then transfer labels
+    // let result = atlas_based_segment(&subject, &atlas_image, &atlas_labels, None)?;
+    // println!("Segmented regions: {:?}", result.unique_labels());
+    Ok(())
+}
 ```
 
-### Performance Characteristics
-- **SIMD acceleration**: 2-4x performance improvement on supported operations
-- **Parallel processing**: Linear scaling with CPU cores for large datasets
-- **Memory efficiency**: Optimized algorithms minimize memory allocation
-- **N-dimensional scaling**: Consistent performance across dimensions
+## Performance
 
-## Contributing
+- **SIMD acceleration**: 2-4x speedup on supported filter and morphology operations
+- **Parallel processing**: Linear scaling with CPU cores for large arrays (`parallel` feature)
+- **O(n) distance transform**: Felzenszwalb-Huttenlocher separable EDT algorithm
+- **Memory-efficient**: Chunked processing for images larger than available RAM
+- **N-dimensional**: Consistent API and performance across 1D, 2D, 3D, and higher dimensions
 
-See the [CONTRIBUTING.md](../CONTRIBUTING.md) file for contribution guidelines.
+## Compatibility with SciPy ndimage
+
+API is modeled after `scipy.ndimage`. Key equivalents:
+
+| SciRS2 | SciPy |
+|--------|-------|
+| `filters::gaussian_filter()` | `scipy.ndimage.gaussian_filter()` |
+| `filters::median_filter()` | `scipy.ndimage.median_filter()` |
+| `filters::sobel()` | `scipy.ndimage.sobel()` |
+| `morphology::binary_erosion()` | `scipy.ndimage.binary_erosion()` |
+| `morphology::distance_transform_edt()` | `scipy.ndimage.distance_transform_edt()` |
+| `measurements::label()` | `scipy.ndimage.label()` |
+| `measurements::center_of_mass()` | `scipy.ndimage.center_of_mass()` |
+| `interpolation::affine_transform()` | `scipy.ndimage.affine_transform()` |
+| `interpolation::map_coordinates()` | `scipy.ndimage.map_coordinates()` |
+| `interpolation::rotate()` | `scipy.ndimage.rotate()` |
+| `interpolation::zoom()` | `scipy.ndimage.zoom()` |
+
+## Documentation
+
+Full API reference: [docs.rs/scirs2-ndimage](https://docs.rs/scirs2-ndimage)
 
 ## License
 
-This project is Licensed under the Apache License 2.0. See LICENSE for details.
-
-You can choose to use either license. See the [LICENSE](../LICENSE) file for details.
+Licensed under the Apache License 2.0. See [LICENSE](../LICENSE) for details.

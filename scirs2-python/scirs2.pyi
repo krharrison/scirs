@@ -4307,6 +4307,96 @@ def next_fast_len_py(n: int, real: bool = False) -> int:
     """Find next fast FFT size."""
     ...
 
+def fft2_py(
+    data: NDArray[np.float64],
+    s: Optional[Tuple[int, int]] = None,
+) -> Dict[str, NDArray[np.float64]]:
+    """
+    Compute the 2-D discrete Fourier Transform.
+
+    Parameters
+    ----------
+    data : ndarray of shape (M, N)
+        Input 2-D array
+    s : tuple of (int, int), optional
+        Shape of the output transform; if None, uses input shape
+
+    Returns
+    -------
+    dict
+        Dictionary with 'real' and 'imag' arrays of the 2-D FFT result
+    """
+    ...
+
+def rfft2_py(
+    data: NDArray[np.float64],
+    s: Optional[Tuple[int, int]] = None,
+) -> Dict[str, NDArray[np.float64]]:
+    """
+    Compute the 2-D real discrete Fourier Transform.
+
+    Parameters
+    ----------
+    data : ndarray of shape (M, N)
+        Input 2-D real-valued array
+    s : tuple of (int, int), optional
+        Shape of the output transform; if None, uses input shape
+
+    Returns
+    -------
+    dict
+        Dictionary with 'real' and 'imag' arrays of the 2-D real FFT result
+    """
+    ...
+
+def ifft2_py(
+    real: NDArray[np.float64],
+    imag: NDArray[np.float64],
+    s: Optional[Tuple[int, int]] = None,
+) -> Dict[str, NDArray[np.float64]]:
+    """
+    Compute the 2-D inverse discrete Fourier Transform.
+
+    Parameters
+    ----------
+    real : ndarray
+        Real part of the input spectrum
+    imag : ndarray
+        Imaginary part of the input spectrum
+    s : tuple of (int, int), optional
+        Shape of the output; if None, uses input shape
+
+    Returns
+    -------
+    dict
+        Dictionary with 'real' and 'imag' arrays of the reconstructed signal
+    """
+    ...
+
+def irfft2_py(
+    real: NDArray[np.float64],
+    imag: NDArray[np.float64],
+    s: Optional[Tuple[int, int]] = None,
+) -> NDArray[np.float64]:
+    """
+    Compute the 2-D inverse real discrete Fourier Transform.
+
+    Parameters
+    ----------
+    real : ndarray
+        Real part of the rfft2 output
+    imag : ndarray
+        Imaginary part of the rfft2 output
+    s : tuple of (int, int), optional
+        Shape of the output (required when output shape is ambiguous)
+
+    Returns
+    -------
+    ndarray
+        Real-valued 2-D reconstructed signal
+    """
+    ...
+
 # =============================================================================
 # Optimization Module
 # =============================================================================
@@ -5409,3 +5499,3221 @@ class KDTree:
             Dict with 'indices' and 'distances' arrays
         """
         ...
+
+# =============================================================================
+# Sparse Matrix Module
+# =============================================================================
+
+def csr_array_from_triplets(
+    rows: List[int],
+    cols: List[int],
+    data: List[float],
+    shape: Tuple[int, int],
+    sum_duplicates: bool = False,
+) -> Dict[str, Any]:
+    """
+    Create a CSR (Compressed Sparse Row) sparse array from triplets.
+
+    Parameters
+    ----------
+    rows : list of int
+        Row indices of non-zero elements
+    cols : list of int
+        Column indices of non-zero elements
+    data : list of float
+        Non-zero values
+    shape : tuple of (int, int)
+        Shape of the resulting matrix (nrows, ncols)
+    sum_duplicates : bool, optional
+        If True, sum values at duplicate (row, col) positions (default: False)
+
+    Returns
+    -------
+    dict
+        Dictionary with keys: 'format', 'shape', 'nnz', 'indptr', 'indices', 'data'
+    """
+    ...
+
+def coo_array_from_triplets(
+    rows: List[int],
+    cols: List[int],
+    data: List[float],
+    shape: Tuple[int, int],
+    sum_duplicates: bool = False,
+) -> Dict[str, Any]:
+    """
+    Create a COO (Coordinate) sparse array from triplets.
+
+    Parameters
+    ----------
+    rows : list of int
+        Row indices of non-zero elements
+    cols : list of int
+        Column indices of non-zero elements
+    data : list of float
+        Non-zero values
+    shape : tuple of (int, int)
+        Shape of the resulting matrix (nrows, ncols)
+    sum_duplicates : bool, optional
+        If True, sum values at duplicate (row, col) positions (default: False)
+
+    Returns
+    -------
+    dict
+        Dictionary with keys: 'format', 'shape', 'nnz', 'row', 'col', 'data'
+    """
+    ...
+
+def csc_array_from_triplets(
+    rows: List[int],
+    cols: List[int],
+    data: List[float],
+    shape: Tuple[int, int],
+    sum_duplicates: bool = False,
+) -> Dict[str, Any]:
+    """
+    Create a CSC (Compressed Sparse Column) sparse array from triplets.
+
+    Parameters
+    ----------
+    rows : list of int
+        Row indices of non-zero elements
+    cols : list of int
+        Column indices of non-zero elements
+    data : list of float
+        Non-zero values
+    shape : tuple of (int, int)
+        Shape of the resulting matrix (nrows, ncols)
+    sum_duplicates : bool, optional
+        If True, sum values at duplicate (row, col) positions (default: False)
+
+    Returns
+    -------
+    dict
+        Dictionary with keys: 'format', 'shape', 'nnz', 'indptr', 'indices', 'data'
+    """
+    ...
+
+def sparse_eye_py(n: int) -> Dict[str, Any]:
+    """
+    Create a sparse identity matrix of size n x n.
+
+    Parameters
+    ----------
+    n : int
+        Size of the square identity matrix
+
+    Returns
+    -------
+    dict
+        CSR sparse matrix representation of the identity matrix
+    """
+    ...
+
+def sparse_diag_py(diag: NDArray[np.float64]) -> Dict[str, Any]:
+    """
+    Create a sparse diagonal matrix from a 1-D array.
+
+    Parameters
+    ----------
+    diag : ndarray of shape (n,)
+        Diagonal elements
+
+    Returns
+    -------
+    dict
+        CSR sparse matrix with the given diagonal
+    """
+    ...
+
+def sparse_to_dense_py(sparse_dict: Dict[str, Any]) -> NDArray[np.float64]:
+    """
+    Convert a sparse matrix (dict representation) to a dense numpy array.
+
+    Parameters
+    ----------
+    sparse_dict : dict
+        Sparse matrix dict as returned by csr_array_from_triplets or similar
+
+    Returns
+    -------
+    ndarray
+        Dense 2-D array
+    """
+    ...
+
+def sparse_matvec_py(
+    sparse_dict: Dict[str, Any],
+    x: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    """
+    Multiply a sparse matrix by a dense vector: y = A @ x.
+
+    Parameters
+    ----------
+    sparse_dict : dict
+        Sparse matrix dict (CSR format)
+    x : ndarray of shape (n,)
+        Dense vector
+
+    Returns
+    -------
+    ndarray of shape (m,)
+        Result of matrix-vector multiplication
+    """
+    ...
+
+def sparse_matmul_py(
+    a_dict: Dict[str, Any],
+    b_dict: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Multiply two sparse matrices: C = A @ B.
+
+    Parameters
+    ----------
+    a_dict : dict
+        Left sparse matrix (CSR format)
+    b_dict : dict
+        Right sparse matrix (CSR format)
+
+    Returns
+    -------
+    dict
+        Resulting sparse matrix (CSR format)
+    """
+    ...
+
+def sparse_transpose_py(sparse_dict: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Transpose a sparse matrix.
+
+    Parameters
+    ----------
+    sparse_dict : dict
+        Sparse matrix dict
+
+    Returns
+    -------
+    dict
+        Transposed sparse matrix
+    """
+    ...
+
+# =============================================================================
+# N-Dimensional Image Processing Module (ndimage)
+# =============================================================================
+
+def gaussian_filter_py(
+    image: NDArray[np.float64],
+    sigma: float,
+) -> NDArray[np.float64]:
+    """
+    Apply Gaussian filter to an image.
+
+    Parameters
+    ----------
+    image : ndarray
+        Input image array (2-D or N-D)
+    sigma : float
+        Standard deviation of the Gaussian kernel
+
+    Returns
+    -------
+    ndarray
+        Filtered image
+    """
+    ...
+
+def median_filter_py(
+    image: NDArray[np.float64],
+    size: int,
+) -> NDArray[np.float64]:
+    """
+    Apply median filter to an image.
+
+    Parameters
+    ----------
+    image : ndarray
+        Input image array (2-D or N-D)
+    size : int
+        Size of the median filter kernel
+
+    Returns
+    -------
+    ndarray
+        Filtered image
+    """
+    ...
+
+def uniform_filter_py(
+    image: NDArray[np.float64],
+    size: int,
+) -> NDArray[np.float64]:
+    """
+    Apply uniform (box) filter to an image.
+
+    Parameters
+    ----------
+    image : ndarray
+        Input image array
+    size : int
+        Size of the filter kernel
+
+    Returns
+    -------
+    ndarray
+        Filtered image
+    """
+    ...
+
+def sobel_py(
+    image: NDArray[np.float64],
+    axis: int,
+) -> NDArray[np.float64]:
+    """
+    Apply Sobel edge-detection filter along a given axis.
+
+    Parameters
+    ----------
+    image : ndarray
+        Input image array
+    axis : int
+        Axis along which to apply the Sobel filter (0 for vertical, 1 for horizontal)
+
+    Returns
+    -------
+    ndarray
+        Edge-filtered image
+    """
+    ...
+
+def laplace_py(image: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Apply Laplace filter for edge detection.
+
+    Parameters
+    ----------
+    image : ndarray
+        Input image array
+
+    Returns
+    -------
+    ndarray
+        Edge-filtered image using the Laplacian operator
+    """
+    ...
+
+def bilateral_filter_py(
+    image: NDArray[np.float64],
+    sigma_spatial: float,
+    sigma_intensity: float,
+) -> NDArray[np.float64]:
+    """
+    Apply bilateral filter for edge-preserving smoothing.
+
+    Parameters
+    ----------
+    image : ndarray
+        Input image array
+    sigma_spatial : float
+        Standard deviation in the spatial domain
+    sigma_intensity : float
+        Standard deviation in the intensity domain
+
+    Returns
+    -------
+    ndarray
+        Filtered image
+    """
+    ...
+
+def maximum_filter_py(
+    image: NDArray[np.float64],
+    size: int,
+) -> NDArray[np.float64]:
+    """
+    Apply maximum filter to an image.
+
+    Parameters
+    ----------
+    image : ndarray
+        Input image array
+    size : int
+        Size of the filter kernel
+
+    Returns
+    -------
+    ndarray
+        Image with maximum filter applied
+    """
+    ...
+
+def minimum_filter_py(
+    image: NDArray[np.float64],
+    size: int,
+) -> NDArray[np.float64]:
+    """
+    Apply minimum filter to an image.
+
+    Parameters
+    ----------
+    image : ndarray
+        Input image array
+    size : int
+        Size of the filter kernel
+
+    Returns
+    -------
+    ndarray
+        Image with minimum filter applied
+    """
+    ...
+
+def binary_erosion_py(
+    image: NDArray[np.float64],
+    iterations: int,
+) -> NDArray[np.float64]:
+    """
+    Apply binary erosion morphological operation.
+
+    Parameters
+    ----------
+    image : ndarray
+        Binary input image (values 0 or 1)
+    iterations : int
+        Number of times to apply the erosion
+
+    Returns
+    -------
+    ndarray
+        Eroded binary image
+    """
+    ...
+
+def binary_dilation_py(
+    image: NDArray[np.float64],
+    iterations: int,
+) -> NDArray[np.float64]:
+    """
+    Apply binary dilation morphological operation.
+
+    Parameters
+    ----------
+    image : ndarray
+        Binary input image (values 0 or 1)
+    iterations : int
+        Number of times to apply the dilation
+
+    Returns
+    -------
+    ndarray
+        Dilated binary image
+    """
+    ...
+
+def binary_opening_py(
+    image: NDArray[np.float64],
+    iterations: int,
+) -> NDArray[np.float64]:
+    """
+    Apply binary opening morphological operation (erosion then dilation).
+
+    Parameters
+    ----------
+    image : ndarray
+        Binary input image (values 0 or 1)
+    iterations : int
+        Number of times to apply the operation
+
+    Returns
+    -------
+    ndarray
+        Opened binary image
+    """
+    ...
+
+def binary_closing_py(
+    image: NDArray[np.float64],
+    iterations: int,
+) -> NDArray[np.float64]:
+    """
+    Apply binary closing morphological operation (dilation then erosion).
+
+    Parameters
+    ----------
+    image : ndarray
+        Binary input image (values 0 or 1)
+    iterations : int
+        Number of times to apply the operation
+
+    Returns
+    -------
+    ndarray
+        Closed binary image
+    """
+    ...
+
+def grey_erosion_py(
+    image: NDArray[np.float64],
+    size: int,
+) -> NDArray[np.float64]:
+    """
+    Apply grey-scale erosion morphological operation.
+
+    Parameters
+    ----------
+    image : ndarray
+        Greyscale input image
+    size : int
+        Size of the structuring element
+
+    Returns
+    -------
+    ndarray
+        Eroded image
+    """
+    ...
+
+def grey_dilation_py(
+    image: NDArray[np.float64],
+    size: int,
+) -> NDArray[np.float64]:
+    """
+    Apply grey-scale dilation morphological operation.
+
+    Parameters
+    ----------
+    image : ndarray
+        Greyscale input image
+    size : int
+        Size of the structuring element
+
+    Returns
+    -------
+    ndarray
+        Dilated image
+    """
+    ...
+
+def label_py(image: NDArray[np.float64]) -> Tuple[NDArray[np.int64], int]:
+    """
+    Label connected components in an image.
+
+    Parameters
+    ----------
+    image : ndarray
+        Binary input image
+
+    Returns
+    -------
+    tuple of (ndarray, int)
+        Labeled image array and number of labels found
+    """
+    ...
+
+def distance_transform_edt_py(
+    image: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    """
+    Compute exact Euclidean distance transform.
+
+    Parameters
+    ----------
+    image : ndarray
+        Binary input image (0 = object, 1 = background)
+
+    Returns
+    -------
+    ndarray
+        Distance transform image where each pixel holds the distance to
+        the nearest non-zero pixel
+    """
+    ...
+
+def rotate_py(
+    image: NDArray[np.float64],
+    angle: float,
+    reshape: bool = True,
+) -> NDArray[np.float64]:
+    """
+    Rotate an image by a given angle.
+
+    Parameters
+    ----------
+    image : ndarray
+        Input image array
+    angle : float
+        Rotation angle in degrees (counter-clockwise)
+    reshape : bool, optional
+        If True, resize output to contain entire rotated image (default: True)
+
+    Returns
+    -------
+    ndarray
+        Rotated image
+    """
+    ...
+
+def zoom_py(
+    image: NDArray[np.float64],
+    zoom: float,
+) -> NDArray[np.float64]:
+    """
+    Zoom an image by a given factor.
+
+    Parameters
+    ----------
+    image : ndarray
+        Input image array
+    zoom : float
+        Zoom factor (> 1 = zoom in, < 1 = zoom out)
+
+    Returns
+    -------
+    ndarray
+        Zoomed image
+    """
+    ...
+
+def shift_py(
+    image: NDArray[np.float64],
+    shift: List[float],
+) -> NDArray[np.float64]:
+    """
+    Shift an image by given offsets.
+
+    Parameters
+    ----------
+    image : ndarray
+        Input image array
+    shift : list of float
+        Shift in pixels for each dimension
+
+    Returns
+    -------
+    ndarray
+        Shifted image
+    """
+    ...
+
+def center_of_mass_py(image: NDArray[np.float64]) -> List[float]:
+    """
+    Compute the center of mass of an image.
+
+    Parameters
+    ----------
+    image : ndarray
+        Input image (treated as a mass distribution)
+
+    Returns
+    -------
+    list of float
+        Coordinates of the center of mass for each dimension
+    """
+    ...
+
+def moments_py(image: NDArray[np.float64], order: int) -> NDArray[np.float64]:
+    """
+    Compute image moments up to a given order.
+
+    Parameters
+    ----------
+    image : ndarray of shape (H, W)
+        Input 2-D image
+    order : int
+        Maximum moment order to compute
+
+    Returns
+    -------
+    ndarray
+        Moment values
+    """
+    ...
+
+def watershed_py(
+    image: NDArray[np.float64],
+    markers: NDArray[np.int64],
+) -> NDArray[np.int64]:
+    """
+    Apply watershed segmentation algorithm.
+
+    Parameters
+    ----------
+    image : ndarray
+        Greyscale image to segment
+    markers : ndarray of int
+        Marker array indicating seed regions (positive integers)
+
+    Returns
+    -------
+    ndarray of int
+        Labeled image with watershed segments
+    """
+    ...
+
+def otsu_threshold_py(image: NDArray[np.float64]) -> float:
+    """
+    Compute Otsu's optimal threshold for image binarization.
+
+    Parameters
+    ----------
+    image : ndarray
+        Greyscale image
+
+    Returns
+    -------
+    float
+        Optimal threshold value that minimizes intra-class variance
+    """
+    ...
+
+def threshold_binary_py(
+    image: NDArray[np.float64],
+    threshold: float,
+) -> NDArray[np.float64]:
+    """
+    Apply a binary threshold to an image.
+
+    Parameters
+    ----------
+    image : ndarray
+        Input greyscale image
+    threshold : float
+        Threshold value; pixels above become 1.0, below become 0.0
+
+    Returns
+    -------
+    ndarray
+        Binary image
+    """
+    ...
+
+def canny_py(
+    image: NDArray[np.float64],
+    low_threshold: float,
+    high_threshold: float,
+) -> NDArray[np.float64]:
+    """
+    Apply Canny edge detection.
+
+    Parameters
+    ----------
+    image : ndarray
+        Input greyscale image
+    low_threshold : float
+        Lower hysteresis threshold
+    high_threshold : float
+        Upper hysteresis threshold
+
+    Returns
+    -------
+    ndarray
+        Binary edge image
+    """
+    ...
+
+def harris_corners_py(
+    image: NDArray[np.float64],
+    k: float,
+) -> NDArray[np.float64]:
+    """
+    Detect Harris corners in an image.
+
+    Parameters
+    ----------
+    image : ndarray
+        Input greyscale image
+    k : float
+        Harris detector free parameter (typically 0.04-0.06)
+
+    Returns
+    -------
+    ndarray
+        Corner response map
+    """
+    ...
+
+def psnr_py(
+    original: NDArray[np.float64],
+    compressed: NDArray[np.float64],
+) -> float:
+    """
+    Compute Peak Signal-to-Noise Ratio (PSNR).
+
+    Parameters
+    ----------
+    original : ndarray
+        Original reference image
+    compressed : ndarray
+        Compared/compressed image
+
+    Returns
+    -------
+    float
+        PSNR in dB (higher is better)
+    """
+    ...
+
+def ssim_py(
+    img1: NDArray[np.float64],
+    img2: NDArray[np.float64],
+) -> float:
+    """
+    Compute Structural Similarity Index Measure (SSIM).
+
+    Parameters
+    ----------
+    img1 : ndarray
+        First image
+    img2 : ndarray
+        Second image
+
+    Returns
+    -------
+    float
+        SSIM value in [-1, 1] (1.0 = identical images)
+    """
+    ...
+
+def image_entropy_py(image: NDArray[np.float64]) -> float:
+    """
+    Compute the entropy of an image (measure of information content).
+
+    Parameters
+    ----------
+    image : ndarray
+        Input image
+
+    Returns
+    -------
+    float
+        Shannon entropy of the image's pixel intensity histogram
+    """
+    ...
+
+# =============================================================================
+# Graph Algorithms Module
+# =============================================================================
+
+def graph_from_edges_py(
+    edges: List[Tuple[int, int]],
+    weights: Optional[List[float]] = None,
+) -> Any:
+    """
+    Create an undirected graph from edge list.
+
+    Parameters
+    ----------
+    edges : list of (int, int)
+        Edge list as pairs of node indices
+    weights : list of float, optional
+        Edge weights; if None, all weights default to 1.0
+
+    Returns
+    -------
+    Graph object (opaque PyAny)
+    """
+    ...
+
+def digraph_from_edges_py(
+    edges: List[Tuple[int, int]],
+    weights: Optional[List[float]] = None,
+) -> Any:
+    """
+    Create a directed graph from edge list.
+
+    Parameters
+    ----------
+    edges : list of (int, int)
+        Edge list as pairs of (from, to) node indices
+    weights : list of float, optional
+        Edge weights; if None, all weights default to 1.0
+
+    Returns
+    -------
+    DiGraph object (opaque PyAny)
+    """
+    ...
+
+def erdos_renyi_graph_py(n: int, p: float) -> Any:
+    """
+    Generate an Erdos-Renyi random graph G(n, p).
+
+    Parameters
+    ----------
+    n : int
+        Number of nodes
+    p : float
+        Probability of edge between any pair of nodes
+
+    Returns
+    -------
+    Graph object
+    """
+    ...
+
+def barabasi_albert_graph_py(n: int, m: int) -> Any:
+    """
+    Generate a Barabasi-Albert scale-free random graph.
+
+    Parameters
+    ----------
+    n : int
+        Number of nodes
+    m : int
+        Number of edges to attach from a new node to existing nodes
+
+    Returns
+    -------
+    Graph object
+    """
+    ...
+
+def watts_strogatz_graph_py(n: int, k: int, p: float) -> Any:
+    """
+    Generate a Watts-Strogatz small-world random graph.
+
+    Parameters
+    ----------
+    n : int
+        Number of nodes
+    k : int
+        Each node is joined with k nearest neighbors in ring topology
+    p : float
+        Probability of rewiring each edge
+
+    Returns
+    -------
+    Graph object
+    """
+    ...
+
+def complete_graph_py(n: int) -> Any:
+    """
+    Generate a complete graph with n nodes (every node connected to every other).
+
+    Parameters
+    ----------
+    n : int
+        Number of nodes
+
+    Returns
+    -------
+    Graph object
+    """
+    ...
+
+def path_graph_py(n: int) -> Any:
+    """
+    Generate a path graph with n nodes.
+
+    Parameters
+    ----------
+    n : int
+        Number of nodes in the path
+
+    Returns
+    -------
+    Graph object
+    """
+    ...
+
+def cycle_graph_py(n: int) -> Any:
+    """
+    Generate a cycle graph with n nodes.
+
+    Parameters
+    ----------
+    n : int
+        Number of nodes in the cycle
+
+    Returns
+    -------
+    Graph object
+    """
+    ...
+
+def star_graph_py(n: int) -> Any:
+    """
+    Generate a star graph with n leaf nodes (n+1 nodes total).
+
+    Parameters
+    ----------
+    n : int
+        Number of leaf nodes (center node is added automatically)
+
+    Returns
+    -------
+    Graph object
+    """
+    ...
+
+def bfs_py(graph: Any, start: int) -> List[int]:
+    """
+    Breadth-first search traversal order.
+
+    Parameters
+    ----------
+    graph : Graph object
+        Graph to traverse
+    start : int
+        Starting node index
+
+    Returns
+    -------
+    list of int
+        Nodes visited in BFS order
+    """
+    ...
+
+def dfs_py(graph: Any, start: int) -> List[int]:
+    """
+    Depth-first search traversal order.
+
+    Parameters
+    ----------
+    graph : Graph object
+        Graph to traverse
+    start : int
+        Starting node index
+
+    Returns
+    -------
+    list of int
+        Nodes visited in DFS order
+    """
+    ...
+
+def dijkstra_py(
+    graph: Any,
+    start: int,
+) -> Dict[str, Any]:
+    """
+    Dijkstra's shortest path algorithm.
+
+    Parameters
+    ----------
+    graph : Graph object
+        Weighted graph
+    start : int
+        Source node index
+
+    Returns
+    -------
+    dict
+        Dictionary with 'distances' and 'predecessors' for each node
+    """
+    ...
+
+def floyd_warshall_py(graph: Any) -> NDArray[np.float64]:
+    """
+    Floyd-Warshall all-pairs shortest paths algorithm.
+
+    Parameters
+    ----------
+    graph : Graph object
+        Weighted graph
+
+    Returns
+    -------
+    ndarray of shape (n, n)
+        Distance matrix where entry [i, j] is the shortest path from i to j.
+        Infinity indicates no path.
+    """
+    ...
+
+def connected_components_py(graph: Any) -> List[List[int]]:
+    """
+    Find all connected components in an undirected graph.
+
+    Parameters
+    ----------
+    graph : Graph object
+        Undirected graph
+
+    Returns
+    -------
+    list of list of int
+        Each inner list is a set of node indices forming one connected component
+    """
+    ...
+
+def strongly_connected_components_py(graph: Any) -> List[List[int]]:
+    """
+    Find strongly connected components in a directed graph (Tarjan's algorithm).
+
+    Parameters
+    ----------
+    graph : DiGraph object
+        Directed graph
+
+    Returns
+    -------
+    list of list of int
+        Each inner list is a strongly connected component
+    """
+    ...
+
+def articulation_points_py(graph: Any) -> List[int]:
+    """
+    Find articulation points (cut vertices) in an undirected graph.
+
+    Articulation points are nodes whose removal increases the number of
+    connected components.
+
+    Parameters
+    ----------
+    graph : Graph object
+        Undirected graph
+
+    Returns
+    -------
+    list of int
+        Node indices that are articulation points
+    """
+    ...
+
+def bridges_py(graph: Any) -> List[Tuple[int, int]]:
+    """
+    Find bridges (cut edges) in an undirected graph.
+
+    Bridges are edges whose removal increases the number of connected components.
+
+    Parameters
+    ----------
+    graph : Graph object
+        Undirected graph
+
+    Returns
+    -------
+    list of (int, int)
+        Edge pairs that are bridges
+    """
+    ...
+
+def is_bipartite_py(graph: Any) -> bool:
+    """
+    Check if a graph is bipartite.
+
+    Parameters
+    ----------
+    graph : Graph object
+        Undirected graph
+
+    Returns
+    -------
+    bool
+        True if the graph is bipartite, False otherwise
+    """
+    ...
+
+def betweenness_centrality_py(graph: Any) -> Dict[int, float]:
+    """
+    Compute betweenness centrality for all nodes.
+
+    Betweenness centrality quantifies the number of times a node acts as a
+    bridge along the shortest path between two other nodes.
+
+    Parameters
+    ----------
+    graph : Graph object
+        Graph (directed or undirected)
+
+    Returns
+    -------
+    dict mapping int to float
+        Betweenness centrality score for each node
+    """
+    ...
+
+def closeness_centrality_py(graph: Any) -> Dict[int, float]:
+    """
+    Compute closeness centrality for all nodes.
+
+    Closeness centrality measures how close a node is to all other nodes.
+
+    Parameters
+    ----------
+    graph : Graph object
+        Graph
+
+    Returns
+    -------
+    dict mapping int to float
+        Closeness centrality score for each node
+    """
+    ...
+
+def pagerank_py(
+    graph: Any,
+    damping: float = 0.85,
+    max_iter: int = 100,
+    tol: float = 1e-6,
+) -> Dict[int, float]:
+    """
+    Compute PageRank centrality for all nodes.
+
+    Parameters
+    ----------
+    graph : Graph object
+        Directed graph
+    damping : float, optional
+        Damping factor (default: 0.85)
+    max_iter : int, optional
+        Maximum number of iterations (default: 100)
+    tol : float, optional
+        Convergence tolerance (default: 1e-6)
+
+    Returns
+    -------
+    dict mapping int to float
+        PageRank score for each node
+    """
+    ...
+
+def louvain_communities_py(graph: Any) -> List[List[int]]:
+    """
+    Detect communities using the Louvain algorithm.
+
+    Parameters
+    ----------
+    graph : Graph object
+        Undirected graph
+
+    Returns
+    -------
+    list of list of int
+        Each inner list is a community (set of node indices)
+    """
+    ...
+
+def label_propagation_py(graph: Any) -> List[List[int]]:
+    """
+    Detect communities using label propagation algorithm.
+
+    Parameters
+    ----------
+    graph : Graph object
+        Undirected graph
+
+    Returns
+    -------
+    list of list of int
+        Each inner list is a community
+    """
+    ...
+
+def modularity_py(
+    graph: Any,
+    communities: List[List[int]],
+) -> float:
+    """
+    Compute the modularity of a community partition.
+
+    Modularity measures the quality of a community partition; higher values
+    indicate stronger community structure.
+
+    Parameters
+    ----------
+    graph : Graph object
+        Undirected graph
+    communities : list of list of int
+        Community partition
+
+    Returns
+    -------
+    float
+        Modularity score in [-1, 1]
+    """
+    ...
+
+def diameter_py(graph: Any) -> Optional[float]:
+    """
+    Compute the diameter of a graph (longest shortest path).
+
+    Parameters
+    ----------
+    graph : Graph object
+        Connected graph
+
+    Returns
+    -------
+    float or None
+        Diameter of the graph; None if the graph is not connected
+    """
+    ...
+
+def clustering_coefficient_py(graph: Any) -> Dict[str, Any]:
+    """
+    Compute the clustering coefficient for all nodes and the global average.
+
+    The clustering coefficient of a node measures how close its neighbors
+    are to being a complete graph.
+
+    Parameters
+    ----------
+    graph : Graph object
+        Undirected graph
+
+    Returns
+    -------
+    dict
+        Dictionary with 'global' (average) and 'local' (per-node dict) coefficients
+    """
+    ...
+
+def graph_density_py(graph: Any) -> float:
+    """
+    Compute the density of a graph.
+
+    Density = actual edges / maximum possible edges.
+
+    Parameters
+    ----------
+    graph : Graph object
+
+    Returns
+    -------
+    float
+        Density in [0, 1]
+    """
+    ...
+
+def minimum_spanning_tree_py(graph: Any) -> Any:
+    """
+    Compute the minimum spanning tree (Kruskal's algorithm).
+
+    Parameters
+    ----------
+    graph : Graph object
+        Weighted undirected graph
+
+    Returns
+    -------
+    Graph object
+        Minimum spanning tree
+    """
+    ...
+
+# =============================================================================
+# Machine Learning Metrics Module
+# =============================================================================
+
+def accuracy_score_py(
+    y_true: NDArray[np.int64],
+    y_pred: NDArray[np.int64],
+) -> float:
+    """
+    Compute classification accuracy.
+
+    Parameters
+    ----------
+    y_true : ndarray of int
+        True class labels
+    y_pred : ndarray of int
+        Predicted class labels
+
+    Returns
+    -------
+    float
+        Fraction of correctly classified samples in [0, 1]
+    """
+    ...
+
+def precision_score_py(
+    y_true: NDArray[np.int64],
+    y_pred: NDArray[np.int64],
+    average: str = "macro",
+) -> float:
+    """
+    Compute precision score.
+
+    Parameters
+    ----------
+    y_true : ndarray of int
+        True class labels
+    y_pred : ndarray of int
+        Predicted class labels
+    average : str, optional
+        Averaging strategy: 'macro', 'micro', 'weighted' (default: 'macro')
+
+    Returns
+    -------
+    float
+        Precision score
+    """
+    ...
+
+def recall_score_py(
+    y_true: NDArray[np.int64],
+    y_pred: NDArray[np.int64],
+    average: str = "macro",
+) -> float:
+    """
+    Compute recall (sensitivity) score.
+
+    Parameters
+    ----------
+    y_true : ndarray of int
+        True class labels
+    y_pred : ndarray of int
+        Predicted class labels
+    average : str, optional
+        Averaging strategy: 'macro', 'micro', 'weighted' (default: 'macro')
+
+    Returns
+    -------
+    float
+        Recall score
+    """
+    ...
+
+def f1_score_py(
+    y_true: NDArray[np.int64],
+    y_pred: NDArray[np.int64],
+    average: str = "macro",
+) -> float:
+    """
+    Compute F1 score (harmonic mean of precision and recall).
+
+    Parameters
+    ----------
+    y_true : ndarray of int
+        True class labels
+    y_pred : ndarray of int
+        Predicted class labels
+    average : str, optional
+        Averaging strategy: 'macro', 'micro', 'weighted' (default: 'macro')
+
+    Returns
+    -------
+    float
+        F1 score
+    """
+    ...
+
+def fbeta_score_py(
+    y_true: NDArray[np.int64],
+    y_pred: NDArray[np.int64],
+    beta: float,
+    average: str = "macro",
+) -> float:
+    """
+    Compute F-beta score (generalized F-measure).
+
+    Parameters
+    ----------
+    y_true : ndarray of int
+        True class labels
+    y_pred : ndarray of int
+        Predicted class labels
+    beta : float
+        Weight of recall relative to precision; beta=1 gives F1
+    average : str, optional
+        Averaging strategy: 'macro', 'micro', 'weighted' (default: 'macro')
+
+    Returns
+    -------
+    float
+        F-beta score
+    """
+    ...
+
+def confusion_matrix_py(
+    y_true: NDArray[np.int64],
+    y_pred: NDArray[np.int64],
+) -> NDArray[np.int64]:
+    """
+    Compute the confusion matrix.
+
+    Parameters
+    ----------
+    y_true : ndarray of int
+        True class labels
+    y_pred : ndarray of int
+        Predicted class labels
+
+    Returns
+    -------
+    ndarray of shape (n_classes, n_classes)
+        Confusion matrix where entry [i, j] is the number of samples
+        with true class i predicted as class j
+    """
+    ...
+
+def roc_curve_py(
+    y_true: NDArray[np.int64],
+    y_score: NDArray[np.float64],
+) -> Dict[str, NDArray[np.float64]]:
+    """
+    Compute Receiver Operating Characteristic (ROC) curve.
+
+    Parameters
+    ----------
+    y_true : ndarray of int
+        True binary labels (0 or 1)
+    y_score : ndarray of float
+        Predicted probability scores for the positive class
+
+    Returns
+    -------
+    dict
+        Dictionary with 'fpr', 'tpr', and 'thresholds' arrays
+    """
+    ...
+
+def roc_auc_score_py(
+    y_true: NDArray[np.int64],
+    y_score: NDArray[np.float64],
+) -> float:
+    """
+    Compute Area Under the ROC Curve (AUC-ROC).
+
+    Parameters
+    ----------
+    y_true : ndarray of int
+        True binary labels (0 or 1)
+    y_score : ndarray of float
+        Predicted probability scores for the positive class
+
+    Returns
+    -------
+    float
+        AUC-ROC score in [0, 1]
+    """
+    ...
+
+def log_loss_py(
+    y_true: NDArray[np.int64],
+    y_pred: NDArray[np.float64],
+) -> float:
+    """
+    Compute log loss (cross-entropy loss) for classification.
+
+    Parameters
+    ----------
+    y_true : ndarray of int
+        True binary labels (0 or 1)
+    y_pred : ndarray of float
+        Predicted probabilities for the positive class
+
+    Returns
+    -------
+    float
+        Log loss (lower is better)
+    """
+    ...
+
+def matthews_corrcoef_py(
+    y_true: NDArray[np.int64],
+    y_pred: NDArray[np.int64],
+) -> float:
+    """
+    Compute Matthews Correlation Coefficient (MCC).
+
+    Parameters
+    ----------
+    y_true : ndarray of int
+        True binary labels
+    y_pred : ndarray of int
+        Predicted binary labels
+
+    Returns
+    -------
+    float
+        MCC in [-1, 1]
+    """
+    ...
+
+def balanced_accuracy_score_py(
+    y_true: NDArray[np.int64],
+    y_pred: NDArray[np.int64],
+) -> float:
+    """
+    Compute balanced accuracy (average recall per class).
+
+    Parameters
+    ----------
+    y_true : ndarray of int
+        True class labels
+    y_pred : ndarray of int
+        Predicted class labels
+
+    Returns
+    -------
+    float
+        Balanced accuracy in [0, 1]
+    """
+    ...
+
+def cohen_kappa_score_py(
+    y_true: NDArray[np.int64],
+    y_pred: NDArray[np.int64],
+) -> float:
+    """
+    Compute Cohen's kappa score (inter-rater agreement).
+
+    Parameters
+    ----------
+    y_true : ndarray of int
+        First set of ratings
+    y_pred : ndarray of int
+        Second set of ratings
+
+    Returns
+    -------
+    float
+        Kappa score
+    """
+    ...
+
+def mean_squared_error_py(
+    y_true: NDArray[np.float64],
+    y_pred: NDArray[np.float64],
+) -> float:
+    """
+    Compute Mean Squared Error (MSE) for regression.
+
+    Parameters
+    ----------
+    y_true : ndarray of float
+        True values
+    y_pred : ndarray of float
+        Predicted values
+
+    Returns
+    -------
+    float
+        MSE (lower is better)
+    """
+    ...
+
+def mean_absolute_error_py(
+    y_true: NDArray[np.float64],
+    y_pred: NDArray[np.float64],
+) -> float:
+    """
+    Compute Mean Absolute Error (MAE) for regression.
+
+    Parameters
+    ----------
+    y_true : ndarray of float
+        True values
+    y_pred : ndarray of float
+        Predicted values
+
+    Returns
+    -------
+    float
+        MAE (lower is better)
+    """
+    ...
+
+def r2_score_py(
+    y_true: NDArray[np.float64],
+    y_pred: NDArray[np.float64],
+) -> float:
+    """
+    Compute R^2 (coefficient of determination) for regression.
+
+    Parameters
+    ----------
+    y_true : ndarray of float
+        True values
+    y_pred : ndarray of float
+        Predicted values
+
+    Returns
+    -------
+    float
+        R^2 score; 1.0 = perfect fit, 0.0 = constant baseline
+    """
+    ...
+
+def mape_py(
+    y_true: NDArray[np.float64],
+    y_pred: NDArray[np.float64],
+) -> float:
+    """
+    Compute Mean Absolute Percentage Error (MAPE).
+
+    Parameters
+    ----------
+    y_true : ndarray of float
+        True values (must not contain zeros)
+    y_pred : ndarray of float
+        Predicted values
+
+    Returns
+    -------
+    float
+        MAPE as a percentage (lower is better)
+    """
+    ...
+
+def explained_variance_score_py(
+    y_true: NDArray[np.float64],
+    y_pred: NDArray[np.float64],
+) -> float:
+    """
+    Compute explained variance regression score.
+
+    Parameters
+    ----------
+    y_true : ndarray of float
+        True values
+    y_pred : ndarray of float
+        Predicted values
+
+    Returns
+    -------
+    float
+        Explained variance score in [0, 1]
+    """
+    ...
+
+def adjusted_rand_index_py(
+    y_true: NDArray[np.int64],
+    y_pred: NDArray[np.int64],
+) -> float:
+    """
+    Compute Adjusted Rand Index (ARI) for clustering evaluation.
+
+    Parameters
+    ----------
+    y_true : ndarray of int
+        True cluster labels
+    y_pred : ndarray of int
+        Predicted cluster labels
+
+    Returns
+    -------
+    float
+        ARI in [-1, 1]
+    """
+    ...
+
+def nmi_score_py(
+    y_true: NDArray[np.int64],
+    y_pred: NDArray[np.int64],
+) -> float:
+    """
+    Compute Normalized Mutual Information (NMI) for clustering evaluation.
+
+    Parameters
+    ----------
+    y_true : ndarray of int
+        True cluster labels
+    y_pred : ndarray of int
+        Predicted cluster labels
+
+    Returns
+    -------
+    float
+        NMI in [0, 1]
+    """
+    ...
+
+def ndcg_score_py(
+    y_true: NDArray[np.float64],
+    y_score: NDArray[np.float64],
+    k: Optional[int] = None,
+) -> float:
+    """
+    Compute Normalized Discounted Cumulative Gain (NDCG) for ranking evaluation.
+
+    Parameters
+    ----------
+    y_true : ndarray of float
+        True relevance scores
+    y_score : ndarray of float
+        Predicted scores (higher = more relevant)
+    k : int, optional
+        Only consider top-k elements. If None, use all elements.
+
+    Returns
+    -------
+    float
+        NDCG score in [0, 1]
+    """
+    ...
+
+def mrr_py(
+    y_true: NDArray[np.int64],
+    y_score: NDArray[np.float64],
+) -> float:
+    """
+    Compute Mean Reciprocal Rank (MRR) for ranking/retrieval evaluation.
+
+    Parameters
+    ----------
+    y_true : ndarray of int
+        Binary relevance labels (1 = relevant, 0 = not relevant)
+    y_score : ndarray of float
+        Predicted scores
+
+    Returns
+    -------
+    float
+        MRR score in (0, 1]
+    """
+    ...
+
+# =============================================================================
+# File I/O Module
+# =============================================================================
+
+def read_csv_py(
+    path: str,
+    delimiter: str = ",",
+    has_header: bool = True,
+) -> NDArray[np.float64]:
+    """
+    Read a CSV file into a numpy array.
+
+    Parameters
+    ----------
+    path : str
+        Path to the CSV file
+    delimiter : str, optional
+        Field delimiter (default: ',')
+    has_header : bool, optional
+        If True, skip the first line as header (default: True)
+
+    Returns
+    -------
+    ndarray of float
+        Data matrix read from the CSV file
+    """
+    ...
+
+def write_csv_py(
+    path: str,
+    data: NDArray[np.float64],
+    delimiter: str = ",",
+    header: Optional[str] = None,
+) -> None:
+    """
+    Write a numpy array to a CSV file.
+
+    Parameters
+    ----------
+    path : str
+        Output file path
+    data : ndarray
+        2-D array to write
+    delimiter : str, optional
+        Field delimiter (default: ',')
+    header : str, optional
+        Header line to write as the first row
+    """
+    ...
+
+def read_matrix_market_sparse_py(path: str) -> Dict[str, Any]:
+    """
+    Read a sparse matrix in Matrix Market (.mtx) format.
+
+    Parameters
+    ----------
+    path : str
+        Path to the .mtx file
+
+    Returns
+    -------
+    dict
+        Sparse matrix in COO dict representation
+    """
+    ...
+
+def write_matrix_market_sparse_py(
+    path: str,
+    sparse_dict: Dict[str, Any],
+) -> None:
+    """
+    Write a sparse matrix to Matrix Market (.mtx) format.
+
+    Parameters
+    ----------
+    path : str
+        Output file path
+    sparse_dict : dict
+        Sparse matrix dict
+    """
+    ...
+
+def read_matrix_market_dense_py(path: str) -> NDArray[np.float64]:
+    """
+    Read a dense matrix from a Matrix Market file.
+
+    Parameters
+    ----------
+    path : str
+        Path to the .mtx file (dense format)
+
+    Returns
+    -------
+    ndarray of float64
+        Dense matrix
+    """
+    ...
+
+def write_matrix_market_dense_py(
+    path: str,
+    data: NDArray[np.float64],
+) -> None:
+    """
+    Write a dense matrix to Matrix Market format.
+
+    Parameters
+    ----------
+    path : str
+        Output file path
+    data : ndarray
+        2-D array to write
+    """
+    ...
+
+def save_array_py(
+    path: str,
+    data: NDArray[np.float64],
+    format: str = "npy",
+) -> None:
+    """
+    Save a numpy array to a file.
+
+    Parameters
+    ----------
+    path : str
+        Output file path
+    data : ndarray
+        Array to save
+    format : str, optional
+        File format: 'npy', 'csv', or 'txt' (default: 'npy')
+    """
+    ...
+
+def load_array_py(
+    path: str,
+    format: str = "npy",
+) -> NDArray[np.float64]:
+    """
+    Load a numpy array from a file.
+
+    Parameters
+    ----------
+    path : str
+        Input file path
+    format : str, optional
+        File format: 'npy', 'csv', or 'txt' (default: 'npy')
+
+    Returns
+    -------
+    ndarray of float64
+        Loaded array
+    """
+    ...
+
+def read_wav_py(path: str) -> Dict[str, Any]:
+    """
+    Read a WAV audio file.
+
+    Parameters
+    ----------
+    path : str
+        Path to the .wav file
+
+    Returns
+    -------
+    dict
+        Dictionary with 'samplerate' (int) and 'data' (ndarray) keys
+    """
+    ...
+
+def write_wav_py(
+    path: str,
+    samplerate: int,
+    data: NDArray[np.float64],
+) -> None:
+    """
+    Write audio data to a WAV file.
+
+    Parameters
+    ----------
+    path : str
+        Output file path
+    samplerate : int
+        Sample rate in Hz
+    data : ndarray of float64
+        Audio samples (1-D array)
+    """
+    ...
+
+# =============================================================================
+# Datasets Module
+# =============================================================================
+
+def load_iris_py() -> Dict[str, Any]:
+    """
+    Load the Iris dataset.
+
+    Returns
+    -------
+    dict
+        Dictionary with 'data', 'target', 'feature_names', 'target_names'
+    """
+    ...
+
+def load_boston_py() -> Dict[str, Any]:
+    """
+    Load the Boston Housing dataset.
+
+    Returns
+    -------
+    dict
+        Dictionary with 'data', 'target', and 'feature_names' keys
+    """
+    ...
+
+def load_diabetes_py() -> Dict[str, Any]:
+    """
+    Load the Diabetes dataset.
+
+    Returns
+    -------
+    dict
+        Dictionary with 'data', 'target', and 'feature_names' keys
+    """
+    ...
+
+def load_breast_cancer_py() -> Dict[str, Any]:
+    """
+    Load the Breast Cancer Wisconsin dataset.
+
+    Returns
+    -------
+    dict
+        Dictionary with 'data', 'target', 'feature_names', and 'target_names'
+    """
+    ...
+
+def load_digits_py() -> Dict[str, Any]:
+    """
+    Load the Digits handwritten digit dataset.
+
+    Returns
+    -------
+    dict
+        Dictionary with 'data', 'target', and 'images' keys
+    """
+    ...
+
+def make_classification_py(
+    n_samples: int = 100,
+    n_features: int = 20,
+    n_informative: int = 2,
+    n_classes: int = 2,
+    random_state: Optional[int] = None,
+) -> Dict[str, NDArray]:
+    """
+    Generate a random n-class classification dataset.
+
+    Parameters
+    ----------
+    n_samples : int, optional
+        Number of samples (default: 100)
+    n_features : int, optional
+        Total number of features (default: 20)
+    n_informative : int, optional
+        Number of informative features (default: 2)
+    n_classes : int, optional
+        Number of classes (default: 2)
+    random_state : int, optional
+        Random seed for reproducibility
+
+    Returns
+    -------
+    dict
+        Dictionary with 'X' (feature matrix) and 'y' (class labels)
+    """
+    ...
+
+def make_regression_py(
+    n_samples: int = 100,
+    n_features: int = 100,
+    n_informative: int = 10,
+    noise: float = 0.0,
+    random_state: Optional[int] = None,
+) -> Dict[str, NDArray]:
+    """
+    Generate a random regression dataset.
+
+    Parameters
+    ----------
+    n_samples : int, optional
+        Number of samples (default: 100)
+    n_features : int, optional
+        Number of features (default: 100)
+    n_informative : int, optional
+        Number of informative features (default: 10)
+    noise : float, optional
+        Gaussian noise standard deviation (default: 0.0)
+    random_state : int, optional
+        Random seed for reproducibility
+
+    Returns
+    -------
+    dict
+        Dictionary with 'X' (feature matrix) and 'y' (target values)
+    """
+    ...
+
+def make_blobs_py(
+    n_samples: int = 100,
+    n_features: int = 2,
+    centers: int = 3,
+    cluster_std: float = 1.0,
+    random_state: Optional[int] = None,
+) -> Dict[str, NDArray]:
+    """
+    Generate isotropic Gaussian blobs for clustering.
+
+    Parameters
+    ----------
+    n_samples : int, optional
+        Number of samples (default: 100)
+    n_features : int, optional
+        Number of features (default: 2)
+    centers : int, optional
+        Number of cluster centers (default: 3)
+    cluster_std : float, optional
+        Standard deviation of each cluster (default: 1.0)
+    random_state : int, optional
+        Random seed
+
+    Returns
+    -------
+    dict
+        Dictionary with 'X' (feature matrix) and 'y' (cluster labels)
+    """
+    ...
+
+def make_moons_py(
+    n_samples: int = 100,
+    noise: float = 0.1,
+    random_state: Optional[int] = None,
+) -> Dict[str, NDArray]:
+    """
+    Generate two interleaving half circles (moon shapes).
+
+    Parameters
+    ----------
+    n_samples : int, optional
+        Number of samples (default: 100)
+    noise : float, optional
+        Gaussian noise standard deviation (default: 0.1)
+    random_state : int, optional
+        Random seed
+
+    Returns
+    -------
+    dict
+        Dictionary with 'X' (n x 2 feature matrix) and 'y' (binary labels)
+    """
+    ...
+
+def make_circles_py(
+    n_samples: int = 100,
+    noise: float = 0.1,
+    factor: float = 0.8,
+    random_state: Optional[int] = None,
+) -> Dict[str, NDArray]:
+    """
+    Generate a large circle containing a smaller circle.
+
+    Parameters
+    ----------
+    n_samples : int, optional
+        Number of samples (default: 100)
+    noise : float, optional
+        Gaussian noise standard deviation (default: 0.1)
+    factor : float, optional
+        Scale factor between inner and outer circle (default: 0.8)
+    random_state : int, optional
+        Random seed
+
+    Returns
+    -------
+    dict
+        Dictionary with 'X' (n x 2 feature matrix) and 'y' (binary labels)
+    """
+    ...
+
+def make_spirals_py(
+    n_samples: int = 100,
+    noise: float = 0.1,
+    random_state: Optional[int] = None,
+) -> Dict[str, NDArray]:
+    """
+    Generate spiral-shaped clusters.
+
+    Parameters
+    ----------
+    n_samples : int, optional
+        Number of samples (default: 100)
+    noise : float, optional
+        Gaussian noise standard deviation (default: 0.1)
+    random_state : int, optional
+        Random seed
+
+    Returns
+    -------
+    dict
+        Dictionary with 'X' (n x 2 feature matrix) and 'y' (binary labels)
+    """
+    ...
+
+def make_swiss_roll_py(
+    n_samples: int = 100,
+    noise: float = 0.0,
+    random_state: Optional[int] = None,
+) -> Dict[str, NDArray]:
+    """
+    Generate a Swiss roll dataset.
+
+    Parameters
+    ----------
+    n_samples : int, optional
+        Number of samples (default: 100)
+    noise : float, optional
+        Gaussian noise standard deviation (default: 0.0)
+    random_state : int, optional
+        Random seed
+
+    Returns
+    -------
+    dict
+        Dictionary with 'X' (n x 3 feature matrix) and 't' (1D manifold position)
+    """
+    ...
+
+def make_s_curve_py(
+    n_samples: int = 100,
+    noise: float = 0.0,
+    random_state: Optional[int] = None,
+) -> Dict[str, NDArray]:
+    """
+    Generate an S-curve dataset.
+
+    Parameters
+    ----------
+    n_samples : int, optional
+        Number of samples (default: 100)
+    noise : float, optional
+        Gaussian noise standard deviation (default: 0.0)
+    random_state : int, optional
+        Random seed
+
+    Returns
+    -------
+    dict
+        Dictionary with 'X' (n x 3 feature matrix) and 't' (1D manifold position)
+    """
+    ...
+
+def train_test_split_py(
+    X: NDArray,
+    y: NDArray,
+    test_size: float = 0.2,
+    random_state: Optional[int] = None,
+) -> Dict[str, NDArray]:
+    """
+    Split arrays or matrices into random train and test subsets.
+
+    Parameters
+    ----------
+    X : ndarray
+        Feature matrix of shape (n_samples, n_features)
+    y : ndarray
+        Target array of shape (n_samples,)
+    test_size : float, optional
+        Proportion of dataset to include in the test split (default: 0.2)
+    random_state : int, optional
+        Random seed
+
+    Returns
+    -------
+    dict
+        Dictionary with 'X_train', 'X_test', 'y_train', 'y_test' arrays
+    """
+    ...
+
+def k_fold_split_py(
+    n_samples: int,
+    n_splits: int = 5,
+    shuffle: bool = False,
+    random_state: Optional[int] = None,
+) -> List[Tuple[List[int], List[int]]]:
+    """
+    Generate k-fold cross-validation indices.
+
+    Parameters
+    ----------
+    n_samples : int
+        Total number of samples
+    n_splits : int, optional
+        Number of folds (default: 5)
+    shuffle : bool, optional
+        Whether to shuffle before splitting (default: False)
+    random_state : int, optional
+        Random seed
+
+    Returns
+    -------
+    list of (list of int, list of int)
+        Each element is a (train_indices, test_indices) tuple
+    """
+    ...
+
+def min_max_scale_py(
+    data: NDArray[np.float64],
+    feature_range: Tuple[float, float] = (0.0, 1.0),
+) -> NDArray[np.float64]:
+    """
+    Scale features to a given range using min-max normalization.
+
+    Parameters
+    ----------
+    data : ndarray
+        Input data to scale
+    feature_range : tuple of (float, float), optional
+        Target range (default: (0.0, 1.0))
+
+    Returns
+    -------
+    ndarray
+        Scaled data
+    """
+    ...
+
+# =============================================================================
+# Data Transformation Module
+# =============================================================================
+
+def normalize_array_py(
+    data: NDArray[np.float64],
+    norm: str = "l2",
+) -> NDArray[np.float64]:
+    """
+    Normalize an array (rows) using the specified norm.
+
+    Parameters
+    ----------
+    data : ndarray of shape (n, m)
+        Input data matrix
+    norm : str, optional
+        Normalization type: 'l1', 'l2', or 'max' (default: 'l2')
+
+    Returns
+    -------
+    ndarray
+        Normalized data where each row has unit norm
+    """
+    ...
+
+def normalize_vector_py(
+    v: NDArray[np.float64],
+    norm: str = "l2",
+) -> NDArray[np.float64]:
+    """
+    Normalize a 1-D vector using the specified norm.
+
+    Parameters
+    ----------
+    v : ndarray of shape (n,)
+        Input vector
+    norm : str, optional
+        Normalization type: 'l1', 'l2', or 'max' (default: 'l2')
+
+    Returns
+    -------
+    ndarray
+        Normalized vector
+    """
+    ...
+
+def binarize_py(
+    data: NDArray[np.float64],
+    threshold: float = 0.0,
+) -> NDArray[np.float64]:
+    """
+    Binarize data according to a threshold.
+
+    Parameters
+    ----------
+    data : ndarray
+        Input data
+    threshold : float, optional
+        Values above this become 1.0, at or below become 0.0 (default: 0.0)
+
+    Returns
+    -------
+    ndarray
+        Binary array with the same shape as data
+    """
+    ...
+
+def discretize_equal_width_py(
+    data: NDArray[np.float64],
+    n_bins: int,
+) -> NDArray[np.int64]:
+    """
+    Discretize continuous data into equal-width bins.
+
+    Parameters
+    ----------
+    data : ndarray
+        Input 1-D continuous data
+    n_bins : int
+        Number of bins
+
+    Returns
+    -------
+    ndarray of int
+        Bin indices for each data point (0-based)
+    """
+    ...
+
+def discretize_equal_frequency_py(
+    data: NDArray[np.float64],
+    n_bins: int,
+) -> NDArray[np.int64]:
+    """
+    Discretize continuous data into equal-frequency (quantile) bins.
+
+    Parameters
+    ----------
+    data : ndarray
+        Input 1-D continuous data
+    n_bins : int
+        Number of bins (approximately equal number of samples per bin)
+
+    Returns
+    -------
+    ndarray of int
+        Bin indices for each data point (0-based)
+    """
+    ...
+
+def log_transform_py(
+    data: NDArray[np.float64],
+    shift: float = 0.0,
+) -> NDArray[np.float64]:
+    """
+    Apply log transformation: log(data + shift).
+
+    Parameters
+    ----------
+    data : ndarray
+        Input data (must be positive after adding shift)
+    shift : float, optional
+        Value to add before taking log (default: 0.0)
+
+    Returns
+    -------
+    ndarray
+        Log-transformed data
+    """
+    ...
+
+def power_transform_py(
+    data: NDArray[np.float64],
+    power: float,
+) -> NDArray[np.float64]:
+    """
+    Apply power transformation: data^power.
+
+    Parameters
+    ----------
+    data : ndarray
+        Input data
+    power : float
+        Exponent to apply
+
+    Returns
+    -------
+    ndarray
+        Power-transformed data
+    """
+    ...
+
+# =============================================================================
+# Text Processing Module
+# =============================================================================
+
+def levenshtein_distance_py(s1: str, s2: str) -> int:
+    """
+    Compute Levenshtein edit distance between two strings.
+
+    Parameters
+    ----------
+    s1 : str
+        First string
+    s2 : str
+        Second string
+
+    Returns
+    -------
+    int
+        Edit distance (0 = identical strings)
+    """
+    ...
+
+def cosine_similarity_py(v1: List[float], v2: List[float]) -> float:
+    """
+    Compute cosine similarity between two vectors.
+
+    Parameters
+    ----------
+    v1 : list of float
+        First vector
+    v2 : list of float
+        Second vector (must have same length as v1)
+
+    Returns
+    -------
+    float
+        Cosine similarity in [-1, 1]
+    """
+    ...
+
+def jaccard_similarity_py(s1: str, s2: str) -> float:
+    """
+    Compute Jaccard similarity between two strings based on character sets.
+
+    Parameters
+    ----------
+    s1 : str
+        First string
+    s2 : str
+        Second string
+
+    Returns
+    -------
+    float
+        Jaccard similarity in [0, 1]
+    """
+    ...
+
+def strip_html_tags_py(text: str) -> str:
+    """
+    Remove HTML tags from a string.
+
+    Parameters
+    ----------
+    text : str
+        Input string potentially containing HTML tags
+
+    Returns
+    -------
+    str
+        String with all HTML tags removed
+    """
+    ...
+
+def replace_urls_py(text: str, replacement: str = "<URL>") -> str:
+    """
+    Replace URL patterns in text with a placeholder string.
+
+    Parameters
+    ----------
+    text : str
+        Input text
+    replacement : str, optional
+        String to replace URLs with (default: '<URL>')
+
+    Returns
+    -------
+    str
+        Text with URLs replaced
+    """
+    ...
+
+def replace_emails_py(text: str, replacement: str = "<EMAIL>") -> str:
+    """
+    Replace email address patterns in text with a placeholder string.
+
+    Parameters
+    ----------
+    text : str
+        Input text
+    replacement : str, optional
+        Replacement string (default: '<EMAIL>')
+
+    Returns
+    -------
+    str
+        Text with email addresses replaced
+    """
+    ...
+
+def expand_contractions_py(text: str) -> str:
+    """
+    Expand common English contractions in text.
+
+    Parameters
+    ----------
+    text : str
+        Input text with contractions (e.g., "don't", "can't", "it's")
+
+    Returns
+    -------
+    str
+        Text with contractions expanded
+    """
+    ...
+
+def normalize_unicode_py(text: str) -> str:
+    """
+    Normalize Unicode characters in text to NFC form.
+
+    Parameters
+    ----------
+    text : str
+        Input text
+
+    Returns
+    -------
+    str
+        Unicode-normalized text
+    """
+    ...
+
+def normalize_whitespace_py(text: str) -> str:
+    """
+    Normalize whitespace in text: collapse multiple spaces to one.
+
+    Parameters
+    ----------
+    text : str
+        Input text
+
+    Returns
+    -------
+    str
+        Text with normalized whitespace
+    """
+    ...
+
+def remove_accents_py(text: str) -> str:
+    """
+    Remove accent characters (diacritics) from text.
+
+    Parameters
+    ----------
+    text : str
+        Input text with accented characters
+
+    Returns
+    -------
+    str
+        Text with accents removed (e.g., 'e with accent' becomes 'e')
+    """
+    ...
+
+# =============================================================================
+# Computer Vision Module
+# =============================================================================
+
+def rgb_to_grayscale_py(image: NDArray[np.uint8]) -> NDArray[np.uint8]:
+    """
+    Convert an RGB image to grayscale.
+
+    Parameters
+    ----------
+    image : ndarray of uint8 and shape (H, W, 3)
+        Input RGB image
+
+    Returns
+    -------
+    ndarray of uint8 and shape (H, W)
+        Grayscale image
+    """
+    ...
+
+def rgb_to_hsv_py(image: NDArray[np.uint8]) -> NDArray[np.float64]:
+    """
+    Convert an RGB image to HSV (Hue, Saturation, Value) color space.
+
+    Parameters
+    ----------
+    image : ndarray of uint8 and shape (H, W, 3)
+        Input RGB image
+
+    Returns
+    -------
+    ndarray of float64 and shape (H, W, 3)
+        HSV image with H in [0, 360], S and V in [0, 1]
+    """
+    ...
+
+def sobel_edges_py(image: NDArray[np.uint8]) -> NDArray[np.float64]:
+    """
+    Detect edges using the Sobel operator.
+
+    Parameters
+    ----------
+    image : ndarray of uint8
+        Input grayscale image
+
+    Returns
+    -------
+    ndarray of float64
+        Edge magnitude image
+    """
+    ...
+
+def canny_edges_py(
+    image: NDArray[np.uint8],
+    low_threshold: float,
+    high_threshold: float,
+) -> NDArray[np.uint8]:
+    """
+    Detect edges using the Canny edge detector.
+
+    Parameters
+    ----------
+    image : ndarray of uint8
+        Input grayscale image
+    low_threshold : float
+        Lower hysteresis threshold
+    high_threshold : float
+        Upper hysteresis threshold
+
+    Returns
+    -------
+    ndarray of uint8
+        Binary edge image (255 = edge, 0 = background)
+    """
+    ...
+
+def prewitt_edges_py(image: NDArray[np.uint8]) -> NDArray[np.float64]:
+    """
+    Detect edges using the Prewitt operator.
+
+    Parameters
+    ----------
+    image : ndarray of uint8
+        Input grayscale image
+
+    Returns
+    -------
+    ndarray of float64
+        Edge magnitude image
+    """
+    ...
+
+def laplacian_edges_py(image: NDArray[np.uint8]) -> NDArray[np.float64]:
+    """
+    Detect edges using the Laplacian operator.
+
+    Parameters
+    ----------
+    image : ndarray of uint8
+        Input grayscale image
+
+    Returns
+    -------
+    ndarray of float64
+        Edge response image
+    """
+    ...
+
+def equalize_histogram_py(image: NDArray[np.uint8]) -> NDArray[np.uint8]:
+    """
+    Apply global histogram equalization to a grayscale image.
+
+    Parameters
+    ----------
+    image : ndarray of uint8
+        Input grayscale image of shape (H, W)
+
+    Returns
+    -------
+    ndarray of uint8
+        Histogram-equalized image
+    """
+    ...
+
+def clahe_py(
+    image: NDArray[np.uint8],
+    clip_limit: float,
+    tile_grid_size: Tuple[int, int],
+) -> NDArray[np.uint8]:
+    """
+    Apply Contrast Limited Adaptive Histogram Equalization (CLAHE).
+
+    Parameters
+    ----------
+    image : ndarray of uint8
+        Input grayscale image
+    clip_limit : float
+        Threshold for contrast limiting
+    tile_grid_size : tuple of (int, int)
+        Size of grid for histogram equalization tiles
+
+    Returns
+    -------
+    ndarray of uint8
+        Contrast-enhanced image
+    """
+    ...
+
+def normalize_brightness_py(
+    image: NDArray[np.uint8],
+    target_mean: float,
+) -> NDArray[np.uint8]:
+    """
+    Normalize the brightness of an image to a target mean value.
+
+    Parameters
+    ----------
+    image : ndarray of uint8
+        Input image
+    target_mean : float
+        Target mean pixel intensity
+
+    Returns
+    -------
+    ndarray of uint8
+        Brightness-normalized image
+    """
+    ...
+
+def unsharp_mask_py(
+    image: NDArray[np.uint8],
+    sigma: float,
+    strength: float,
+) -> NDArray[np.uint8]:
+    """
+    Sharpen an image using the unsharp masking technique.
+
+    Parameters
+    ----------
+    image : ndarray of uint8
+        Input image
+    sigma : float
+        Gaussian blur sigma for creating the mask
+    strength : float
+        Sharpening strength factor
+
+    Returns
+    -------
+    ndarray of uint8
+        Sharpened image
+    """
+    ...
+
+def gaussian_blur_py(
+    image: NDArray[np.uint8],
+    sigma: float,
+    kernel_size: Optional[int] = None,
+) -> NDArray[np.uint8]:
+    """
+    Apply Gaussian blur to a vision image.
+
+    Parameters
+    ----------
+    image : ndarray of uint8
+        Input image
+    sigma : float
+        Standard deviation of the Gaussian kernel
+    kernel_size : int, optional
+        Size of the kernel; if None, derived from sigma
+
+    Returns
+    -------
+    ndarray of uint8
+        Blurred image
+    """
+    ...
+
+def detect_and_compute_sift_py(
+    image: NDArray[np.uint8],
+) -> Dict[str, Any]:
+    """
+    Detect SIFT keypoints and compute descriptors.
+
+    Parameters
+    ----------
+    image : ndarray of uint8
+        Input grayscale image
+
+    Returns
+    -------
+    dict
+        Dictionary with 'keypoints' (list of (x, y, size, angle)) and
+        'descriptors' (ndarray of shape (n_kp, 128))
+    """
+    ...
+
+def labels_to_color_image_py(
+    labels: NDArray[np.int32],
+) -> NDArray[np.uint8]:
+    """
+    Convert a labeled segmentation map to a color image.
+
+    Parameters
+    ----------
+    labels : ndarray of int32
+        Labeled image where each unique value is a segment
+
+    Returns
+    -------
+    ndarray of uint8 and shape (H, W, 3)
+        RGB color image with each label assigned a distinct color
+    """
+    ...
+
+def find_homography_py(
+    src_points: NDArray[np.float64],
+    dst_points: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    """
+    Find a homography matrix mapping source points to destination points.
+
+    Parameters
+    ----------
+    src_points : ndarray of shape (n, 2)
+        Source image points (at least 4 non-collinear points required)
+    dst_points : ndarray of shape (n, 2)
+        Destination image points
+
+    Returns
+    -------
+    ndarray of shape (3, 3)
+        Homography matrix H
+    """
+    ...
+
+# =============================================================================
+# Async Operations Module
+# =============================================================================
+
+def fft_async(data: NDArray[np.float64]) -> Any:
+    """
+    Asynchronous FFT operation for large arrays (must be awaited).
+
+    Parameters
+    ----------
+    data : ndarray of float64
+        Real-valued input data
+
+    Returns
+    -------
+    coroutine
+        Awaitable returning a complex-valued result dict
+    """
+    ...
+
+def svd_async(
+    matrix: NDArray[np.float64],
+    full_matrices: Optional[bool] = None,
+) -> Any:
+    """
+    Asynchronous SVD decomposition for large matrices (must be awaited).
+
+    Parameters
+    ----------
+    matrix : ndarray of shape (m, n)
+        Input matrix
+    full_matrices : bool, optional
+        If True, compute full U and Vt matrices (default: True)
+
+    Returns
+    -------
+    coroutine
+        Awaitable returning a dict with 'U', 'S', 'Vt' arrays
+    """
+    ...
+
+def qr_async(matrix: NDArray[np.float64]) -> Any:
+    """
+    Asynchronous QR decomposition for large matrices (must be awaited).
+
+    Parameters
+    ----------
+    matrix : ndarray of shape (m, n)
+        Input matrix
+
+    Returns
+    -------
+    coroutine
+        Awaitable returning a dict with 'Q' and 'R' arrays
+    """
+    ...
+
+def quad_async(
+    func: Any,
+    a: float,
+    b: float,
+    epsabs: Optional[float] = None,
+    epsrel: Optional[float] = None,
+) -> Any:
+    """
+    Asynchronous numerical integration (must be awaited).
+
+    Parameters
+    ----------
+    func : callable
+        Python callable f(x) -> float
+    a : float
+        Lower integration limit
+    b : float
+        Upper integration limit
+    epsabs : float, optional
+        Absolute error tolerance (default: 1e-8)
+    epsrel : float, optional
+        Relative error tolerance (default: 1e-8)
+
+    Returns
+    -------
+    coroutine
+        Awaitable returning a dict with 'value' and 'error' keys
+    """
+    ...
+
+def minimize_async(
+    func: Any,
+    x0: NDArray[np.float64],
+    method: Optional[str] = None,
+    maxiter: Optional[int] = None,
+) -> Any:
+    """
+    Asynchronous optimization for expensive objective functions (must be awaited).
+
+    Parameters
+    ----------
+    func : callable
+        Objective function f(x) -> float
+    x0 : ndarray
+        Initial guess
+    method : str, optional
+        Optimization method (e.g., 'nelder-mead', 'bfgs')
+    maxiter : int, optional
+        Maximum number of iterations
+
+    Returns
+    -------
+    coroutine
+        Awaitable returning an optimization result dict
+    """
+    ...
+
+# =============================================================================
+# Batch Statistics Module
+# =============================================================================
+
+def stats_summary(data: List[float]) -> Tuple[float, float, float]:
+    """
+    Compute a quick summary of basic statistics.
+
+    Parameters
+    ----------
+    data : list of float
+        Input data values
+
+    Returns
+    -------
+    tuple of (float, float, float)
+        Tuple of (mean, variance, std)
+    """
+    ...
+
+def batch_descriptive_stats(
+    arrays: List[List[float]],
+) -> List[Dict[str, float]]:
+    """
+    Compute descriptive statistics for multiple arrays in parallel.
+
+    Parameters
+    ----------
+    arrays : list of list of float
+        List of data arrays
+
+    Returns
+    -------
+    list of dict
+        One dict per input array with keys: 'mean', 'variance', 'std',
+        'min', 'max', 'median', 'count'
+    """
+    ...
+
+def batch_correlation(
+    arrays: List[List[float]],
+) -> List[List[float]]:
+    """
+    Compute pairwise Pearson correlation matrix for multiple arrays.
+
+    Parameters
+    ----------
+    arrays : list of list of float
+        List of data arrays (must all have the same length)
+
+    Returns
+    -------
+    list of list of float
+        Correlation matrix as nested list
+    """
+    ...
+
+def batch_pdf_eval(
+    distribution: str,
+    params: List[float],
+    x_values: List[float],
+) -> List[float]:
+    """
+    Evaluate a probability density function at multiple points.
+
+    Parameters
+    ----------
+    distribution : str
+        Name of the distribution (e.g., 'norm', 'gamma', 'beta')
+    params : list of float
+        Distribution parameters (vary by distribution)
+    x_values : list of float
+        Points at which to evaluate the PDF
+
+    Returns
+    -------
+    list of float
+        PDF values at each point
+    """
+    ...
+
+# =============================================================================
+# Batch Linear Algebra Module
+# =============================================================================
+
+def batch_matmul_py(
+    a_list: List[List[List[float]]],
+    b_list: List[List[List[float]]],
+) -> List[List[List[float]]]:
+    """
+    Compute batch matrix multiplication: result[i] = a_list[i] @ b_list[i].
+
+    Processes pairs of matrices in parallel using Rayon.
+
+    Parameters
+    ----------
+    a_list : list of 2-D matrix (as list of list of float)
+        List of left-hand matrices
+    b_list : list of 2-D matrix (as list of list of float)
+        List of right-hand matrices (must have same length as a_list)
+
+    Returns
+    -------
+    list of 2-D matrix (as list of list of float)
+        List of result matrices
+    """
+    ...
+
+def batch_svd_py(
+    matrices: List[List[List[float]]],
+) -> List[Dict[str, List[List[float]]]]:
+    """
+    Compute SVD for a batch of matrices in parallel.
+
+    Parameters
+    ----------
+    matrices : list of 2-D matrix (as list of list of float)
+        List of matrices to decompose
+
+    Returns
+    -------
+    list of dict
+        Each dict has 'u', 's', 'vt' keys with the SVD components
+    """
+    ...
+
+def batch_solve_py(
+    a_list: List[List[List[float]]],
+    b_list: List[List[float]],
+) -> List[List[float]]:
+    """
+    Solve a batch of linear systems Ax = b in parallel.
+
+    Parameters
+    ----------
+    a_list : list of 2-D matrix (as list of list of float)
+        List of coefficient matrices (each must be square)
+    b_list : list of list of float
+        List of right-hand side vectors
+
+    Returns
+    -------
+    list of list of float
+        List of solution vectors
+    """
+    ...
+
+def batch_matrix_norm_py(
+    matrices: List[List[List[float]]],
+    ord: str = "fro",
+) -> List[float]:
+    """
+    Compute matrix norms for a batch of matrices in parallel.
+
+    Parameters
+    ----------
+    matrices : list of 2-D matrix (as list of list of float)
+        List of input matrices
+    ord : str, optional
+        Norm type: 'fro' (Frobenius), '1', 'inf', '2' (default: 'fro')
+
+    Returns
+    -------
+    list of float
+        Norm value for each input matrix
+    """
+    ...
+
+# =============================================================================
+# Polynomial Fitting (Statistics Extension)
+# =============================================================================
+
+def polyfit_py(
+    x: NDArray[np.float64],
+    y: NDArray[np.float64],
+    degree: int,
+) -> Dict[str, Any]:
+    """
+    Fit a polynomial of the specified degree to data points.
+
+    Uses least-squares to find coefficients of a polynomial p(x) = c_0 + c_1*x
+    + ... + c_d*x^d that minimizes the sum of squared residuals.
+
+    Parameters
+    ----------
+    x : ndarray of float64
+        Independent variable (x-coordinates)
+    y : ndarray of float64
+        Dependent variable (y-coordinates; must have same length as x)
+    degree : int
+        Degree of the polynomial to fit (must be >= 1)
+
+    Returns
+    -------
+    dict
+        Dictionary with:
+        - 'coefficients': ndarray of shape (degree+1,) in ascending order
+        - 'residuals': float, sum of squared residuals
+        - 'rank': int, rank of the Vandermonde matrix
+
+    Examples
+    --------
+    >>> x = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
+    >>> y = np.array([1.0, 3.0, 7.0, 13.0, 21.0])  # y = x^2 + x + 1
+    >>> result = scirs2.polyfit_py(x, y, degree=2)
+    """
+    ...

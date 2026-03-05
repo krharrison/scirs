@@ -7,15 +7,17 @@ use crate::unconstrained::utils::{array_diff_norm, check_convergence, finite_dif
 use crate::unconstrained::Options;
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1, Axis};
 
-/// Implements the BFGS algorithm with optional bounds support
+/// Implements the BFGS algorithm with optional bounds support and optional user-provided gradient
 #[allow(dead_code)]
-pub fn minimize_bfgs<F, S>(
+pub fn minimize_bfgs<F, G, S>(
     mut fun: F,
+    grad: Option<G>,
     x0: Array1<f64>,
     options: &Options,
 ) -> Result<OptimizeResult<S>, OptimizeError>
 where
     F: FnMut(&ArrayView1<f64>) -> S + Clone,
+    G: Fn(&ArrayView1<f64>) -> Array1<f64>,
     S: Into<f64> + Clone,
 {
     // Get options or use defaults
@@ -36,15 +38,24 @@ where
 
     let mut f = fun(&x.view()).into();
 
-    // Calculate initial gradient using finite differences
-    let mut g = finite_difference_gradient(&mut fun, &x.view(), eps)?;
+    // Calculate initial gradient: use user-provided gradient if available,
+    // otherwise fall back to finite differences
+    let mut g = if let Some(ref grad_fn) = grad {
+        grad_fn(&x.view())
+    } else {
+        finite_difference_gradient(&mut fun, &x.view(), eps)?
+    };
 
     // Initialize approximation of inverse Hessian with identity matrix
     let mut h_inv = Array2::eye(n);
 
     // Initialize counters
+    // When using a user-provided gradient, only count the initial function evaluation.
+    // When using finite differences, also count the n gradient evaluations.
+    let mut nfev = if grad.is_some() { 1 } else { 1 + n };
+
+    // Initialize iteration counter
     let mut iter = 0;
-    let mut nfev = 1 + n; // Initial evaluation plus gradient calculations
 
     // Main loop
     while iter < max_iter {
@@ -112,9 +123,15 @@ where
             break;
         }
 
-        // Calculate new gradient
-        let g_new = finite_difference_gradient(&mut fun, &x_new.view(), eps)?;
-        nfev += n;
+        // Calculate new gradient: use user-provided gradient if available,
+        // otherwise fall back to finite differences (and count those evaluations)
+        let g_new = if let Some(ref grad_fn) = grad {
+            grad_fn(&x_new.view())
+        } else {
+            let g_fd = finite_difference_gradient(&mut fun, &x_new.view(), eps)?;
+            nfev += n;
+            g_fd
+        };
 
         // Gradient difference
         let y = &g_new - &g;
@@ -123,7 +140,7 @@ where
         if check_convergence(
             f - f_new,
             0.0,
-            g_new.mapv(|x| x.abs()).sum(),
+            g_new.mapv(|xi| xi.abs()).sum(),
             ftol,
             0.0,
             gtol,
@@ -190,11 +207,34 @@ where
     })
 }
 
+/// Backward-compatible wrapper: calls `minimize_bfgs` with no user-provided gradient.
+///
+/// Gradients are computed using forward finite differences. This function is provided
+/// for call sites that do not have an analytic gradient available.
+#[allow(dead_code)]
+pub fn minimize_bfgs_no_grad<F, S>(
+    fun: F,
+    x0: Array1<f64>,
+    options: &Options,
+) -> Result<OptimizeResult<S>, OptimizeError>
+where
+    F: FnMut(&ArrayView1<f64>) -> S + Clone,
+    S: Into<f64> + Clone,
+{
+    minimize_bfgs(
+        fun,
+        None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+        x0,
+        options,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::unconstrained::Bounds;
     use approx::assert_abs_diff_eq;
+    use scirs2_core::ndarray::array;
 
     #[test]
     fn test_bfgs_quadratic() {
@@ -208,7 +248,13 @@ mod tests {
         let x0 = Array1::from_vec(vec![0.0, 0.0]);
         let options = Options::default();
 
-        let result = minimize_bfgs(quadratic, x0, &options).expect("Operation failed");
+        let result = minimize_bfgs(
+            quadratic,
+            None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+            x0,
+            &options,
+        )
+        .expect("Operation failed");
 
         assert!(result.success);
         // Optimal solution: x = A^(-1) * (-b) = [2.0, 2.0]
@@ -228,7 +274,13 @@ mod tests {
         let mut options = Options::default();
         options.max_iter = 2000; // More iterations for Rosenbrock
 
-        let result = minimize_bfgs(rosenbrock, x0, &options).expect("Operation failed");
+        let result = minimize_bfgs(
+            rosenbrock,
+            None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+            x0,
+            &options,
+        )
+        .expect("Operation failed");
 
         assert!(result.success);
         assert_abs_diff_eq!(result.x[0], 1.0, epsilon = 3e-3);
@@ -247,11 +299,36 @@ mod tests {
         let bounds = Bounds::new(&[(Some(0.0), Some(1.0)), (Some(0.0), Some(1.0))]);
         options.bounds = Some(bounds);
 
-        let result = minimize_bfgs(quadratic, x0, &options).expect("Operation failed");
+        let result = minimize_bfgs(
+            quadratic,
+            None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+            x0,
+            &options,
+        )
+        .expect("Operation failed");
 
         assert!(result.success);
         // The optimal point (2, 3) is outside the bounds, so we should get (1, 1)
         assert_abs_diff_eq!(result.x[0], 1.0, epsilon = 1e-6);
         assert_abs_diff_eq!(result.x[1], 1.0, epsilon = 1e-6);
+    }
+
+    #[test]
+    fn test_bfgs_with_analytic_gradient() {
+        // Quadratic function f(x) = x[0]^2 + x[1]^2, minimum at (0, 0)
+        let fun = |x: &ArrayView1<f64>| -> f64 { x[0].powi(2) + x[1].powi(2) };
+
+        // Analytic gradient: g(x) = [2*x[0], 2*x[1]]
+        let grad_fn = |x: &ArrayView1<f64>| array![2.0 * x[0], 2.0 * x[1]];
+
+        let x0 = Array1::from_vec(vec![3.0, -2.0]);
+        let options = Options::default();
+
+        let result = minimize_bfgs(fun, Some(grad_fn), x0, &options).expect("Operation failed");
+
+        assert!(result.success);
+        assert_abs_diff_eq!(result.x[0], 0.0, epsilon = 1e-6);
+        assert_abs_diff_eq!(result.x[1], 0.0, epsilon = 1e-6);
+        assert!(result.fun < 1e-10);
     }
 }

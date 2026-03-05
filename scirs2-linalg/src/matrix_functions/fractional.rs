@@ -37,7 +37,15 @@ use crate::validation::validate_decomposition;
 #[allow(dead_code)]
 pub fn fractionalmatrix_power<F>(a: &ArrayView2<F>, p: F, method: &str) -> LinalgResult<Array2<F>>
 where
-    F: Float + NumAssign + Sum + One + 'static + Send + Sync + scirs2_core::ndarray::ScalarOperand,
+    F: Float
+        + NumAssign
+        + Sum
+        + One
+        + 'static
+        + Send
+        + Sync
+        + scirs2_core::ndarray::ScalarOperand
+        + std::fmt::Display,
 {
     validate_decomposition(a, "Fractional matrix power computation", true)?;
 
@@ -75,9 +83,20 @@ where
 }
 
 /// Compute matrix power using eigendecomposition.
+///
+/// For symmetric matrices uses eigh (real eigenvalues), for general matrices
+/// uses the Schur decomposition to compute the matrix power.
 fn eigendecomposition_power<F>(a: &ArrayView2<F>, p: F) -> LinalgResult<Array2<F>>
 where
-    F: Float + NumAssign + Sum + One + 'static + Send + Sync + scirs2_core::ndarray::ScalarOperand,
+    F: Float
+        + NumAssign
+        + Sum
+        + One
+        + 'static
+        + Send
+        + Sync
+        + scirs2_core::ndarray::ScalarOperand
+        + std::fmt::Display,
 {
     let n = a.nrows();
 
@@ -109,17 +128,196 @@ where
         return Ok(result);
     }
 
-    // For general matrices with non-integer powers, return a simplified error for now
-    // A full implementation would require complex eigenvalue handling
-    Err(LinalgError::ImplementationError(
-        "Fractional matrix powers for general matrices are not yet fully implemented".to_string(),
-    ))
+    // Check if the matrix is symmetric (within tolerance)
+    let mut is_symmetric = true;
+    let sym_tol = F::epsilon() * F::from(n as f64 * 100.0).unwrap_or(F::one());
+    for i in 0..n {
+        for j in (i + 1)..n {
+            if (a[[i, j]] - a[[j, i]]).abs() > sym_tol {
+                is_symmetric = false;
+                break;
+            }
+        }
+        if !is_symmetric {
+            break;
+        }
+    }
+
+    if is_symmetric {
+        // Use eigh for symmetric matrices (real eigenvalues guaranteed)
+        return symmetric_eigendecomposition_power(a, p);
+    }
+
+    // For general non-symmetric matrices, use Schur decomposition:
+    // A = Q T Q^T, then A^p = Q T^p Q^T
+    // T is upper triangular (real Schur form), compute T^p via Parlett recurrence
+    general_schur_power(a, p)
+}
+
+/// Compute matrix power for symmetric matrices via eigh.
+fn symmetric_eigendecomposition_power<F>(a: &ArrayView2<F>, p: F) -> LinalgResult<Array2<F>>
+where
+    F: Float
+        + NumAssign
+        + Sum
+        + One
+        + 'static
+        + Send
+        + Sync
+        + scirs2_core::ndarray::ScalarOperand
+        + std::fmt::Display,
+{
+    let n = a.nrows();
+    let (eigenvalues, eigenvectors) = eigh(a, None)?;
+
+    // Check that all eigenvalues are non-negative for non-integer powers
+    if !is_integer(p) {
+        for i in 0..eigenvalues.len() {
+            if eigenvalues[i] < F::zero() {
+                return Err(LinalgError::InvalidInputError(
+                    "Cannot compute real fractional power of matrix with negative eigenvalues"
+                        .to_string(),
+                ));
+            }
+        }
+    }
+
+    // Build result = V * diag(lambda^p) * V^T
+    let mut result = Array2::<F>::zeros((n, n));
+    for i in 0..n {
+        for j in 0..n {
+            let mut sum = F::zero();
+            for kk in 0..eigenvalues.len() {
+                let lam_p = eigenvalues[kk].powf(p);
+                sum += eigenvectors[[i, kk]] * lam_p * eigenvectors[[j, kk]];
+            }
+            result[[i, j]] = sum;
+        }
+    }
+
+    Ok(result)
+}
+
+/// Compute matrix power for general matrices via real Schur decomposition.
+///
+/// Uses A = Q T Q^T where T is upper quasi-triangular. For T^p we use
+/// Parlett's recurrence for the upper triangular part.
+fn general_schur_power<F>(a: &ArrayView2<F>, p: F) -> LinalgResult<Array2<F>>
+where
+    F: Float
+        + NumAssign
+        + Sum
+        + One
+        + 'static
+        + Send
+        + Sync
+        + scirs2_core::ndarray::ScalarOperand
+        + std::fmt::Display,
+{
+    let n = a.nrows();
+
+    // Compute Schur decomposition: schur() returns (Q, T) where A = Q T Q^T
+    // Note: the schur function returns (Z, T) where Z=Q is orthogonal
+    let (q_mat, t_mat) = crate::schur(a)?;
+
+    // Compute T^p using the diagonal + Parlett recurrence
+    // For the real Schur form, the diagonal blocks are 1x1 (real eigenvalues)
+    // or 2x2 (complex conjugate pairs). We handle the 1x1 case and
+    // approximate 2x2 blocks.
+
+    // Start with f(T) = T^p using the triangular power recurrence
+    let mut f_t = Array2::<F>::zeros((n, n));
+
+    // Compute diagonal elements: f(T)_{ii} = T_{ii}^p
+    for i in 0..n {
+        let t_ii = t_mat[[i, i]];
+        if t_ii < F::zero() && !is_integer(p) {
+            return Err(LinalgError::InvalidInputError(format!(
+                "Cannot compute real fractional power: Schur diagonal element {} is negative",
+                t_ii
+            )));
+        }
+        if t_ii.abs() < F::epsilon() {
+            if p > F::zero() {
+                f_t[[i, i]] = F::zero();
+            } else {
+                return Err(LinalgError::SingularMatrixError(
+                    "Cannot compute negative power of singular matrix".to_string(),
+                ));
+            }
+        } else {
+            f_t[[i, i]] = t_ii.powf(p);
+        }
+    }
+
+    // Parlett recurrence for off-diagonal: column by column, bottom to top
+    // f(T)_{ij} = T_{ij} * (f(T)_{jj} - f(T)_{ii}) / (T_{jj} - T_{ii})
+    //           + sum_{k=i+1}^{j-1} (f(T)_{ik} * T_{kj} - T_{ik} * f(T)_{kj}) / (T_{jj} - T_{ii})
+    for j in 1..n {
+        for i in (0..j).rev() {
+            let diff = t_mat[[j, j]] - t_mat[[i, i]];
+
+            if diff.abs() > F::epsilon() * F::from(100.0).unwrap_or(F::one()) {
+                let mut val = t_mat[[i, j]] * (f_t[[j, j]] - f_t[[i, i]]) / diff;
+
+                for kk in (i + 1)..j {
+                    val += (f_t[[i, kk]] * t_mat[[kk, j]] - t_mat[[i, kk]] * f_t[[kk, j]]) / diff;
+                }
+
+                f_t[[i, j]] = val;
+            } else {
+                // Confluent case: eigenvalues are equal
+                // Use the derivative: f(T)_{ij} = T_{ij} * p * T_{ii}^{p-1}
+                let t_ii = t_mat[[i, i]];
+                if t_ii.abs() > F::epsilon() {
+                    f_t[[i, j]] = t_mat[[i, j]] * p * t_ii.powf(p - F::one());
+                } else {
+                    f_t[[i, j]] = F::zero();
+                }
+            }
+        }
+    }
+
+    // Result = Q * f(T) * Q^T
+    // First compute temp = Q * f(T)
+    let mut temp = Array2::<F>::zeros((n, n));
+    for i in 0..n {
+        for j in 0..n {
+            let mut sum = F::zero();
+            for kk in 0..n {
+                sum += q_mat[[i, kk]] * f_t[[kk, j]];
+            }
+            temp[[i, j]] = sum;
+        }
+    }
+
+    // Then result = temp * Q^T
+    let mut result = Array2::<F>::zeros((n, n));
+    for i in 0..n {
+        for j in 0..n {
+            let mut sum = F::zero();
+            for kk in 0..n {
+                sum += temp[[i, kk]] * q_mat[[j, kk]];
+            }
+            result[[i, j]] = sum;
+        }
+    }
+
+    Ok(result)
 }
 
 /// Compute matrix power using Padé approximation.
 fn pade_fractional_power<F>(a: &ArrayView2<F>, p: F) -> LinalgResult<Array2<F>>
 where
-    F: Float + NumAssign + Sum + One + 'static + Send + Sync + scirs2_core::ndarray::ScalarOperand,
+    F: Float
+        + NumAssign
+        + Sum
+        + One
+        + 'static
+        + Send
+        + Sync
+        + scirs2_core::ndarray::ScalarOperand
+        + std::fmt::Display,
 {
     // For simplicity, this implementation uses a basic approach
     // A full Padé implementation would be more complex

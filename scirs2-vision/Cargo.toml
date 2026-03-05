@@ -27,6 +27,7 @@ statrs = { workspace = true }
 
 # Vision specific dependencies
 image = { workspace = true }
+ordered-float = { workspace = true }
 num_cpus = { workspace = true }
 crossbeam-channel = { workspace = true }
 # rayon = { workspace = true }  # Now use scirs2-core parallel abstractions

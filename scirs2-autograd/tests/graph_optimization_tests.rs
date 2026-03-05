@@ -9,9 +9,7 @@ use scirs2_autograd::optimization::{
     ConstantFolder, ExpressionSimplifier, GraphOptimizer, OptimizationConfig, OptimizationLevel,
 };
 use scirs2_autograd::tensor_ops as T;
-use scirs2_autograd::visualization::{
-    GraphDebugger, GraphExplorer, GraphVisualizer, OutputFormat, VisualizationConfig,
-};
+use scirs2_autograd::visualization::{OutputFormat, VisualizationConfig};
 use scirs2_core::ndarray::{Array, IxDyn};
 
 /// Test graph visualization functionality
@@ -20,10 +18,9 @@ mod visualization_tests {
     use super::*;
 
     #[test]
-    fn test_graph_visualization_creation() {
-        let _visualizer = GraphVisualizer::<f32>::new();
+    fn test_visualization_config_creation() {
         let config = VisualizationConfig::default();
-        let _visualizer_with_config = GraphVisualizer::<f32>::with_config(config);
+        let _ = config;
 
         // Test different output formats
         let formats = [
@@ -38,24 +35,14 @@ mod visualization_tests {
                 format,
                 ..Default::default()
             };
-            let _vis = GraphVisualizer::<f32>::with_config(config);
+            let _ = config;
         }
-    }
-
-    #[test]
-    fn test_graph_debugging_utilities() {
-        let _debugger = GraphDebugger::<f32>::new();
-        let _explorer = GraphExplorer::<f32>::new();
-
-        // Test that we can create debugging tools
-        let _debug_default = GraphDebugger::<f32>::default();
-        let _explorer_default = GraphExplorer::<f32>::default();
     }
 
     #[test]
     fn test_visualization_config_options() {
         let mut config = VisualizationConfig::default();
-        assert!(config.showshapes);
+        assert!(config.show_shapes);
         assert!(config.show_operations);
         assert!(!config.show_gradients);
 
@@ -70,24 +57,29 @@ mod visualization_tests {
     }
 
     #[test]
-    fn test_public_visualization_api() {
-        // Test that the public API functions can be called
-        // Note: These would need actual graphs to work properly,
-        // but we can test that the functions exist and have correct signatures
+    fn test_graph_to_dot_api() {
+        // Test the new graph_to_dot API with a real graph
+        ag::run(|ctx: &mut ag::Context<f64>| {
+            let x = ctx.placeholder("x", &[3]);
+            let y = x * 2.0;
+            let loss = T::reduction::sum_all(y);
 
-        // Note: These functions exist and can be called, but we skip actual testing
-        // since creating a valid graph requires more setup
-        // let dummy_graph: &ag::graph::Graph<f32> = ...; // would need proper initialization
+            let dot = ag::visualization::graph_to_dot(&loss, ctx);
+            assert!(dot.contains("digraph computation_graph"));
+            assert!(dot.contains("->"));
 
-        // Test that these functions exist (compilation test)
-        // With a proper graph, these would work:
-        // let _dot_result = ag::visualization::visualize_graph_dot(graph);
-        // let text_result = ag::visualization::visualize_graphtext(graph);
-        // let _json_result = ag::visualization::visualize_graph_json(graph);
-        // let _mermaid_result = ag::visualization::visualize_graph_mermaid(graph);
-        // let _stats_result = ag::visualization::print_graph_stats(graph);
-        // let _validate_result = ag::visualization::validate_graph(graph);
-        // let _analyze_result = ag::visualization::analyze_graph_optimizations(graph);
+            let summary = ag::visualization::graph_summary(&loss, ctx);
+            assert!(summary.contains("Total nodes:"));
+
+            let json = ag::visualization::graph_to_json(&loss, ctx);
+            assert!(json.contains("\"nodes\""));
+
+            let mermaid = ag::visualization::graph_to_mermaid(&loss, ctx);
+            assert!(mermaid.contains("graph BT"));
+
+            let stats = ag::visualization::GraphStats::from_tensor(&loss, ctx);
+            assert!(stats.total_nodes > 0);
+        });
     }
 }
 
@@ -253,7 +245,6 @@ mod integration_tests {
     fn test_optimization_and_visualization_workflow() {
         // Test that we can create both optimizers and visualizers
         let _optimizer = GraphOptimizer::<f32>::with_level(OptimizationLevel::Standard);
-        let _visualizer = GraphVisualizer::<f32>::new();
         let _memory_optimizer = MemoryOptimizer::<f32>::new();
 
         // Test configuration combinations
@@ -269,7 +260,7 @@ mod integration_tests {
         };
 
         let vis_config = VisualizationConfig {
-            showshapes: true,
+            show_shapes: true,
             show_operations: true,
             show_gradients: true,
             max_nodes: Some(200),
@@ -290,7 +281,7 @@ mod integration_tests {
         };
 
         let _combined_optimizer = GraphOptimizer::<f32>::with_config(opt_config);
-        let _combined_visualizer = GraphVisualizer::<f32>::with_config(vis_config);
+        let _ = vis_config;
         let _combined_memory_optimizer = MemoryOptimizer::<f32>::with_config(mem_config);
     }
 
@@ -380,16 +371,14 @@ mod integration_tests {
             ..Default::default()
         });
 
-        // 2. Create visualization tools
-        let visualizer = GraphVisualizer::<f32>::with_config(VisualizationConfig {
-            showshapes: true,
+        // 2. Create visualization config
+        let vis_config = VisualizationConfig {
+            show_shapes: true,
             show_operations: true,
             show_gradients: true,
             format: OutputFormat::Json,
             ..Default::default()
-        });
-
-        let debugger = GraphDebugger::<f32>::new();
+        };
 
         // 3. Test that components can work together
         // In a real scenario, this would involve:
@@ -400,7 +389,7 @@ mod integration_tests {
         // - Generating reports
 
         // For now, just test that all components exist and can be created
-        let _pipeline_components = (graph_optimizer, memory_optimizer, visualizer, debugger);
+        let _pipeline_components = (graph_optimizer, memory_optimizer, vis_config);
     }
 }
 

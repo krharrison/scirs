@@ -23,7 +23,7 @@ use scirs2_core::ndarray::s;
 // let t: Vec<f64> = (0..1000).map(|i| i as f64 / fs).collect();
 // let clean_signal_vec = waveforms::chirp(
 //     &t, 10.0, 1.0, 100.0, "linear", 0.0
-// ).unwrap();
+// ).expect("operation should succeed");
 //
 // // Convert to ndarray
 // let clean_signal = Array1::from_vec(clean_signal_vec);
@@ -36,7 +36,7 @@ use scirs2_core::ndarray::s;
 // }
 //
 // // Apply Wiener filter
-// let denoised_signal = wiener_filter(&noisy_signal, None, None).unwrap();
+// let denoised_signal = wiener_filter(&noisy_signal, None, None).expect("operation should succeed");
 // ```
 
 use crate::error::{SignalError, SignalResult};

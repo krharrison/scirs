@@ -26,21 +26,21 @@
 //!
 //! // Compute demographic parity difference
 //! // A value of 0 indicates perfect demographic parity
-//! let dp_diff = demographic_parity_difference(&y_pred, &protected_group).unwrap();
+//! let dp_diff = demographic_parity_difference(&y_pred, &protected_group).expect("should succeed");
 //!
 //! // Compute equalized odds difference
 //! // A value of 0 indicates that the false positive and true positive rates are
 //! // the same for both groups
-//! let eod_diff = equalized_odds_difference(&y_true, &y_pred, &protected_group).unwrap();
+//! let eod_diff = equalized_odds_difference(&y_true, &y_pred, &protected_group).expect("should succeed");
 //!
 //! // Compute equal opportunity difference
 //! // A value of 0 indicates equal true positive rates across groups
-//! let eo_diff = equal_opportunity_difference(&y_true, &y_pred, &protected_group).unwrap();
+//! let eo_diff = equal_opportunity_difference(&y_true, &y_pred, &protected_group).expect("should succeed");
 //!
 //! // Calculate disparate impact
 //! // A value of 1.0 indicates perfect fairness; less than 0.8 or greater than 1.25
 //! // is often considered problematic
-//! let di = scirs2_metrics::fairness::disparate_impact(&y_pred, &protected_group).unwrap();
+//! let di = scirs2_metrics::fairness::disparate_impact(&y_pred, &protected_group).expect("should succeed");
 //! ```
 //!
 //! ## Consistency Measures
@@ -55,13 +55,13 @@
 //! // Features matrix: each row is an individual, each column is a feature
 //! let features = Array2::from_shape_vec((6, 2),
 //!     vec![0.1, 0.2, 0.15, 0.21, 0.9, 0.8, 0.92, 0.79, 0.5, 0.51, 0.52, 0.49]
-//! ).unwrap();
+//! ).expect("should succeed");
 //!
 //! // Predictions for each individual
 //! let predictions = array![0.0, 0.0, 1.0, 1.0, 0.0, 0.0];
 //!
 //! // Calculate consistency score (higher is better)
-//! let consistency = consistency_score(&features, &predictions, 2).unwrap();
+//! let consistency = consistency_score(&features, &predictions, 2).expect("should succeed");
 //! ```
 //!
 //! ## Comprehensive Bias Detection
@@ -101,7 +101,7 @@
 //!     &protected_group,
 //!     |yp, pg| demographic_parity_difference(yp, pg).unwrap_or(1.0),
 //!     None
-//! ).unwrap();
+//! ).expect("should succeed");
 //!
 //! // Evaluate sensitivity to perturbations
 //! let sensitivity = perturbation_sensitivity(
@@ -113,7 +113,7 @@
 //!     0.1,  // 10% perturbation level
 //!     5,    // 5 iterations
 //!     Some(42)  // Random seed
-//! ).unwrap();
+//! ).expect("should succeed");
 //! ```
 //!
 //! ```
@@ -130,7 +130,7 @@
 //! // Protected attributes: gender (0=male, 1=female) and race (0=group A, 1=group B)
 //! let protected_features = Array2::from_shape_vec((8, 2), vec![
 //!     0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0,
-//! ]).unwrap();
+//! ]).expect("should succeed");
 //!
 //! let feature_names = vec!["gender".to_string(), "race".to_string()];
 //!
@@ -140,7 +140,7 @@
 //!     &y_pred,
 //!     &protected_features,
 //!     &feature_names
-//! ).unwrap();
+//! ).expect("should succeed");
 //!
 //! // Evaluate performance across different subgroups
 //! let performance_results = subgroup_performance(
@@ -154,7 +154,7 @@
 //!         let y_p_array = scirs2_core::ndarray::Array::from_vec(y_p.to_vec());
 //!         accuracy_score(&y_t_array, &y_p_array).unwrap_or(0.0)
 //!     }
-//! ).unwrap();
+//! ).expect("should succeed");
 //! ```
 
 use scirs2_core::ndarray::{ArrayBase, Data, Ix1, Ix2};
@@ -165,6 +165,7 @@ use crate::error::{MetricsError, Result};
 
 // Expose the submodules
 pub mod bias_detection;
+pub mod group_fairness;
 pub mod robustness;
 
 /// Calculates the demographic parity difference between groups.
@@ -193,7 +194,7 @@ pub mod robustness;
 /// let protected_group = array![1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 ///
 /// // Calculate the difference in positive prediction rates
-/// let dp_diff = demographic_parity_difference(&y_pred, &protected_group).unwrap();
+/// let dp_diff = demographic_parity_difference(&y_pred, &protected_group).expect("should succeed");
 ///
 /// // Interpretation:
 /// // - 0 indicates perfect demographic parity (equal prediction rates)
@@ -289,7 +290,7 @@ where
 /// let protected_group = array![1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 ///
 /// // Calculate the disparate impact ratio
-/// let di = disparate_impact(&y_pred, &protected_group).unwrap();
+/// let di = disparate_impact(&y_pred, &protected_group).expect("should succeed");
 ///
 /// // Interpretation:
 /// // - 1.0 indicates perfect fairness (equal prediction rates)
@@ -396,7 +397,7 @@ where
 /// let protected_group = array![1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 ///
 /// // Calculate the equalized odds difference
-/// let eod_diff = equalized_odds_difference(&y_true, &y_pred, &protected_group).unwrap();
+/// let eod_diff = equalized_odds_difference(&y_true, &y_pred, &protected_group).expect("should succeed");
 ///
 /// // Interpretation:
 /// // - 0 indicates perfect equalized odds
@@ -547,7 +548,7 @@ where
 /// let protected_group = array![1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 ///
 /// // Calculate the equal opportunity difference
-/// let eo_diff = equal_opportunity_difference(&y_true, &y_pred, &protected_group).unwrap();
+/// let eo_diff = equal_opportunity_difference(&y_true, &y_pred, &protected_group).expect("should succeed");
 ///
 /// // Interpretation:
 /// // - 0 indicates perfect equal opportunity
@@ -662,13 +663,13 @@ where
 /// // Features matrix (6 instances, 2 features each)
 /// let features = Array2::from_shape_vec((6, 2),
 ///     vec![0.1, 0.2, 0.15, 0.21, 0.9, 0.8, 0.92, 0.79, 0.5, 0.51, 0.52, 0.49]
-/// ).unwrap();
+/// ).expect("should succeed");
 ///
 /// // Predictions for each instance
 /// let predictions = array![0.0, 0.0, 1.0, 1.0, 0.0, 0.0];
 ///
 /// // Calculate consistency with 2 neighbors
-/// let consistency = consistency_score(&features, &predictions, 2).unwrap();
+/// let consistency = consistency_score(&features, &predictions, 2).expect("should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn consistency_score<T, S, R>(

@@ -225,10 +225,10 @@ type ColumnResult = (usize, Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>);
 ///     5.0, 6.0, 7.0, 8.0,
 ///     9.0, 10.0, 11.0, 12.0,
 ///     13.0, 14.0, 15.0, 16.0
-/// ]).unwrap();
+/// ]).expect("operation should succeed");
 ///
 /// // Perform 2D DWT using the Haar wavelet
-/// let result = dwt2d_decompose(&data, Wavelet::Haar, None).unwrap();
+/// let result = dwt2d_decompose(&data, Wavelet::Haar, None).expect("operation should succeed");
 ///
 /// // Check the shape of the result (should be half the original size in each dimension)
 /// assert_eq!(result.approx.shape(), &[2, 2]);
@@ -253,7 +253,7 @@ type ColumnResult = (usize, Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>);
 /// }
 ///
 /// // Perform 2D DWT using the Daubechies 4 wavelet with periodic boundary extension
-/// let result = dwt2d_decompose(&data, Wavelet::DB(4), Some("periodic")).unwrap();
+/// let result = dwt2d_decompose(&data, Wavelet::DB(4), Some("periodic")).expect("operation should succeed");
 ///
 /// // The output size depends on the input size and the wavelet length
 /// assert_eq!(result.approx.shape(), &[8, 8]);

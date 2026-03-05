@@ -75,12 +75,12 @@
 //! // High-low range estimator
 //! let high = array![102.0, 105.0, 103.5];
 //! let low = array![98.0, 101.0, 99.5];
-//! let park_vol = parkinson_volatility(&high, &low).unwrap();
+//! let park_vol = parkinson_volatility(&high, &low).expect("should succeed");
 //!
 //! // Most efficient estimator with full HLOC data
 //! let close = array![100.0, 103.0, 101.0];
 //! let open = array![99.0, 102.0, 102.5];
-//! let gk_vol = garman_klass_volatility(&high, &low, &close, &open).unwrap();
+//! let gk_vol = garman_klass_volatility(&high, &low, &close, &open).expect("should succeed");
 //! ```
 //!
 //! ## Time-Varying Volatility Models
@@ -92,11 +92,11 @@
 //!
 //! // RiskMetrics EWMA model
 //! let lambda = 0.94; // Standard daily decay factor
-//! let ewma_vol = ewma_volatility(&returns, lambda).unwrap();
+//! let ewma_vol = ewma_volatility(&returns, lambda).expect("should succeed");
 //!
 //! // Simple GARCH(1,1) estimation
 //! let window = 5;
-//! let garch_vol = garch_volatility_estimate(&returns, window).unwrap();
+//! let garch_vol = garch_volatility_estimate(&returns, window).expect("should succeed");
 //! ```
 //!
 //! ## Comprehensive Volatility Analysis
@@ -111,10 +111,10 @@
 //! let open = array![99.0, 102.0, 102.5, 100.5];
 //!
 //! // Compare different estimators
-//! let gk_vol = garman_klass_volatility(&high, &low, &close, &open).unwrap();
-//! let rs_vol = rogers_satchell_volatility(&high, &low, &close, &open).unwrap();
-//! let yz_vol = yang_zhang_volatility(&high, &low, &close, &open, 0.34).unwrap();
-//! let park_vol = parkinson_volatility(&high, &low).unwrap();
+//! let gk_vol = garman_klass_volatility(&high, &low, &close, &open).expect("should succeed");
+//! let rs_vol = rogers_satchell_volatility(&high, &low, &close, &open).expect("should succeed");
+//! let yz_vol = yang_zhang_volatility(&high, &low, &close, &open, 0.34).expect("should succeed");
+//! let park_vol = parkinson_volatility(&high, &low).expect("should succeed");
 //!
 //! println!("Garman-Klass: {:?}", gk_vol);
 //! println!("Rogers-Satchell: {:?}", rs_vol);

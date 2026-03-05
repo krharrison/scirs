@@ -28,7 +28,7 @@ use scirs2_core::ndarray::{Array1, ArrayBase, Data, Dimension};
 /// let y_true = array![0, 0, 1, 1, 1];
 /// let y_prob = array![0.1, 0.4, 0.35, 0.8, 0.6];
 ///
-/// let (prob_true, prob_pred, counts) = calibration_curve(&y_true, &y_prob, Some(5)).unwrap();
+/// let (prob_true, prob_pred, counts) = calibration_curve(&y_true, &y_prob, Some(5)).expect("should succeed");
 /// ```
 /// Type alias for calibration curve result
 pub type CalibrationCurveResult = (Array1<f64>, Array1<f64>, Array1<usize>);

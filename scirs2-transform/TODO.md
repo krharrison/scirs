@@ -1,231 +1,176 @@
-# TODO List for scirs2-transform
+# scirs2-transform TODO
 
-**Version: 0.1.5 (Stable Release - Platform Testing)**
+## Status: v0.3.0 Released (February 26, 2026)
 
-Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module features ecosystem consistency and comprehensive platform testing through scirs2-core abstractions.
+## v0.3.0 Completed
 
-## Production Ready Features ✅
-
-### Data Normalization and Standardization
-- ✅ **Complete**: Min-max scaling, Z-score standardization, L1/L2 normalization
-- ✅ **Complete**: Robust scaling (median and IQR-based)
-- ✅ **Complete**: Max absolute scaling  
-- ✅ **Complete**: Normalizer class with fit-transform workflow
-- ✅ **Complete**: Custom range normalization
+### Normalization and Scaling
+- Min-Max, Z-score, Robust (IQR), Max-absolute, L1/L2, Quantile
+- Reusable `Normalizer` with fit/transform/inverse_transform
+- Custom range normalization
+- SIMD-accelerated normalize path (`normalize_simd.rs`)
 
 ### Feature Engineering
-- ✅ **Complete**: Polynomial features generation (with interaction options)
-- ✅ **Complete**: Binarization with custom thresholds
-- ✅ **Complete**: Discretization (equal-width and equal-frequency binning)
-- ✅ **Complete**: Power transformations (Box-Cox and Yeo-Johnson)
-- ✅ **Complete**: Enhanced PowerTransformer with optimal lambda estimation
-- ✅ **Complete**: Log transformations with epsilon handling
+- Polynomial features with degree and interaction-only options
+- Box-Cox and Yeo-Johnson power transformations with optimal lambda
+- Equal-width and equal-frequency discretization (binning)
+- Binarization with configurable thresholds
+- Log transformations with epsilon
+- SIMD-accelerated feature ops (`features_simd.rs`)
 
 ### Dimensionality Reduction
-- ✅ **Complete**: Principal Component Analysis (PCA) with centering/scaling options
-- ✅ **Complete**: Truncated Singular Value Decomposition (TruncatedSVD)
-- ✅ **Complete**: Linear Discriminant Analysis (LDA) with SVD solver
-- ✅ **Complete**: t-SNE with Barnes-Hut approximation and multicore support
-- ✅ **Complete**: Trustworthiness metric for embedding quality assessment
+- PCA with centering/scaling, explained variance ratio, inverse transform
+- Truncated SVD for sparse and large matrices
+- Linear Discriminant Analysis (LDA) with SVD solver
+- Barnes-Hut t-SNE (O(n log n), multicore, trustworthiness metric)
+- UMAP (uniform manifold approximation and projection) (`umap.rs`)
+- Isomap (geodesic distance manifold learning)
+- Locally Linear Embedding (LLE)
+- Kernel PCA (RBF, polynomial, sigmoid)
+- Probabilistic PCA (`reduction/ppca.rs`)
+- Factor analysis (`reduction/fastica.rs`)
+
+### Independent Component Analysis
+- FastICA (fixed-point iteration, `reduction/fastica.rs`)
+- Spatial ICA (`spatial_ica.rs`)
+
+### NMF Variants
+- Standard NMF with multiplicative update rules
+- Sparse NMF, Convex NMF, Semi-NMF
+- Online NMF for streaming
+- NMF variants module (`nmf_variants.rs`)
+
+### Sparse PCA and Dictionary Learning
+- Sparse PCA via LASSO encoding (`sparse_pca.rs`)
+- Sparse coding transform (`sparse_coding_transform/`)
+
+### Metric Learning
+- Mahalanobis distance learning
+- LMNN (Large Margin Nearest Neighbor)
+- NCA (Neighborhood Components Analysis)
+- Advanced metric learning extensions (`metric_learning_ext/`)
+
+### Kernel Methods
+- Kernel PCA
+- Deep kernel learning (`deep_kernel.rs`)
+- Random Fourier Features (RFF) and Orthogonal RF (`random_features.rs`)
+
+### Optimal Transport
+- Wasserstein distance
+- Sinkhorn-Knopp regularized OT
+- Sliced Wasserstein distance
+- OT-based domain adaptation (`optimal_transport.rs`)
+
+### Topological Data Analysis (TDA)
+- Vietoris-Rips complex
+- Persistent homology: Betti numbers, persistence diagrams
+- Persistence landscape feature vectors
+- Topological feature vectorization (`tda.rs`, `tda_ext.rs`)
+- Persistent diagram analysis (`persistent_diagram.rs`)
+- TopoMap / topological layout (`topomap.rs`)
+
+### Archetypal Analysis
+- Archetypal analysis via simplex vertex finding (`archetypal.rs`)
+
+### Autoencoder-Based Reduction
+- Linear autoencoder (`linear_ae.rs`)
+- Nonlinear autoencoder for reduction (`autoencoder_reduction.rs`)
+
+### Encoder Models
+- Configurable encoder model wrapper (`encoder_models.rs`)
 
 ### Categorical Encoding
-- ✅ **Complete**: OneHotEncoder with drop_first option
-- ✅ **Complete**: OrdinalEncoder for label encoding
-- ✅ **Complete**: TargetEncoder with multiple aggregation strategies
-- ✅ **Complete**: BinaryEncoder for high-cardinality features
-- ✅ **Complete**: Unknown category handling strategies
+- One-hot encoding (sparse and dense), drop-first option
+- Ordinal encoding
+- Target encoding with regularization
+- Binary encoding for high-cardinality
+- Unknown category handling
 
 ### Missing Value Imputation
-- ✅ **Complete**: SimpleImputer (mean, median, mode, constant strategies)
-- ✅ **Complete**: KNNImputer with multiple distance metrics
-- ✅ **Complete**: IterativeImputer (MICE algorithm)
-- ✅ **Complete**: MissingIndicator for tracking missing values
+- Simple imputation: mean, median, mode, constant
+- KNN imputation with multiple metrics
+- Iterative imputation / MICE
+- Missing indicator
 
 ### Feature Selection
-- ✅ **Complete**: VarianceThreshold filtering
-- ✅ **Complete**: Feature selection integration with transformers
+- Variance threshold
+- Recursive Feature Elimination (RFE)
+- Mutual information-based selection (`feature_selection/`)
 
-### Advanced Features
-- ✅ **Complete**: Comprehensive error handling and validation
-- ✅ **Complete**: Parallel processing support via Rayon
-- ✅ **Complete**: Generic trait-based API for different array types
-- ✅ **Complete**: Memory-efficient implementations
-- ✅ **Complete**: Extensive unit test coverage (100 tests passing)
+### Pipeline API
+- Sequential transformation chains (`pipeline.rs`)
+- ColumnTransformer for column-wise transforms
+- Consistent fit/transform/inverse_transform API
 
-## Release Roadmap 🚀
+### Signal Transforms
+- DWT 1D and 2D: Haar, Daubechies, Symlet, Coiflet; multi-level decompose/reconstruct
+- CWT: Morlet, Mexican Hat, Gaussian; scalogram
+- Wavelet Packet Transform (WPT) with best-basis selection (Shannon entropy)
+- STFT with multiple window functions; inverse STFT with perfect reconstruction
+- Spectrograms: power, magnitude, dB scaling
+- MFCC: mel filterbank, DCT-II, liftering, delta/delta-delta
+- Constant-Q Transform (CQT)
+- Chromagram (12-bin pitch class profiles)
 
-### Version 0.1.0 - Enhanced Performance & Usability
-- [x] **Pipeline API**: Sequential transformation chains and ColumnTransformer
-- [x] **SIMD Acceleration**: Vectorized operations using scirs2-core::simd
-- [x] **Benchmarking Suite**: Performance comparison with scikit-learn
-- [x] **Memory Optimization**: Out-of-core processing for large datasets
+### Multi-View Learning
+- Multi-view PCA and CCA (`multiview/`)
 
-### Version 0.2.0 - Advanced Algorithms & Signal Transforms ✅
-- [x] **Advanced Dimensionality Reduction**: UMAP, Isomap, Locally Linear Embedding
-- [x] **Matrix Decomposition**: Non-negative Matrix Factorization (NMF), Dictionary Learning
-- [x] **Time Series Features**: Fourier features, wavelet features, lag features
-- [x] **Advanced Feature Selection**: Recursive Feature Elimination, mutual information
+### Online / Incremental Learning
+- Incremental PCA (`online/`)
+- Online NMF
+- Streaming normalizer with partial-fit (`streaming.rs`)
 
-### Version 0.2.0 - Signal Transforms (NEW) ✅
-- [x] **Discrete Wavelet Transform (DWT)**:
-  - 1D DWT with Haar, Daubechies, Symlet, Coiflet wavelets
-  - Multi-level decomposition (wavedec) and reconstruction (waverec)
-  - Multiple boundary modes (zero, constant, symmetric, periodic, reflect)
-- [x] **2D Discrete Wavelet Transform (DWT2D)**:
-  - Image decomposition (LL, LH, HL, HH coefficients)
-  - Multi-level 2D decomposition
-- [x] **Continuous Wavelet Transform (CWT)**:
-  - Morlet, Mexican Hat, Complex Morlet, Gaussian wavelets
-  - Direct convolution and FFT-based methods
-  - Scalogram computation
-- [x] **Wavelet Packet Transform (WPT)**:
-  - Full binary tree decomposition
-  - Best basis selection using Shannon entropy
-  - Multiple cost functions (Shannon, LogEnergy, Threshold, SURE)
-- [x] **Short-Time Fourier Transform (STFT)**:
-  - Multiple window functions (Hann, Hamming, Blackman, Kaiser, Tukey, Bartlett)
-  - Forward and inverse STFT with perfect reconstruction
-  - Configurable windowing and hop size
-- [x] **Spectrograms**:
-  - Power, magnitude, and decibel scaling
-  - Frequency and time bin calculation
-- [x] **Mel-Frequency Cepstral Coefficients (MFCC)**:
-  - Mel-scale filterbank
-  - DCT-II transformation
-  - Liftering and mean normalization
-  - Delta and delta-delta features
-- [x] **Constant-Q Transform (CQT)**:
-  - Logarithmically-spaced frequency bins
-  - Musical frequency analysis
-  - Customizable bins per octave
-- [x] **Chromagram**:
-  - 12-bin pitch class profiles
-  - L1 and L2 normalization
-  - Standard note labels
-- [x] **Integration with scirs2-fft**: Uses OxiFFT for all FFT operations
-- [x] **Comprehensive Tests**: Unit and integration tests for all transforms
-- [x] **Benchmarks**: Performance comparison with SciPy signal transforms
-- [x] **Documentation**: Complete API documentation and usage examples
+### Out-of-Core Processing
+- Chunked array reader/writer (`out_of_core.rs`)
+- Bulk buffer read/write with pre-allocated pools
 
-### Version 0.3.0 - Specialized Domains
-- [x] **Text Processing**: CountVectorizer, TfidfVectorizer, HashingVectorizer
-- [x] **Image Processing**: Patch extraction, HOG features, image normalization
-- [x] **Graph Features**: Graph embedding transformations
-- [x] **Streaming API**: Online learning transformers with partial_fit
+### Structure Learning
+- Covariance structure estimation (`structure_learning.rs`)
 
-### Version 1.0.0 - Production Optimization
-- [x] **GPU Acceleration**: CUDA support for dimensionality reduction and matrix operations
-- [x] **Distributed Processing**: Multi-node transformation pipelines
-- [x] **Automated Feature Engineering**: Meta-learning for transformation selection
-- [x] **Production Monitoring**: Drift detection and model degradation alerts
+### Latent Variable Models
+- Latent variable model framework (`latent/`)
 
-## API Stability Commitment 📝
+### Nonlinear Methods
+- Nonlinear reduction wrappers (`nonlinear/`)
 
-For the 0.1.0 release, the following APIs are **stable** and backwards compatible:
-- All normalization and scaling transformers
-- Feature engineering utilities (polynomial, power transforms, discretization)
-- Dimensionality reduction algorithms (PCA, SVD, LDA, t-SNE)  
-- Categorical encoders
-- Imputation methods
-- Feature selection tools
+### Projection Methods
+- Random projection, Johnson-Lindenstrauss (`projection/`)
 
-## Performance Benchmarks 📊
+### Factorization
+- Tensor factorization utilities (`factorization/`)
 
-Current performance targets achieved:
-- ✅ PCA: Handles datasets with 10k+ features efficiently
-- ✅ t-SNE: Multicore Barnes-Hut optimization for 50k+ samples
-- ✅ Power transformations: Parallel processing across features
-- ✅ Encoding: Memory-efficient binary encoding for high-cardinality data
+## v0.4.0 Roadmap
 
-## Quality Assurance ✨
+### GPU-Accelerated Dimensionality Reduction
+- GPU-accelerated UMAP (cuML-compatible path)
+- GPU PCA via batched SVD on GPU
+- GPU t-SNE attraction/repulsion kernels
 
-- ✅ **100% test coverage** for all public APIs
-- ✅ **Comprehensive documentation** with examples
-- ✅ **Error handling** for all edge cases
-- ✅ **Memory safety** with zero unsafe code
-- ✅ **API consistency** following sklearn patterns
-- ✅ **Performance optimization** using Rust's zero-cost abstractions
+### Online PCA and Incremental SVD
+- Truly streaming (O(1) memory) online PCA
+- Incremental SVD with rank-1 updates
 
-## Version 1.0.0 Feature Documentation 🆕
+### Multimodal Alignment
+- Cross-modal embedding alignment (e.g. vision-language)
+- Procrustes alignment for embedding spaces
 
-### GPU Acceleration
-- **GpuPCA**: GPU-accelerated Principal Component Analysis using CUDA
-- **GpuMatrixOps**: High-performance matrix operations (SVD, eigendecomposition, matrix multiplication)  
-- **GpuTSNE**: GPU-accelerated t-SNE with Barnes-Hut optimization
-- Enable with `cargo build --features gpu` (requires CUDA toolkit)
+### Advanced Optimal Transport
+- Unbalanced OT (for distributions of different total mass)
+- Gromov-Wasserstein distance
+- Multi-marginal OT
 
-### Distributed Processing  
-- **DistributedCoordinator**: Multi-node task coordination with load balancing
-- **DistributedPCA**: Distributed Principal Component Analysis across multiple nodes
-- Supports row-wise, column-wise, block-wise, and adaptive data partitioning
-- Enable with `cargo build --features distributed`
-
-### Automated Feature Engineering
-- **AutoFeatureEngineer**: Meta-learning system for optimal transformation selection
-- **DatasetMetaFeatures**: Automatic extraction of dataset characteristics
-- Neural network-based recommendation system with PyTorch integration
-- Rule-based fallback system for when meta-learning is not available
-- Enable with `cargo build --features auto-feature-engineering`
+### Improved TDA
+- Alpha complex (faster than Vietoris-Rips for low-d)
+- Cubical complex for image data
+- Zigzag persistence
 
 ### Production Monitoring
-- **TransformationMonitor**: Comprehensive monitoring system for production deployments
-- **Drift Detection**: Multiple methods (KS test, PSI, Wasserstein distance, MMD)
-- **Performance Monitoring**: Throughput, latency, memory usage, error rates
-- **Alerting System**: Configurable thresholds with cooldown periods
-- **Prometheus Integration**: Export metrics for observability platforms
-- Enable with `cargo build --features monitoring`
+- Drift detection: KS test, PSI, Wasserstein, MMD
+- Data quality alerts and degradation tracking
 
-### Example Usage
+## Known Issues / Technical Debt
 
-```rust
-use scirs2_transform::{
-    AutoFeatureEngineer, 
-    TransformationMonitor,
-    gpu::GpuPCA,
-    distributed::{DistributedConfig, DistributedPCA},
-};
-
-// Automated feature engineering
-let auto_engineer = AutoFeatureEngineer::new()?;
-let recommendations = auto_engineer.recommend_transformations(&data.view())?;
-
-// GPU acceleration (with 'gpu' feature)
-let mut gpu_pca = GpuPCA::new(10)?;
-let transformed = gpu_pca.fit_transform(&data.view())?;
-
-// Production monitoring (with 'monitoring' feature)  
-let mut monitor = TransformationMonitor::new()?;
-monitor.set_reference_data(reference_data, None)?;
-let drift_results = monitor.detect_drift(&new_data.view())?;
-```
-
----
-
-## Recent Enhancements (2025-06-29) ✨
-
-### t-SNE Distance Metrics Enhancement
-- **Enhanced**: Added support for additional distance metrics in t-SNE implementation
-- **New Metrics**: Manhattan (L1), Cosine, and Chebyshev distance metrics
-- **Backwards Compatible**: Existing code using "euclidean" metric continues to work
-- **Performance**: All metrics support both single-core and multi-core computation
-- **Usage**: `TSNE::new().with_metric("manhattan")` or other supported metrics
-
-### Memory Optimization Improvements
-- **Optimized**: ChunkedArrayReader for out-of-core processing
-  - Bulk reading instead of element-by-element access
-  - Pre-allocated buffer pools to reduce allocation overhead
-  - Safe byte-to-f64 conversion using chunks iterator
-- **Optimized**: ChunkedArrayWriter for large dataset writing
-  - Bulk writing with reusable buffers
-  - Reduced system call overhead
-  - Memory-efficient batch processing
-- **Performance Impact**: Up to 50% reduction in I/O time for large datasets
-
-### SIMD Implementation Validation
-- **Verified**: All SIMD implementations correctly use `scirs2_core::simd_ops::SimdUnifiedOps`
-- **Confirmed**: No direct use of forbidden SIMD libraries (wide, packed_simd)
-- **Compliant**: Follows strict acceleration policy from CLAUDE.md
-
----
-
-**Ready for Production**: This module is ready for production use in the 1.0.0 release with comprehensive data transformation capabilities that match and exceed scikit-learn's preprocessing module in performance and safety, plus advanced features for enterprise deployment.
+- t-SNE convergence can be slow for very large n; KD-tree acceleration has a known approximation error that may affect cluster separation in some cases
+- UMAP random seed behavior is not fully deterministic across platforms due to floating-point ordering
+- Some signal transform modules currently alias `scirs2-fft` operations directly; a cleaner abstraction boundary is planned
+- `topomap.rs` TDA layout is approximate; exact persistent homology needs optimization for high-dimensional inputs

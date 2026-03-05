@@ -14,6 +14,7 @@ pub mod mlp_mixer;
 pub mod mobilenet;
 pub mod resnet;
 pub mod seq2seq;
+pub mod vgg;
 pub mod vit;
 pub use bert::{BertConfig, BertModel};
 // TODO: Re-enable once PatchEmbedding is implemented
@@ -35,6 +36,7 @@ pub use resnet::{ResNet, ResNetBlock, ResNetConfig, ResNetLayer};
 pub use seq2seq::{
     Attention, AttentionType, RNNCellType, Seq2Seq, Seq2SeqConfig, Seq2SeqDecoder, Seq2SeqEncoder,
 };
+pub use vgg::{VGGConfig, VGGVariant, VGG};
 // TODO: Re-enable once PatchEmbedding is implemented
 // pub use vit::{ViTConfig, VisionTransformer};
 pub use vit::ViTConfig;

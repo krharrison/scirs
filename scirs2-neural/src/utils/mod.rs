@@ -54,7 +54,7 @@ pub use positional_encoding::{
 /// use scirs2_core::random::SeedableRng;
 /// let mut rng = scirs2_core::random::rng();
 /// let shape = IxDyn(&[2, 3]);
-/// let random_matrix = random_normal(shape, 0.0, 1.0, &mut rng).unwrap();
+/// let random_matrix = random_normal(shape, 0.0, 1.0, &mut rng).expect("operation should succeed");
 /// assert_eq!(random_matrix.shape(), &[2, 3]);
 #[allow(dead_code)]
 pub fn random_normal<F: Float + Debug, R: Rng>(
@@ -94,7 +94,7 @@ pub fn random_normal<F: Float + Debug, R: Rng>(
 ///   use scirs2_neural::utils::one_hot_encode;
 ///   use scirs2_core::ndarray::arr1;
 ///   let indices = arr1(&[0, 2, 1]);
-///   let one_hot = one_hot_encode::\<f64\>(&indices, 3).unwrap();
+///   let one_hot = one_hot_encode::\<f64\>(&indices, 3).expect("operation should succeed");
 ///   assert_eq!(one_hot.shape(), &[3, 3]);
 ///   assert_eq!(one_hot[[0, 0]], 1.0f64); // First sample, class 0
 ///   assert_eq!(one_hot[[1, 2]], 1.0f64); // Second sample, class 2
@@ -129,7 +129,7 @@ pub fn one_hot_encode<F: Float + Debug + NumAssign>(
 ///   let x = arr2(&[[1.0f64, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]]).into_dyn();
 ///   let y = arr2(&[[0.0f64], [1.0], [0.0], [1.0]]).into_dyn();
 ///   let (x_train, x_test, y_train, y_test) =
-///   train_test_split::\<f64\>(&x, &y, 0.25, true, &mut rng).unwrap();
+///   train_test_split::\<f64\>(&x, &y, 0.25, true, &mut rng).expect("operation should succeed");
 ///   // Note: Since the implementation is incomplete (TODO in the code),
 ///   // we're just checking that the shapes are what we expect
 ///   assert_eq!(x_train.shape()\[0\], 3);

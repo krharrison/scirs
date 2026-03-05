@@ -4,7 +4,11 @@
 //! - Conjugate priors
 //! - Bayesian linear regression
 //! - Hierarchical models
-//! - Variational inference
+//! - Variational inference (CAVI, SVI, ADVI)
+//!   - Stochastic Variational Inference with natural gradients and mini-batches
+//!   - Automatic Differentiation Variational Inference (mean-field and full-rank)
+//!   - Variational families: MeanFieldGaussian, FullRankGaussian, NormalizingFlowVI
+//!   - Diagnostics: ELBO trace, gradient norms, convergence monitoring
 
 mod advanced_mcmc;
 mod conjugate;

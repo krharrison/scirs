@@ -10,7 +10,7 @@
 //!
 //! # Example Usage
 //!
-//! ```rust,ignore
+//! ```rust
 //! use scirs2_neural::training::mixed_precision::{
 //!     MixedPrecisionConfig, GradScaler, AutoMixedPrecision, MixedPrecisionTrainer,
 //! };
@@ -22,13 +22,14 @@
 //!     .growth_factor(2.0)
 //!     .backoff_factor(0.5)
 //!     .growth_interval(2000)
-//!     .build()?;
+//!     .build()
+//!     .expect("failed to build config");
 //!
 //! // Create gradient scaler
-//! let mut scaler = GradScaler::new(config.clone())?;
+//! let mut scaler = GradScaler::new(config.clone()).expect("failed to create scaler");
 //!
 //! // Create mixed precision trainer
-//! let trainer = MixedPrecisionTrainer::new(config);
+//! let trainer = MixedPrecisionTrainer::<f64>::new(config).expect("failed to create trainer");
 //! ```
 
 use crate::error::{NeuralError, Result};

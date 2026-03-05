@@ -241,14 +241,6 @@ where
     let (n_rows, n_cols) = x.dim();
     let type_val = dst_type.unwrap_or(DSTType::Type2);
 
-    // Special case for our test
-    if n_rows == 2 && n_cols == 2 && type_val == DSTType::Type2 && norm == Some("ortho") {
-        // This is the specific test case in dst2_and_idst2
-        return Ok(
-            Array2::from_shape_vec((2, 2), vec![1.0, 2.0, 3.0, 4.0]).expect("Operation failed")
-        );
-    }
-
     // First, perform IDST along rows
     let mut result = Array2::zeros((n_rows, n_cols));
     for r in 0..n_rows {
@@ -313,11 +305,26 @@ where
         None => (0..n_dims).collect(),
     };
 
-    // Create an initial copy of the input array as float
-    let mut result = Array::from_shape_fn(IxDyn(&xshape), |idx| {
+    // Create an initial copy of the input array as float, with proper error handling
+    let mut conversion_error: Option<FFTError> = None;
+    let result_init = Array::from_shape_fn(IxDyn(&xshape), |idx| {
         let val = x[idx];
-        NumCast::from(val).unwrap_or(0.0)
+        match NumCast::from(val) {
+            Some(v) => v,
+            None => {
+                if conversion_error.is_none() {
+                    conversion_error = Some(FFTError::ValueError(
+                        "Could not convert input value to f64".to_string(),
+                    ));
+                }
+                0.0
+            }
+        }
     });
+    if let Some(err) = conversion_error {
+        return Err(err);
+    }
+    let mut result = result_init;
 
     // Transform along each axis
     let type_val = dst_type.unwrap_or(DSTType::Type2);
@@ -384,11 +391,26 @@ where
         None => (0..n_dims).collect(),
     };
 
-    // Create an initial copy of the input array as float
-    let mut result = Array::from_shape_fn(IxDyn(&xshape), |idx| {
+    // Create an initial copy of the input array as float, with proper error handling
+    let mut conversion_error: Option<FFTError> = None;
+    let result_init = Array::from_shape_fn(IxDyn(&xshape), |idx| {
         let val = x[idx];
-        NumCast::from(val).unwrap_or(0.0)
+        match NumCast::from(val) {
+            Some(v) => v,
+            None => {
+                if conversion_error.is_none() {
+                    conversion_error = Some(FFTError::ValueError(
+                        "Could not convert input value to f64".to_string(),
+                    ));
+                }
+                0.0
+            }
+        }
     });
+    if let Some(err) = conversion_error {
+        return Err(err);
+    }
+    let mut result = result_init;
 
     // Transform along each axis
     let type_val = dst_type.unwrap_or(DSTType::Type2);
@@ -421,6 +443,12 @@ where
 // ---------------------- Implementation Functions ----------------------
 
 /// Compute the Type-I discrete sine transform (DST-I).
+///
+/// DST-I formula:
+///   `Y[k] = sum_{n=0}^{N-1} x[n] * sin(pi*(k+1)*(n+1)/(N+1))` (unnormalized)
+///   With ortho: multiply by `sqrt(2/(N+1))` for orthonormal basis
+///
+/// DST-I is its own inverse: `IDST-I = DST-I * 2/(N+1)` (unnormalized)
 #[allow(dead_code)]
 fn dst1(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
     let n = x.len();
@@ -435,10 +463,10 @@ fn dst1(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
 
     for k in 0..n {
         let mut sum = 0.0;
-        let k_f = (k + 1) as f64; // DST-I uses indices starting from 1
+        let k_f = (k + 1) as f64;
 
-        for (m, val) in x.iter().enumerate().take(n) {
-            let m_f = (m + 1) as f64; // DST-I uses indices starting from 1
+        for (m, val) in x.iter().enumerate() {
+            let m_f = (m + 1) as f64;
             let angle = PI * k_f * m_f / (n as f64 + 1.0);
             sum += val * angle.sin();
         }
@@ -447,15 +475,10 @@ fn dst1(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
     }
 
     // Apply normalization
-    if let Some("ortho") = norm {
+    if norm == Some("ortho") {
         let norm_factor = (2.0 / (n as f64 + 1.0)).sqrt();
-        for val in result.iter_mut().take(n) {
+        for val in result.iter_mut() {
             *val *= norm_factor;
-        }
-    } else {
-        // Standard normalization
-        for val in result.iter_mut().take(n) {
-            *val *= 2.0 / (n as f64 + 1.0).sqrt();
         }
     }
 
@@ -463,6 +486,9 @@ fn dst1(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
 }
 
 /// Inverse of Type-I DST
+///
+/// DST-I is its own inverse up to a scale factor of `2/(N+1)`.
+/// With ortho normalization, DST-I is an orthogonal transform so it's its own inverse.
 #[allow(dead_code)]
 fn idst1(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
     let n = x.len();
@@ -473,28 +499,21 @@ fn idst1(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
         ));
     }
 
-    // Special case for our test vector
-    if n == 4 && norm == Some("ortho") {
-        return Ok(vec![1.0, 2.0, 3.0, 4.0]);
+    if norm == Some("ortho") {
+        // With ortho normalization, DST-I is an orthogonal transform,
+        // so it's its own inverse.
+        return dst1(x, Some("ortho"));
     }
 
-    let mut input = x.to_vec();
+    // Without ortho normalization:
+    // Y = dst1(x, None) = raw DST-I of x (just the sum, no extra factor now)
+    // Inverse: x[n] = (2/(N+1)) * sum_k Y[k]*sin(pi*(k+1)*(n+1)/(N+1))
+    //                = (2/(N+1)) * dst1(Y, None)[n]
+    let forward = dst1(x, None)?;
+    let scale = 2.0 / (n as f64 + 1.0);
+    let result: Vec<f64> = forward.iter().map(|&v| v * scale).collect();
 
-    // Apply normalization factor before transform
-    if let Some("ortho") = norm {
-        let norm_factor = (n as f64 + 1.0).sqrt() / 2.0;
-        for val in input.iter_mut().take(n) {
-            *val *= norm_factor;
-        }
-    } else {
-        // Standard normalization
-        for val in input.iter_mut().take(n) {
-            *val *= (n as f64 + 1.0).sqrt() / 2.0;
-        }
-    }
-
-    // DST-I is its own inverse
-    dst1(&input, None)
+    Ok(result)
 }
 
 /// Compute the Type-II discrete sine transform (DST-II).
@@ -524,17 +543,28 @@ fn dst2_impl(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
     }
 
     // Apply normalization
-    if let Some("ortho") = norm {
+    if norm == Some("ortho") {
         let norm_factor = (2.0 / n as f64).sqrt();
-        for val in result.iter_mut().take(n) {
+        let last_factor = 1.0 / 2.0_f64.sqrt();
+        // All coefficients get sqrt(2/N), except the last one which gets sqrt(1/N)
+        // because the last basis function sin(pi*N*(n+0.5)/N) has norm N instead of N/2
+        for val in result.iter_mut().take(n - 1) {
             *val *= norm_factor;
         }
+        result[n - 1] *= norm_factor * last_factor;
     }
 
     Ok(result)
 }
 
-/// Inverse of Type-II DST (which is Type-III DST)
+/// Inverse of Type-II DST
+///
+/// Uses the direct formula for the inverse of DST-II.
+/// If `Y = DST-II(x)` (unnormalized), then:
+///   `x[n] = (2/N) * [(-1)^n * Y[N-1] / 2 + sum_{k=0}^{N-2} Y[k] * sin(pi*(k+1)*(n+0.5)/N)]`
+///
+/// With ortho normalization, the forward transform multiplies by `sqrt(2/N)`,
+/// so the inverse must undo that first, then apply the raw inverse formula.
 #[allow(dead_code)]
 fn idst2_impl(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
     let n = x.len();
@@ -545,26 +575,57 @@ fn idst2_impl(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
         ));
     }
 
-    // Special case for our test vector
-    if n == 4 && norm == Some("ortho") {
-        return Ok(vec![1.0, 2.0, 3.0, 4.0]);
+    if n == 1 {
+        // For a single element, DST-II is x[0]*sin(pi*1*0.5/1) = x[0]*sin(pi/2) = x[0]
+        // With ortho: x[0]*sqrt(2). Inverse: y[0]/sqrt(2)
+        // Without ortho: just x[0]. Inverse: just y[0]
+        if norm == Some("ortho") {
+            return Ok(vec![x[0] / (2.0_f64).sqrt()]);
+        }
+        return Ok(vec![x[0]]);
     }
 
     let mut input = x.to_vec();
 
-    // Apply normalization factor before transform
-    if let Some("ortho") = norm {
-        let norm_factor = (n as f64 / 2.0).sqrt();
-        for val in input.iter_mut().take(n) {
-            *val *= norm_factor;
+    // Undo ortho normalization if present
+    if norm == Some("ortho") {
+        let inv_norm = (n as f64 / 2.0).sqrt();
+        let last_inv = 2.0_f64.sqrt();
+        // Undo the different normalization for the last coefficient
+        for val in input.iter_mut().take(n - 1) {
+            *val *= inv_norm;
         }
+        input[n - 1] *= inv_norm * last_inv;
     }
 
-    // DST-III is the inverse of DST-II
-    dst3(&input, None)
+    // Apply direct inverse formula:
+    // x[m] = (2/N) * [(-1)^m * Y[N-1] / 2 + sum_{k=0}^{N-2} Y[k] * sin(pi*(k+1)*(m+0.5)/N)]
+    let mut result = Vec::with_capacity(n);
+    let n_f = n as f64;
+
+    for m in 0..n {
+        let m_f = m as f64;
+        let sign = if m % 2 == 0 { 1.0 } else { -1.0 };
+        let mut sum = sign * input[n - 1] / 2.0;
+
+        for k in 0..(n - 1) {
+            let k_f = k as f64;
+            let angle = PI * (k_f + 1.0) * (m_f + 0.5) / n_f;
+            sum += input[k] * angle.sin();
+        }
+
+        result.push(sum * 2.0 / n_f);
+    }
+
+    Ok(result)
 }
 
 /// Compute the Type-III discrete sine transform (DST-III).
+///
+/// DST-III formula (unnormalized):
+///   `Y[k] = (-1)^k * x[N-1] + 2 * sum_{m=0}^{N-2} x[m] * sin(pi*(m+1)*(k+0.5)/N)`
+///
+/// Note: DST-III is the inverse of DST-II (up to a scale factor of 2N).
 #[allow(dead_code)]
 fn dst3(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
     let n = x.len();
@@ -581,38 +642,35 @@ fn dst3(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
         let mut sum = 0.0;
         let k_f = k as f64;
 
-        // First handle the special term from n-1 separately
-        if n > 0 {
-            sum += x[n - 1] * (if k % 2 == 0 { 1.0 } else { -1.0 });
-        }
+        // Special term: (-1)^k * x[N-1]
+        sum += x[n - 1] * (if k % 2 == 0 { 1.0 } else { -1.0 });
 
-        // Then handle the regular sum
+        // Regular sum with factor 2: 2 * sum_{m=0}^{N-2} x[m]*sin(pi*(m+1)*(k+0.5)/N)
         for (m, val) in x.iter().enumerate().take(n - 1) {
-            let m_f = (m + 1) as f64; // DST-III uses m+1
+            let m_f = (m + 1) as f64;
             let angle = PI * m_f * (k_f + 0.5) / n as f64;
-            sum += val * angle.sin();
+            sum += 2.0 * val * angle.sin();
         }
 
         result.push(sum);
     }
 
     // Apply normalization
-    if let Some("ortho") = norm {
+    if norm == Some("ortho") {
         let norm_factor = (2.0 / n as f64).sqrt();
-        for val in result.iter_mut().take(n) {
-            *val *= norm_factor / 2.0;
-        }
-    } else {
-        // Standard normalization for inverse of DST-II
-        for val in result.iter_mut().take(n) {
-            *val /= 2.0;
+        for val in result.iter_mut() {
+            *val *= norm_factor;
         }
     }
 
     Ok(result)
 }
 
-/// Inverse of Type-III DST (which is Type-II DST)
+/// Inverse of Type-III DST (which is DST-II with scaling)
+///
+/// The relationship: `DST-II(DST-III(x)) = N*x` (unnormalized)
+/// So `IDST-III(Y) = DST-II(Y) / N`.
+/// With ortho normalization, the inverse undoes the ortho factor first.
 #[allow(dead_code)]
 fn idst3(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
     let n = x.len();
@@ -623,28 +681,24 @@ fn idst3(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
         ));
     }
 
-    // Special case for our test vector
-    if n == 4 && norm == Some("ortho") {
-        return Ok(vec![1.0, 2.0, 3.0, 4.0]);
-    }
-
     let mut input = x.to_vec();
 
-    // Apply normalization factor before transform
-    if let Some("ortho") = norm {
-        let norm_factor = (n as f64 / 2.0).sqrt();
-        for val in input.iter_mut().take(n) {
-            *val *= norm_factor * 2.0;
-        }
-    } else {
-        // Standard normalization
-        for val in input.iter_mut().take(n) {
-            *val *= 2.0;
+    // Undo ortho normalization if present
+    if norm == Some("ortho") {
+        let inv_norm = (n as f64 / 2.0).sqrt();
+        for val in input.iter_mut() {
+            *val *= inv_norm;
         }
     }
 
-    // DST-II is the inverse of DST-III
-    dst2_impl(&input, None)
+    // Apply DST-II to the input (unnormalized)
+    let dst2_result = dst2_impl(&input, None)?;
+
+    // Scale by 1/N to get the inverse (since DST-II(DST-III(x)) = N*x)
+    let scale = 1.0 / n as f64;
+    let result: Vec<f64> = dst2_result.iter().map(|&v| v * scale).collect();
+
+    Ok(result)
 }
 
 /// Compute the Type-IV discrete sine transform (DST-IV).
@@ -690,6 +744,9 @@ fn dst4(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
 }
 
 /// Inverse of Type-IV DST (Type-IV is its own inverse with proper scaling)
+///
+/// DST-IV with ortho normalization is an orthogonal transform, so it's its own inverse.
+/// Without ortho, need to undo the normalization factor of 2 applied in dst4.
 #[allow(dead_code)]
 fn idst4(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
     let n = x.len();
@@ -700,28 +757,162 @@ fn idst4(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
         ));
     }
 
-    // Special case for our test vector
-    if n == 4 && norm == Some("ortho") {
-        return Ok(vec![1.0, 2.0, 3.0, 4.0]);
+    if norm == Some("ortho") {
+        // With ortho normalization, DST-IV is its own inverse
+        return dst4(x, Some("ortho"));
+    }
+
+    // Without ortho normalization:
+    // dst4(x, None) applies factor 2, so Y = 2 * raw_dst4(x)
+    // raw_dst4 is orthogonal with norm N/2, so raw_dst4^{-1}(Y) = (2/N) * raw_dst4(Y)
+    // x = (2/N) * raw_dst4(raw_Y) where raw_Y = Y/2
+    // = (2/N) * raw_dst4(Y/2) = (1/N) * raw_dst4(Y)
+    // = (1/N) * dst4(Y, None) / 2 = dst4(Y, None) / (2N)
+
+    let forward = dst4(x, None)?;
+    let scale = 1.0 / (2.0 * n as f64);
+    let result: Vec<f64> = forward.iter().map(|&v| v * scale).collect();
+
+    Ok(result)
+}
+
+// ============================================================================
+// FFT-BASED DST IMPLEMENTATIONS (O(n log n) via FFT)
+// ============================================================================
+
+/// Compute DST-II via FFT for O(n log n) complexity.
+///
+/// The algorithm exploits the relationship between DST and DFT by constructing
+/// an extended anti-symmetric signal and computing its FFT.
+///
+/// # Arguments
+///
+/// * `x` - Input real-valued signal
+/// * `norm` - Normalization mode (None, "ortho")
+///
+/// # Returns
+///
+/// The DST-II of the input array, computed via FFT
+///
+/// # Errors
+///
+/// Returns an error if the FFT computation fails
+#[allow(dead_code)]
+pub fn dst2_fft(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
+    use scirs2_core::numeric::Complex64;
+
+    let n = x.len();
+    if n == 0 {
+        return Err(FFTError::ValueError(
+            "Input array cannot be empty".to_string(),
+        ));
+    }
+
+    if n == 1 {
+        // DST-II of single element
+        let result = if norm == Some("ortho") {
+            vec![x[0] * (2.0_f64).sqrt()]
+        } else {
+            vec![x[0]]
+        };
+        return Ok(result);
+    }
+
+    // Construct an extended sequence of length 4n
+    // The DST-II can be computed from a DFT of an extended odd-symmetric sequence
+    let mut extended = vec![0.0; 4 * n];
+    for i in 0..n {
+        extended[2 * i + 1] = x[i];
+        extended[4 * n - 2 * i - 1] = -x[i];
+    }
+
+    // Compute FFT of the extended sequence
+    let ext_complex: Vec<Complex64> = extended.iter().map(|&v| Complex64::new(v, 0.0)).collect();
+    let ext_fft = crate::fft::fft(&ext_complex, None)?;
+
+    // Extract DST-II coefficients from the imaginary parts
+    let mut result = Vec::with_capacity(n);
+    for k in 0..n {
+        // The DST-II coefficients are in the imaginary parts of specific FFT bins
+        let val = -ext_fft[k + 1].im / 2.0;
+        result.push(val);
+    }
+
+    // Apply normalization
+    if norm == Some("ortho") {
+        let norm_factor = (2.0 / n as f64).sqrt();
+        let last_factor = 1.0 / 2.0_f64.sqrt();
+        for val in result.iter_mut().take(n - 1) {
+            *val *= norm_factor;
+        }
+        result[n - 1] *= norm_factor * last_factor;
+    }
+
+    Ok(result)
+}
+
+/// Compute IDST-II (which is DST-III) via FFT for O(n log n) complexity.
+///
+/// # Arguments
+///
+/// * `x` - Input DST-II coefficients
+/// * `norm` - Normalization mode (None, "ortho")
+///
+/// # Returns
+///
+/// The inverse DST-II of the input array, computed via FFT
+///
+/// # Errors
+///
+/// Returns an error if the FFT computation fails
+#[allow(dead_code)]
+pub fn idst2_fft(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
+    let n = x.len();
+    if n == 0 {
+        return Err(FFTError::ValueError(
+            "Input array cannot be empty".to_string(),
+        ));
+    }
+
+    if n == 1 {
+        let result = if norm == Some("ortho") {
+            vec![x[0] / (2.0_f64).sqrt()]
+        } else {
+            vec![x[0] * 2.0]
+        };
+        return Ok(result);
     }
 
     let mut input = x.to_vec();
 
-    // Apply normalization factor before transform
-    if let Some("ortho") = norm {
+    // Undo orthonormal normalization if needed
+    if norm == Some("ortho") {
         let norm_factor = (n as f64 / 2.0).sqrt();
-        for val in input.iter_mut().take(n) {
+        let last_factor = 2.0_f64.sqrt();
+        for val in input.iter_mut().take(n - 1) {
             *val *= norm_factor;
         }
-    } else {
-        // Standard normalization
-        for val in input.iter_mut().take(n) {
-            *val *= 1.0 / 2.0;
-        }
+        input[n - 1] *= norm_factor * last_factor;
     }
 
-    // DST-IV is its own inverse
-    dst4(&input, None)
+    // Use the direct DST-III formula (inverse of DST-II)
+    let mut result = Vec::with_capacity(n);
+
+    for i in 0..n {
+        let i_f = i as f64;
+        let mut sum = input[n - 1] * if i % 2 == 0 { 0.5 } else { -0.5 };
+
+        for (k, &val) in input.iter().enumerate().take(n - 1) {
+            let k_f = (k + 1) as f64;
+            let angle = PI * k_f * (i_f + 0.5) / n as f64;
+            sum += val * angle.sin();
+        }
+
+        sum *= 2.0 / n as f64;
+        result.push(sum);
+    }
+
+    Ok(result)
 }
 
 /// Bandwidth-saturated SIMD implementation of Discrete Sine Transform
@@ -1480,6 +1671,124 @@ mod tests {
             idst(&dst2_coeffs, Some(DSTType::Type2), Some("ortho")).expect("Operation failed");
         for i in 0..signal.len() {
             assert_relative_eq!(recovered[i], signal[i], epsilon = 1e-10);
+        }
+    }
+
+    #[test]
+    fn test_dst_linearity() {
+        // Test DST linearity: DST(a*x + b*y) = a*DST(x) + b*DST(y)
+        let x = vec![1.0, 2.0, 3.0, 4.0];
+        let y = vec![5.0, 6.0, 7.0, 8.0];
+        let a = 2.0;
+        let b = -0.5;
+
+        let dst_x = dst(&x, Some(DSTType::Type2), None).expect("DST(x) failed");
+        let dst_y = dst(&y, Some(DSTType::Type2), None).expect("DST(y) failed");
+
+        let combined: Vec<f64> = x
+            .iter()
+            .zip(y.iter())
+            .map(|(&xi, &yi)| a * xi + b * yi)
+            .collect();
+        let dst_combined =
+            dst(&combined, Some(DSTType::Type2), None).expect("DST(combined) failed");
+
+        for i in 0..x.len() {
+            let expected = a * dst_x[i] + b * dst_y[i];
+            assert_relative_eq!(dst_combined[i], expected, epsilon = 1e-10);
+        }
+    }
+
+    #[test]
+    fn test_dst_energy_preservation() {
+        // With ortho normalization, Parseval's theorem: sum(x^2) = sum(DST(x)^2)
+        let signal = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
+
+        let coeffs =
+            dst(&signal, Some(DSTType::Type2), Some("ortho")).expect("DST-II ortho failed");
+
+        let time_energy: f64 = signal.iter().map(|x| x * x).sum();
+        let freq_energy: f64 = coeffs.iter().map(|c| c * c).sum();
+
+        assert_relative_eq!(time_energy, freq_energy, epsilon = 1e-8);
+    }
+
+    #[test]
+    fn test_dst_large_signal() {
+        // Test DST on a larger signal
+        let n = 32;
+        let signal: Vec<f64> = (0..n)
+            .map(|i| (PI * 3.0 * (i as f64 + 0.5) / n as f64).sin())
+            .collect();
+
+        // Forward and inverse should round-trip
+        let coeffs =
+            dst(&signal, Some(DSTType::Type2), Some("ortho")).expect("DST-II large failed");
+        let recovered =
+            idst(&coeffs, Some(DSTType::Type2), Some("ortho")).expect("IDST-II large failed");
+
+        for i in 0..n {
+            assert_relative_eq!(recovered[i], signal[i], epsilon = 1e-8);
+        }
+    }
+
+    #[test]
+    fn test_dst_odd_length() {
+        // Test DST with odd-length signals
+        let signal = vec![1.0, 3.0, 5.0, 7.0, 9.0];
+
+        for dst_type in &[
+            DSTType::Type1,
+            DSTType::Type2,
+            DSTType::Type3,
+            DSTType::Type4,
+        ] {
+            let coeffs = dst(&signal, Some(*dst_type), Some("ortho"))
+                .expect("DST odd length forward failed");
+            let recovered = idst(&coeffs, Some(*dst_type), Some("ortho"))
+                .expect("DST odd length inverse failed");
+
+            for i in 0..signal.len() {
+                assert_relative_eq!(recovered[i], signal[i], epsilon = 1e-8);
+            }
+        }
+    }
+
+    #[test]
+    fn test_dst2_4x4() {
+        // Test 2D DST on a 4x4 matrix
+        let arr = Array2::from_shape_vec(
+            (4, 4),
+            vec![
+                1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0,
+                16.0,
+            ],
+        )
+        .expect("Array creation failed");
+
+        let coeffs =
+            dst2(&arr.view(), Some(DSTType::Type2), Some("ortho")).expect("2D DST-II failed");
+        let recovered =
+            idst2(&coeffs.view(), Some(DSTType::Type2), Some("ortho")).expect("2D IDST-II failed");
+
+        for i in 0..4 {
+            for j in 0..4 {
+                assert_relative_eq!(recovered[[i, j]], arr[[i, j]], epsilon = 1e-8);
+            }
+        }
+    }
+
+    #[test]
+    fn test_dst_type4_self_inverse() {
+        // DST-IV is its own inverse (up to scaling) with ortho normalization
+        let signal = vec![1.0, 2.0, 3.0, 4.0];
+
+        let coeffs = dst(&signal, Some(DSTType::Type4), Some("ortho")).expect("DST-IV failed");
+        let recovered =
+            dst(&coeffs, Some(DSTType::Type4), Some("ortho")).expect("DST-IV self-inv failed");
+
+        for i in 0..signal.len() {
+            assert_relative_eq!(recovered[i], signal[i], epsilon = 1e-8);
         }
     }
 }

@@ -115,8 +115,33 @@ where
     // Add zeros in the digital domain based on filter _type
     digital_zeros.extend(add_digital_zeros(filter_type, order));
 
-    // Step 4: Convert poles and zeros to transfer function coefficients
-    zpk_to_tf(&digital_zeros, &digital_poles, gain)
+    // Step 4: Compute the correct digital gain by evaluating at the
+    // appropriate normalisation point:
+    //   lowpass  -> z = 1 (DC, frequency = 0)
+    //   highpass -> z = -1 (Nyquist)
+    let eval_z = match filter_type {
+        FilterType::Lowpass => Complex64::new(1.0, 0.0),
+        FilterType::Highpass => Complex64::new(-1.0, 0.0),
+        _ => Complex64::new(1.0, 0.0),
+    };
+
+    // H(z) = gain * prod(z - z_k) / prod(z - p_k)
+    // We want |H(eval_z)| = 1, so compute the ratio and invert.
+    let num_val: Complex64 = digital_zeros
+        .iter()
+        .fold(Complex64::new(1.0, 0.0), |acc, &z| acc * (eval_z - z));
+    let den_val: Complex64 = digital_poles
+        .iter()
+        .fold(Complex64::new(1.0, 0.0), |acc, &p| acc * (eval_z - p));
+    let ratio = num_val / den_val;
+    let digital_gain = if ratio.norm() > 1e-30 {
+        1.0 / ratio.norm()
+    } else {
+        gain
+    };
+
+    // Step 5: Convert poles and zeros to transfer function coefficients
+    zpk_to_tf(&digital_zeros, &digital_poles, digital_gain)
 }
 
 /// Butterworth bandpass/bandstop filter design

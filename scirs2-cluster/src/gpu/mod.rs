@@ -40,17 +40,17 @@
 //! use scirs2_core::ndarray::Array2;
 //!
 //! // Create sample data
-//! let data = Array2::from_shape_vec((1000, 10), (0..10000).map(|x| x as f64).collect()).unwrap();
+//! let data = Array2::from_shape_vec((1000, 10), (0..10000).map(|x| x as f64).collect()).expect("operation should succeed");
 //!
 //! // Create GPU distance matrix
 //! let config = GpuConfig::default();
-//! let mut gpu_matrix = GpuDistanceMatrix::new(config, DistanceMetric::Euclidean, None).unwrap();
+//! let mut gpu_matrix = GpuDistanceMatrix::new(config, DistanceMetric::Euclidean, None).expect("operation should succeed");
 //!
 //! // Preload data to GPU for faster repeated computations
-//! gpu_matrix.preload_data(data.view()).unwrap();
+//! gpu_matrix.preload_data(data.view()).expect("operation should succeed");
 //!
 //! // Compute distance matrix
-//! let distances = gpu_matrix.compute_distance_matrix(data.view()).unwrap();
+//! let distances = gpu_matrix.compute_distance_matrix(data.view()).expect("operation should succeed");
 //! ```
 //!
 //! ## Memory Management
@@ -62,10 +62,10 @@
 //! let mut memory_manager = GpuMemoryManager::new(256, 100);
 //!
 //! // Allocate GPU memory
-//! let block = memory_manager.allocate(1024 * 1024).unwrap(); // 1MB
+//! let block = memory_manager.allocate(1024 * 1024).expect("operation should succeed"); // 1MB
 //!
 //! // Memory is automatically pooled for reuse
-//! memory_manager.deallocate(block).unwrap();
+//! memory_manager.deallocate(block).expect("operation should succeed");
 //!
 //! // Check memory statistics
 //! let stats = memory_manager.get_stats();
@@ -80,13 +80,13 @@
 //!
 //! // Create GPU K-means with CUDA backend
 //! let config = GpuAccelerationConfig::cuda();
-//! let mut kmeans = GpuKMeans::<f64>::new(config).unwrap();
+//! let mut kmeans = GpuKMeans::<f64>::new(config).expect("operation should succeed");
 //!
 //! // Create sample data
 //! let data = Array2::from_shape_fn((1000, 10), |(i, j)| (i + j) as f64);
 //!
 //! // Fit K-means with GPU acceleration
-//! let result = kmeans.fit(data.view(), 10, 100, 1e-4).unwrap();
+//! let result = kmeans.fit(data.view(), 10, 100, 1e-4).expect("operation should succeed");
 //!
 //! println!("Converged: {}", result.converged);
 //! println!("Iterations: {}", result.n_iterations);

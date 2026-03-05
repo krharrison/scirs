@@ -26,9 +26,9 @@ use std::fmt::Debug;
 ///     [0.0, 1.0, 0.0]   // Second sample, true class is 1
 /// ]).into_dyn();
 /// // Forward pass to calculate loss
-/// let loss = ce.forward(&predictions, &targets).unwrap();
+/// let loss = ce.forward(&predictions, &targets).expect("operation should succeed");
 /// // Backward pass to calculate gradients
-/// let gradients = ce.backward(&predictions, &targets).unwrap();
+/// let gradients = ce.backward(&predictions, &targets).expect("operation should succeed");
 /// ```
 #[derive(Debug, Clone, Copy)]
 pub struct CrossEntropyLoss {

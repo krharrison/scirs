@@ -65,7 +65,7 @@ let options = DifferentialEvolutionOptions {
 };
 
 // Run optimization
-let result = differential_evolution(rosenbrock, bounds, Some(options), None).unwrap();
+let result = differential_evolution(rosenbrock, bounds, Some(options), None).expect("valid input");
 println!("Solution: {:?}", result.x);
 println!("Function value: {}", result.fun);
 ```

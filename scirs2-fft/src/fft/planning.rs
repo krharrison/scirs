@@ -43,7 +43,7 @@ use scirs2_core::parallel_ops::*;
 /// let input = array![[1.0, 2.0], [3.0, 4.0]];
 ///
 /// // Compute the 2D FFT in parallel
-/// let result = fft2_parallel(&input, None, None, None, None).unwrap();
+/// let result = fft2_parallel(&input, None, None, None, None).expect("valid input");
 ///
 /// // The DC component should be the sum of all elements
 /// assert!((result[[0, 0]].re - 10.0).abs() < 1e-10);

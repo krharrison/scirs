@@ -26,7 +26,7 @@ use std::f64::consts::PI;
 /// use scirs2_signal::wavelets::morlet;
 ///
 /// // Generate a Morlet wavelet with 100 points, central frequency 5.0, and scaling 1.0
-/// let wavelet = morlet(100, 5.0, 1.0).unwrap();
+/// let wavelet = morlet(100, 5.0, 1.0).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn morlet(points: usize, w: f64, s: f64) -> SignalResult<Vec<Complex64>> {
@@ -88,7 +88,7 @@ pub fn morlet(points: usize, w: f64, s: f64) -> SignalResult<Vec<Complex64>> {
 ///
 /// // Generate a Complex Morlet wavelet with 100 points, center frequency 5.0,
 /// // bandwidth 1.0, symmetry 0.0 (symmetric), and scaling 1.0
-/// let wavelet = complex_morlet(100, 5.0, 1.0, 0.0, 1.0).unwrap();
+/// let wavelet = complex_morlet(100, 5.0, 1.0, 0.0, 1.0).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn complex_morlet(
@@ -176,7 +176,7 @@ pub fn complex_morlet(
 /// use scirs2_signal::wavelets::paul;
 ///
 /// // Generate a Paul wavelet with 100 points, order 4, and scaling 1.0
-/// let wavelet = paul(100, 4, 1.0).unwrap();
+/// let wavelet = paul(100, 4, 1.0).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn paul(points: usize, order: usize, scale: f64) -> SignalResult<Vec<Complex64>> {
@@ -249,7 +249,7 @@ pub fn paul(points: usize, order: usize, scale: f64) -> SignalResult<Vec<Complex
 /// use scirs2_signal::wavelets::complex_gaussian;
 ///
 /// // Generate a Complex Gaussian wavelet with 100 points, order 1, and scaling 1.0
-/// let wavelet = complex_gaussian(100, 1, 1.0).unwrap();
+/// let wavelet = complex_gaussian(100, 1, 1.0).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn complex_gaussian(points: usize, order: usize, scale: f64) -> SignalResult<Vec<Complex64>> {
@@ -336,7 +336,7 @@ pub fn complex_gaussian(points: usize, order: usize, scale: f64) -> SignalResult
 /// use scirs2_signal::wavelets::shannon;
 ///
 /// // Generate a Shannon wavelet with 100 points, center frequency 1.0, bandwidth 0.5, and scaling 1.0
-/// let wavelet = shannon(100, 1.0, 0.5, 1.0).unwrap();
+/// let wavelet = shannon(100, 1.0, 0.5, 1.0).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn shannon(
@@ -424,7 +424,7 @@ pub fn shannon(
 ///
 /// // Generate a FBSP wavelet with 100 points, center frequency 1.0,
 /// // bandwidth 0.5, order 3, and scaling 1.0
-/// let wavelet = fbsp(100, 1.0, 0.5, 3, 1.0).unwrap();
+/// let wavelet = fbsp(100, 1.0, 0.5, 3, 1.0).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn fbsp(

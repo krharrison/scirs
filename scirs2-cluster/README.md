@@ -1,262 +1,240 @@
-# SciRS2 Clustering Module
+# scirs2-cluster
 
 [![crates.io](https://img.shields.io/crates/v/scirs2-cluster.svg)](https://crates.io/crates/scirs2-cluster)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-cluster)](https://docs.rs/scirs2-cluster)
 
-A comprehensive clustering module for the SciRS2 scientific computing library in Rust (v0.1.5). Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this crate provides production-ready implementations of various clustering algorithms with a focus on performance, SciPy compatibility, ecosystem consistency, and idiomatic Rust code.
+Comprehensive clustering algorithms for unsupervised learning in Rust, part of the [SciRS2](https://github.com/cool-japan/scirs) scientific computing ecosystem.
 
-## Production Readiness - stable Release
+## Overview
 
-🎯 **Version 0.1.0** (SciRS2 POLICY & Enhanced Performance) is ready for production use with:
-- **189+ comprehensive tests** covering all algorithms and edge cases
-- **Zero warnings policy** enforced across all code and examples  
-- **Full SciPy API compatibility** maintained for seamless migration
-- **Extensive documentation** with working examples for all features
-- **Performance optimizations** including SIMD and parallel processing
-
-## Stability & Performance
-
-### Algorithm Maturity
-- **Core algorithms** (K-means, Hierarchical, DBSCAN) are thoroughly tested and production-ready
-- **Advanced algorithms** (Spectral, BIRCH, GMM, HDBSCAN) are fully implemented with comprehensive test coverage
-- **All APIs are stable** and maintain backward compatibility with SciPy interfaces
-
-### Performance Characteristics
-- **Optimized Ward's method**: O(n² log n) complexity vs standard O(n³)
-- **SIMD acceleration**: Up to 4x faster distance computations on supported hardware
-- **Parallel processing**: Multi-core implementations for K-means and hierarchical clustering
-- **Memory efficiency**: Streaming and chunked processing for large datasets (>10M points)
+`scirs2-cluster` provides production-ready implementations of classical and modern clustering algorithms with SciPy/scikit-learn compatible APIs. v0.3.0 significantly expands beyond the core algorithms with Gaussian Mixture Models, Self-Organizing Maps, topological clustering, streaming/online methods, fuzzy clustering, deep clustering, Bayesian nonparametric methods, and advanced validation tools.
 
 ## Features
 
-* **Vector Quantization**
-  * K-means clustering with multiple initialization methods
-  * K-means++ smart initialization
-  * kmeans2 with SciPy-compatible interface
-  * Mini-batch K-means for large datasets
-  * Parallel K-means for multi-core systems
-  * Data whitening/normalization utilities
+### Partitional Clustering (Vector Quantization)
+- K-means with multiple initialization strategies
+- K-means++ smart initialization (faster convergence)
+- Mini-batch K-means for large-scale datasets
+- Parallel K-means using Rayon
+- `kmeans2` with SciPy-compatible interface
+- Data whitening / normalization utilities
 
-* **Hierarchical Clustering**
-  * Agglomerative clustering with multiple linkage methods:
-    * Single linkage (minimum distance)
-    * Complete linkage (maximum distance)
-    * Average linkage
-    * Ward's method (minimizes variance)
-    * Centroid method (distance between centroids)
-    * Median method
-    * Weighted average
-  * Dendrogram utilities and flat cluster extraction
-  * Cluster distance metrics (Euclidean, Manhattan, Chebyshev, Correlation)
+### Hierarchical Clustering
+- Agglomerative clustering with full linkage method suite: single, complete, average, Ward, centroid, median, weighted
+- Optimized Ward's method: O(n^2 log n) vs naive O(n^3)
+- Dendrogram utilities and flat cluster extraction (`fcluster`)
+- Dendrogram export (Newick, JSON)
 
-* **Density-Based Clustering**
-  * DBSCAN (Density-Based Spatial Clustering of Applications with Noise)
-  * OPTICS (Ordering Points To Identify the Clustering Structure)
-  * HDBSCAN (Hierarchical DBSCAN)
-  * Support for custom distance metrics
+### Density-Based Clustering
+- DBSCAN (Density-Based Spatial Clustering of Applications with Noise)
+- OPTICS (Ordering Points To Identify the Clustering Structure)
+- HDBSCAN (Hierarchical DBSCAN)
+- Density peaks algorithm
+- Density ratio estimation clustering
 
-* **Other Algorithms**
-  * Mean-shift clustering
-  * Spectral clustering
-  * Affinity propagation
-  * BIRCH (Balanced Iterative Reducing and Clustering using Hierarchies)
-  * Gaussian Mixture Models (GMM)
-  * Leader algorithm (single-pass clustering with hierarchical tree support)
+### Probabilistic and Mixture Models
+- Gaussian Mixture Models (GMM) with full EM algorithm
+- Bayesian GMM with variational inference
+- Dirichlet Process mixture models (nonparametric Bayesian)
+- Probabilistic soft assignments
 
-* **Evaluation Metrics**
-  * Silhouette coefficient
-  * Davies-Bouldin index
-  * Calinski-Harabasz index
-  * Adjusted Rand Index
-  * Normalized Mutual Information
-  * Homogeneity, Completeness, and V-measure
+### Prototype-Based and Competitive Learning
+- Self-Organizing Maps (SOM) with hexagonal and rectangular topologies
+- Competitive learning networks
+- Prototype-enhanced clustering with medoid refinement
+- Leader algorithm (single-pass with hierarchical tree)
 
-## Installation
+### Spectral and Graph-Based
+- Spectral clustering with multiple Laplacian variants
+- Affinity propagation (exemplar-based)
+- BIRCH (Balanced Iterative Reducing and Clustering using Hierarchies)
+- Mean-shift clustering
 
-Add this to your `Cargo.toml`:
+### Subspace Clustering
+- Subspace clustering for high-dimensional data
+- Projected clustering and axis-aligned subspace search
+- Advanced subspace methods (`subspace_advanced/`)
 
-```toml
-[dependencies]
-scirs2-cluster = "0.1.5"
-ndarray = "0.15"
-```
+### Fuzzy and Soft Clustering
+- Fuzzy c-means (FCM) with membership degree outputs
+- Soft clustering with probabilistic assignments
+- Possibilistic c-means
 
-To enable optimizations through the core module, add feature flags:
+### Topological Clustering
+- Topological data analysis applied to clustering
+- Persistent homology-based cluster boundary detection
+- Mapper algorithm integration
 
-```toml
-[dependencies]
-scirs2-cluster = { version = "0.1.5", features = ["parallel", "simd"] }
-```
+### Streaming and Online Clustering
+- Online k-means (incremental updates)
+- ADWIN-based streaming cluster detection
+- CluStream and DenStream for data streams
+- Reservoir sampling for large data streams
 
-## Usage
+### Time Series Clustering
+- DTW-based distance for time series k-means
+- Temporal pattern clustering
+- Phase-space clustering
 
-### K-means Example
+### Ensemble and Consensus
+- Consensus clustering via co-association matrices
+- Evidence Accumulation Clustering (EAC)
+- Bagging-based and weighted voting ensembles
+- Stability-based cluster selection
 
-```rust
-use ndarray::Array2;
-use scirs2_cluster::vq::{kmeans, KMeansOptions, KMeansInit};
+### Deep Clustering
+- Deep embedding via autoencoder
+- DEC (Deep Embedded Clustering)
+- Deep adversarial clustering
+- Transformer-based cluster embeddings
 
-// Create a dataset
-let data = Array2::from_shape_vec((6, 2), vec![
-    1.0, 2.0,
-    1.2, 1.8,
-    0.8, 1.9,
-    3.7, 4.2,
-    3.9, 3.9,
-    4.2, 4.1,
-]).unwrap();
-
-// Configure K-means
-let options = KMeansOptions {
-    init_method: KMeansInit::KMeansPlusPlus,
-    max_iter: 300,
-    ..Default::default()
-};
-
-// Run k-means with k=2
-let (centroids, labels) = kmeans(data.view(), 2, Some(options)).unwrap();
-
-println!("Centroids: {:?}", centroids);
-println!("Cluster assignments: {:?}", labels);
-```
-
-### kmeans2 (SciPy-compatible)
-
-```rust
-use scirs2_cluster::vq::{kmeans2, MinitMethod, MissingMethod, whiten};
-
-// Whiten the data for better clustering
-let whitened_data = whiten(&data).unwrap();
-
-// Run kmeans2 with different initialization methods
-let (centroids, labels) = kmeans2(
-    whitened_data.view(),
-    3,                             // k clusters
-    Some(10),                      // iterations
-    Some(1e-4),                    // threshold
-    Some(MinitMethod::PlusPlus),   // K-means++ initialization
-    Some(MissingMethod::Warn),     // warn on empty clusters
-    Some(true),                    // check finite values
-    Some(42),                      // random seed
-).unwrap();
-```
-
-### Mini-batch K-means
-
-```rust
-use scirs2_cluster::vq::{minibatch_kmeans, MiniBatchKMeansOptions};
-
-// Configure mini-batch K-means
-let options = MiniBatchKMeansOptions {
-    batch_size: 1024,
-    max_iter: 100,
-    ..Default::default()
-};
-
-// Run clustering on large dataset
-let (centroids, labels) = minibatch_kmeans(large_data.view(), 5, Some(options)).unwrap();
-```
-
-### Hierarchical Clustering Example
-
-```rust
-use ndarray::Array2;
-use scirs2_cluster::hierarchy::{linkage, fcluster, LinkageMethod};
-
-// Create a dataset
-let data = Array2::from_shape_vec((6, 2), vec![
-    1.0, 2.0,
-    1.2, 1.8,
-    0.8, 1.9,
-    3.7, 4.2,
-    3.9, 3.9,
-    4.2, 4.1,
-]).unwrap();
-
-// Calculate linkage matrix using Ward's method
-let linkage_matrix = linkage(data.view(), LinkageMethod::Ward, None).unwrap();
-
-// Form flat clusters by cutting the dendrogram
-let num_clusters = 2;
-let labels = fcluster(&linkage_matrix, num_clusters, None).unwrap();
-
-println!("Cluster assignments: {:?}", labels);
-```
+### Biclustering and Co-clustering
+- Biclustering for simultaneous row/column clustering
+- Co-clustering (information-theoretic)
 
 ### Evaluation Metrics
+- Silhouette coefficient (individual and average)
+- Davies-Bouldin index
+- Calinski-Harabasz index
+- Gap statistic for optimal k selection
+- Adjusted Rand Index (ARI)
+- Normalized Mutual Information (NMI)
+- Homogeneity, Completeness, V-measure
+- Stability analysis across bootstrap samples
 
-```rust
-use scirs2_cluster::metrics::{silhouette_score, davies_bouldin_score, calinski_harabasz_score};
+## Quick Start
 
-// Evaluate clustering quality
-let silhouette = silhouette_score(data.view(), labels.view()).unwrap();
-let db_score = davies_bouldin_score(data.view(), labels.view()).unwrap();
-let ch_score = calinski_harabasz_score(data.view(), labels.view()).unwrap();
+Add to your `Cargo.toml`:
 
-println!("Silhouette score: {}", silhouette);
-println!("Davies-Bouldin score: {}", db_score);
-println!("Calinski-Harabasz score: {}", ch_score);
+```toml
+[dependencies]
+scirs2-cluster = "0.3.0"
 ```
 
-### DBSCAN Example
+With parallel processing:
 
-```rust
-use ndarray::Array2;
-use scirs2_cluster::density::{dbscan, labels};
-
-// Create a dataset with clusters and noise
-let data = Array2::from_shape_vec((8, 2), vec![
-    1.0, 2.0,   // Cluster 1
-    1.5, 1.8,   // Cluster 1
-    1.3, 1.9,   // Cluster 1
-    5.0, 7.0,   // Cluster 2
-    5.1, 6.8,   // Cluster 2
-    5.2, 7.1,   // Cluster 2
-    0.0, 10.0,  // Noise
-    10.0, 0.0,  // Noise
-]).unwrap();
-
-// Run DBSCAN with eps=0.8 and min_samples=2
-let cluster_labels = dbscan(data.view(), 0.8, 2, None).unwrap();
-
-// Count noise points
-let noise_count = cluster_labels.iter().filter(|&&label| label == labels::NOISE).count();
-
-println!("Cluster assignments: {:?}", cluster_labels);
-println!("Number of noise points: {}", noise_count);
+```toml
+[dependencies]
+scirs2-cluster = { version = "0.3.0", features = ["parallel"] }
 ```
 
-## Documentation
+### K-means Clustering
 
-* [Algorithm Comparison Guide](ALGORITHM_COMPARISON.md) - Comprehensive guide to choosing the right clustering algorithm for your use case
+```rust
+use scirs2_cluster::vq::kmeans;
+use scirs2_core::ndarray::Array2;
 
-## Key Enhancements
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let data = Array2::from_shape_vec((6, 2), vec![
+        1.0, 2.0,  1.2, 1.8,  0.8, 1.9,
+        3.7, 4.2,  3.9, 3.9,  4.2, 4.1,
+    ])?;
 
-### Production-Ready SciPy Compatibility
-- **Complete API compatibility** with SciPy's cluster module
-- **Drop-in replacement** for most SciPy clustering functions
-- **Identical parameter names and behavior** for seamless migration
-- **Compatible return value formats** with proper error handling
+    let (centroids, labels) = kmeans(data.view(), 2, None, None, None, None)?;
 
-### High-Performance Computing
-- **SIMD acceleration** with automatic fallback for unsupported hardware
-- **Multi-core parallelism** via Rayon for CPU-intensive operations
-- **Memory-efficient streaming** for datasets larger than available RAM
-- **Optimized algorithms** that outperform reference implementations
+    println!("Centroids: {:?}", centroids);
+    println!("Labels: {:?}", labels);
+    Ok(())
+}
+```
 
-### Rust Ecosystem Advantages
-- **Memory safety** without runtime overhead
-- **Zero-copy operations** where possible for maximum efficiency
-- **Compile-time correctness** with comprehensive type checking
-- **Predictable performance** with no garbage collection pauses
+### Hierarchical Clustering
+
+```rust
+use scirs2_cluster::hierarchy::{linkage, fcluster, LinkageMethod};
+use scirs2_core::ndarray::Array2;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let data = Array2::from_shape_vec((6, 2), vec![
+        1.0, 2.0,  1.2, 1.8,  0.8, 1.9,
+        3.7, 4.2,  3.9, 3.9,  4.2, 4.1,
+    ])?;
+
+    let z = linkage(data.view(), LinkageMethod::Ward, None)?;
+    let labels = fcluster(&z, 2, None)?;
+
+    println!("Cluster assignments: {:?}", labels);
+    Ok(())
+}
+```
+
+### DBSCAN
+
+```rust
+use scirs2_cluster::density::dbscan;
+use scirs2_core::ndarray::Array2;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let data = Array2::from_shape_vec((8, 2), vec![
+        1.0, 2.0,  1.5, 1.8,  1.3, 1.9,
+        5.0, 7.0,  5.1, 6.8,  5.2, 7.1,
+        0.0, 10.0, 10.0, 0.0,
+    ])?;
+
+    // eps=0.8, min_samples=2
+    let labels = dbscan(data.view(), 0.8, 2, None)?;
+    println!("Labels (-1 = noise): {:?}", labels);
+    Ok(())
+}
+```
+
+### Gaussian Mixture Model
+
+```rust
+use scirs2_cluster::probabilistic::GaussianMixtureModel;
+use scirs2_core::ndarray::Array2;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let data = Array2::<f64>::zeros((100, 2)); // replace with real data
+
+    let mut gmm = GaussianMixtureModel::new(3, 100, 1e-6, 42)?;
+    gmm.fit(data.view())?;
+
+    let labels = gmm.predict(data.view())?;
+    let responsibilities = gmm.predict_proba(data.view())?;
+    println!("Soft assignments shape: {:?}", responsibilities.shape());
+    Ok(())
+}
+```
+
+### Cluster Validation
+
+```rust
+use scirs2_cluster::metrics::{
+    silhouette_score, davies_bouldin_score, calinski_harabasz_score,
+};
+use scirs2_core::ndarray::{Array2, Array1};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let data = Array2::<f64>::zeros((100, 5));
+    let labels = Array1::<usize>::zeros(100);
+
+    let sil = silhouette_score(data.view(), labels.view())?;
+    let db  = davies_bouldin_score(data.view(), labels.view())?;
+    let ch  = calinski_harabasz_score(data.view(), labels.view())?;
+
+    println!("Silhouette: {:.4}", sil);
+    println!("Davies-Bouldin: {:.4}", db);
+    println!("Calinski-Harabasz: {:.4}", ch);
+    Ok(())
+}
+```
+
+## Feature Flags
+
+| Flag | Description |
+|------|-------------|
+| `parallel` | Enable Rayon-based multi-threaded distance computation and fitting |
+| `simd` | SIMD-accelerated distance computations |
+
+## Related Crates
+
+- [`scirs2-stats`](../scirs2-stats) - Statistical distributions and tests
+- [`scirs2-transform`](../scirs2-transform) - Dimensionality reduction and preprocessing
+- [`scirs2-spatial`](../scirs2-spatial) - Spatial indexing (KD-tree, Ball-tree)
+- [SciRS2 project](https://github.com/cool-japan/scirs)
 
 ## License
 
-This project is Licensed under the Apache License 2.0. See LICENSE for details.
-
-You can choose to use either license. See the [LICENSE](../LICENSE) file for details.
-
-## Contributing
-
-Contributions are welcome! Please see the project's [CONTRIBUTING.md](../CONTRIBUTING.md) file for guidelines.
+Licensed under the Apache License, Version 2.0. See [LICENSE](../LICENSE) for details.

@@ -61,12 +61,28 @@ name = "v020_python_comparison"
 path = "v020_python_comparison.rs"
 harness = false
 
+# v0.3.0 Comprehensive Benchmark Suite
+[[bench]]
+name = "v030_comprehensive_suite"
+path = "v030_comprehensive_suite.rs"
+harness = false
+
+[[bench]]
+name = "v030_autograd_benchmarks"
+path = "v030_autograd_benchmarks.rs"
+harness = false
+
+[[bench]]
+name = "v030_series_benchmarks"
+path = "v030_series_benchmarks.rs"
+harness = false
+
 [lints]
 workspace = true
 
 [dependencies]
 # SciRS2 modules
-scirs2-core = { workspace = true, features = ["parallel", "simd", "profiling", "memory_management", "serialization", "array"] }
+scirs2-core = { workspace = true, features = ["parallel", "simd", "profiling", "memory_management", "serialization", "array", "random", "array_stats"] }
 scirs2-linalg = { workspace = true, features = ["simd", "parallel"] }
 scirs2-stats = { workspace = true }
 scirs2-fft = { workspace = true, features = ["oxifft"] }
@@ -80,6 +96,9 @@ scirs2-ndimage = { workspace = true }
 scirs2-neural = { workspace = true }
 scirs2-autograd = { workspace = true }
 scirs2-spatial = { workspace = true }
+scirs2-optimize = { workspace = true }
+scirs2-series = { workspace = true }
+scirs2-metrics = { workspace = true }
 
 # Benchmarking framework
 criterion = { workspace = true, features = ["html_reports"] }

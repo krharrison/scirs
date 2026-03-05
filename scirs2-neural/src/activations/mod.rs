@@ -130,13 +130,15 @@ pub trait Activation<F: Float + NumAssign> {
     ///
     /// Returns the gradient with respect to the input, same shape as the input.
     ///
-    /// ```ignore
+    /// ```rust
     /// use scirs2_neural::activations::{Activation, ReLU};
+    /// use scirs2_core::ndarray::Array;
+    ///
     /// let relu = ReLU::new();
-    /// let input = Array::from_vec(vec![-1.0, 1.0]).into_dyn();
-    /// let output = relu.forward(&input)?; // [0.0, 1.0]
-    /// let grad_output = Array::from_vec(vec![1.0, 1.0]).into_dyn();
-    /// let grad_input = relu.backward(&grad_output, &output)?;
+    /// let input = Array::from_vec(vec![-1.0_f64, 1.0]).into_dyn();
+    /// let output = relu.forward(&input).expect("forward failed"); // [0.0, 1.0]
+    /// let grad_output = Array::from_vec(vec![1.0_f64, 1.0]).into_dyn();
+    /// let grad_input = relu.backward(&grad_output, &output).expect("backward failed");
     /// // ReLU gradient: 0 for negative inputs, 1 for positive inputs
     /// assert_eq!(grad_input.as_slice().expect("Operation failed"), &[0.0, 1.0]);
     /// ```

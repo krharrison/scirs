@@ -5,7 +5,7 @@
 //! graph system. For comprehensive neural network training, use PyTorch or TensorFlow.
 
 use pyo3::prelude::*;
-use scirs2_neural::activations_minimal::{Activation, GELU, ReLU, Sigmoid, Softmax, Tanh};
+use scirs2_neural::activations_minimal::{Activation, ReLU, Sigmoid, Softmax, Tanh, GELU};
 use scirs2_numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods};
 
 // ============================================================================
@@ -28,9 +28,7 @@ pub struct PyReLU {
 impl PyReLU {
     #[new]
     fn new() -> Self {
-        Self {
-            inner: ReLU::new(),
-        }
+        Self { inner: ReLU::new() }
     }
 
     /// Forward pass
@@ -227,22 +225,14 @@ fn apply_activation<A: Activation<f64>>(
         let data = binding.as_array().to_owned();
         let dyn_input = data.into_dyn();
 
-        let output = activation
-            .forward(&dyn_input)
-            .map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Activation error: {}",
-                    e
-                ))
-            })?;
+        let output = activation.forward(&dyn_input).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Activation error: {}", e))
+        })?;
 
         let out1d = output
             .into_dimensionality::<scirs2_core::ndarray::Ix1>()
             .map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Dimension error: {}",
-                    e
-                ))
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Dimension error: {}", e))
             })?;
 
         return Ok(out1d.into_pyarray(py).unbind().into());
@@ -254,22 +244,14 @@ fn apply_activation<A: Activation<f64>>(
         let data = binding.as_array().to_owned();
         let dyn_input = data.into_dyn();
 
-        let output = activation
-            .forward(&dyn_input)
-            .map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Activation error: {}",
-                    e
-                ))
-            })?;
+        let output = activation.forward(&dyn_input).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Activation error: {}", e))
+        })?;
 
         let out2d = output
             .into_dimensionality::<scirs2_core::ndarray::Ix2>()
             .map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Dimension error: {}",
-                    e
-                ))
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Dimension error: {}", e))
             })?;
 
         return Ok(out2d.into_pyarray(py).unbind().into());
@@ -299,22 +281,17 @@ fn apply_activation_backward<A: Activation<f64>>(
         let inp_binding = inp1d.readonly();
         let inp_data = inp_binding.as_array().to_owned().into_dyn();
 
-        let grad_input = activation
-            .backward(&grad_data, &inp_data)
-            .map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Activation backward error: {}",
-                    e
-                ))
-            })?;
+        let grad_input = activation.backward(&grad_data, &inp_data).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                "Activation backward error: {}",
+                e
+            ))
+        })?;
 
         let out1d = grad_input
             .into_dimensionality::<scirs2_core::ndarray::Ix1>()
             .map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Dimension error: {}",
-                    e
-                ))
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Dimension error: {}", e))
             })?;
 
         return Ok(out1d.into_pyarray(py).unbind().into());
@@ -331,22 +308,17 @@ fn apply_activation_backward<A: Activation<f64>>(
         let inp_binding = inp2d.readonly();
         let inp_data = inp_binding.as_array().to_owned().into_dyn();
 
-        let grad_input = activation
-            .backward(&grad_data, &inp_data)
-            .map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Activation backward error: {}",
-                    e
-                ))
-            })?;
+        let grad_input = activation.backward(&grad_data, &inp_data).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                "Activation backward error: {}",
+                e
+            ))
+        })?;
 
         let out2d = grad_input
             .into_dimensionality::<scirs2_core::ndarray::Ix2>()
             .map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Dimension error: {}",
-                    e
-                ))
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Dimension error: {}", e))
             })?;
 
         return Ok(out2d.into_pyarray(py).unbind().into());
@@ -370,7 +342,9 @@ pub fn register_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PySoftmax>()?;
 
     // Add module documentation
-    m.add("__doc__", "Neural network activation functions and utilities\n\n\
+    m.add(
+        "__doc__",
+        "Neural network activation functions and utilities\n\n\
         This module provides standalone activation functions that can be used\n\
         with NumPy arrays for neural network inference and custom training loops.\n\n\
         Available activations:\n\
@@ -384,7 +358,8 @@ pub fn register_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
         - backward(grad_output, input): Backward pass for gradient computation\n\n\
         For comprehensive neural network training with automatic differentiation,\n\
         we recommend using PyTorch or TensorFlow, which integrate seamlessly\n\
-        with scirs2 via NumPy array compatibility.")?;
+        with scirs2 via NumPy array compatibility.",
+    )?;
 
     Ok(())
 }

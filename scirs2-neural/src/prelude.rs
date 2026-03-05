@@ -69,5 +69,6 @@ pub use crate::models::architectures::{
     ConvNeXtVariant, EfficientNet, EfficientNetConfig, FeatureFusion, FeatureFusionConfig,
     FusionMethod, GPTConfig, GPTModel, MLPMixer, MLPMixerConfig, Mamba, MambaBlock, MambaConfig,
     MobileNet, MobileNetConfig, MobileNetVersion, RNNCellType, ResNet, ResNetConfig, S4Layer,
-    Seq2Seq, Seq2SeqConfig, SelectiveSSM, ViTConfig, VisionTransformer, CLIP,
+    Seq2Seq, Seq2SeqConfig, SelectiveSSM, VGG, VGGConfig, VGGVariant, ViTConfig,
+    VisionTransformer, CLIP,
 };

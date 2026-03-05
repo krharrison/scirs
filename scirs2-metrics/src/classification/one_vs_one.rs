@@ -40,7 +40,7 @@ use crate::error::{MetricsError, Result};
 /// let y_true = array![0, 1, 2, 0, 1, 2];
 /// let y_pred = array![0, 2, 1, 0, 0, 2];
 ///
-/// let ovo_acc = one_vs_one_accuracy(&y_true, &y_pred).unwrap();
+/// let ovo_acc = one_vs_one_accuracy(&y_true, &y_pred).expect("should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn one_vs_one_accuracy<T, S1, S2, D1, D2>(
@@ -152,7 +152,7 @@ where
 /// let y_true = array![0, 1, 2, 0, 1, 2];
 /// let y_pred = array![0, 2, 1, 0, 0, 2];
 ///
-/// let (precision, recall) = one_vs_one_precision_recall(&y_true, &y_pred).unwrap();
+/// let (precision, recall) = one_vs_one_precision_recall(&y_true, &y_pred).expect("should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn one_vs_one_precision_recall<T, S1, S2, D1, D2>(
@@ -262,7 +262,7 @@ where
 /// let y_true = array![0, 1, 2, 0, 1, 2];
 /// let y_pred = array![0, 2, 1, 0, 0, 2];
 ///
-/// let f1_scores = one_vs_one_f1_score(&y_true, &y_pred).unwrap();
+/// let f1_scores = one_vs_one_f1_score(&y_true, &y_pred).expect("should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn one_vs_one_f1_score<T, S1, S2, D1, D2>(
@@ -321,7 +321,7 @@ where
 /// let y_true = array![0, 1, 2, 0, 1, 2];
 /// let y_pred = array![0, 2, 1, 0, 0, 2];
 ///
-/// let weighted_f1 = weighted_one_vs_one_f1_score(&y_true, &y_pred).unwrap();
+/// let weighted_f1 = weighted_one_vs_one_f1_score(&y_true, &y_pred).expect("should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn weighted_one_vs_one_f1_score<T, S1, S2, D1, D2>(

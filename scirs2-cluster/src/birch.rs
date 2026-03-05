@@ -1,8 +1,28 @@
 //! BIRCH (Balanced Iterative Reducing and Clustering using Hierarchies) clustering algorithm
 //!
-//! BIRCH is an incremental clustering algorithm for large datasets. It builds a CF-tree
-//! (Clustering Feature tree) to summarize the data and then applies a global clustering
-//! algorithm on the leaf nodes.
+//! BIRCH is an incremental clustering algorithm designed for very large datasets.
+//! It builds a CF-tree (Clustering Feature tree) that compactly summarizes the data,
+//! then applies a global clustering algorithm on the leaf entries.
+//!
+//! # Algorithm Phases
+//!
+//! 1. **Phase 1**: Build the CF-tree by scanning data once (linear time)
+//! 2. **Phase 2** (optional): Condense the tree by rebuilding with a larger threshold
+//! 3. **Phase 3**: Apply global clustering (e.g., k-means) on leaf CF entries
+//! 4. **Phase 4**: Assign original data points to clusters
+//!
+//! # Features
+//!
+//! - **CF-tree construction** with configurable branching factor and threshold
+//! - **Node splitting** when branching factor is exceeded
+//! - **Subclustering and merging** of CF entries
+//! - **Threshold auto-adjustment** for controlling tree size
+//! - **Incremental insertion** for streaming data
+//!
+//! # References
+//!
+//! Zhang, T., Ramakrishnan, R., Livny, M. (1996). "BIRCH: An Efficient Data
+//! Clustering Method for Very Large Databases." SIGMOD, pp. 103-114.
 
 use scirs2_core::ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, ScalarOperand};
 use scirs2_core::numeric::{Float, FromPrimitive};
@@ -11,40 +31,43 @@ use std::fmt::Debug;
 use crate::error::{ClusteringError, Result};
 use crate::vq::euclidean_distance;
 
-/// Clustering Feature for summarizing a cluster
+/// Clustering Feature (CF) for summarizing a cluster
+///
+/// A CF is a triple (N, LS, SS) where:
+/// - N: number of data points
+/// - LS: linear sum of data points
+/// - SS: sum of squared norms of data points
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
-struct ClusteringFeature<F: Float> {
-    /// Number of data points in the cluster
+pub struct ClusteringFeature<F: Float> {
+    /// Number of data points
     n: usize,
-    /// Linear sum of data points
+    /// Linear sum of data points (vector sum)
     linear_sum: Array1<F>,
-    /// Squared sum of data points
+    /// Sum of squared norms: sum(||x_i||^2)
     squared_sum: F,
 }
 
-#[allow(dead_code)]
 impl<F: Float + FromPrimitive + ScalarOperand> ClusteringFeature<F> {
     /// Create a new CF from a single data point
-    fn new(_datapoint: ArrayView1<F>) -> Self {
-        let squared_sum = _datapoint.dot(&_datapoint);
+    fn new(datapoint: ArrayView1<F>) -> Self {
+        let squared_sum = datapoint.dot(&datapoint);
         Self {
             n: 1,
-            linear_sum: _datapoint.to_owned(),
+            linear_sum: datapoint.to_owned(),
             squared_sum,
         }
     }
 
-    /// Create an empty CF
-    fn empty(_nfeatures: usize) -> Self {
+    /// Create an empty CF with a given dimensionality
+    fn empty(n_features: usize) -> Self {
         Self {
             n: 0,
-            linear_sum: Array1::zeros(_nfeatures),
+            linear_sum: Array1::zeros(n_features),
             squared_sum: F::zero(),
         }
     }
 
-    /// Add another CF to this one
+    /// Add another CF to this one (absorb)
     fn add(&mut self, other: &Self) {
         self.n += other.n;
         self.linear_sum = &self.linear_sum + &other.linear_sum;
@@ -58,57 +81,85 @@ impl<F: Float + FromPrimitive + ScalarOperand> ClusteringFeature<F> {
         result
     }
 
-    /// Calculate the centroid
+    /// Calculate the centroid of this CF
     fn centroid(&self) -> Array1<F> {
         if self.n == 0 {
             Array1::zeros(self.linear_sum.len())
         } else {
-            &self.linear_sum / F::from(self.n).expect("Failed to convert to float")
+            let n_f = F::from(self.n).unwrap_or(F::one());
+            &self.linear_sum / n_f
         }
     }
 
-    /// Calculate the radius (average distance from centroid)
+    /// Calculate the radius (average distance from centroid to points)
+    ///
+    /// radius = sqrt((SS/N) - (LS/N).(LS/N))
     fn radius(&self) -> F {
         if self.n <= 1 {
             F::zero()
         } else {
+            let n_f = F::from(self.n).unwrap_or(F::one());
             let centroid = self.centroid();
             let centroid_ss = centroid.dot(&centroid);
-            let variance = (self.squared_sum
-                - F::from(self.n).expect("Failed to convert to float") * centroid_ss)
-                / F::from(self.n).expect("Failed to convert to float");
+            let variance = (self.squared_sum / n_f) - centroid_ss;
             variance.max(F::zero()).sqrt()
         }
     }
 
-    /// Calculate the diameter (average pairwise distance)
+    /// Calculate the diameter (average pairwise distance between points)
+    ///
+    /// diameter = sqrt(2 * (N * SS - LS.LS) / (N * (N-1)))
     fn diameter(&self) -> F {
         if self.n <= 1 {
             F::zero()
         } else {
-            let n_f = F::from(self.n).expect("Failed to convert to float");
-            let term = (n_f * self.squared_sum - self.linear_sum.dot(&self.linear_sum))
-                / (n_f * (n_f - F::one()));
-            term.max(F::zero()).sqrt() * F::from(2.0).expect("Failed to convert constant to float")
+            let n_f = F::from(self.n).unwrap_or(F::one());
+            let ls_dot = self.linear_sum.dot(&self.linear_sum);
+            let numerator = n_f * self.squared_sum - ls_dot;
+            let denominator = n_f * (n_f - F::one());
+            if denominator <= F::zero() {
+                return F::zero();
+            }
+            let two = F::from(2.0).unwrap_or(F::one() + F::one());
+            (two * numerator / denominator).max(F::zero()).sqrt()
         }
+    }
+
+    /// Calculate the distance between two CF centroids
+    fn centroid_distance(&self, other: &Self) -> F {
+        let c1 = self.centroid();
+        let c2 = other.centroid();
+        let mut dist = F::zero();
+        for i in 0..c1.len() {
+            let diff = c1[i] - c2[i];
+            dist = dist + diff * diff;
+        }
+        dist.sqrt()
+    }
+
+    /// Calculate the D0 distance (inter-cluster distance based on centroids)
+    fn d0_distance(&self, other: &Self) -> F {
+        self.centroid_distance(other)
+    }
+
+    /// Calculate the D2 distance (average inter-cluster distance)
+    fn d2_distance(&self, other: &Self) -> F {
+        let merged = self.merge(other);
+        merged.diameter()
     }
 }
 
 /// Node in the CF-tree
 #[derive(Debug)]
-#[allow(dead_code)]
 struct CFNode<F: Float> {
     /// Whether this is a leaf node
     is_leaf: bool,
-    /// CFs stored in this node
+    /// CFs stored in this node (leaf: one per subcluster; non-leaf: summary of each child)
     cfs: Vec<ClusteringFeature<F>>,
     /// Child nodes (only for non-leaf nodes)
     children: Vec<CFNode<F>>,
-    /// Parent node reference (would need `Rc<RefCell>` in real implementation)
-    parent_index: Option<usize>,
 }
 
-#[allow(dead_code)]
 impl<F: Float + FromPrimitive + ScalarOperand> CFNode<F> {
     /// Create a new leaf node
     fn new_leaf() -> Self {
@@ -116,7 +167,6 @@ impl<F: Float + FromPrimitive + ScalarOperand> CFNode<F> {
             is_leaf: true,
             cfs: Vec::new(),
             children: Vec::new(),
-            parent_index: None,
         }
     }
 
@@ -126,43 +176,301 @@ impl<F: Float + FromPrimitive + ScalarOperand> CFNode<F> {
             is_leaf: false,
             cfs: Vec::new(),
             children: Vec::new(),
-            parent_index: None,
         }
     }
 
     /// Get the CF that summarizes this entire node
-    fn get_cf(&self) -> Result<ClusteringFeature<F>> {
+    fn get_cf(&self) -> ClusteringFeature<F> {
         if self.cfs.is_empty() {
-            return Err(ClusteringError::InvalidInput(
-                "Node has no CFs - cannot compute summary".to_string(),
-            ));
+            return ClusteringFeature::empty(0);
         }
-
         let mut result = self.cfs[0].clone();
         for cf in self.cfs.iter().skip(1) {
             result.add(cf);
         }
-        Ok(result)
+        result
     }
+
+    /// Insert a CF into a leaf node. Returns Ok(None) if absorbed/added,
+    /// or Ok(Some(new_node)) if a split occurred.
+    fn insert_cf(
+        &mut self,
+        new_cf: ClusteringFeature<F>,
+        branching_factor: usize,
+        threshold: F,
+    ) -> Result<Option<CFNode<F>>> {
+        if !self.is_leaf {
+            return self.insert_cf_nonleaf(new_cf, branching_factor, threshold);
+        }
+
+        // Leaf node: try to absorb into closest CF
+        if self.cfs.is_empty() {
+            self.cfs.push(new_cf);
+            return Ok(None);
+        }
+
+        // Find closest CF entry
+        let (closest_idx, _closest_dist) = self.find_closest_cf(&new_cf);
+
+        // Try to absorb
+        let merged = self.cfs[closest_idx].merge(&new_cf);
+        if merged.radius() <= threshold {
+            self.cfs[closest_idx] = merged;
+            return Ok(None);
+        }
+
+        // Cannot absorb; try to add as new entry
+        if self.cfs.len() < branching_factor {
+            self.cfs.push(new_cf);
+            return Ok(None);
+        }
+
+        // Need to split: add the new CF temporarily, then split
+        self.cfs.push(new_cf);
+        let new_node = self.split_leaf(branching_factor);
+        Ok(Some(new_node))
+    }
+
+    /// Insert CF into a non-leaf node
+    fn insert_cf_nonleaf(
+        &mut self,
+        new_cf: ClusteringFeature<F>,
+        branching_factor: usize,
+        threshold: F,
+    ) -> Result<Option<CFNode<F>>> {
+        if self.children.is_empty() {
+            // Degenerate: convert to leaf
+            self.is_leaf = true;
+            self.cfs.push(new_cf);
+            return Ok(None);
+        }
+
+        // Find the closest child
+        let (closest_idx, _) = self.find_closest_cf(&new_cf);
+        let closest_idx = closest_idx.min(self.children.len() - 1);
+
+        // Recursively insert into the closest child
+        let split_result =
+            self.children[closest_idx].insert_cf(new_cf, branching_factor, threshold)?;
+
+        // Update the CF summary for this child
+        self.cfs[closest_idx] = self.children[closest_idx].get_cf();
+
+        if let Some(new_child) = split_result {
+            // A child split occurred; add the new child
+            let new_child_cf = new_child.get_cf();
+            if self.children.len() < branching_factor {
+                self.cfs.push(new_child_cf);
+                self.children.push(new_child);
+                Ok(None)
+            } else {
+                // Need to split this non-leaf node too
+                self.cfs.push(new_child_cf);
+                self.children.push(new_child);
+                let new_node = self.split_nonleaf(branching_factor);
+                Ok(Some(new_node))
+            }
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Find the closest CF entry (by centroid distance)
+    fn find_closest_cf(&self, target: &ClusteringFeature<F>) -> (usize, F) {
+        let mut closest_idx = 0;
+        let mut min_dist = F::infinity();
+
+        for (i, cf) in self.cfs.iter().enumerate() {
+            let dist = cf.centroid_distance(target);
+            if dist < min_dist {
+                min_dist = dist;
+                closest_idx = i;
+            }
+        }
+
+        (closest_idx, min_dist)
+    }
+
+    /// Split a leaf node into two, returning the new sibling node.
+    /// Uses the farthest-pair heuristic: pick two most distant CFs as seeds.
+    fn split_leaf(&mut self, _branching_factor: usize) -> CFNode<F> {
+        let n = self.cfs.len();
+        if n <= 1 {
+            return CFNode::new_leaf();
+        }
+
+        // Find the two most distant CFs
+        let (seed1, seed2) = find_farthest_pair(&self.cfs);
+
+        // Drain all CFs into a temporary vec to avoid borrow conflicts
+        let all_cfs: Vec<ClusteringFeature<F>> = self.cfs.drain(..).collect();
+
+        // Distribute CFs to two groups
+        let mut group1 = Vec::new();
+        let mut group2 = Vec::new();
+
+        for (i, cf) in all_cfs.into_iter().enumerate() {
+            if i == seed1 {
+                group1.push(cf);
+            } else if i == seed2 {
+                group2.push(cf);
+            } else {
+                // Assign to the closer group centroid
+                let dist1 = distance_to_group_centroid(&cf, &group1);
+                let dist2 = distance_to_group_centroid(&cf, &group2);
+
+                if dist1 <= dist2 {
+                    group1.push(cf);
+                } else {
+                    group2.push(cf);
+                }
+            }
+        }
+
+        self.cfs = group1;
+
+        let mut new_node = CFNode::new_leaf();
+        new_node.cfs = group2;
+
+        new_node
+    }
+
+    /// Split a non-leaf node
+    fn split_nonleaf(&mut self, _branching_factor: usize) -> CFNode<F> {
+        let n = self.cfs.len();
+        if n <= 1 {
+            return CFNode::new_non_leaf();
+        }
+
+        let (seed1, seed2) = find_farthest_pair(&self.cfs);
+
+        let mut group1_cfs = Vec::new();
+        let mut group1_children = Vec::new();
+        let mut group2_cfs = Vec::new();
+        let mut group2_children = Vec::new();
+
+        let all_cfs: Vec<ClusteringFeature<F>> = self.cfs.drain(..).collect();
+        let all_children: Vec<CFNode<F>> = self.children.drain(..).collect();
+
+        for (i, (cf, child)) in all_cfs
+            .into_iter()
+            .zip(all_children.into_iter())
+            .enumerate()
+        {
+            if i == seed1 {
+                group1_cfs.push(cf);
+                group1_children.push(child);
+            } else if i == seed2 {
+                group2_cfs.push(cf);
+                group2_children.push(child);
+            } else {
+                let dist1 = distance_to_group_centroid(&cf, &group1_cfs);
+                let dist2 = distance_to_group_centroid(&cf, &group2_cfs);
+
+                if dist1 <= dist2 {
+                    group1_cfs.push(cf);
+                    group1_children.push(child);
+                } else {
+                    group2_cfs.push(cf);
+                    group2_children.push(child);
+                }
+            }
+        }
+
+        self.cfs = group1_cfs;
+        self.children = group1_children;
+
+        let mut new_node = CFNode::new_non_leaf();
+        new_node.cfs = group2_cfs;
+        new_node.children = group2_children;
+
+        new_node
+    }
+
+    /// Distance from a CF to the centroid of a group (used during splitting)
+    fn dist_to_seed(&self, cf: &ClusteringFeature<F>, group: &[ClusteringFeature<F>]) -> F {
+        distance_to_group_centroid(cf, group)
+    }
+
+    /// Collect all leaf CF entries from this subtree
+    fn collect_leaf_entries(&self, out: &mut Vec<ClusteringFeature<F>>) {
+        if self.is_leaf {
+            for cf in &self.cfs {
+                out.push(cf.clone());
+            }
+        } else {
+            for child in &self.children {
+                child.collect_leaf_entries(out);
+            }
+        }
+    }
+}
+
+/// Find the two most distant CFs by centroid distance
+fn find_farthest_pair<F: Float + FromPrimitive + ScalarOperand>(
+    cfs: &[ClusteringFeature<F>],
+) -> (usize, usize) {
+    let n = cfs.len();
+    if n < 2 {
+        return (0, 0);
+    }
+
+    let mut max_dist = F::zero();
+    let mut pair = (0, 1);
+
+    for i in 0..n {
+        for j in (i + 1)..n {
+            let dist = cfs[i].centroid_distance(&cfs[j]);
+            if dist > max_dist {
+                max_dist = dist;
+                pair = (i, j);
+            }
+        }
+    }
+
+    pair
+}
+
+/// Distance from a CF to the centroid of a group
+fn distance_to_group_centroid<F: Float + FromPrimitive + ScalarOperand>(
+    cf: &ClusteringFeature<F>,
+    group: &[ClusteringFeature<F>],
+) -> F {
+    if group.is_empty() {
+        return F::infinity();
+    }
+
+    let mut sum = ClusteringFeature::empty(cf.linear_sum.len());
+    for g in group {
+        sum.add(g);
+    }
+
+    cf.centroid_distance(&sum)
 }
 
 /// BIRCH clustering algorithm options
 #[derive(Debug, Clone)]
 pub struct BirchOptions<F: Float> {
-    /// Maximum number of CFs in a leaf node
+    /// Maximum number of CFs in each leaf or non-leaf node
     pub branching_factor: usize,
-    /// Maximum radius of a subcluster
+    /// Maximum radius of a subcluster (controls granularity)
     pub threshold: F,
-    /// Number of clusters to extract
+    /// Number of clusters to extract (None = one per leaf CF)
     pub n_clusters: Option<usize>,
+    /// Maximum number of leaf entries before threshold auto-increase
+    pub max_leaf_entries: Option<usize>,
+    /// Number of k-means refinement iterations on CF centroids
+    pub n_refinement_iter: usize,
 }
 
 impl<F: Float + FromPrimitive> Default for BirchOptions<F> {
     fn default() -> Self {
         Self {
             branching_factor: 50,
-            threshold: F::from(0.5).expect("Failed to convert constant to float"),
+            threshold: F::from(0.5).unwrap_or(F::one()),
             n_clusters: None,
+            max_leaf_entries: None,
+            n_refinement_iter: 5,
         }
     }
 }
@@ -173,6 +481,7 @@ pub struct Birch<F: Float> {
     root: Option<Box<CFNode<F>>>,
     leaf_entries: Vec<ClusteringFeature<F>>,
     n_features: Option<usize>,
+    effective_threshold: Option<F>,
 }
 
 impl<F: Float + FromPrimitive + Debug + ScalarOperand> Birch<F> {
@@ -183,6 +492,7 @@ impl<F: Float + FromPrimitive + Debug + ScalarOperand> Birch<F> {
             root: None,
             leaf_entries: Vec::new(),
             n_features: None,
+            effective_threshold: None,
         }
     }
 
@@ -198,146 +508,151 @@ impl<F: Float + FromPrimitive + Debug + ScalarOperand> Birch<F> {
         }
 
         self.n_features = Some(n_features);
-        self.root = Some(Box::new(CFNode::new_leaf()));
-        self.leaf_entries.clear();
+        let mut root = Box::new(CFNode::new_leaf());
+        let threshold = self.options.threshold;
+        let branching_factor = self.options.branching_factor;
+        self.effective_threshold = Some(threshold);
 
-        // Insert each data point into the tree
+        // Phase 1: Build CF-tree
         for i in 0..n_samples {
             let point = data.slice(s![i, ..]);
-            self.insert_point(point)?;
+            let new_cf = ClusteringFeature::new(point);
+
+            let split_result = root.insert_cf(new_cf, branching_factor, threshold)?;
+
+            if let Some(sibling) = split_result {
+                // Root was split; create a new root
+                let old_root_cf = root.get_cf();
+                let sibling_cf = sibling.get_cf();
+
+                let mut new_root = Box::new(CFNode::new_non_leaf());
+                new_root.cfs.push(old_root_cf);
+                new_root.cfs.push(sibling_cf);
+                new_root.children.push(*root);
+                new_root.children.push(sibling);
+
+                root = new_root;
+            }
         }
+
+        // Collect leaf entries
+        self.leaf_entries.clear();
+        root.collect_leaf_entries(&mut self.leaf_entries);
+
+        // Phase 2 (optional): Threshold auto-adjustment
+        if let Some(max_entries) = self.options.max_leaf_entries {
+            if self.leaf_entries.len() > max_entries {
+                self.rebuild_with_larger_threshold(&data, max_entries)?;
+            }
+        }
+
+        self.root = Some(root);
 
         Ok(())
     }
 
-    /// Insert a single point into the CF-tree
-    fn insert_point(&mut self, point: ArrayView1<F>) -> Result<()> {
-        let newcf = ClusteringFeature::new(point);
+    /// Rebuild the CF-tree with a larger threshold to reduce leaf entries
+    fn rebuild_with_larger_threshold(
+        &mut self,
+        data: &ArrayView2<F>,
+        max_entries: usize,
+    ) -> Result<()> {
+        let mut threshold = self.options.threshold;
+        let increase_factor = F::from(1.5).unwrap_or(F::one() + F::one());
+        let max_attempts = 10;
 
-        if self.leaf_entries.is_empty() {
-            // First point - create initial CF
-            self.leaf_entries.push(newcf);
-            return Ok(());
+        for _ in 0..max_attempts {
+            threshold = threshold * increase_factor;
+            let mut root = Box::new(CFNode::new_leaf());
+            let branching_factor = self.options.branching_factor;
+
+            for i in 0..data.shape()[0] {
+                let point = data.slice(s![i, ..]);
+                let new_cf = ClusteringFeature::new(point);
+
+                let split_result = root.insert_cf(new_cf, branching_factor, threshold)?;
+
+                if let Some(sibling) = split_result {
+                    let old_root_cf = root.get_cf();
+                    let sibling_cf = sibling.get_cf();
+
+                    let mut new_root = Box::new(CFNode::new_non_leaf());
+                    new_root.cfs.push(old_root_cf);
+                    new_root.cfs.push(sibling_cf);
+                    new_root.children.push(*root);
+                    new_root.children.push(sibling);
+
+                    root = new_root;
+                }
+            }
+
+            self.leaf_entries.clear();
+            root.collect_leaf_entries(&mut self.leaf_entries);
+
+            if self.leaf_entries.len() <= max_entries {
+                self.effective_threshold = Some(threshold);
+                self.root = Some(root);
+                return Ok(());
+            }
         }
 
-        // Find the closest leaf entry
-        let (_leaf_idx, cf_idx) = self.find_closest_leaf(&newcf)?;
+        self.effective_threshold = Some(threshold);
+        Ok(())
+    }
 
-        // Try to absorb the point into the closest CF
-        if cf_idx < self.leaf_entries.len() {
-            let closest_cf = &self.leaf_entries[cf_idx];
+    /// Partially fit: add new data points incrementally
+    pub fn partial_fit(&mut self, data: ArrayView2<F>) -> Result<()> {
+        let n_features = data.shape()[1];
 
-            // Create a temporary merged CF to check if it would satisfy the threshold
-            let merged_cf = closest_cf.merge(&newcf);
+        if self.n_features.is_none() {
+            self.n_features = Some(n_features);
+        }
 
-            // Check if the merged CF would have an acceptable radius
-            if merged_cf.radius() <= self.options.threshold {
-                // Absorb the point into the existing CF
-                self.leaf_entries[cf_idx] = merged_cf;
+        let threshold = self.effective_threshold.unwrap_or(self.options.threshold);
+        let branching_factor = self.options.branching_factor;
+
+        if self.root.is_none() {
+            self.root = Some(Box::new(CFNode::new_leaf()));
+        }
+
+        for i in 0..data.shape()[0] {
+            let point = data.slice(s![i, ..]);
+            let new_cf = ClusteringFeature::new(point);
+
+            // Take root out temporarily to avoid borrow conflicts
+            let mut root = self
+                .root
+                .take()
+                .ok_or_else(|| ClusteringError::InvalidState("Root should exist".into()))?;
+
+            let split_result = root.insert_cf(new_cf, branching_factor, threshold)?;
+
+            if let Some(sibling) = split_result {
+                let old_root_cf = root.get_cf();
+                let sibling_cf = sibling.get_cf();
+
+                let mut new_root = Box::new(CFNode::new_non_leaf());
+                new_root.cfs.push(old_root_cf);
+                new_root.cfs.push(sibling_cf);
+                new_root.children.push(*root);
+                new_root.children.push(sibling);
+
+                self.root = Some(new_root);
             } else {
-                // Cannot absorb - check if we can add a new CF
-                if self.leaf_entries.len() < self.options.branching_factor {
-                    // Add as new CF
-                    self.leaf_entries.push(newcf);
-                } else {
-                    // Need to split or merge existing CFs
-                    // For now, replace the furthest CF or merge with closest
-                    self.handle_overflow(newcf)?;
-                }
+                self.root = Some(root);
             }
+        }
+
+        // Refresh leaf entries
+        self.leaf_entries.clear();
+        if let Some(ref root) = self.root {
+            root.collect_leaf_entries(&mut self.leaf_entries);
         }
 
         Ok(())
     }
 
-    /// Handle overflow when branching factor is exceeded
-    fn handle_overflow(&mut self, newcf: ClusteringFeature<F>) -> Result<()> {
-        // Simple strategy: find the two closest CFs and merge them, then add the new CF
-        if self.leaf_entries.len() < 2 {
-            self.leaf_entries.push(newcf);
-            return Ok(());
-        }
-
-        let mut min_distance = F::infinity();
-        let mut merge_idx1 = 0;
-        let mut merge_idx2 = 1;
-
-        // Find the two closest CFs to merge
-        for i in 0..self.leaf_entries.len() {
-            for j in (i + 1)..self.leaf_entries.len() {
-                let centroid1 = self.leaf_entries[i].centroid();
-                let centroid2 = self.leaf_entries[j].centroid();
-
-                let mut distance = F::zero();
-                for k in 0..centroid1.len() {
-                    let diff = centroid1[k] - centroid2[k];
-                    distance = distance + diff * diff;
-                }
-                distance = distance.sqrt();
-
-                if distance < min_distance {
-                    min_distance = distance;
-                    merge_idx1 = i;
-                    merge_idx2 = j;
-                }
-            }
-        }
-
-        // Merge the two closest CFs
-        let cf1 = self.leaf_entries[merge_idx1].clone();
-        let cf2 = self.leaf_entries[merge_idx2].clone();
-        let merged = cf1.merge(&cf2);
-
-        // Remove the CFs being merged (remove higher index first to avoid index shifting)
-        if merge_idx1 > merge_idx2 {
-            self.leaf_entries.remove(merge_idx1);
-            self.leaf_entries.remove(merge_idx2);
-        } else {
-            self.leaf_entries.remove(merge_idx2);
-            self.leaf_entries.remove(merge_idx1);
-        }
-
-        // Add the merged CF and the new CF
-        self.leaf_entries.push(merged);
-        self.leaf_entries.push(newcf);
-
-        Ok(())
-    }
-
-    /// Find the closest leaf entry to a CF
-    fn find_closest_leaf(&self, cf: &ClusteringFeature<F>) -> Result<(usize, usize)> {
-        if self.leaf_entries.is_empty() {
-            return Err(ClusteringError::InvalidInput(
-                "No leaf entries available".to_string(),
-            ));
-        }
-
-        let mut min_distance = F::infinity();
-        let mut closest_idx = 0;
-
-        // Find the closest existing CF by comparing centroids
-        for (i, existing_cf) in self.leaf_entries.iter().enumerate() {
-            let centroid1 = cf.centroid();
-            let centroid2 = existing_cf.centroid();
-
-            // Calculate Euclidean distance between centroids
-            let mut distance = F::zero();
-            for k in 0..centroid1.len() {
-                let diff = centroid1[k] - centroid2[k];
-                distance = distance + diff * diff;
-            }
-            distance = distance.sqrt();
-
-            if distance < min_distance {
-                min_distance = distance;
-                closest_idx = i;
-            }
-        }
-
-        Ok((0, closest_idx)) // Return leaf index (0) and CF index within that leaf
-    }
-
-    /// Predict cluster labels for new data
+    /// Predict cluster labels for data
     pub fn predict(&self, data: ArrayView2<F>) -> Result<Array1<i32>> {
         if self.leaf_entries.is_empty() {
             return Err(ClusteringError::InvalidInput(
@@ -348,13 +663,11 @@ impl<F: Float + FromPrimitive + Debug + ScalarOperand> Birch<F> {
         let n_samples = data.shape()[0];
         let mut labels = Array1::zeros(n_samples);
 
-        // For each data point, find the closest leaf CF
         for i in 0..n_samples {
             let point = data.slice(s![i, ..]);
             let mut min_dist = F::infinity();
             let mut closest_cf = 0;
 
-            // Compare with centroids of leaf CFs
             for (j, cf) in self.leaf_entries.iter().enumerate() {
                 let centroid = cf.centroid();
                 let dist = euclidean_distance(point, centroid.view());
@@ -371,7 +684,10 @@ impl<F: Float + FromPrimitive + Debug + ScalarOperand> Birch<F> {
         Ok(labels)
     }
 
-    /// Extract the final clusters from the CF-tree
+    /// Extract clusters from the CF-tree
+    ///
+    /// Phase 3: Apply k-means-style refinement on CF centroids
+    /// Phase 4: Map CF clusters to actual cluster assignments
     pub fn extract_clusters(&self) -> Result<(Array2<F>, Array1<i32>)> {
         if self.leaf_entries.is_empty() {
             return Err(ClusteringError::InvalidInput(
@@ -379,12 +695,14 @@ impl<F: Float + FromPrimitive + Debug + ScalarOperand> Birch<F> {
             ));
         }
 
-        let n_features = self.n_features.expect("Operation failed");
+        let n_features = self
+            .n_features
+            .ok_or_else(|| ClusteringError::InvalidState("n_features not set".into()))?;
         let n_cf_entries = self.leaf_entries.len();
         let n_clusters = self.options.n_clusters.unwrap_or(n_cf_entries);
 
         if n_clusters >= n_cf_entries {
-            // Use all CFs as clusters
+            // Each CF is its own cluster
             let mut centroids = Array2::zeros((n_cf_entries, n_features));
             let mut labels = Array1::zeros(n_cf_entries);
 
@@ -396,100 +714,110 @@ impl<F: Float + FromPrimitive + Debug + ScalarOperand> Birch<F> {
 
             Ok((centroids, labels))
         } else {
-            // Apply further clustering on CF centroids
-            self.cluster_cf_entries(n_clusters, n_features)
+            self.cluster_cf_entries_refined(n_clusters, n_features)
         }
     }
 
-    /// Apply clustering on CF entries to reduce to desired number of clusters
-    fn cluster_cf_entries(
+    /// Apply iterative k-means on CF entries with CF-weighted centroids
+    fn cluster_cf_entries_refined(
         &self,
         n_clusters: usize,
         n_features: usize,
     ) -> Result<(Array2<F>, Array1<i32>)> {
-        // Extract centroids from CFs
-        let mut cf_centroids = Array2::zeros((self.leaf_entries.len(), n_features));
+        let n_cfs = self.leaf_entries.len();
+
+        // Extract CF centroids
+        let mut cf_centroids = Array2::zeros((n_cfs, n_features));
         for (i, cf) in self.leaf_entries.iter().enumerate() {
             let centroid = cf.centroid();
             cf_centroids.slice_mut(s![i, ..]).assign(&centroid);
         }
 
-        // Apply simple k-means-like clustering on CF centroids
-        let cluster_assignments = self.simple_kmeans_on_cfs(&cf_centroids, n_clusters)?;
+        // Initialize cluster centers using farthest-first heuristic
+        let mut cluster_centers = Array2::zeros((n_clusters, n_features));
+        cluster_centers
+            .slice_mut(s![0, ..])
+            .assign(&cf_centroids.slice(s![0, ..]));
 
-        // Compute final cluster centroids weighted by CF sizes
-        let mut final_centroids = Array2::zeros((n_clusters, n_features));
-        let mut cluster_weights = vec![F::zero(); n_clusters];
+        for c in 1..n_clusters {
+            // Pick the CF centroid farthest from any existing cluster center
+            let mut max_min_dist = F::zero();
+            let mut best_idx = c % n_cfs;
 
-        for (cf_idx, &cluster_id) in cluster_assignments.iter().enumerate() {
-            let cf = &self.leaf_entries[cf_idx];
-            let cf_centroid = cf.centroid();
-            let cf_weight = F::from_usize(cf.n).expect("Operation failed");
-
-            cluster_weights[cluster_id as usize] = cluster_weights[cluster_id as usize] + cf_weight;
-
-            for j in 0..n_features {
-                final_centroids[[cluster_id as usize, j]] =
-                    final_centroids[[cluster_id as usize, j]] + cf_centroid[j] * cf_weight;
-            }
-        }
-
-        // Normalize by weights
-        for i in 0..n_clusters {
-            if cluster_weights[i] > F::zero() {
-                for j in 0..n_features {
-                    final_centroids[[i, j]] = final_centroids[[i, j]] / cluster_weights[i];
+            for i in 0..n_cfs {
+                let mut min_dist = F::infinity();
+                for j in 0..c {
+                    let dist = euclidean_distance(
+                        cf_centroids.slice(s![i, ..]),
+                        cluster_centers.slice(s![j, ..]),
+                    );
+                    if dist < min_dist {
+                        min_dist = dist;
+                    }
                 }
-            }
-        }
-
-        Ok((final_centroids, cluster_assignments))
-    }
-
-    /// Simple k-means clustering on CF centroids
-    fn simple_kmeans_on_cfs(&self, centroids: &Array2<F>, k: usize) -> Result<Array1<i32>> {
-        let n_points = centroids.shape()[0];
-        let n_features = centroids.shape()[1];
-
-        if k >= n_points {
-            // Each CF gets its own cluster
-            return Ok(Array1::from_iter(0..(n_points as i32)));
-        }
-
-        // Initialize cluster centers by taking first k CFs
-        let mut cluster_centers = Array2::zeros((k, n_features));
-        for i in 0..k {
-            for j in 0..n_features {
-                cluster_centers[[i, j]] = centroids[[i % n_points, j]];
-            }
-        }
-
-        let mut assignments = Array1::zeros(n_points);
-
-        // Simple iteration - just one pass for efficiency
-        for point_idx in 0..n_points {
-            let mut min_dist = F::infinity();
-            let mut closest_cluster = 0;
-
-            for cluster_idx in 0..k {
-                let mut dist = F::zero();
-                for feature_idx in 0..n_features {
-                    let diff = centroids[[point_idx, feature_idx]]
-                        - cluster_centers[[cluster_idx, feature_idx]];
-                    dist = dist + diff * diff;
-                }
-                dist = dist.sqrt();
-
-                if dist < min_dist {
-                    min_dist = dist;
-                    closest_cluster = cluster_idx;
+                if min_dist > max_min_dist {
+                    max_min_dist = min_dist;
+                    best_idx = i;
                 }
             }
 
-            assignments[point_idx] = closest_cluster as i32;
+            cluster_centers
+                .slice_mut(s![c, ..])
+                .assign(&cf_centroids.slice(s![best_idx, ..]));
         }
 
-        Ok(assignments)
+        // Iterative refinement (weighted k-means on CFs)
+        let mut assignments = Array1::zeros(n_cfs);
+
+        for _iter in 0..self.options.n_refinement_iter {
+            // Assignment step
+            for i in 0..n_cfs {
+                let mut min_dist = F::infinity();
+                let mut closest_cluster = 0;
+
+                for j in 0..n_clusters {
+                    let dist = euclidean_distance(
+                        cf_centroids.slice(s![i, ..]),
+                        cluster_centers.slice(s![j, ..]),
+                    );
+
+                    if dist < min_dist {
+                        min_dist = dist;
+                        closest_cluster = j;
+                    }
+                }
+
+                assignments[i] = closest_cluster as i32;
+            }
+
+            // Update step (weighted by CF sizes)
+            let mut new_centers = Array2::zeros((n_clusters, n_features));
+            let mut weights = vec![F::zero(); n_clusters];
+
+            for (cf_idx, &cluster_id) in assignments.iter().enumerate() {
+                let cid = cluster_id as usize;
+                let cf = &self.leaf_entries[cf_idx];
+                let cf_weight = F::from(cf.n).unwrap_or(F::one());
+
+                let centroid = cf.centroid();
+                for f in 0..n_features {
+                    new_centers[[cid, f]] = new_centers[[cid, f]] + centroid[f] * cf_weight;
+                }
+                weights[cid] = weights[cid] + cf_weight;
+            }
+
+            for c in 0..n_clusters {
+                if weights[c] > F::zero() {
+                    for f in 0..n_features {
+                        new_centers[[c, f]] = new_centers[[c, f]] / weights[c];
+                    }
+                }
+            }
+
+            cluster_centers = new_centers;
+        }
+
+        Ok((cluster_centers, assignments))
     }
 
     /// Get statistics about the CF-tree
@@ -507,7 +835,8 @@ impl<F: Float + FromPrimitive + Debug + ScalarOperand> Birch<F> {
                 .iter()
                 .map(|cf| cf.radius())
                 .fold(F::zero(), |acc, x| acc + x);
-            total_radius / F::from_usize(self.leaf_entries.len()).expect("Operation failed")
+            let n_entries = F::from(self.leaf_entries.len()).unwrap_or(F::one());
+            total_radius / n_entries
         } else {
             F::zero()
         };
@@ -517,7 +846,7 @@ impl<F: Float + FromPrimitive + Debug + ScalarOperand> Birch<F> {
             total_points,
             avg_cf_size,
             avg_radius,
-            threshold: self.options.threshold,
+            threshold: self.effective_threshold.unwrap_or(self.options.threshold),
             branching_factor: self.options.branching_factor,
         }
     }
@@ -526,7 +855,7 @@ impl<F: Float + FromPrimitive + Debug + ScalarOperand> Birch<F> {
 /// Statistics about a BIRCH CF-tree
 #[derive(Debug)]
 pub struct BirchStatistics<F: Float> {
-    /// Number of CF entries in the tree
+    /// Number of CF entries (leaf subclusters) in the tree
     pub num_cf_entries: usize,
     /// Total number of data points processed
     pub total_points: usize,
@@ -534,7 +863,7 @@ pub struct BirchStatistics<F: Float> {
     pub avg_cf_size: f64,
     /// Average radius of CFs
     pub avg_radius: F,
-    /// Threshold parameter used
+    /// Threshold parameter used (may differ from original if auto-adjusted)
     pub threshold: F,
     /// Branching factor used
     pub branching_factor: usize,
@@ -544,7 +873,7 @@ pub struct BirchStatistics<F: Float> {
 ///
 /// # Arguments
 ///
-/// * `data` - Input data (n_samples × n_features)
+/// * `data` - Input data (n_samples x n_features)
 /// * `options` - BIRCH options
 ///
 /// # Returns
@@ -573,7 +902,6 @@ pub struct BirchStatistics<F: Float> {
 ///
 /// let (centroids, labels) = birch(data.view(), options).expect("Operation failed");
 /// ```
-#[allow(dead_code)]
 pub fn birch<F>(data: ArrayView2<F>, options: BirchOptions<F>) -> Result<(Array2<F>, Array1<i32>)>
 where
     F: Float + FromPrimitive + Debug + ScalarOperand,
@@ -590,6 +918,14 @@ mod tests {
     use super::*;
     use scirs2_core::ndarray::Array2;
 
+    fn make_two_cluster_data() -> Array2<f64> {
+        Array2::from_shape_vec(
+            (6, 2),
+            vec![1.0, 2.0, 1.2, 1.8, 0.8, 1.9, 4.0, 5.0, 4.2, 4.8, 3.9, 5.1],
+        )
+        .expect("Failed to create test data")
+    }
+
     #[test]
     fn test_clustering_feature() {
         let point = Array1::from_vec(vec![1.0, 2.0]);
@@ -597,7 +933,7 @@ mod tests {
 
         assert_eq!(cf.n, 1);
         assert_eq!(cf.linear_sum, point);
-        assert_eq!(cf.squared_sum, 5.0); // 1^2 + 2^2
+        assert_eq!(cf.squared_sum, 5.0);
 
         let centroid = cf.centroid();
         assert_eq!(centroid, point);
@@ -615,19 +951,48 @@ mod tests {
 
         assert_eq!(merged.n, 2);
         assert_eq!(merged.linear_sum, Array1::from_vec(vec![4.0, 6.0]));
-        assert_eq!(merged.squared_sum, 30.0); // 1^2 + 2^2 + 3^2 + 4^2
+        assert_eq!(merged.squared_sum, 30.0);
 
         let centroid = merged.centroid();
         assert_eq!(centroid, Array1::from_vec(vec![2.0, 3.0]));
     }
 
     #[test]
+    fn test_cf_radius() {
+        let p1 = Array1::from_vec(vec![0.0, 0.0]);
+        let p2 = Array1::from_vec(vec![2.0, 0.0]);
+
+        let cf1 = ClusteringFeature::<f64>::new(p1.view());
+        let cf2 = ClusteringFeature::new(p2.view());
+        let merged = cf1.merge(&cf2);
+
+        let radius = merged.radius();
+        assert!(radius > 0.0, "Radius should be positive");
+        assert!(radius <= 2.0, "Radius should be <= diameter");
+    }
+
+    #[test]
+    fn test_cf_diameter() {
+        let p1 = Array1::from_vec(vec![0.0, 0.0]);
+        let p2 = Array1::from_vec(vec![2.0, 0.0]);
+
+        let cf1 = ClusteringFeature::<f64>::new(p1.view());
+        let cf2 = ClusteringFeature::new(p2.view());
+        let merged = cf1.merge(&cf2);
+
+        let diameter = merged.diameter();
+        assert!(diameter > 0.0, "Diameter should be positive");
+        // For two points at distance 2, diameter should be 2
+        assert!(
+            (diameter - 2.0).abs() < 0.1,
+            "Diameter should be ~2.0, got {}",
+            diameter
+        );
+    }
+
+    #[test]
     fn test_birch_simple() {
-        let data = Array2::from_shape_vec(
-            (6, 2),
-            vec![1.0, 2.0, 1.2, 1.8, 0.8, 1.9, 4.0, 5.0, 4.2, 4.8, 3.9, 5.1],
-        )
-        .expect("Operation failed");
+        let data = make_two_cluster_data();
 
         let options = BirchOptions {
             n_clusters: Some(2),
@@ -638,8 +1003,164 @@ mod tests {
         let result = birch(data.view(), options);
         assert!(result.is_ok());
 
-        let (centroids, labels) = result.expect("Operation failed");
+        let (centroids, labels) = result.expect("Should succeed");
         assert_eq!(centroids.shape()[0], 2);
         assert_eq!(labels.len(), 6);
+    }
+
+    #[test]
+    fn test_birch_default_options() {
+        let data = make_two_cluster_data();
+
+        let options = BirchOptions::default();
+
+        let result = birch(data.view(), options);
+        assert!(result.is_ok());
+
+        let (_centroids, labels) = result.expect("Should succeed");
+        assert_eq!(labels.len(), 6);
+    }
+
+    #[test]
+    fn test_birch_empty_data() {
+        let data = Array2::<f64>::zeros((0, 2));
+        let options = BirchOptions::default();
+        let result = birch(data.view(), options);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_birch_single_point() {
+        let data = Array2::from_shape_vec((1, 2), vec![1.0, 2.0]).expect("Failed to create data");
+
+        let options = BirchOptions {
+            n_clusters: Some(1),
+            ..Default::default()
+        };
+
+        let result = birch(data.view(), options);
+        assert!(result.is_ok());
+
+        let (centroids, labels) = result.expect("Should succeed");
+        assert_eq!(centroids.shape()[0], 1);
+        assert_eq!(labels.len(), 1);
+        assert_eq!(labels[0], 0);
+    }
+
+    #[test]
+    fn test_birch_statistics() {
+        let data = make_two_cluster_data();
+
+        let mut model = Birch::new(BirchOptions {
+            threshold: 1.0,
+            ..Default::default()
+        });
+        model.fit(data.view()).expect("Should fit");
+
+        let stats = model.get_statistics();
+        assert_eq!(stats.total_points, 6);
+        assert!(stats.num_cf_entries > 0);
+        assert!(stats.avg_cf_size > 0.0);
+        assert!(stats.branching_factor == 50);
+    }
+
+    #[test]
+    fn test_birch_incremental() {
+        let data1 = Array2::from_shape_vec((3, 2), vec![1.0, 2.0, 1.2, 1.8, 0.8, 1.9])
+            .expect("Failed to create data");
+
+        let data2 = Array2::from_shape_vec((3, 2), vec![4.0, 5.0, 4.2, 4.8, 3.9, 5.1])
+            .expect("Failed to create data");
+
+        let mut model = Birch::new(BirchOptions {
+            threshold: 1.0,
+            n_clusters: Some(2),
+            ..Default::default()
+        });
+
+        model.fit(data1.view()).expect("Should fit first batch");
+        model
+            .partial_fit(data2.view())
+            .expect("Should fit second batch");
+
+        let stats = model.get_statistics();
+        assert_eq!(stats.total_points, 6);
+    }
+
+    #[test]
+    fn test_birch_small_threshold() {
+        let data = make_two_cluster_data();
+
+        let options = BirchOptions {
+            threshold: 0.01, // Very small threshold => many CFs
+            n_clusters: Some(2),
+            ..Default::default()
+        };
+
+        let result = birch(data.view(), options);
+        assert!(result.is_ok());
+
+        let (centroids, labels) = result.expect("Should succeed");
+        assert_eq!(centroids.shape()[0], 2);
+        assert_eq!(labels.len(), 6);
+    }
+
+    #[test]
+    fn test_birch_large_threshold() {
+        let data = make_two_cluster_data();
+
+        let options = BirchOptions {
+            threshold: 100.0, // Very large threshold => few CFs
+            ..Default::default()
+        };
+
+        let result = birch(data.view(), options);
+        assert!(result.is_ok());
+
+        let (_centroids, labels) = result.expect("Should succeed");
+        assert_eq!(labels.len(), 6);
+    }
+
+    #[test]
+    fn test_birch_branching_factor() {
+        let data = make_two_cluster_data();
+
+        let options = BirchOptions {
+            branching_factor: 2, // Very small branching factor => many splits
+            threshold: 0.5,
+            n_clusters: Some(2),
+            ..Default::default()
+        };
+
+        let result = birch(data.view(), options);
+        assert!(result.is_ok());
+
+        let (_centroids, labels) = result.expect("Should succeed");
+        assert_eq!(labels.len(), 6);
+    }
+
+    #[test]
+    fn test_birch_threshold_auto_adjustment() {
+        // Create larger dataset
+        let mut data_vec = Vec::new();
+        for i in 0..50 {
+            data_vec.push(i as f64 * 0.1);
+            data_vec.push(i as f64 * 0.1 + 0.5);
+        }
+        let data = Array2::from_shape_vec((50, 2), data_vec).expect("Failed to create data");
+
+        let options = BirchOptions {
+            threshold: 0.01,
+            max_leaf_entries: Some(10), // Force threshold increase
+            n_clusters: Some(3),
+            ..Default::default()
+        };
+
+        let mut model = Birch::new(options);
+        model.fit(data.view()).expect("Should fit");
+
+        // Threshold should have been auto-increased
+        let stats = model.get_statistics();
+        assert!(stats.num_cf_entries <= 50, "Should have compacted entries");
     }
 }

@@ -617,6 +617,183 @@ where
     result
 }
 
+/// Regularized confluent hypergeometric function ₁F₁(a;b;z) / Γ(b)
+///
+/// Also known as the regularized Kummer function M*(a,b,z).
+/// This is useful when b is near a non-positive integer.
+///
+/// # Arguments
+/// * `a` - First parameter
+/// * `b` - Second parameter
+/// * `z` - Argument
+///
+/// # Returns
+/// * Value of ₁F₁(a;b;z) / Γ(b)
+///
+/// # Examples
+/// ```
+/// use scirs2_special::hyp1f1_regularized;
+/// let result: f64 = hyp1f1_regularized(1.0, 2.0, 0.0).expect("failed");
+/// // 1F1(1,2,0) = 1, Gamma(2) = 1, so regularized = 1
+/// assert!((result - 1.0).abs() < 1e-10);
+/// ```
+#[allow(dead_code)]
+pub fn hyp1f1_regularized<F>(a: F, b: F, z: F) -> SpecialResult<F>
+where
+    F: Float + FromPrimitive + Debug + AddAssign + MulAssign + SubAssign,
+{
+    let b_f64 = b
+        .to_f64()
+        .ok_or_else(|| SpecialError::ValueError("Failed to convert b to f64".to_string()))?;
+
+    // For b near a non-positive integer, compute specially
+    if b_f64 <= 0.0 && b_f64.fract().abs() < 1e-10 {
+        // At pole of Gamma(b): regularized form is finite
+        return hyp1f1_regularized_at_pole(a, b, z);
+    }
+
+    // For regular b, compute 1F1 / Gamma(b)
+    let gamma_b = gamma(b);
+    if gamma_b.abs() < const_f64::<F>(1e-300) {
+        return Ok(F::zero());
+    }
+    let hyp = hyp1f1_enhanced(a, b, z)?;
+    Ok(hyp / gamma_b)
+}
+
+/// Helper for regularized hyp1f1 at poles of Gamma(b)
+fn hyp1f1_regularized_at_pole<F>(a: F, b: F, z: F) -> SpecialResult<F>
+where
+    F: Float + FromPrimitive + Debug + AddAssign + MulAssign,
+{
+    let b_f64 = b
+        .to_f64()
+        .ok_or_else(|| SpecialError::ValueError("Failed to convert b to f64".to_string()))?;
+    let m = (-b_f64).round() as usize;
+
+    // Compute the finite limit as b -> -m
+    // Using the series representation with careful cancellation
+    let mut sum = F::zero();
+    for n in (m + 1)..MAX_SERIES_TERMS {
+        let a_n = pochhammer_n(a, n);
+        let b_n = pochhammer_n(b, n);
+        let n_fact = factorial_n::<F>(n);
+
+        if b_n.abs() < const_f64::<F>(1e-300) {
+            continue;
+        }
+
+        let term = a_n * z.powi(n as i32) / (b_n * n_fact);
+        sum += term;
+
+        if n > m + 5 && term.abs() < const_f64::<F>(CONVERGENCE_TOL) * sum.abs() {
+            break;
+        }
+    }
+
+    Ok(sum)
+}
+
+/// Whittaker function M_{kappa,mu}(z)
+///
+/// The Whittaker M function is defined in terms of the confluent hypergeometric function:
+/// ```text
+/// M_{k,m}(z) = exp(-z/2) * z^{m+1/2} * 1F1(m - k + 1/2; 2m + 1; z)
+/// ```
+///
+/// # Arguments
+/// * `kappa` - First parameter
+/// * `mu` - Second parameter (2*mu must not be a negative integer)
+/// * `z` - Argument (z > 0 for real branch)
+///
+/// # Examples
+/// ```
+/// use scirs2_special::whittaker_m;
+/// let result = whittaker_m(0.5, 0.5, 1.0).expect("failed");
+/// assert!(result.is_finite());
+/// ```
+#[allow(dead_code)]
+pub fn whittaker_m<F>(kappa: F, mu: F, z: F) -> SpecialResult<F>
+where
+    F: Float + FromPrimitive + Debug + AddAssign + MulAssign + SubAssign,
+{
+    let z_f64 = z
+        .to_f64()
+        .ok_or_else(|| SpecialError::ValueError("Failed to convert z to f64".to_string()))?;
+
+    if z_f64 <= 0.0 {
+        return Err(SpecialError::DomainError(
+            "z must be > 0 for Whittaker M function".to_string(),
+        ));
+    }
+
+    let half = const_f64::<F>(0.5);
+    let one = F::one();
+    let two = const_f64::<F>(2.0);
+
+    // Parameters for 1F1
+    let a = mu - kappa + half;
+    let b = two * mu + one;
+
+    // Compute M_{k,m}(z) = exp(-z/2) * z^{m+1/2} * 1F1(a; b; z)
+    let exp_factor = (-z * half).exp();
+    let z_power = z.powf(mu + half);
+    let hyp = hyp1f1_enhanced(a, b, z)?;
+
+    Ok(exp_factor * z_power * hyp)
+}
+
+/// Whittaker function W_{kappa,mu}(z)
+///
+/// The Whittaker W function is defined in terms of the Tricomi confluent hypergeometric:
+/// ```text
+/// W_{k,m}(z) = exp(-z/2) * z^{m+1/2} * U(m - k + 1/2; 2m + 1; z)
+/// ```
+///
+/// # Arguments
+/// * `kappa` - First parameter
+/// * `mu` - Second parameter
+/// * `z` - Argument (z > 0)
+///
+/// # Examples
+/// ```
+/// use scirs2_special::whittaker_w;
+/// let result = whittaker_w(0.5, 0.5, 1.0).expect("failed");
+/// assert!(result.is_finite());
+/// ```
+#[allow(dead_code)]
+pub fn whittaker_w<F>(kappa: F, mu: F, z: F) -> SpecialResult<F>
+where
+    F: Float + FromPrimitive + Debug + AddAssign + MulAssign + SubAssign,
+{
+    let z_f64 = z
+        .to_f64()
+        .ok_or_else(|| SpecialError::ValueError("Failed to convert z to f64".to_string()))?;
+
+    if z_f64 <= 0.0 {
+        return Err(SpecialError::DomainError(
+            "z must be > 0 for Whittaker W function".to_string(),
+        ));
+    }
+
+    let half = const_f64::<F>(0.5);
+    let one = F::one();
+    let two = const_f64::<F>(2.0);
+
+    // Parameters for U
+    let a = mu - kappa + half;
+    let b = two * mu + one;
+
+    // W_{k,m}(z) = exp(-z/2) * z^{m+1/2} * U(a, b, z)
+    let exp_factor = (-z * half).exp();
+    let z_power = z.powf(mu + half);
+
+    // Use Tricomi U function from main hypergeometric module
+    let u_val = crate::hypergeometric::hyperu(a, b, z)?;
+
+    Ok(exp_factor * z_power * u_val)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -680,6 +857,123 @@ mod tests {
         // Test that Levin transform works for a known sequence
         let partial_sums: Vec<f64> = vec![1.0, 1.5, 1.833, 2.083, 2.283, 2.45, 2.593];
         let result = levin_u_transform(&partial_sums).expect("test should succeed");
+        assert!(result.is_finite());
+    }
+
+    // ====== Regularized hyp1f1 tests ======
+
+    #[test]
+    fn test_hyp1f1_regularized_at_zero() {
+        // 1F1(a,b,0) = 1, so regularized = 1/Gamma(b)
+        let result: f64 = hyp1f1_regularized(1.0, 2.0, 0.0).expect("should succeed");
+        // Gamma(2) = 1, so regularized = 1/1 = 1
+        assert_relative_eq!(result, 1.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_hyp1f1_regularized_known_value() {
+        // For b=1: Gamma(1) = 1, so regularized = 1F1 itself
+        let result: f64 = hyp1f1_regularized(1.0, 1.0, 0.5).expect("should succeed");
+        let direct: f64 = hyp1f1_enhanced(1.0, 1.0, 0.5).expect("should succeed");
+        assert_relative_eq!(result, direct, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_hyp1f1_regularized_large_b() {
+        // For large b, Gamma(b) is large, so regularized is small
+        let result: f64 = hyp1f1_regularized(1.0, 10.0, 0.5).expect("should succeed");
+        assert!(
+            result.abs() < 1.0,
+            "regularized should be small for large b: {result}"
+        );
+    }
+
+    #[test]
+    fn test_hyp1f1_regularized_b_half() {
+        // Gamma(0.5) = sqrt(pi)
+        let result: f64 = hyp1f1_regularized(1.0, 0.5, 0.0).expect("should succeed");
+        let expected = 1.0 / std::f64::consts::PI.sqrt();
+        assert_relative_eq!(result, expected, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_hyp1f1_regularized_finite() {
+        let result: f64 = hyp1f1_regularized(0.5, 3.0, 1.0).expect("should succeed");
+        assert!(result.is_finite(), "regularized hyp1f1 should be finite");
+    }
+
+    // ====== Whittaker M tests ======
+
+    #[test]
+    fn test_whittaker_m_basic() {
+        let result = whittaker_m(0.5_f64, 0.5, 1.0).expect("should succeed");
+        assert!(
+            result.is_finite(),
+            "M_{{0.5,0.5}}(1) should be finite: {result}"
+        );
+    }
+
+    #[test]
+    fn test_whittaker_m_zero_kappa() {
+        // M_{0,m}(z) = exp(-z/2) z^{m+1/2} 1F1(m+1/2, 2m+1, z)
+        let result = whittaker_m(0.0_f64, 0.5, 2.0).expect("should succeed");
+        assert!(result.is_finite());
+    }
+
+    #[test]
+    fn test_whittaker_m_large_z() {
+        let result = whittaker_m(0.5_f64, 0.5, 10.0).expect("should succeed");
+        assert!(result.is_finite());
+    }
+
+    #[test]
+    fn test_whittaker_m_negative_z_error() {
+        let result = whittaker_m(0.5_f64, 0.5, -1.0);
+        assert!(result.is_err(), "negative z should error");
+    }
+
+    #[test]
+    fn test_whittaker_m_positive() {
+        // For small z, the exponential factor dominates and result should be small
+        let result = whittaker_m(1.0_f64, 0.5, 0.1).expect("should succeed");
+        assert!(result.is_finite());
+        assert!(result > 0.0, "M should be positive for these params");
+    }
+
+    // ====== Whittaker W tests ======
+
+    #[test]
+    fn test_whittaker_w_basic() {
+        let result = whittaker_w(0.5_f64, 0.5, 1.0).expect("should succeed");
+        assert!(
+            result.is_finite(),
+            "W_{{0.5,0.5}}(1) should be finite: {result}"
+        );
+    }
+
+    #[test]
+    fn test_whittaker_w_large_z() {
+        // For large z, W decays exponentially
+        let result = whittaker_w(0.5_f64, 0.5, 10.0).expect("should succeed");
+        assert!(result.is_finite());
+        assert!(result.abs() < 1.0, "W should decay for large z: {result}");
+    }
+
+    #[test]
+    fn test_whittaker_w_negative_z_error() {
+        let result = whittaker_w(0.5_f64, 0.5, -1.0);
+        assert!(result.is_err(), "negative z should error");
+    }
+
+    #[test]
+    fn test_whittaker_w_moderate() {
+        let result = whittaker_w(1.0_f64, 0.5, 2.0).expect("should succeed");
+        assert!(result.is_finite());
+    }
+
+    #[test]
+    fn test_whittaker_w_small_z() {
+        let result = whittaker_w(0.5_f64, 0.5, 0.1).expect("should succeed");
         assert!(result.is_finite());
     }
 }

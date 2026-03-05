@@ -28,7 +28,7 @@
 //! let backend = backends::default_backend();
 //!
 //! // Save the visualization to a file
-//! backend.save_to_file(&data, &metadata, &Default::default(), "plot.html").unwrap();
+//! backend.save_to_file(&data, &metadata, &Default::default(), "plot.html").expect("should succeed");
 //! ```
 //!
 //! # Using Specific Visualizers
@@ -48,7 +48,7 @@
 //! let y_pred = array![0, 2, 1, 0, 0, 2];
 //!
 //! // Create confusion matrix
-//! let (cm, _classes) = confusion_matrix(&y_true, &y_pred, None).unwrap();
+//! let (cm, _classes) = confusion_matrix(&y_true, &y_pred, None).expect("should succeed");
 //! let cm_f64 = cm.mapv(|x| x as f64);
 //!
 //! // Create visualizer
@@ -59,12 +59,12 @@
 //! );
 //!
 //! // Get data and metadata
-//! let viz_data = visualizer.prepare_data().unwrap();
+//! let viz_data = visualizer.prepare_data().expect("should succeed");
 //! let viz_metadata = visualizer.get_metadata();
 //!
 //! // Save the visualization
 //! let backend = backends::default_backend();
-//! backend.save_to_file(&viz_data, &viz_metadata, &Default::default(), "confusion_matrix.html").unwrap();
+//! backend.save_to_file(&viz_data, &viz_metadata, &Default::default(), "confusion_matrix.html").expect("should succeed");
 //! ```
 
 // Re-export submodules

@@ -24,11 +24,11 @@
 //! forecast_series = pd.Series(forecast)
 //! ```
 
+use crate::error::SciRS2Error;
+use crate::series::PyTimeSeries;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use scirs2_numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods};
-use crate::error::SciRS2Error;
-use crate::series::PyTimeSeries;
 
 /// Convert pandas Series to PyTimeSeries
 ///
@@ -41,23 +41,23 @@ use crate::series::PyTimeSeries;
 /// # Returns
 /// A PyTimeSeries object with values and timestamps
 #[pyfunction]
-pub fn pandas_to_timeseries(py: Python, series: PyObject) -> PyResult<PyTimeSeries> {
+pub fn pandas_to_timeseries(py: Python, series: Py<PyAny>) -> PyResult<PyTimeSeries> {
     // Get values as numpy array
-    let values = series.getattr(py, "values")?;
-    let values_array: &Bound<'_, PyArray1<f64>> = values.downcast_bound::<PyArray1<f64>>(py)?;
+    let values_obj = series.getattr(py, "values")?;
+    let values_array = values_obj.cast_bound::<PyArray1<f64>>(py)?;
 
     // Get index as numpy array (if datetime-like, convert to float timestamps)
     let index = series.getattr(py, "index")?;
 
     // Try to convert index to numpy array
     let timestamps = if let Ok(index_values) = index.getattr(py, "values") {
-        // Check if it's a DatetimeIndex
-        if let Ok(_) = index.getattr(py, "to_numpy") {
+        // Check if it's a DatetimeIndex by trying to_numpy method
+        if index.getattr(py, "to_numpy").is_ok() {
             // Convert datetime to timestamp (seconds since epoch)
             let timestamp_method = index.getattr(py, "astype")?;
             let timestamps_ns = timestamp_method.call1(py, ("int64",))?;
-            let timestamps_array: &Bound<'_, PyArray1<i64>> =
-                timestamps_ns.getattr(py, "values")?.downcast_bound::<PyArray1<i64>>(py)?;
+            let ts_values = timestamps_ns.getattr(py, "values")?;
+            let timestamps_array = ts_values.cast_bound::<PyArray1<i64>>(py)?;
 
             // Convert from nanoseconds to seconds
             let binding = timestamps_array.readonly();
@@ -65,7 +65,7 @@ pub fn pandas_to_timeseries(py: Python, series: PyObject) -> PyResult<PyTimeSeri
             let ts_vec: Vec<f64> = ts_arr.iter().map(|&ns| ns as f64 / 1e9).collect();
 
             Some(scirs2_core::Array1::from_vec(ts_vec))
-        } else if let Ok(index_array) = index_values.downcast_bound::<PyArray1<f64>>(py) {
+        } else if let Ok(index_array) = index_values.cast_bound::<PyArray1<f64>>(py) {
             // Already numeric
             let binding = index_array.readonly();
             let idx_arr = binding.as_array();
@@ -77,12 +77,12 @@ pub fn pandas_to_timeseries(py: Python, series: PyObject) -> PyResult<PyTimeSeri
         None
     };
 
-    // Create PyTimeSeries
+    // Create PyTimeSeries using crate-internal constructor
     let binding = values_array.readonly();
     let values_arr = binding.as_array();
     let values_owned = values_arr.to_owned();
 
-    Ok(PyTimeSeries::new(values_owned, timestamps))
+    Ok(PyTimeSeries::from_arrays(values_owned, timestamps))
 }
 
 /// Convert PyTimeSeries to pandas Series
@@ -93,30 +93,26 @@ pub fn pandas_to_timeseries(py: Python, series: PyObject) -> PyResult<PyTimeSeri
 /// # Returns
 /// A pandas Series object
 #[pyfunction]
-pub fn timeseries_to_pandas(py: Python, ts: &PyTimeSeries) -> PyResult<PyObject> {
+pub fn timeseries_to_pandas(py: Python, ts: &PyTimeSeries) -> PyResult<Py<PyAny>> {
     // Import pandas
     let pandas = py.import("pandas")?;
 
-    // Get values
-    let values = ts.get_values(py)?;
+    // Get values using crate-internal accessor
+    let values = ts.values_owned().into_pyarray(py).unbind();
 
     // Create Series
-    let series = if let Some(timestamps) = ts.get_timestamps(py)? {
+    let series = if let Some(timestamps) = ts.timestamps_owned() {
         // Create DatetimeIndex from timestamps
-        let timestamps_ns: Vec<i64> = {
-            let binding = timestamps.readonly();
-            let ts_arr = binding.as_array();
-            ts_arr.iter().map(|&s| (s * 1e9) as i64).collect()
-        };
+        let timestamps_ns: Vec<i64> = timestamps.iter().map(|&s| (s * 1e9) as i64).collect();
 
         let datetime_index = pandas
             .getattr("DatetimeIndex")?
             .call1((PyList::new(py, &timestamps_ns)?,))?;
 
         // Create Series with datetime index
-        pandas
-            .getattr("Series")?
-            .call((values,), Some(&PyDict::from_sequence(&[(("index", datetime_index))])?))
+        let kwargs = PyDict::new(py);
+        kwargs.set_item("index", datetime_index)?;
+        pandas.getattr("Series")?.call((values,), Some(&kwargs))
     } else {
         // Create Series without index
         pandas.getattr("Series")?.call1((values,))
@@ -136,10 +132,10 @@ pub fn timeseries_to_pandas(py: Python, ts: &PyTimeSeries) -> PyResult<PyObject>
 /// # Returns
 /// A 2D numpy array
 #[pyfunction]
-pub fn dataframe_to_array(py: Python, df: PyObject) -> PyResult<Py<PyArray2<f64>>> {
+pub fn dataframe_to_array(py: Python, df: Py<PyAny>) -> PyResult<Py<PyArray2<f64>>> {
     // Get values as numpy array
     let values = df.getattr(py, "values")?;
-    let array: &Bound<'_, PyArray2<f64>> = values.downcast_bound::<PyArray2<f64>>(py)?;
+    let array = values.cast_bound::<PyArray2<f64>>(py)?;
 
     Ok(array.to_owned().unbind())
 }
@@ -159,8 +155,8 @@ pub fn array_to_dataframe(
     py: Python,
     array: &Bound<'_, PyArray2<f64>>,
     columns: Option<Vec<String>>,
-    index: Option<PyObject>,
-) -> PyResult<PyObject> {
+    index: Option<Py<PyAny>>,
+) -> PyResult<Py<PyAny>> {
     // Import pandas
     let pandas = py.import("pandas")?;
 
@@ -173,9 +169,7 @@ pub fn array_to_dataframe(
         kwargs.set_item("index", idx)?;
     }
 
-    let df = pandas
-        .getattr("DataFrame")?
-        .call((array,), Some(&kwargs))?;
+    let df = pandas.getattr("DataFrame")?.call((array,), Some(&kwargs))?;
 
     Ok(df.into())
 }
@@ -197,11 +191,7 @@ pub fn array_to_dataframe(
 /// means = scirs2.apply_to_dataframe(df, scirs2.mean_py)
 /// ```
 #[pyfunction]
-pub fn apply_to_dataframe(
-    py: Python,
-    df: PyObject,
-    func: PyObject,
-) -> PyResult<PyObject> {
+pub fn apply_to_dataframe(py: Python, df: Py<PyAny>, func: Py<PyAny>) -> PyResult<Py<PyAny>> {
     // Import pandas
     let pandas = py.import("pandas")?;
 
@@ -236,10 +226,10 @@ pub fn apply_to_dataframe(
 #[pyo3(signature = (df, func, axis=0))]
 pub fn apply_along_axis(
     py: Python,
-    df: PyObject,
-    func: PyObject,
+    df: Py<PyAny>,
+    func: Py<PyAny>,
     axis: usize,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let pandas = py.import("pandas")?;
 
     if axis == 0 {
@@ -248,7 +238,7 @@ pub fn apply_along_axis(
     } else {
         // Row-wise
         let values = df.getattr(py, "values")?;
-        let array: &Bound<'_, PyArray2<f64>> = values.downcast_bound::<PyArray2<f64>>(py)?;
+        let array = values.cast_bound::<PyArray2<f64>>(py)?;
         let binding = array.readonly();
         let arr = binding.as_array();
 
@@ -282,15 +272,15 @@ pub fn apply_along_axis(
 #[pyfunction]
 pub fn rolling_apply(
     py: Python,
-    series: PyObject,
+    series: Py<PyAny>,
     window: usize,
-    func: PyObject,
-) -> PyResult<PyObject> {
+    func: Py<PyAny>,
+) -> PyResult<Py<PyAny>> {
     let pandas = py.import("pandas")?;
 
     // Get values
     let values = series.getattr(py, "values")?;
-    let array: &Bound<'_, PyArray1<f64>> = values.downcast_bound::<PyArray1<f64>>(py)?;
+    let array = values.cast_bound::<PyArray1<f64>>(py)?;
     let binding = array.readonly();
     let arr = binding.as_array();
 

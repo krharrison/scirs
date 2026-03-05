@@ -705,6 +705,41 @@ impl<F: Float + Debug + Send + Sync + ScalarOperand + NumAssign + 'static> Layer
             self.parameter_count()
         )
     }
+
+    fn params(&self) -> Vec<Array<F, IxDyn>> {
+        let mut params = Vec::new();
+        if let Ok(w) = self.weights.read() {
+            params.push(w.clone());
+        }
+        if let Some(ref bias_lock) = self.bias {
+            if let Ok(b) = bias_lock.read() {
+                params.push(b.clone());
+            }
+        }
+        params
+    }
+
+    fn set_params(&mut self, params: &[Array<F, IxDyn>]) -> Result<()> {
+        match (self.use_bias, params.len()) {
+            (true, 2) => {
+                if let Ok(mut w) = self.weights.write() {
+                    *w = params[0].clone();
+                }
+                if let Some(ref bias_lock) = self.bias {
+                    if let Ok(mut b) = bias_lock.write() {
+                        *b = params[1].clone();
+                    }
+                }
+            }
+            (false, 1) | (true, 1) => {
+                if let Ok(mut w) = self.weights.write() {
+                    *w = params[0].clone();
+                }
+            }
+            _ => {}
+        }
+        Ok(())
+    }
 }
 
 impl<F: Float + Debug + Send + Sync + ScalarOperand + NumAssign + 'static> ParamLayer<F>

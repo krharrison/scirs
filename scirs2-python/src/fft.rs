@@ -37,10 +37,8 @@ fn fft_py(py: Python, data: &Bound<'_, PyArray1<f64>>) -> PyResult<Py<PyArray1<N
     #[cfg(feature = "oxifft")]
     {
         // Convert real input to complex for fft_oxifft
-        let complex_input: scirs2_core::ndarray::Array1<Complex64> = arr
-            .iter()
-            .map(|&r| Complex64::new(r, 0.0))
-            .collect();
+        let complex_input: scirs2_core::ndarray::Array1<Complex64> =
+            arr.iter().map(|&r| Complex64::new(r, 0.0)).collect();
 
         let result = scirs2_fft::oxifft_backend::fft_oxifft(&complex_input.view())
             .map_err(|e| PyRuntimeError::new_err(format!("FFT (OxiFFT) failed: {}", e)))?;
@@ -86,10 +84,8 @@ fn ifft_py(
     #[cfg(feature = "oxifft")]
     {
         // Convert NumPy complex to scirs2 Complex64
-        let complex_input: scirs2_core::ndarray::Array1<Complex64> = arr
-            .iter()
-            .map(|c| Complex64::new(c.re, c.im))
-            .collect();
+        let complex_input: scirs2_core::ndarray::Array1<Complex64> =
+            arr.iter().map(|c| Complex64::new(c.re, c.im)).collect();
 
         let result = scirs2_fft::oxifft_backend::ifft_oxifft(&complex_input.view())
             .map_err(|e| PyRuntimeError::new_err(format!("IFFT (OxiFFT) failed: {}", e)))?;
@@ -107,10 +103,8 @@ fn ifft_py(
     #[cfg(not(feature = "oxifft"))]
     {
         // Convert NumPy complex to Vec<Complex64>
-        let complex_input: Vec<Complex64> = arr
-            .iter()
-            .map(|c| Complex64::new(c.re, c.im))
-            .collect();
+        let complex_input: Vec<Complex64> =
+            arr.iter().map(|c| Complex64::new(c.re, c.im)).collect();
 
         let result = ifft(&complex_input, None)
             .map_err(|e| PyRuntimeError::new_err(format!("IFFT failed: {}", e)))?;
@@ -181,10 +175,8 @@ fn irfft_py(
     #[cfg(feature = "oxifft")]
     {
         // Convert NumPy complex to scirs2 Complex64
-        let complex_input: scirs2_core::ndarray::Array1<Complex64> = arr
-            .iter()
-            .map(|c| Complex64::new(c.re, c.im))
-            .collect();
+        let complex_input: scirs2_core::ndarray::Array1<Complex64> =
+            arr.iter().map(|c| Complex64::new(c.re, c.im)).collect();
 
         // Infer output size: if n is None, assume n = 2*(input_len - 1)
         let output_len = n.unwrap_or_else(|| 2 * (complex_input.len() - 1));
@@ -199,10 +191,8 @@ fn irfft_py(
     #[cfg(not(feature = "oxifft"))]
     {
         // Convert NumPy complex to Vec<Complex64>
-        let complex_input: Vec<Complex64> = arr
-            .iter()
-            .map(|c| Complex64::new(c.re, c.im))
-            .collect();
+        let complex_input: Vec<Complex64> =
+            arr.iter().map(|c| Complex64::new(c.re, c.im)).collect();
 
         let result = irfft(&complex_input, n)
             .map_err(|e| PyRuntimeError::new_err(format!("IRFFT failed: {}", e)))?;
@@ -342,9 +332,8 @@ fn fft2_py(
             }
         }
 
-        let result_array =
-            scirs2_core::ndarray::Array2::from_shape_vec((rows, cols), full_result)
-                .map_err(|e| PyRuntimeError::new_err(format!("Shape error: {}", e)))?;
+        let result_array = scirs2_core::ndarray::Array2::from_shape_vec((rows, cols), full_result)
+            .map_err(|e| PyRuntimeError::new_err(format!("Shape error: {}", e)))?;
 
         Ok(result_array.into_pyarray(py).unbind())
     }
@@ -411,9 +400,8 @@ fn ifft2_py(
         for c in arr.iter() {
             complex_vec.push(Complex64::new(c.re, c.im));
         }
-        let complex_input =
-            scirs2_core::ndarray::Array2::from_shape_vec((rows, cols), complex_vec)
-                .map_err(|e| PyRuntimeError::new_err(format!("Shape error: {}", e)))?;
+        let complex_input = scirs2_core::ndarray::Array2::from_shape_vec((rows, cols), complex_vec)
+            .map_err(|e| PyRuntimeError::new_err(format!("Shape error: {}", e)))?;
 
         let result = scirs2_fft::oxifft_backend::ifft2_oxifft(&complex_input.view())
             .map_err(|e| PyRuntimeError::new_err(format!("IFFT2 (OxiFFT) failed: {}", e)))?;
@@ -424,9 +412,8 @@ fn ifft2_py(
             result_vec.push(NumpyComplex64::new(c.re, c.im));
         }
 
-        let result_array =
-            scirs2_core::ndarray::Array2::from_shape_vec((rows, cols), result_vec)
-                .map_err(|e| PyRuntimeError::new_err(format!("Shape error: {}", e)))?;
+        let result_array = scirs2_core::ndarray::Array2::from_shape_vec((rows, cols), result_vec)
+            .map_err(|e| PyRuntimeError::new_err(format!("Shape error: {}", e)))?;
 
         Ok(result_array.into_pyarray(py).unbind())
     }
@@ -484,8 +471,8 @@ fn irfft2_py(
 #[pyfunction]
 #[pyo3(signature = (n, d=1.0))]
 fn fftfreq_py(py: Python, n: usize, d: f64) -> PyResult<Py<PyArray1<f64>>> {
-    let result = fftfreq(n, d)
-        .map_err(|e| PyRuntimeError::new_err(format!("FFT freq failed: {}", e)))?;
+    let result =
+        fftfreq(n, d).map_err(|e| PyRuntimeError::new_err(format!("FFT freq failed: {}", e)))?;
     Ok(Array1::from_vec(result).into_pyarray(py).unbind())
 }
 
@@ -493,8 +480,8 @@ fn fftfreq_py(py: Python, n: usize, d: f64) -> PyResult<Py<PyArray1<f64>>> {
 #[pyfunction]
 #[pyo3(signature = (n, d=1.0))]
 fn rfftfreq_py(py: Python, n: usize, d: f64) -> PyResult<Py<PyArray1<f64>>> {
-    let result = rfftfreq(n, d)
-        .map_err(|e| PyRuntimeError::new_err(format!("RFFT freq failed: {}", e)))?;
+    let result =
+        rfftfreq(n, d).map_err(|e| PyRuntimeError::new_err(format!("RFFT freq failed: {}", e)))?;
     Ok(Array1::from_vec(result).into_pyarray(py).unbind())
 }
 
@@ -504,8 +491,8 @@ fn fftshift_py(py: Python, data: &Bound<'_, PyArray1<f64>>) -> PyResult<Py<PyArr
     let binding = data.readonly();
     let arr = binding.as_array().to_owned();
 
-    let result = fftshift(&arr)
-        .map_err(|e| PyRuntimeError::new_err(format!("FFT shift failed: {}", e)))?;
+    let result =
+        fftshift(&arr).map_err(|e| PyRuntimeError::new_err(format!("FFT shift failed: {}", e)))?;
     Ok(result.into_pyarray(py).unbind())
 }
 

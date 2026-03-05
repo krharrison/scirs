@@ -513,7 +513,7 @@ fn bench_memory_pool(c: &mut Criterion) {
 
 /// Benchmark zero-copy vs copying operations
 fn bench_zero_copy(c: &mut Criterion) {
-    use ndarray::Array2;
+    use scirs2_core::ndarray::Array2;
 
     let mut group = c.benchmark_group("memory/zero_copy");
     group.sampling_mode(SamplingMode::Flat);

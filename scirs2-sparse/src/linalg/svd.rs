@@ -680,7 +680,13 @@ where
     Ok(q)
 }
 
-/// Dense SVD (placeholder implementation)
+/// Dense SVD via the one-sided Jacobi method.
+///
+/// Computes A = U * diag(s) * V^T for a dense (m x n) matrix by
+/// diagonalising G = A^T A with cyclic Jacobi rotations, recovering
+/// singular values as sqrt of eigenvalues, then reconstructing U.
+///
+/// Returns the `k` largest singular triplets.
 #[allow(dead_code)]
 fn dense_svd<T>(matrix: &Array2<T>, k: usize) -> SparseResult<SVDResult<T>>
 where
@@ -698,24 +704,126 @@ where
     let (m, n) = matrix.dim();
     let rank = k.min(m).min(n);
 
-    // Simplified implementation - in practice, use LAPACK or similar
-    let singular_values = Array1::from_elem(rank, T::sparse_one());
-    let u = Some(
-        Array2::eye(m)
-            .slice(scirs2_core::ndarray::s![.., ..rank])
-            .to_owned(),
-    );
-    let vt = Some(
-        Array2::eye(n)
-            .slice(scirs2_core::ndarray::s![..rank, ..])
-            .to_owned(),
-    );
+    // Step 1: Form G = A^T A  (n x n, symmetric positive semidefinite)
+    let mut g = Array2::zeros((n, n));
+    for i in 0..n {
+        for j in i..n {
+            let mut s = T::sparse_zero();
+            for r in 0..m {
+                s = s + matrix[[r, i]] * matrix[[r, j]];
+            }
+            g[[i, j]] = s;
+            g[[j, i]] = s;
+        }
+    }
+
+    // Step 2: Jacobi eigenvalue algorithm on G
+    let mut v_mat = Array2::<T>::eye(n);
+    let max_sweeps = 100usize;
+    let tol = T::from(1e-14).unwrap_or_else(|| T::epsilon());
+
+    for _sweep in 0..max_sweeps {
+        let mut off_norm = T::sparse_zero();
+        for i in 0..n {
+            for j in (i + 1)..n {
+                off_norm = off_norm + g[[i, j]] * g[[i, j]];
+            }
+        }
+        if off_norm < tol * tol {
+            break;
+        }
+
+        for i in 0..n {
+            for j in (i + 1)..n {
+                let gij = g[[i, j]];
+                if gij.abs() < tol {
+                    continue;
+                }
+                let diff = g[[j, j]] - g[[i, i]];
+                let tau = if diff.abs() < tol {
+                    T::sparse_one()
+                } else {
+                    let ratio = T::from(2.0).expect("conv") * gij / diff;
+                    let sign_r = if ratio >= T::sparse_zero() {
+                        T::sparse_one()
+                    } else {
+                        -T::sparse_one()
+                    };
+                    sign_r / (ratio.abs() + (ratio * ratio + T::sparse_one()).sqrt())
+                };
+                let cos_t = T::sparse_one() / (tau * tau + T::sparse_one()).sqrt();
+                let sin_t = tau * cos_t;
+
+                for r in 0..n {
+                    if r == i || r == j {
+                        continue;
+                    }
+                    let gri = g[[r, i]];
+                    let grj = g[[r, j]];
+                    g[[r, i]] = cos_t * gri - sin_t * grj;
+                    g[[i, r]] = g[[r, i]];
+                    g[[r, j]] = sin_t * gri + cos_t * grj;
+                    g[[j, r]] = g[[r, j]];
+                }
+                let gii = g[[i, i]];
+                let gjj = g[[j, j]];
+                let two = T::from(2.0).expect("conv");
+                g[[i, i]] = cos_t * cos_t * gii - two * sin_t * cos_t * gij + sin_t * sin_t * gjj;
+                g[[j, j]] = sin_t * sin_t * gii + two * sin_t * cos_t * gij + cos_t * cos_t * gjj;
+                g[[i, j]] = T::sparse_zero();
+                g[[j, i]] = T::sparse_zero();
+
+                for r in 0..n {
+                    let vri = v_mat[[r, i]];
+                    let vrj = v_mat[[r, j]];
+                    v_mat[[r, i]] = cos_t * vri - sin_t * vrj;
+                    v_mat[[r, j]] = sin_t * vri + cos_t * vrj;
+                }
+            }
+        }
+    }
+
+    // Step 3: Extract singular values and V^T, sorted descending
+    let mut sigma_sq: Vec<(T, usize)> = (0..n).map(|i| (g[[i, i]], i)).collect();
+    sigma_sq.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+
+    let take = rank.min(sigma_sq.len());
+    let mut singular_values = Vec::with_capacity(take);
+    let mut vt_final = Array2::zeros((take, n));
+
+    for j in 0..take {
+        let (lam, idx) = sigma_sq[j];
+        let sv = if lam > T::sparse_zero() {
+            lam.sqrt()
+        } else {
+            T::sparse_zero()
+        };
+        singular_values.push(sv);
+        for col in 0..n {
+            vt_final[[j, col]] = v_mat[[col, idx]];
+        }
+    }
+
+    // Step 4: Compute U = A * V * Sigma^{-1}
+    let mut u_final = Array2::zeros((m, take));
+    for j in 0..take {
+        let sv = singular_values[j];
+        if sv > tol {
+            for i in 0..m {
+                let mut dot = T::sparse_zero();
+                for l in 0..n {
+                    dot = dot + matrix[[i, l]] * vt_final[[j, l]];
+                }
+                u_final[[i, j]] = dot / sv;
+            }
+        }
+    }
 
     Ok(SVDResult {
-        u,
-        s: singular_values,
-        vt,
-        iterations: 1,
+        u: Some(u_final),
+        s: Array1::from_vec(singular_values),
+        vt: Some(vt_final),
+        iterations: max_sweeps,
         converged: true,
     })
 }

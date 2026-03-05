@@ -3,11 +3,11 @@
 //! Provides special mathematical functions similar to scipy.special
 
 use pyo3::prelude::*;
-use scirs2_numpy::{PyArray1, PyReadonlyArray1};
 use scirs2_core::python::numpy_compat::{scirs_to_numpy_array1, Array1};
+use scirs2_numpy::{PyArray1, PyReadonlyArray1};
 
 // Import special functions from scirs2-special
-use scirs2_special::{gamma as gamma_fn, bessel, erf as erf_mod};
+use scirs2_special::{bessel, erf as erf_mod, gamma as gamma_fn};
 
 // =============================================================================
 // Gamma Functions

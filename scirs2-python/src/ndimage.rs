@@ -12,28 +12,26 @@ use scirs2_numpy::{IntoPyArray, PyArray2, PyArrayMethods};
 
 // Direct imports from scirs2-ndimage
 use scirs2_ndimage::{
-    // Filters
-    filters::{
-        gaussian_filter, median_filter, uniform_filter, sobel, laplace,
-        bilateral_filter, maximum_filter, minimum_filter,
-        BorderMode,
-    },
-    // Morphology
-    morphology::{
-        binary_erosion, binary_dilation, binary_opening, binary_closing,
-        grey_erosion, grey_dilation,
-        label, distance_transform_edt,
-    },
-    // Interpolation
-    interpolation::{rotate, zoom, shift},
-    // Measurements
-    measurements::{center_of_mass, moments},
-    // Segmentation
-    segmentation::{watershed, otsu_threshold, threshold_binary},
+    // Analysis
+    analysis::{image_entropy, peak_signal_to_noise_ratio, structural_similarity_index},
     // Features
     features::{canny, harris_corners},
-    // Analysis
-    analysis::{peak_signal_to_noise_ratio, structural_similarity_index, image_entropy},
+    // Filters
+    filters::{
+        bilateral_filter, gaussian_filter, laplace, maximum_filter, median_filter, minimum_filter,
+        sobel, uniform_filter, BorderMode,
+    },
+    // Interpolation
+    interpolation::{rotate, shift, zoom},
+    // Measurements
+    measurements::{center_of_mass, moments},
+    // Morphology
+    morphology::{
+        binary_closing, binary_dilation, binary_erosion, binary_opening, distance_transform_edt,
+        grey_dilation, grey_erosion, label,
+    },
+    // Segmentation
+    segmentation::{otsu_threshold, threshold_binary, watershed},
 };
 
 // ========================================
@@ -144,10 +142,7 @@ fn sobel_py(
 
 /// Laplacian filter
 #[pyfunction]
-fn laplace_py(
-    py: Python,
-    input: &Bound<'_, PyArray2<f64>>,
-) -> PyResult<Py<PyArray2<f64>>> {
+fn laplace_py(py: Python, input: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
     let binding = input.readonly();
     let data = binding.as_array().to_owned();
 
@@ -343,10 +338,7 @@ fn grey_dilation_py(
 
 /// Connected component labeling
 #[pyfunction]
-fn label_py(
-    py: Python,
-    input: &Bound<'_, PyArray2<u8>>,
-) -> PyResult<Py<PyAny>> {
+fn label_py(py: Python, input: &Bound<'_, PyArray2<u8>>) -> PyResult<Py<PyAny>> {
     let binding = input.readonly();
     let data = binding.as_array();
 
@@ -378,12 +370,15 @@ fn distance_transform_edt_py(
     let bool_data_dyn = bool_data.into_dyn();
 
     // distance_transform_edt(input, sampling, return_distances, return_indices) - 4 args
-    let (distances_opt, _indices_opt) = distance_transform_edt(&bool_data_dyn, None, true, false)
-        .map_err(|e| PyRuntimeError::new_err(format!("Distance transform failed: {}", e)))?;
+    let (distances_opt, _indices_opt) =
+        distance_transform_edt(&bool_data_dyn, None, true, false)
+            .map_err(|e| PyRuntimeError::new_err(format!("Distance transform failed: {}", e)))?;
 
     // Extract distances and convert back to 2D
-    let distances = distances_opt.ok_or_else(|| PyRuntimeError::new_err("Distance transform returned no distances"))?;
-    let result = distances.into_shape_with_order(shape)
+    let distances = distances_opt
+        .ok_or_else(|| PyRuntimeError::new_err("Distance transform returned no distances"))?;
+    let result = distances
+        .into_shape_with_order(shape)
         .map_err(|e| PyRuntimeError::new_err(format!("Failed to reshape result: {}", e)))?;
 
     Ok(result.into_pyarray(py).unbind())
@@ -407,8 +402,17 @@ fn rotate_py(
     let data = binding.as_array().to_owned();
 
     // rotate(input, angle, axes, reshape, order, mode, cval, prefilter) - 8 args
-    let result = rotate(&data, angle, None, Some(reshape), None, None, Some(cval), None)
-        .map_err(|e| PyRuntimeError::new_err(format!("Rotate failed: {}", e)))?;
+    let result = rotate(
+        &data,
+        angle,
+        None,
+        Some(reshape),
+        None,
+        None,
+        Some(cval),
+        None,
+    )
+    .map_err(|e| PyRuntimeError::new_err(format!("Rotate failed: {}", e)))?;
 
     Ok(result.into_pyarray(py).unbind())
 }
@@ -445,8 +449,15 @@ fn shift_py(
     let data = binding.as_array().to_owned();
 
     // shift(input, shift, order, mode, cval, prefilter) - 6 args
-    let result = shift(&data, &[shift_values.0, shift_values.1], None, None, Some(cval), None)
-        .map_err(|e| PyRuntimeError::new_err(format!("Shift failed: {}", e)))?;
+    let result = shift(
+        &data,
+        &[shift_values.0, shift_values.1],
+        None,
+        None,
+        Some(cval),
+        None,
+    )
+    .map_err(|e| PyRuntimeError::new_err(format!("Shift failed: {}", e)))?;
 
     Ok(result.into_pyarray(py).unbind())
 }
@@ -457,10 +468,7 @@ fn shift_py(
 
 /// Calculate center of mass
 #[pyfunction]
-fn center_of_mass_py(
-    py: Python,
-    input: &Bound<'_, PyArray2<f64>>,
-) -> PyResult<Py<PyAny>> {
+fn center_of_mass_py(py: Python, input: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyAny>> {
     let binding = input.readonly();
     let data = binding.as_array().to_owned();
 
@@ -476,11 +484,7 @@ fn center_of_mass_py(
 /// Calculate image moments
 #[pyfunction]
 #[pyo3(signature = (input, order=3))]
-fn moments_py(
-    py: Python,
-    input: &Bound<'_, PyArray2<f64>>,
-    order: usize,
-) -> PyResult<Py<PyAny>> {
+fn moments_py(py: Python, input: &Bound<'_, PyArray2<f64>>, order: usize) -> PyResult<Py<PyAny>> {
     let binding = input.readonly();
     let data = binding.as_array().to_owned();
 
@@ -609,10 +613,7 @@ fn harris_corners_py(
 
 /// Peak signal-to-noise ratio
 #[pyfunction]
-fn psnr_py(
-    image1: &Bound<'_, PyArray2<f64>>,
-    image2: &Bound<'_, PyArray2<f64>>,
-) -> PyResult<f64> {
+fn psnr_py(image1: &Bound<'_, PyArray2<f64>>, image2: &Bound<'_, PyArray2<f64>>) -> PyResult<f64> {
     let img1_binding = image1.readonly();
     let img2_binding = image2.readonly();
     let img1_data = img1_binding.as_array();
@@ -625,10 +626,7 @@ fn psnr_py(
 
 /// Structural similarity index (SSIM)
 #[pyfunction]
-fn ssim_py(
-    image1: &Bound<'_, PyArray2<f64>>,
-    image2: &Bound<'_, PyArray2<f64>>,
-) -> PyResult<f64> {
+fn ssim_py(image1: &Bound<'_, PyArray2<f64>>, image2: &Bound<'_, PyArray2<f64>>) -> PyResult<f64> {
     let img1_binding = image1.readonly();
     let img2_binding = image2.readonly();
     let img1_data = img1_binding.as_array();
@@ -641,9 +639,7 @@ fn ssim_py(
 
 /// Image entropy
 #[pyfunction]
-fn image_entropy_py(
-    input: &Bound<'_, PyArray2<f64>>,
-) -> PyResult<f64> {
+fn image_entropy_py(input: &Bound<'_, PyArray2<f64>>) -> PyResult<f64> {
     let binding = input.readonly();
     let data = binding.as_array();
 

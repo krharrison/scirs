@@ -397,7 +397,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // FIXME: Inflow boundary conditions test failing
     fn test_inflow_boundary_conditions() {
         let mut u = Array2::zeros((5, 5));
         let mut v = Array2::zeros((5, 5));

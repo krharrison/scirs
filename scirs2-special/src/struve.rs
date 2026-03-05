@@ -39,7 +39,7 @@ const LN_PI: f64 = 1.1447298858494002; // ln(π)
 /// ```
 /// use scirs2_special::struve;
 ///
-/// let h0_1 = struve(0.0, 1.0).unwrap();
+/// let h0_1 = struve(0.0, 1.0).expect("struve failed");
 /// println!("H_0(1.0) = {}", h0_1);
 /// ```
 #[allow(dead_code)]
@@ -79,74 +79,49 @@ pub fn struve(v: f64, x: f64) -> SpecialResult<f64> {
 }
 
 /// Struve function H_0(x) for order v=0.
+///
+/// Uses the DLMF 11.2.1 series:
+///   H_0(x) = (2/pi) * sum_{k=0}^inf (-1)^k * (x/2)^(2k+1) / [Gamma(k+3/2)]^2
+/// which simplifies to:
+///   H_0(x) = (2/pi) * sum_{k=0}^inf (-1)^k * (x/2)^(2k+1) / [(k+1/2)*k!*sqrt(pi)/2]^2
+/// but more practically, using the explicit Gamma ratios.
 #[allow(dead_code)]
 fn struve_h0(x: f64) -> SpecialResult<f64> {
     if x.abs() < 20.0 {
-        // Use the series expansion for small x
-        let mut sum: f64 = 0.0;
-        let x2 = x * x;
-
-        for k in 0..30 {
-            let factor = if k == 0 { 1.0 } else { -1.0f64.powi(k as i32) };
-            let term = factor * x2.powi(k as i32) / ((2.0 * k as f64 + 1.0) * fact_squared(k));
-            sum += term;
-
-            if term.abs() < 1e-15 * sum.abs() {
-                break;
-            }
-        }
-
-        Ok(sum * 2.0 * x / PI)
-    } else {
-        // For large x, use the asymptotic approximation with Bessel functions
-        let y0_val = y0(x);
-        let _j0_val = j0(x);
-
-        Ok(y0_val + 2.0 / (PI * x))
+        // Use the general series for v=0
+        return struve_series(0.0, x);
     }
+    // For large x, use the asymptotic approximation with Bessel functions
+    let y0_val = y0(x);
+    Ok(y0_val + 2.0 / (PI * x))
 }
 
 /// Struve function H_1(x) for order v=1.
 #[allow(dead_code)]
 fn struve_h1(x: f64) -> SpecialResult<f64> {
     if x.abs() < 20.0 {
-        // Use the series expansion for small x
-        let mut sum: f64 = 0.0;
-        let x2 = x * x;
-
-        for k in 0..30 {
-            let factor = if k % 2 == 0 { 1.0 } else { -1.0 };
-            let term = factor * x2.powi(k as i32) / ((2.0 * k as f64 + 2.0) * fact_squared(k));
-            sum += term;
-
-            if term.abs() < 1e-15 * sum.abs() {
-                break;
-            }
-        }
-
-        Ok(sum * 2.0 * x * x / PI)
-    } else {
-        // For large x, use the asymptotic approximation with Bessel functions
-        let y1_val = y1(x);
-        let _j1_val = j1(x);
-
-        Ok(y1_val - 2.0 / (PI * x) * (1.0 - 2.0 / (x * x)))
+        // Use the general series for v=1
+        return struve_series(1.0, x);
     }
+    // For large x, use the asymptotic approximation with Bessel functions
+    let y1_val = y1(x);
+    Ok(y1_val + 2.0 / PI - 2.0 / (PI * x * x))
 }
 
 /// Compute the Struve function H_v(x) using series expansion.
+///
+/// Uses DLMF 11.2.1:
+///   H_v(x) = (x/2)^(v+1) * sum_{k=0}^inf (-1)^k (x/2)^{2k} / [Gamma(k+3/2) Gamma(k+v+3/2)]
+///
+/// We compute the series using recurrence for successive terms to avoid
+/// recomputing gamma functions from scratch each iteration.
 #[allow(dead_code)]
 fn struve_series(v: f64, x: f64) -> SpecialResult<f64> {
     let z = 0.5 * x;
     let z_squared = z * z;
 
-    // From https://dlmf.nist.gov/11.2.E1
-    // H_v(x) = (x/2)^(v+1) Σ_{k=0}^∞ (-1)^k (x/2)^(2k) / [Γ(k + 3/2) Γ(k + v + 3/2)]
-
     // Check for potential overflow or high exponents
     if z.abs() > 100.0 && v > 10.0 {
-        // For large arguments with high order, the series might not converge well
-        // and could lead to overflow, so use asymptotic form instead
         return struve_asymptotic(v, x);
     }
 
@@ -161,97 +136,48 @@ fn struve_series(v: f64, x: f64) -> SpecialResult<f64> {
         return Ok(f64::INFINITY);
     }
 
-    let mut sum: f64 = 0.0;
-    let mut k = 0;
-    let mut prev_sum = 0.0;
-    let mut num_equal_terms = 0;
+    // Compute the k=0 term: 1 / [Gamma(3/2) * Gamma(v + 3/2)]
+    let g1_0: f64 = gamma(1.5); // Gamma(3/2) = sqrt(pi)/2
+    let g2_0: f64 = gamma(v + 1.5); // Gamma(v + 3/2)
+    if g2_0 == 0.0 || !g2_0.is_finite() {
+        return Err(SpecialError::ComputationError(
+            "Gamma function overflow in struve_series".to_string(),
+        ));
+    }
 
-    // Pre-compute the first gamma value outside the loop since it's used frequently
-    let v_plus_1_5 = v + 1.5;
+    // Accumulate using term recurrence:
+    //   term_{k+1}/term_k = -z^2 / [(k+3/2)(k+v+3/2)]
+    // This avoids recomputing gamma functions each step.
+    let mut term = 1.0 / (g1_0 * g2_0); // unsigned term magnitude for k=0
+    let mut sum = term; // k=0 is positive
 
-    // Use a more robust convergence approach
-    loop {
-        let sign = if k % 2 == 0 { 1.0 } else { -1.0 };
-        let k_f64 = k as f64;
+    for k in 1..200 {
+        let k_f = k as f64;
+        // Ratio of successive unsigned terms (the (-1)^k sign is handled separately):
+        //   |term_k| = z^{2k} / [Gamma(k+3/2) * Gamma(k+v+3/2)]
+        // Using Gamma(x+1) = x*Gamma(x):
+        //   Gamma(k+3/2) = (k+1/2)*Gamma(k+1/2) = (k+1/2)*(k-1/2)*...*Gamma(3/2)
+        // So the ratio is:
+        //   |term_k| / |term_{k-1}| = z^2 / [(k+1/2)*(k+v+1/2)]
+        let ratio = z_squared / ((k_f + 0.5) * (k_f + v + 0.5));
+        term *= ratio;
 
-        // Compute gamma values with protection against overflow
-        let g1 = if k > 170 {
-            // For large k, use Stirling's approximation or log-gamma
-            let log_g1 = LN_PI / 2.0 + (k_f64 + 1.5) * (k_f64 + 1.5).ln() - (k_f64 + 1.5);
-            log_g1.exp()
-        } else {
-            gamma(k_f64 + 1.5)
-        };
-
-        let g2 = if k_f64 + v_plus_1_5 > 170.0 {
-            let log_g2 = LN_PI / 2.0 + (k_f64 + v_plus_1_5) * (k_f64 + v_plus_1_5).ln()
-                - (k_f64 + v_plus_1_5);
-            log_g2.exp()
-        } else {
-            gamma(k_f64 + v_plus_1_5)
-        };
-
-        // Guard against division by zero or overflow
-        if g1.is_infinite() || g2.is_infinite() || (g1 * g2).abs() < 1e-300 {
-            break;
-        }
-
-        // Calculate term with handling for potential overflow
-        let pow_result = if k > 100 {
-            // For large k, use logarithms to compute power
-            (2.0 * k as f64 * z_squared.ln()).exp()
-        } else {
-            z_squared.powi(k)
-        };
-
-        let term = sign * pow_result / (g1 * g2);
-
-        // Check for NaN or Inf
         if !term.is_finite() {
             break;
         }
 
-        sum += term;
+        let sign = if k % 2 == 0 { 1.0 } else { -1.0 };
+        sum += sign * term;
 
-        // Convergence check with multiple conditions
-        let abs_term = term.abs();
-        let abs_sum = sum.abs();
-
-        // Absolute tolerance
-        let abs_tol = 1e-15;
-
-        // Relative tolerance (avoiding division by zero)
-        let rel_tol = 1e-15 * abs_sum.max(1e-300);
-
-        // Early exit criteria if we hit machine precision
-        if abs_term < abs_tol || abs_term < rel_tol {
+        // Convergence: when the term is small enough relative to sum
+        if term < 1e-15 * sum.abs().max(1e-300) && k > 3 {
             break;
         }
-
-        // Check if the sum is no longer changing significantly
-        if (sum - prev_sum).abs() < 1e-15 * abs_sum {
-            num_equal_terms += 1;
-            if num_equal_terms > 3 {
-                // If sum doesn't change for several iterations, exit
-                break;
-            }
-        } else {
-            num_equal_terms = 0;
-        }
-
-        prev_sum = sum;
-
-        // Safety limit
-        if k > 70 {
-            break;
-        }
-
-        k += 1;
     }
 
-    // Final calculation with overflow protection
-    let z_pow_v_plus_1 = if v + 1.0 > 700.0 / z.ln() {
-        // If v is very large, this could overflow
+    // Multiply by (x/2)^(v+1)
+    let log_z = z.ln();
+    let z_pow_v_plus_1 = if log_z > 0.0 && (v + 1.0) * log_z > 700.0 {
         f64::INFINITY
     } else {
         z.powf(v + 1.0)
@@ -557,7 +483,7 @@ fn log_gamma(x: f64) -> SpecialResult<f64> {
 /// ```
 /// use scirs2_special::mod_struve;
 ///
-/// let l0_1 = mod_struve(0.0, 1.0).unwrap();
+/// let l0_1 = mod_struve(0.0, 1.0).expect("mod_struve failed");
 /// println!("L_0(1.0) = {}", l0_1);
 /// ```
 #[allow(dead_code)]
@@ -584,6 +510,8 @@ pub fn mod_struve(v: f64, x: f64) -> SpecialResult<f64> {
 
     if x.abs() < 20.0 {
         // Use the series expansion for small x
+        // L_v(x) = (x/2)^(v+1) * sum_{k=0}^inf (x/2)^{2k} / [Gamma(k+3/2) * Gamma(k+v+3/2)]
+        // Same as struve_series but without alternating signs (all terms positive)
         let z = 0.5 * x;
         let z_squared = z * z;
 
@@ -598,96 +526,38 @@ pub fn mod_struve(v: f64, x: f64) -> SpecialResult<f64> {
             return Ok(f64::INFINITY);
         }
 
-        // From DLMF: L_v(x) = (x/2)^(v+1) Σ_{k=0}^∞ (x/2)^(2k) / [Γ(k + 3/2) Γ(k + v + 3/2)]
-        let mut sum: f64 = 0.0;
-        let mut k = 0;
-        let mut prev_sum = 0.0;
-        let mut num_equal_terms = 0;
+        // k=0 term: 1 / [Gamma(3/2) * Gamma(v+3/2)]
+        let g1_0: f64 = gamma(1.5);
+        let g2_0: f64 = gamma(v + 1.5);
+        if g2_0 == 0.0 || !g2_0.is_finite() || !g1_0.is_finite() {
+            return Err(SpecialError::ComputationError(
+                "Gamma function overflow in mod_struve series".to_string(),
+            ));
+        }
 
-        // Pre-compute the first gamma value outside the loop
-        let v_plus_1_5 = v + 1.5;
+        let mut term = 1.0 / (g1_0 * g2_0);
+        let mut sum = term;
 
-        loop {
-            let k_f64 = k as f64;
+        for k in 1..200 {
+            let k_f = k as f64;
+            // Ratio: term_k / term_{k-1} = z^2 / [(k+1/2)*(k+v+1/2)]
+            let ratio = z_squared / ((k_f + 0.5) * (k_f + v + 0.5));
+            term *= ratio;
 
-            // Compute gamma values with protection against overflow
-            let g1 = if k > 170 {
-                // For large k, use Stirling's approximation
-                let log_g1 = LN_PI / 2.0 + (k_f64 + 1.5) * (k_f64 + 1.5).ln() - (k_f64 + 1.5);
-                log_g1.exp()
-            } else {
-                gamma(k_f64 + 1.5)
-            };
-
-            let g2 = if k_f64 + v_plus_1_5 > 170.0 {
-                let log_g2 = LN_PI / 2.0 + (k_f64 + v_plus_1_5) * (k_f64 + v_plus_1_5).ln()
-                    - (k_f64 + v_plus_1_5);
-                log_g2.exp()
-            } else {
-                gamma(k_f64 + v_plus_1_5)
-            };
-
-            // Guard against division by zero or overflow
-            if g1.is_infinite() || g2.is_infinite() || (g1 * g2).abs() < 1e-300 {
-                break;
-            }
-
-            // Calculate term with handling for potential overflow
-            let pow_result = if k > 100 {
-                // For large k, use logarithms to compute power
-                (2.0 * k as f64 * z_squared.ln()).exp()
-            } else {
-                z_squared.powi(k)
-            };
-
-            let term = pow_result / (g1 * g2);
-
-            // Check for NaN or Inf
             if !term.is_finite() {
                 break;
             }
 
-            sum += term;
+            sum += term; // all terms positive for modified Struve
 
-            // Convergence check with multiple conditions
-            let abs_term = term.abs();
-            let abs_sum = sum.abs();
-
-            // Absolute tolerance
-            let abs_tol = 1e-15;
-
-            // Relative tolerance (avoiding division by zero)
-            let rel_tol = 1e-15 * abs_sum.max(1e-300);
-
-            // Early exit criteria if we hit machine precision
-            if abs_term < abs_tol || abs_term < rel_tol {
+            if term < 1e-15 * sum && k > 3 {
                 break;
             }
-
-            // Check if the sum is no longer changing significantly
-            if (sum - prev_sum).abs() < 1e-15 * abs_sum {
-                num_equal_terms += 1;
-                if num_equal_terms > 3 {
-                    // If sum doesn't change for several iterations, exit
-                    break;
-                }
-            } else {
-                num_equal_terms = 0;
-            }
-
-            prev_sum = sum;
-
-            // Safety limit
-            if k > 70 {
-                break;
-            }
-
-            k += 1;
         }
 
-        // Final calculation with overflow protection
-        let z_pow_v_plus_1 = if v + 1.0 > 700.0 / z.ln() {
-            // If v is very large, this could overflow
+        // Multiply by (x/2)^(v+1)
+        let log_z = z.ln();
+        let z_pow_v_plus_1 = if log_z > 0.0 && (v + 1.0) * log_z > 700.0 {
             f64::INFINITY
         } else {
             z.powf(v + 1.0)
@@ -975,7 +845,7 @@ fn fact_squared(n: usize) -> f64 {
 /// ```
 /// use scirs2_special::it_struve0;
 ///
-/// let its0_1 = it_struve0(1.0).unwrap();
+/// let its0_1 = it_struve0(1.0).expect("it_struve0 failed");
 /// println!("∫_0_^1 H_0(t) dt = {}", its0_1);
 /// ```
 #[allow(dead_code)]
@@ -1126,7 +996,7 @@ fn fact_squared_log(n: usize) -> f64 {
 /// ```
 /// use scirs2_special::it2_struve0;
 ///
-/// let it2s0_1 = it2_struve0(1.0).unwrap();
+/// let it2s0_1 = it2_struve0(1.0).expect("it2_struve0 failed");
 /// println!("∫_0_^x ∫_0_^t H_0(s) ds dt = {}", it2s0_1);
 /// ```
 #[allow(dead_code)]
@@ -1184,7 +1054,7 @@ pub fn it2_struve0(x: f64) -> SpecialResult<f64> {
 /// ```
 /// use scirs2_special::it_mod_struve0;
 ///
-/// let itl0_1 = it_mod_struve0(1.0).unwrap();
+/// let itl0_1 = it_mod_struve0(1.0).expect("it_mod_struve0 failed");
 /// println!("∫_0_^1 L_0(t) dt = {}", itl0_1);
 /// ```
 #[allow(dead_code)]
@@ -1222,5 +1092,282 @@ pub fn it_mod_struve0(x: f64) -> SpecialResult<f64> {
         let bessel_i1 = bessel_i_approximation(1.0, x)?;
 
         Ok(mod_struve_0 * x - bessel_i1 * x + 2.0 / PI * (x.exp() - 1.0))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ====== Struve H_v(x) tests ======
+
+    #[test]
+    fn test_struve_h0_at_zero() {
+        let result = struve(0.0, 0.0).expect("struve(0,0) failed");
+        assert!(
+            (result - 0.0).abs() < 1e-14,
+            "H_0(0) should be 0, got {result}"
+        );
+    }
+
+    #[test]
+    fn test_struve_h0_small_x() {
+        // H_0(1) reference value from DLMF / Abramowitz & Stegun: 0.56865662704...
+        let result = struve(0.0, 1.0).expect("struve(0,1) failed");
+        assert!(
+            (result - 0.568_656_627_04).abs() < 1e-6,
+            "H_0(1) ~ 0.568657, got {result}"
+        );
+    }
+
+    #[test]
+    fn test_struve_h0_moderate_x() {
+        // H_0(5) reference from SciPy: -0.1852168157766849
+        let result = struve(0.0, 5.0).expect("struve(0,5) failed");
+        assert!(
+            (result - (-0.185_216_815_776_684_9)).abs() < 1e-6,
+            "H_0(5) ~ -0.18522, got {result}"
+        );
+    }
+
+    #[test]
+    fn test_struve_h1_at_zero() {
+        let result = struve(1.0, 0.0).expect("struve(1,0) failed");
+        assert!(
+            (result - 0.0).abs() < 1e-14,
+            "H_1(0) should be 0, got {result}"
+        );
+    }
+
+    #[test]
+    fn test_struve_h1_small_x() {
+        // H_1(1) reference from SciPy: 0.19845733620194442
+        let result = struve(1.0, 1.0).expect("struve(1,1) failed");
+        assert!(
+            (result - 0.198_457_336_201_944_42).abs() < 1e-6,
+            "H_1(1) ~ 0.19846, got {result}"
+        );
+    }
+
+    #[test]
+    fn test_struve_fractional_order() {
+        // H_0.5(1) should be computable
+        let result = struve(0.5, 1.0).expect("struve(0.5,1) failed");
+        assert!(
+            result.is_finite(),
+            "H_0.5(1) should be finite, got {result}"
+        );
+        // H_0.5(1) is a positive value, roughly ~ 0.34 from series
+        assert!(result > 0.0, "H_0.5(1) should be positive");
+    }
+
+    #[test]
+    fn test_struve_nan_input() {
+        let result = struve(0.0, f64::NAN);
+        assert!(result.is_err(), "struve with NaN input should return error");
+    }
+
+    #[test]
+    fn test_struve_negative_order_at_zero() {
+        // H_{-1}(0) = 2/pi
+        let result = struve(-1.0, 0.0).expect("struve(-1,0) failed");
+        assert!(
+            (result - FRAC_2_PI).abs() < 1e-14,
+            "H_{{-1}}(0) should be 2/pi, got {result}"
+        );
+    }
+
+    // ====== Modified Struve L_v(x) tests ======
+
+    #[test]
+    fn test_mod_struve_l0_at_zero() {
+        let result = mod_struve(0.0, 0.0).expect("mod_struve(0,0) failed");
+        assert!(
+            (result - 0.0).abs() < 1e-14,
+            "L_0(0) should be 0, got {result}"
+        );
+    }
+
+    #[test]
+    fn test_mod_struve_l0_small_x() {
+        // L_0(1) reference from SciPy: 0.710243185937891
+        let result = mod_struve(0.0, 1.0).expect("mod_struve(0,1) failed");
+        assert!(
+            (result - 0.710_243_185_937_891).abs() < 1e-4,
+            "L_0(1) ~ 0.71024, got {result}"
+        );
+    }
+
+    #[test]
+    fn test_mod_struve_l1_small_x() {
+        // L_1(1) reference from SciPy: 0.22676438105580865
+        let result = mod_struve(1.0, 1.0).expect("mod_struve(1,1) failed");
+        assert!(
+            (result - 0.226_764_381_055_808_65).abs() < 1e-4,
+            "L_1(1) ~ 0.22676, got {result}"
+        );
+    }
+
+    #[test]
+    fn test_mod_struve_nan_input() {
+        let result = mod_struve(0.0, f64::NAN);
+        assert!(
+            result.is_err(),
+            "mod_struve with NaN input should return error"
+        );
+    }
+
+    #[test]
+    fn test_mod_struve_l0_moderate_x() {
+        // L_0(5) should be large and positive, consistent with modified Bessel behavior
+        let result = mod_struve(0.0, 5.0).expect("mod_struve(0,5) failed");
+        assert!(result > 10.0, "L_0(5) should be > 10, got {result}");
+        assert!(result.is_finite(), "L_0(5) should be finite");
+    }
+
+    // ====== Integrated Struve tests ======
+
+    #[test]
+    fn test_it_struve0_at_zero() {
+        let result = it_struve0(0.0).expect("it_struve0(0) failed");
+        assert!(
+            (result - 0.0).abs() < 1e-14,
+            "integral of H_0 at 0 should be 0, got {result}"
+        );
+    }
+
+    #[test]
+    fn test_it_struve0_small_x() {
+        // The integral of H_0(t) from 0 to 1
+        let result = it_struve0(1.0).expect("it_struve0(1) failed");
+        assert!(
+            result > 0.0,
+            "integral of H_0 from 0 to 1 should be positive"
+        );
+        assert!(result.is_finite(), "integral of H_0 at 1 should be finite");
+    }
+
+    #[test]
+    fn test_it_struve0_moderate_x() {
+        let result = it_struve0(5.0).expect("it_struve0(5) failed");
+        assert!(result.is_finite(), "integral of H_0 at 5 should be finite");
+    }
+
+    #[test]
+    fn test_it_struve0_nan_input() {
+        let result = it_struve0(f64::NAN);
+        assert!(
+            result.is_err(),
+            "it_struve0 with NaN input should return error"
+        );
+    }
+
+    #[test]
+    fn test_it_struve0_negative_x() {
+        // Integral of H_0 over negative range - should be negative of positive
+        let pos = it_struve0(2.0).expect("it_struve0(2) failed");
+        let neg = it_struve0(-2.0).expect("it_struve0(-2) failed");
+        // H_0 is an odd function in a sense through the series, so integral is related
+        assert!(pos.is_finite());
+        assert!(neg.is_finite());
+    }
+
+    // ====== it2_struve0 tests ======
+
+    #[test]
+    fn test_it2_struve0_at_zero() {
+        let result = it2_struve0(0.0).expect("it2_struve0(0) failed");
+        assert!(
+            (result - 0.0).abs() < 1e-14,
+            "second integral of H_0 at 0 should be 0, got {result}"
+        );
+    }
+
+    #[test]
+    fn test_it2_struve0_small_x() {
+        let result = it2_struve0(1.0).expect("it2_struve0(1) failed");
+        assert!(
+            result.is_finite(),
+            "second integral of H_0 at 1 should be finite"
+        );
+    }
+
+    #[test]
+    fn test_it2_struve0_moderate_x() {
+        let result = it2_struve0(5.0).expect("it2_struve0(5) failed");
+        assert!(
+            result.is_finite(),
+            "second integral of H_0 at 5 should be finite"
+        );
+    }
+
+    #[test]
+    fn test_it2_struve0_nan_input() {
+        let result = it2_struve0(f64::NAN);
+        assert!(
+            result.is_err(),
+            "it2_struve0 with NaN input should return error"
+        );
+    }
+
+    #[test]
+    fn test_it2_struve0_consistency() {
+        // it2_struve0 at moderate x should be smooth (no discontinuity)
+        let r1 = it2_struve0(2.0).expect("it2_struve0(2) failed");
+        let r2 = it2_struve0(2.1).expect("it2_struve0(2.1) failed");
+        assert!(
+            (r2 - r1).abs() < 1.0,
+            "second integral should be smooth: {r1} vs {r2}"
+        );
+    }
+
+    // ====== it_mod_struve0 tests ======
+
+    #[test]
+    fn test_it_mod_struve0_at_zero() {
+        let result = it_mod_struve0(0.0).expect("it_mod_struve0(0) failed");
+        assert!(
+            (result - 0.0).abs() < 1e-14,
+            "integral of L_0 at 0 should be 0, got {result}"
+        );
+    }
+
+    #[test]
+    fn test_it_mod_struve0_small_x() {
+        let result = it_mod_struve0(1.0).expect("it_mod_struve0(1) failed");
+        assert!(
+            result > 0.0,
+            "integral of L_0 from 0 to 1 should be positive"
+        );
+        assert!(result.is_finite(), "integral of L_0 at 1 should be finite");
+    }
+
+    #[test]
+    fn test_it_mod_struve0_moderate_x() {
+        let result = it_mod_struve0(5.0).expect("it_mod_struve0(5) failed");
+        assert!(
+            result > 0.0,
+            "integral of L_0 from 0 to 5 should be positive"
+        );
+        assert!(result.is_finite(), "integral of L_0 at 5 should be finite");
+    }
+
+    #[test]
+    fn test_it_mod_struve0_nan_input() {
+        let result = it_mod_struve0(f64::NAN);
+        assert!(
+            result.is_err(),
+            "it_mod_struve0 with NaN input should return error"
+        );
+    }
+
+    #[test]
+    fn test_it_mod_struve0_monotonic() {
+        // Integral of L_0 should be monotonically increasing for x > 0
+        let r1 = it_mod_struve0(1.0).expect("it_mod_struve0(1) failed");
+        let r2 = it_mod_struve0(2.0).expect("it_mod_struve0(2) failed");
+        let r3 = it_mod_struve0(3.0).expect("it_mod_struve0(3) failed");
+        assert!(r2 > r1, "integral of L_0 should be increasing: {r1} < {r2}");
+        assert!(r3 > r2, "integral of L_0 should be increasing: {r2} < {r3}");
     }
 }

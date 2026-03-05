@@ -3,13 +3,15 @@
 //! Provides interpolation methods similar to scipy.interpolate
 
 use pyo3::prelude::*;
-use scirs2_numpy::{PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
-use scirs2_core::python::numpy_compat::{scirs_to_numpy_array1, scirs_to_numpy_array2, Array1, Array2};
 use scirs2_core::ndarray::{Array1 as Array1_17, Array2 as Array2_17};
+use scirs2_core::python::numpy_compat::{
+    scirs_to_numpy_array1, scirs_to_numpy_array2, Array1, Array2,
+};
+use scirs2_numpy::{PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
 
-use scirs2_interpolate::interp1d::{Interp1d, InterpolationMethod, ExtrapolateMode};
-use scirs2_interpolate::spline::CubicSpline;
+use scirs2_interpolate::interp1d::{ExtrapolateMode, Interp1d, InterpolationMethod};
 use scirs2_interpolate::interp2d::{Interp2d, Interp2dKind};
+use scirs2_interpolate::spline::CubicSpline;
 
 /// 1D interpolation class
 #[pyclass(name = "Interp1d")]
@@ -59,14 +61,12 @@ impl PyInterp1d {
     }
 
     /// Evaluate the interpolator at new points
-    fn __call__(
-        &self,
-        py: Python,
-        x_new: PyReadonlyArray1<f64>,
-    ) -> PyResult<Py<PyArray1<f64>>> {
+    fn __call__(&self, py: Python, x_new: PyReadonlyArray1<f64>) -> PyResult<Py<PyArray1<f64>>> {
         let x_vec: Vec<f64> = x_new.as_array().to_vec();
         let x_arr = Array1_17::from_vec(x_vec);
-        let result = self.interp.evaluate_array(&x_arr.view())
+        let result = self
+            .interp
+            .evaluate_array(&x_arr.view())
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
         // Convert back to numpy-compatible array
         scirs_to_numpy_array1(Array1::from_vec(result.to_vec()), py)
@@ -74,7 +74,8 @@ impl PyInterp1d {
 
     /// Evaluate at a single point
     fn eval_single(&self, x: f64) -> PyResult<f64> {
-        self.interp.evaluate(x)
+        self.interp
+            .evaluate(x)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))
     }
 }
@@ -95,25 +96,20 @@ impl PyCubicSpline {
     /// - bc_type: boundary condition type ('natural', 'not-a-knot', 'clamped', 'periodic')
     #[new]
     #[pyo3(signature = (x, y, bc_type="natural"))]
-    fn new(
-        x: PyReadonlyArray1<f64>,
-        y: PyReadonlyArray1<f64>,
-        bc_type: &str,
-    ) -> PyResult<Self> {
+    fn new(x: PyReadonlyArray1<f64>, y: PyReadonlyArray1<f64>, bc_type: &str) -> PyResult<Self> {
         let x_vec: Vec<f64> = x.as_array().to_vec();
         let y_vec: Vec<f64> = y.as_array().to_vec();
         let x_arr = Array1_17::from_vec(x_vec);
         let y_arr = Array1_17::from_vec(y_vec);
 
         let spline = match bc_type.to_lowercase().as_str() {
-            "natural" | "not-a-knot" | "periodic" => {
-                CubicSpline::new(&x_arr.view(), &y_arr.view())
-                    .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("{e}")))?
-            }
+            "natural" | "not-a-knot" | "periodic" => CubicSpline::new(&x_arr.view(), &y_arr.view())
+                .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("{e}")))?,
             _ => {
-                return Err(pyo3::exceptions::PyValueError::new_err(
-                    format!("Unsupported boundary condition: {}", bc_type)
-                ));
+                return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                    "Unsupported boundary condition: {}",
+                    bc_type
+                )));
             }
         };
 
@@ -121,16 +117,14 @@ impl PyCubicSpline {
     }
 
     /// Evaluate the spline at new points
-    fn __call__(
-        &self,
-        py: Python,
-        x_new: PyReadonlyArray1<f64>,
-    ) -> PyResult<Py<PyArray1<f64>>> {
+    fn __call__(&self, py: Python, x_new: PyReadonlyArray1<f64>) -> PyResult<Py<PyArray1<f64>>> {
         let x_vec: Vec<f64> = x_new.as_array().to_vec();
         let mut result = Vec::with_capacity(x_vec.len());
 
         for &x in &x_vec {
-            let y = self.spline.evaluate(x)
+            let y = self
+                .spline
+                .evaluate(x)
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
             result.push(y);
         }
@@ -140,7 +134,8 @@ impl PyCubicSpline {
 
     /// Evaluate at a single point
     fn eval_single(&self, x: f64) -> PyResult<f64> {
-        self.spline.evaluate(x)
+        self.spline
+            .evaluate(x)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))
     }
 
@@ -160,7 +155,9 @@ impl PyCubicSpline {
         let mut result = Vec::with_capacity(x_vec.len());
 
         for &x in &x_vec {
-            let y = self.spline.derivative_n(x, nu)
+            let y = self
+                .spline
+                .derivative_n(x, nu)
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
             result.push(y);
         }
@@ -174,7 +171,8 @@ impl PyCubicSpline {
     /// - a: lower bound
     /// - b: upper bound
     fn integrate(&self, a: f64, b: f64) -> PyResult<f64> {
-        self.spline.integrate(a, b)
+        self.spline
+            .integrate(a, b)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))
     }
 }
@@ -212,8 +210,9 @@ impl PyInterp2d {
         // Convert to Array2_17
         let z_shape = z_arr.shape();
         let z_vec: Vec<f64> = z_arr.iter().copied().collect();
-        let z_arr_17 = Array2_17::from_shape_vec((z_shape[0], z_shape[1]), z_vec)
-            .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid z array: {e}")))?;
+        let z_arr_17 = Array2_17::from_shape_vec((z_shape[0], z_shape[1]), z_vec).map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("Invalid z array: {e}"))
+        })?;
 
         let interp_kind = match kind.to_lowercase().as_str() {
             "linear" => Interp2dKind::Linear,
@@ -230,7 +229,8 @@ impl PyInterp2d {
 
     /// Evaluate at a single point (x, y)
     fn __call__(&self, x: f64, y: f64) -> PyResult<f64> {
-        self.interp.evaluate(x, y)
+        self.interp
+            .evaluate(x, y)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))
     }
 
@@ -250,7 +250,9 @@ impl PyInterp2d {
         let x_arr = Array1_17::from_vec(x_vec);
         let y_arr = Array1_17::from_vec(y_vec);
 
-        let result = self.interp.evaluate_array(&x_arr.view(), &y_arr.view())
+        let result = self
+            .interp
+            .evaluate_array(&x_arr.view(), &y_arr.view())
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
         scirs_to_numpy_array1(Array1::from_vec(result.to_vec()), py)
@@ -275,13 +277,18 @@ impl PyInterp2d {
         let x_arr = Array1_17::from_vec(x_vec);
         let y_arr = Array1_17::from_vec(y_vec);
 
-        let result = self.interp.evaluate_grid(&x_arr.view(), &y_arr.view())
+        let result = self
+            .interp
+            .evaluate_grid(&x_arr.view(), &y_arr.view())
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
         // Convert Array2_17 to Array2 (ndarray 0.16)
         let shape = result.dim();
         let vec: Vec<f64> = result.into_iter().collect();
-        scirs_to_numpy_array2(Array2::from_shape_vec(shape, vec).expect("Operation failed"), py)
+        scirs_to_numpy_array2(
+            Array2::from_shape_vec(shape, vec).expect("Operation failed"),
+            py,
+        )
     }
 }
 
@@ -303,10 +310,14 @@ fn interp_py(
 
     let n = xp_arr.len();
     if n == 0 {
-        return Err(pyo3::exceptions::PyValueError::new_err("xp must not be empty"));
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "xp must not be empty",
+        ));
     }
     if n != fp_arr.len() {
-        return Err(pyo3::exceptions::PyValueError::new_err("xp and fp must have same length"));
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "xp and fp must have same length",
+        ));
     }
 
     let xp_slice = xp_arr.as_slice().expect("Operation failed");
@@ -356,7 +367,9 @@ fn interp_with_bounds_py(
 
     let n = xp_arr.len();
     if n == 0 || fp_arr.len() != n {
-        return Err(pyo3::exceptions::PyValueError::new_err("Invalid input arrays"));
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "Invalid input arrays",
+        ));
     }
 
     let mut result = Vec::with_capacity(x_arr.len());

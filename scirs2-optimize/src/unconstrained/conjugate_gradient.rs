@@ -8,13 +8,15 @@ use scirs2_core::ndarray::{Array1, ArrayView1};
 
 /// Implements the Conjugate Gradient method for unconstrained optimization with optional bounds support
 #[allow(dead_code)]
-pub fn minimize_conjugate_gradient<F, S>(
+pub fn minimize_conjugate_gradient<F, G, S>(
     mut fun: F,
+    grad: Option<G>,
     x0: Array1<f64>,
     options: &Options,
 ) -> Result<OptimizeResult<S>, OptimizeError>
 where
     F: FnMut(&ArrayView1<f64>) -> S + Clone,
+    G: Fn(&ArrayView1<f64>) -> Array1<f64>,
     S: Into<f64> + Clone,
 {
     // Get options or use defaults
@@ -35,8 +37,12 @@ where
 
     let mut f = fun(&x.view()).into();
 
-    // Calculate initial gradient using finite differences
-    let mut g = finite_difference_gradient(&mut fun, &x.view(), eps)?;
+    // Calculate initial gradient using user-provided function or finite differences
+    let mut g = if let Some(ref grad_fn) = grad {
+        grad_fn(&x.view())
+    } else {
+        finite_difference_gradient(&mut fun, &x.view(), eps)?
+    };
 
     // Initialize search direction as projected steepest descent
     let mut p = -g.clone();
@@ -48,7 +54,7 @@ where
 
     // Counters
     let mut iter = 0;
-    let mut nfev = 1 + n; // Initial evaluation plus gradient calculations
+    let mut nfev = if grad.is_some() { 1 } else { 1 + n }; // Initial evaluation plus gradient calculations (if using FD)
 
     while iter < max_iter {
         // Check convergence on gradient
@@ -81,9 +87,14 @@ where
             break;
         }
 
-        // Compute new gradient
-        let g_new = finite_difference_gradient(&mut fun, &x_new.view(), eps)?;
-        nfev += n;
+        // Compute new gradient using user-provided function or finite differences
+        let g_new = if let Some(ref grad_fn) = grad {
+            grad_fn(&x_new.view())
+        } else {
+            let g = finite_difference_gradient(&mut fun, &x_new.view(), eps)?;
+            nfev += n;
+            g
+        };
 
         // Check convergence on function value
         if check_convergence(
@@ -325,8 +336,13 @@ mod tests {
         let x0 = Array1::from_vec(vec![2.0, 1.0]);
         let options = Options::default();
 
-        let result =
-            minimize_conjugate_gradient(quadratic, x0, &options).expect("Operation failed");
+        let result = minimize_conjugate_gradient(
+            quadratic,
+            None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+            x0,
+            &options,
+        )
+        .expect("Operation failed");
 
         assert!(result.success);
         assert_abs_diff_eq!(result.x[0], 0.0, epsilon = 1e-4);
@@ -345,8 +361,13 @@ mod tests {
         let mut options = Options::default();
         options.max_iter = 2000; // Increase iterations for difficult Rosenbrock function
 
-        let result =
-            minimize_conjugate_gradient(rosenbrock, x0, &options).expect("Operation failed");
+        let result = minimize_conjugate_gradient(
+            rosenbrock,
+            None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+            x0,
+            &options,
+        )
+        .expect("Operation failed");
 
         assert!(result.success);
         // Rosenbrock is difficult for CG, accept if we get reasonably close
@@ -375,13 +396,32 @@ mod tests {
         let bounds = Bounds::new(&[(Some(0.0), Some(1.0)), (Some(0.0), Some(1.0))]);
         options.bounds = Some(bounds);
 
-        let result =
-            minimize_conjugate_gradient(quadratic, x0, &options).expect("Operation failed");
+        let result = minimize_conjugate_gradient(
+            quadratic,
+            None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+            x0,
+            &options,
+        )
+        .expect("Operation failed");
 
         assert!(result.success);
         // The optimal point (2, 3) is outside the bounds, so we should get (1, 1)
         // Allow more tolerance for this challenging bounded problem
         assert_abs_diff_eq!(result.x[0], 1.0, epsilon = 0.4);
         assert_abs_diff_eq!(result.x[1], 1.0, epsilon = 0.4);
+    }
+
+    #[test]
+    fn test_cg_with_analytic_gradient() {
+        let fun = |x: &ArrayView1<f64>| -> f64 { x[0].powi(2) + 4.0 * x[1].powi(2) };
+        let grad_fn =
+            |x: &ArrayView1<f64>| -> Array1<f64> { Array1::from_vec(vec![2.0 * x[0], 8.0 * x[1]]) };
+        let x0 = Array1::from_vec(vec![2.0, 1.0]);
+        let options = Options::default();
+        let result = minimize_conjugate_gradient(fun, Some(grad_fn), x0, &options)
+            .expect("Operation failed");
+        assert!(result.success);
+        assert_abs_diff_eq!(result.x[0], 0.0, epsilon = 1e-4);
+        assert_abs_diff_eq!(result.x[1], 0.0, epsilon = 1e-4);
     }
 }

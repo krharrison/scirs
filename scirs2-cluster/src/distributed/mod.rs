@@ -22,7 +22,7 @@
 //! use scirs2_core::ndarray::Array2;
 //!
 //! // Create sample data
-//! let data = Array2::from_shape_vec((1000, 2), (0..2000).map(|x| x as f64).collect()).unwrap();
+//! let data = Array2::from_shape_vec((1000, 2), (0..2000).map(|x| x as f64).collect()).expect("operation should succeed");
 //!
 //! // Configure distributed clustering
 //! let config = DistributedKMeansConfig {
@@ -34,8 +34,8 @@
 //! };
 //!
 //! // Create and fit distributed K-means
-//! let mut kmeans = DistributedKMeans::new(5, config).unwrap();
-//! let result = kmeans.fit(data.view()).unwrap();
+//! let mut kmeans = DistributedKMeans::new(5, config).expect("operation should succeed");
+//! let result = kmeans.fit(data.view()).expect("operation should succeed");
 //!
 //! println!("Clustering completed in {} iterations", result.n_iterations);
 //! println!("Final inertia: {:.6}", result.inertia);

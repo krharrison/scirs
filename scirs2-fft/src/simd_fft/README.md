@@ -28,10 +28,10 @@ let signal: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0];
 
 // Compute FFT using adaptive implementation
 // This will automatically use SIMD if available
-let spectrum = fft_adaptive(&signal, None, None).unwrap();
+let spectrum = fft_adaptive(&signal, None, None).expect("valid input");
 
 // Compute IFFT to recover the signal
-let recovered_signal = ifft_adaptive(&spectrum, None, None).unwrap();
+let recovered_signal = ifft_adaptive(&spectrum, None, None).expect("valid input");
 
 // Extract real part of the recovered signal
 let real_part: Vec<f64> = recovered_signal.iter().map(|c| c.re).collect();
@@ -49,10 +49,10 @@ if scirs2_fft::simd_support_available() {
     let signal = vec![1.0, 2.0, 3.0, 4.0];
     
     // SIMD version of FFT
-    let spectrum = fft_simd(&signal, None, None).unwrap();
-    
+    let spectrum = fft_simd(&signal, None, None).expect("valid input");
+
     // SIMD version of IFFT
-    let recovered = ifft_simd(&spectrum, None, None).unwrap();
+    let recovered = ifft_simd(&spectrum, None, None).expect("valid input");
 }
 ```
 
@@ -67,10 +67,10 @@ let height = 8;
 let signal = vec![1.0; width * height];
 
 // Compute 2D FFT
-let spectrum = fft2_adaptive(&signal, [height, width], None, None).unwrap();
+let spectrum = fft2_adaptive(&signal, [height, width], None, None).expect("valid input");
 
 // Compute inverse 2D FFT
-let recovered = ifft2_adaptive(&spectrum, [height, width], None, None).unwrap();
+let recovered = ifft2_adaptive(&spectrum, [height, width], None, None).expect("valid input");
 ```
 
 ### N-dimensional FFT Example
@@ -83,10 +83,10 @@ let shape = [4, 4, 4];
 let signal = vec![1.0; shape.iter().product()];
 
 // Compute ND FFT
-let spectrum = fftn_adaptive(&signal, &shape, None, None).unwrap();
+let spectrum = fftn_adaptive(&signal, &shape, None, None).expect("valid input");
 
 // Compute inverse ND FFT
-let recovered = ifftn_adaptive(&spectrum, &shape, None, None).unwrap();
+let recovered = ifftn_adaptive(&spectrum, &shape, None, None).expect("valid input");
 ```
 
 ## Performance Considerations

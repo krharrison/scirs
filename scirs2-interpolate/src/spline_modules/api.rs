@@ -50,13 +50,13 @@ use super::types::SplineBoundaryCondition;
 /// let y = array![0.0, 1.0, 4.0, 9.0];
 ///
 /// // Natural boundary conditions
-/// let spline1 = cubic_spline_scipy(&x.view(), &y.view(), "natural", None, false).unwrap();
+/// let spline1 = cubic_spline_scipy(&x.view(), &y.view(), "natural", None, false).expect("doc example: should succeed");
 ///
 /// // Clamped boundary conditions
-/// let spline2 = cubic_spline_scipy(&x.view(), &y.view(), "clamped", Some((0.0, 6.0)), false).unwrap();
+/// let spline2 = cubic_spline_scipy(&x.view(), &y.view(), "clamped", Some((0.0, 6.0)), false).expect("doc example: should succeed");
 ///
 /// // Not-a-knot boundary conditions
-/// let spline3 = cubic_spline_scipy(&x.view(), &y.view(), "not-a-knot", None, false).unwrap();
+/// let spline3 = cubic_spline_scipy(&x.view(), &y.view(), "not-a-knot", None, false).expect("doc example: should succeed");
 /// ```
 pub fn cubic_spline_scipy<F: InterpolationFloat>(
     x: &ArrayView1<F>,
@@ -130,11 +130,11 @@ pub fn cubic_spline_scipy<F: InterpolationFloat>(
 /// let y = array![0.0, 1.0, 4.0, 9.0];
 ///
 /// // Natural boundary conditions
-/// let spline1 = make_interp_spline(&x.view(), &y.view(), "natural", None).unwrap();
+/// let spline1 = make_interp_spline(&x.view(), &y.view(), "natural", None).expect("doc example: should succeed");
 ///
 /// // Clamped boundary conditions with derivatives
 /// let bc_params = array![0.0, 6.0];  // [left_deriv, right_deriv]
-/// let spline2 = make_interp_spline(&x.view(), &y.view(), "clamped", Some(&bc_params.view())).unwrap();
+/// let spline2 = make_interp_spline(&x.view(), &y.view(), "clamped", Some(&bc_params.view())).expect("doc example: should succeed");
 /// ```
 pub fn make_interp_spline<F: InterpolationFloat>(
     x: &ArrayView1<F>,
@@ -205,10 +205,10 @@ pub fn make_interp_spline<F: InterpolationFloat>(
 /// let x = array![0.0, 1.0, 2.0, 3.0];
 /// let y = array![0.0, 1.0, 4.0, 9.0];
 ///
-/// let interp_fn = interp1d_scipy(&x.view(), &y.view(), "cubic", true, None).unwrap();
+/// let interp_fn = interp1d_scipy(&x.view(), &y.view(), "cubic", true, None).expect("doc example: should succeed");
 ///
 /// let x_new = array![0.5, 1.5, 2.5];
-/// let y_interp = interp_fn(&x_new.view()).unwrap();
+/// let y_interp = interp_fn(&x_new.view()).expect("doc example: should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn interp1d_scipy<F: InterpolationFloat>(
@@ -274,7 +274,7 @@ pub fn interp1d_scipy<F: InterpolationFloat>(
 /// let y = array![0.0, 1.0, 4.0, 9.0];
 ///
 /// // Specify curvature at endpoints
-/// let spline = cubic_spline_second_derivative(&x.view(), &y.view(), 1.0, -1.0).unwrap();
+/// let spline = cubic_spline_second_derivative(&x.view(), &y.view(), 1.0, -1.0).expect("doc example: should succeed");
 /// ```
 pub fn cubic_spline_second_derivative<F: InterpolationFloat>(
     x: &ArrayView1<F>,
@@ -312,7 +312,7 @@ pub fn cubic_spline_second_derivative<F: InterpolationFloat>(
 /// let x = array![0.0, 1.0, 2.0, 3.0];
 /// let y = array![0.0, 1.0, 4.0, 9.0];
 ///
-/// let spline = cubic_spline_parabolic_runout(&x.view(), &y.view()).unwrap();
+/// let spline = cubic_spline_parabolic_runout(&x.view(), &y.view()).expect("doc example: should succeed");
 /// ```
 pub fn cubic_spline_parabolic_runout<F: InterpolationFloat>(
     x: &ArrayView1<F>,

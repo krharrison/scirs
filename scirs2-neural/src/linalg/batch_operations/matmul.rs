@@ -33,16 +33,16 @@ use crate::error::{NeuralError, Result};
 /// let a = Array::from_shape_vec(
 ///     (2, 2, 3),
 ///     vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0]
-/// ).unwrap();
+/// ).expect("operation should succeed");
 ///
 /// // Create batch of 2x3x2 matrices (batch_size=2, k=3, n=2)
 /// let b = Array::from_shape_vec(
 ///     (2, 3, 2),
 ///     vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0]
-/// ).unwrap();
+/// ).expect("operation should succeed");
 ///
 /// // Result should be shape [2, 2, 2]
-/// let c = batch_matmul(&a.view(), &b.view()).unwrap();
+/// let c = batch_matmul(&a.view(), &b.view()).expect("operation should succeed");
 /// assert_eq!(c.shape(), &[2, 2, 2]);
 /// ```
 pub fn batch_matmul<F>(a: &ArrayView3<F>, b: &ArrayView3<F>) -> Result<Array3<F>>
@@ -179,16 +179,16 @@ where
 /// let v = Array::from_shape_vec(
 ///     (2, 3),
 ///     vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
-/// ).unwrap();
+/// ).expect("operation should succeed");
 ///
 /// // Create batch of 2x3x2 matrices (batch_size=2, k=3, n=2)
 /// let m = Array::from_shape_vec(
 ///     (2, 3, 2),
 ///     vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0]
-/// ).unwrap();
+/// ).expect("operation should succeed");
 ///
 /// // Result should be shape [2, 2]
-/// let result = batch_vecmat(&v.view(), &m.view()).unwrap();
+/// let result = batch_vecmat(&v.view(), &m.view()).expect("operation should succeed");
 /// assert_eq!(result.shape(), &[2, 2]);
 /// ```
 pub fn batch_vecmat<F>(v: &ArrayView2<F>, m: &ArrayView3<F>) -> Result<Array2<F>>
@@ -266,21 +266,21 @@ where
 /// let a = Array::from_shape_vec(
 ///     (2, 2, 3),
 ///     vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0]
-/// ).unwrap();
+/// ).expect("operation should succeed");
 ///
 /// let b = Array::from_shape_vec(
 ///     (2, 3, 2),
 ///     vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0]
-/// ).unwrap();
+/// ).expect("operation should succeed");
 ///
 /// // Assume a gradient from the next layer
 /// let grad_output = Array::from_shape_vec(
 ///     (2, 2, 2),
 ///     vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
-/// ).unwrap();
+/// ).expect("operation should succeed");
 ///
 /// // Compute gradients
-/// let (grad_a, grad_b) = batch_matmul_backward(&a.view(), &b.view(), &grad_output.view()).unwrap();
+/// let (grad_a, grad_b) = batch_matmul_backward(&a.view(), &b.view(), &grad_output.view()).expect("operation should succeed");
 /// assert_eq!(grad_a.shape(), a.shape());
 /// assert_eq!(grad_b.shape(), b.shape());
 /// ```

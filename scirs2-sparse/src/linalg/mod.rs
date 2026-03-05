@@ -39,8 +39,9 @@ pub use decomposition::{
 };
 pub use eigen::{
     eigs, eigsh, eigsh_generalized, eigsh_generalized_enhanced, eigsh_shift_invert,
-    eigsh_shift_invert_enhanced, lanczos, power_iteration, ArpackOptions, EigenResult,
-    EigenvalueMethod, EigenvalueMode, LanczosOptions, PowerIterationOptions,
+    eigsh_shift_invert_enhanced, iram, iram_shift_invert, lanczos, power_iteration, ArnoldiConfig,
+    ArpackOptions, EigenResult, EigenvalueMethod, EigenvalueMode, LanczosOptions,
+    PowerIterationOptions,
 };
 pub use enhanced_operators::{
     convolution_operator, enhanced_add, enhanced_diagonal, enhanced_scale, enhanced_subtract,

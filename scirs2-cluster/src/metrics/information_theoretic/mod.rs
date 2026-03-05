@@ -21,18 +21,18 @@
 //! let pred_labels = Array1::from_vec(vec![0, 0, 1, 1, 1, 2]);
 //!
 //! // Basic metrics
-//! let mi: f64 = mutual_info_score(true_labels.view(), pred_labels.view()).unwrap();
-//! let nmi: f64 = normalized_mutual_info_score(true_labels.view(), pred_labels.view()).unwrap();
-//! let ari: f64 = adjusted_rand_score(true_labels.view(), pred_labels.view()).unwrap();
+//! let mi: f64 = mutual_info_score(true_labels.view(), pred_labels.view()).expect("operation should succeed");
+//! let nmi: f64 = normalized_mutual_info_score(true_labels.view(), pred_labels.view()).expect("operation should succeed");
+//! let ari: f64 = adjusted_rand_score(true_labels.view(), pred_labels.view()).expect("operation should succeed");
 //!
 //! // V-measure components
 //! let (h, c, v): (f64, f64, f64) = homogeneity_completeness_v_measure(
 //!     true_labels.view(), pred_labels.view()
-//! ).unwrap();
+//! ).expect("operation should succeed");
 //!
 //! // Advanced measures
-//! let js: f64 = jensen_shannon_divergence(true_labels.view(), pred_labels.view()).unwrap();
-//! let vi: f64 = normalized_variation_of_information(true_labels.view(), pred_labels.view()).unwrap();
+//! let js: f64 = jensen_shannon_divergence(true_labels.view(), pred_labels.view()).expect("operation should succeed");
+//! let vi: f64 = normalized_variation_of_information(true_labels.view(), pred_labels.view()).expect("operation should succeed");
 //! ```
 
 // Re-export submodules

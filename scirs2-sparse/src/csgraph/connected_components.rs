@@ -416,11 +416,27 @@ where
         }
     }
 
-    // Create the subgraph
-    // Note: This is a simplified approach. In a real implementation,
-    // we would need to create the specific sparse array type.
-    // For now, we'll return the original graph as a placeholder.
-    let subgraph = graph.clone();
+    // Build the subgraph by cloning and replacing entries.
+    // Since the generic SparseArray trait provides get/set/eliminate_zeros
+    // but no resize, the subgraph has the same shape as the original; only
+    // the entries belonging to the component (remapped into contiguous
+    // indices) are kept.
+    let original_n = num_vertices(graph);
+    let mut subgraph = graph.clone();
+
+    // Zero out all existing entries
+    let (all_rows, all_cols, _) = subgraph.find();
+    for idx in 0..all_rows.len() {
+        let _ = subgraph.set(all_rows[idx], all_cols[idx], T::sparse_zero());
+    }
+    subgraph.eliminate_zeros();
+
+    // Set the remapped entries
+    for idx in 0..new_rows.len() {
+        if new_rows[idx] < original_n && new_cols[idx] < original_n {
+            let _ = subgraph.set(new_rows[idx], new_cols[idx], new_values[idx]);
+        }
+    }
 
     Ok((subgraph, vertex_indices))
 }

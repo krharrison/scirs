@@ -1,0 +1,17 @@
+name = "SciRS2"
+uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+authors = ["COOLJAPAN OU (Team Kitasan)"]
+version = "0.3.0"
+
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Test = "8dfed614-e22c-358a-b7a2-3a0c9e92c69a"
+
+[compat]
+julia = "1.8"
+
+[extras]
+Test = "8dfed614-e22c-358a-b7a2-3a0c9e92c69a"
+
+[targets]
+test = ["Test"]

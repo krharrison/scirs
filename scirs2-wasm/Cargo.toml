@@ -18,7 +18,7 @@ crate-type = ["cdylib", "rlib"]
 scirs2-core = { workspace = true, features = ["array", "random", "serialization"], default-features = false }
 scirs2-linalg = { workspace = true, default-features = false }
 scirs2-stats = { workspace = true, default-features = false }
-scirs2-fft = { workspace = true, default-features = false }
+scirs2-fft = { workspace = true, default-features = false, features = ["oxifft"] }
 scirs2-signal = { workspace = true, default-features = false }
 scirs2-integrate = { workspace = true, default-features = false }
 scirs2-optimize = { workspace = true, default-features = false }

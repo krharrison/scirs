@@ -89,7 +89,12 @@ fn test_bfgs_optimization_integration() {
     let x0 = Array1::from_vec(vec![3.0, -2.0]);
     let options = UnconstrainedOptions::default();
 
-    let result = minimize_bfgs(func, x0, &options);
+    let result = minimize_bfgs(
+        func,
+        None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+        x0,
+        &options,
+    );
     assert!(result.is_ok());
     let result = result.expect("Operation failed");
 
@@ -180,7 +185,13 @@ fn test_unconstrained_workflow() {
     };
 
     // Test L-BFGS
-    let result_lbfgs = minimize_lbfgs(rosenbrock, x0.clone(), &options).expect("Operation failed");
+    let result_lbfgs = minimize_lbfgs(
+        rosenbrock,
+        None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+        x0.clone(),
+        &options,
+    )
+    .expect("Operation failed");
     assert!(result_lbfgs.success, "L-BFGS failed to converge");
     assert!(
         result_lbfgs.fun < 1e-1,
@@ -269,7 +280,13 @@ fn test_problem_types() {
         ..Default::default()
     };
 
-    let result = minimize_bfgs(ill_conditioned, x0.clone(), &options).expect("Operation failed");
+    let result = minimize_bfgs(
+        ill_conditioned,
+        None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+        x0.clone(),
+        &options,
+    )
+    .expect("Operation failed");
     assert!(
         result.fun < 1e-3,
         "Failed on ill-conditioned problem (got {:.2e})",
@@ -281,8 +298,13 @@ fn test_problem_types() {
     let high_dim_quad = |x: &ArrayView1<f64>| -> f64 { x.mapv(|xi| xi * xi).sum() };
 
     let x0_high_dim = Array1::ones(high_dim_size);
-    let result_high_dim =
-        minimize_bfgs(high_dim_quad, x0_high_dim, &options).expect("Operation failed");
+    let result_high_dim = minimize_bfgs(
+        high_dim_quad,
+        None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+        x0_high_dim,
+        &options,
+    )
+    .expect("Operation failed");
     assert!(
         result_high_dim.success,
         "Failed on high-dimensional problem"
@@ -347,7 +369,13 @@ fn test_edge_cases() {
         ..Default::default()
     };
 
-    let result_1d = minimize_bfgs(simple_1d, x0_1d, &options).expect("Operation failed");
+    let result_1d = minimize_bfgs(
+        simple_1d,
+        None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+        x0_1d,
+        &options,
+    )
+    .expect("Operation failed");
     assert!(result_1d.success, "Failed on 1D problem");
     assert!(
         (result_1d.x[0]).abs() < 1e-6,
@@ -357,8 +385,13 @@ fn test_edge_cases() {
     // Test with starting point at optimum
     let x0_optimal = Array1::from_vec(vec![0.0, 0.0]);
     let quad_2d = |x: &ArrayView1<f64>| -> f64 { x[0] * x[0] + x[1] * x[1] };
-    let result_optimal = minimize_bfgs(quad_2d, x0_optimal, &UnconstrainedOptions::default())
-        .expect("Operation failed");
+    let result_optimal = minimize_bfgs(
+        quad_2d,
+        None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+        x0_optimal,
+        &UnconstrainedOptions::default(),
+    )
+    .expect("Operation failed");
     assert!(result_optimal.success, "Failed when starting at optimum");
 
     println!("  ✅ Edge cases handled correctly");

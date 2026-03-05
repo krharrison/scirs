@@ -83,6 +83,11 @@ pub enum ThresholdMode {
     Garrote,
     /// Firm thresholding: hybrid between hard and soft
     Firm { lambda1: f64, lambda2: f64 },
+    /// Block thresholding: James-Stein block shrinkage
+    /// Groups neighboring coefficients and applies shrinkage to blocks
+    /// rather than individual coefficients for better spatial adaptivity.
+    /// The `block_size` parameter controls the number of coefficients per block.
+    Block { block_size: usize },
 }
 
 /// Cost function type for best basis selection
@@ -497,7 +502,277 @@ pub fn apply_threshold(coeffs: &mut [f64], threshold: f64, mode: ThresholdMode) 
         ThresholdMode::Firm { lambda1, lambda2 } => {
             apply_firm_threshold(coeffs, lambda1 * threshold, lambda2 * threshold)
         }
+        ThresholdMode::Block { block_size } => {
+            apply_block_threshold(coeffs, threshold, block_size);
+        }
     }
+}
+
+// =============================================================================
+// Block Thresholding (James-Stein Block Shrinkage)
+// =============================================================================
+
+/// Apply block thresholding to wavelet coefficients
+///
+/// Block thresholding groups neighboring coefficients into non-overlapping
+/// blocks of size `block_size` and applies James-Stein shrinkage to each
+/// block as a unit. This preserves spatial structure better than
+/// coefficient-by-coefficient thresholding.
+///
+/// The James-Stein shrinkage factor for a block is:
+///   shrinkage = max(1 - threshold^2 * block_size / block_energy, 0)
+///
+/// where block_energy = sum of squared coefficients in the block.
+///
+/// # Arguments
+/// * `coeffs` - Mutable slice of wavelet coefficients
+/// * `threshold` - Threshold value (noise level * universal constant)
+/// * `block_size` - Number of coefficients per block
+///
+/// # References
+/// * Cai, T.T. (1999). "Adaptive wavelet estimation: a block thresholding
+///   and oracle inequality approach." Annals of Statistics.
+/// * Hall, P., Kerkyacharian, G., Picard, D. (1999). "On the minimax
+///   optimality of block thresholded wavelet estimators."
+pub fn apply_block_threshold(coeffs: &mut [f64], threshold: f64, block_size: usize) {
+    if coeffs.is_empty() || block_size == 0 {
+        return;
+    }
+
+    let n = coeffs.len();
+    let effective_block_size = block_size.min(n).max(1);
+    let threshold_sq = threshold * threshold;
+
+    // Process full blocks
+    let num_full_blocks = n / effective_block_size;
+
+    for block_idx in 0..num_full_blocks {
+        let start = block_idx * effective_block_size;
+        let end = start + effective_block_size;
+
+        // Compute block energy (sum of squared coefficients)
+        let block_energy: f64 = coeffs[start..end].iter().map(|&x| x * x).sum();
+
+        // James-Stein shrinkage factor
+        // shrinkage = max(1 - threshold^2 * L / S^2, 0)
+        // where L = block_size, S^2 = block_energy
+        let shrinkage = if block_energy > 1e-15 {
+            (1.0 - threshold_sq * effective_block_size as f64 / block_energy).max(0.0)
+        } else {
+            0.0
+        };
+
+        // Apply shrinkage to all coefficients in the block
+        for coeff in coeffs[start..end].iter_mut() {
+            *coeff *= shrinkage;
+        }
+    }
+
+    // Handle remainder block (if any)
+    let remainder_start = num_full_blocks * effective_block_size;
+    if remainder_start < n {
+        let remainder_len = n - remainder_start;
+        let block_energy: f64 = coeffs[remainder_start..].iter().map(|&x| x * x).sum();
+
+        let shrinkage = if block_energy > 1e-15 {
+            (1.0 - threshold_sq * remainder_len as f64 / block_energy).max(0.0)
+        } else {
+            0.0
+        };
+
+        for coeff in coeffs[remainder_start..].iter_mut() {
+            *coeff *= shrinkage;
+        }
+    }
+}
+
+/// Compute the optimal block size for block thresholding
+///
+/// The theoretically optimal block size is approximately log(n) where n
+/// is the number of coefficients. This achieves near-minimax rates
+/// for a broad class of function spaces (Besov spaces).
+///
+/// # Arguments
+/// * `n` - Number of coefficients
+///
+/// # Returns
+/// * Optimal block size (at least 1)
+pub fn optimal_block_size(n: usize) -> usize {
+    if n <= 1 {
+        return 1;
+    }
+    let log_n = (n as f64).ln();
+    // Block size = ceil(log(n)), bounded below by 1
+    (log_n.ceil() as usize).max(1)
+}
+
+/// Block thresholding with overlap for smoother results
+///
+/// Uses overlapping blocks with a triangular weighting scheme to
+/// avoid block boundary artifacts. Each coefficient gets contributions
+/// from multiple overlapping blocks, weighted by distance from block center.
+///
+/// # Arguments
+/// * `coeffs` - Mutable slice of wavelet coefficients
+/// * `threshold` - Threshold value
+/// * `block_size` - Block size
+/// * `overlap` - Number of samples overlap between blocks (must be < block_size)
+pub fn apply_block_threshold_overlap(
+    coeffs: &mut [f64],
+    threshold: f64,
+    block_size: usize,
+    overlap: usize,
+) {
+    if coeffs.is_empty() || block_size == 0 {
+        return;
+    }
+
+    let n = coeffs.len();
+    let effective_block_size = block_size.min(n).max(1);
+    let effective_overlap = overlap.min(effective_block_size.saturating_sub(1));
+    let stride = effective_block_size - effective_overlap;
+    let threshold_sq = threshold * threshold;
+
+    if stride == 0 {
+        // Degenerate case: just apply standard block threshold
+        apply_block_threshold(coeffs, threshold, effective_block_size);
+        return;
+    }
+
+    // Store accumulated weighted results and weight sums
+    let mut weighted_result = vec![0.0_f64; n];
+    let mut weight_sum = vec![0.0_f64; n];
+
+    // Process overlapping blocks
+    let mut block_start: usize = 0;
+    while block_start < n {
+        let block_end = (block_start + effective_block_size).min(n);
+        let current_block_len = block_end - block_start;
+
+        // Compute block energy
+        let block_energy: f64 = coeffs[block_start..block_end].iter().map(|&x| x * x).sum();
+
+        // James-Stein shrinkage
+        let shrinkage = if block_energy > 1e-15 {
+            (1.0 - threshold_sq * current_block_len as f64 / block_energy).max(0.0)
+        } else {
+            0.0
+        };
+
+        // Apply triangular window weighting
+        for (idx_in_block, global_idx) in (block_start..block_end).enumerate() {
+            // Triangular weight: peaks at center
+            let center = (current_block_len as f64 - 1.0) / 2.0;
+            let dist = (idx_in_block as f64 - center).abs();
+            let weight = 1.0 - dist / (center + 1.0);
+
+            weighted_result[global_idx] += weight * shrinkage * coeffs[global_idx];
+            weight_sum[global_idx] += weight;
+        }
+
+        block_start += stride;
+    }
+
+    // Normalize by total weight
+    for i in 0..n {
+        if weight_sum[i] > 1e-15 {
+            coeffs[i] = weighted_result[i] / weight_sum[i];
+        } else {
+            coeffs[i] = 0.0;
+        }
+    }
+}
+
+/// Perform block thresholding denoising on a 1D signal
+///
+/// Combines wavelet decomposition with block thresholding for
+/// spatially adaptive denoising. Block thresholding is particularly
+/// effective for signals with localized features (edges, transients).
+///
+/// # Arguments
+/// * `signal` - Input noisy signal
+/// * `wavelet` - Wavelet to use for decomposition
+/// * `level` - Decomposition level (None for auto)
+/// * `block_size` - Block size (None for optimal auto-selection)
+/// * `use_overlap` - Whether to use overlapping blocks
+/// * `noise_sigma` - Known noise sigma (None to estimate)
+///
+/// # Returns
+/// * Denoised signal
+///
+/// # Example
+///
+/// ```rust
+/// use scirs2_signal::wavelet_advanced::block_denoise_1d;
+/// use scirs2_signal::dwt::Wavelet;
+///
+/// let signal: Vec<f64> = (0..128).map(|i| (i as f64 * 0.1).sin()).collect();
+/// let denoised = block_denoise_1d(
+///     &signal, Wavelet::DB(4), Some(3), None, true, None
+/// ).expect("Block denoising failed");
+/// assert_eq!(denoised.len(), signal.len());
+/// ```
+pub fn block_denoise_1d(
+    signal: &[f64],
+    wavelet: Wavelet,
+    level: Option<usize>,
+    block_size: Option<usize>,
+    use_overlap: bool,
+    noise_sigma: Option<f64>,
+) -> SignalResult<Vec<f64>> {
+    if signal.is_empty() {
+        return Err(SignalError::ValueError("Empty signal".to_string()));
+    }
+
+    // Determine decomposition level
+    let max_level = ((signal.len() as f64).log2().floor() as usize).saturating_sub(1);
+    let dec_level = level.unwrap_or(max_level.min(4));
+
+    if dec_level == 0 {
+        return Ok(signal.to_vec());
+    }
+
+    // Perform wavelet decomposition
+    let mut coeffs = wavedec(signal, wavelet, Some(dec_level), None)?;
+
+    // Estimate noise from finest level detail coefficients
+    let sigma = noise_sigma.unwrap_or_else(|| {
+        if coeffs.len() > 1 {
+            estimate_noise_mad(&coeffs[coeffs.len() - 1])
+        } else {
+            1.0
+        }
+    });
+
+    // Apply block thresholding to detail coefficients
+    for (i, detail) in coeffs.iter_mut().skip(1).enumerate() {
+        let n = detail.len();
+        if n == 0 {
+            continue;
+        }
+
+        // Scale threshold based on level
+        let level_scale = 2.0_f64.powi(i as i32 / 2);
+        let scaled_sigma = sigma / level_scale;
+
+        // Universal threshold for the block
+        let threshold = visushrink_threshold(scaled_sigma, n);
+
+        // Determine block size
+        let bs = block_size.unwrap_or_else(|| optimal_block_size(n));
+
+        if use_overlap {
+            let overlap = bs / 2;
+            apply_block_threshold_overlap(detail, threshold, bs, overlap);
+        } else {
+            apply_block_threshold(detail, threshold, bs);
+        }
+    }
+
+    // Reconstruct and trim
+    let mut result = waverec(&coeffs, wavelet)?;
+    result.truncate(signal.len());
+    Ok(result)
 }
 
 // =============================================================================

@@ -3,10 +3,10 @@
 //! This module implements constant folding, which evaluates expressions with
 //! constant operands at compile time rather than runtime.
 
-use crate::Float;
+use super::OptimizationError;
 use crate::graph::{Graph, TensorID};
 use crate::tensor::TensorInternal;
-use super::OptimizationError;
+use crate::Float;
 use std::collections::{HashMap, HashSet};
 
 /// Constant folding optimizer
@@ -29,56 +29,59 @@ impl<F: Float> ConstantFolder<F> {
     /// Apply constant folding to a graph
     pub fn fold_constants(&mut self, graph: &mut Graph<F>) -> Result<usize, OptimizationError> {
         let folded_count = 0;
-        
+
         // Implementation would:
         // 1. Identify all constant nodes (variables with fixed values, literal constants)
         // 2. Propagate constants through the graph
         // 3. Evaluate expressions with all constant inputs
         // 4. Replace the computation subtree with a constant node
-        
+
         self.mark_constant_nodes(graph)?;
         let _propagated = self.propagate_constants(graph)?;
         let _evaluated = self.evaluate_constant_expressions(graph)?;
-        
+
         Ok(folded_count)
     }
 
     /// Mark nodes that represent constants
-    fn mark_constant_nodes(&mut self, graph: &Graph<F>) -> Result<(), OptimizationError> {
+    fn mark_constant_nodes(&mut self, _graph: &Graph<F>) -> Result<(), OptimizationError> {
         // Traverse the graph and identify:
         // - Literal constant nodes
         // - Variables that are marked as constant
         // - Nodes that only depend on constants
-        
+
         Ok(())
     }
 
     /// Propagate constant information through the graph
-    fn propagate_constants(&mut self, graph: &Graph<F>) -> Result<usize, OptimizationError> {
+    fn propagate_constants(&mut self, _graph: &Graph<F>) -> Result<usize, OptimizationError> {
         // For each node:
         // - Check if all inputs are constants
         // - If so, mark this node as a candidate for constant evaluation
-        
+
         Ok(0)
     }
 
     /// Evaluate expressions that have all constant inputs
-    fn evaluate_constant_expressions(&mut self, graph: &mut Graph<F>) -> Result<usize, OptimizationError> {
+    fn evaluate_constant_expressions(
+        &mut self,
+        _graph: &mut Graph<F>,
+    ) -> Result<usize, OptimizationError> {
         // For each constant expression:
         // - Evaluate it to get the constant result
         // - Replace the expression with a constant node
         // - Update references in the graph
-        
+
         Ok(0)
     }
 
     /// Check if a tensor is constant
-    pub fn is_constant(&self, tensorid: TensorID) -> bool {
+    pub fn is_constant(&self, tensor_id: TensorID) -> bool {
         self.constant_nodes.contains(&tensor_id)
     }
 
     /// Get the constant value of a tensor if it's constant
-    pub fn get_constant_value(&self, tensorid: TensorID) -> Option<F> {
+    pub fn get_constant_value(&self, tensor_id: TensorID) -> Option<F> {
         self.constant_cache.get(&tensor_id).copied()
     }
 
@@ -156,7 +159,9 @@ impl ConstantPattern {
         match self {
             ConstantPattern::Zero => value.is_zero(),
             ConstantPattern::One => value.is_one(),
-            ConstantPattern::NegativeOne => matches!(value, ConstantValue::Scalar(x) if *x == -F::one()),
+            ConstantPattern::NegativeOne => {
+                matches!(value, ConstantValue::Scalar(x) if *x == -F::one())
+            }
             ConstantPattern::NonZero => !value.is_zero(),
             ConstantPattern::Finite => true, // Assume all our constants are finite
         }
@@ -164,17 +169,19 @@ impl ConstantPattern {
 }
 
 /// Utility functions for constant folding
-
+///
 /// Check if a tensor represents a literal constant
 #[allow(dead_code)]
-pub fn is_literal_constant<F: Float>(_tensor, internal: &TensorInternal<F>) -> bool {
+pub(crate) fn is_literal_constant<F: Float>(_tensor_internal: &TensorInternal<F>) -> bool {
     // Check if this is a constant tensor created from a literal value
     false
 }
 
 /// Extract constant value from a tensor if possible
 #[allow(dead_code)]
-pub fn extract_constant_value<F: Float>(_tensor, internal: &TensorInternal<F>) -> Option<ConstantValue<F>> {
+pub(crate) fn extract_constant_value<F: Float>(
+    _tensor_internal: &TensorInternal<F>,
+) -> Option<ConstantValue<F>> {
     // Try to extract a constant value from various tensor types
     None
 }
@@ -182,33 +189,248 @@ pub fn extract_constant_value<F: Float>(_tensor, internal: &TensorInternal<F>) -
 /// Create a constant tensor with the given value
 #[allow(dead_code)]
 pub fn create_constant_tensor<F: Float>(
-    graph: &mut Graph<F>, _value: ConstantValue<F>,
+    _graph: &mut Graph<F>,
+    _value: ConstantValue<F>,
 ) -> Result<TensorID, OptimizationError> {
     // Create a new constant tensor in the graph
-    Err(OptimizationError::InvalidOperation("Not implemented".to_string()))
+    Err(OptimizationError::InvalidOperation(
+        "Not implemented".to_string(),
+    ))
 }
 
 /// Arithmetic operations on constant values
 impl<F: Float> ConstantValue<F> {
     /// Add two constant values
-    pub fn add(selfother: &Self) -> Result<Self, OptimizationError> {
-        // Implement addition for compatible constant types
-        Err(OptimizationError::InvalidOperation("Addition not implemented".to_string()))
+    pub fn add(&self, other: &Self) -> Result<Self, OptimizationError> {
+        match (self, other) {
+            (ConstantValue::Scalar(a), ConstantValue::Scalar(b)) => {
+                Ok(ConstantValue::Scalar(*a + *b))
+            }
+            (ConstantValue::Vector(a), ConstantValue::Vector(b)) => {
+                if a.len() != b.len() {
+                    return Err(OptimizationError::InvalidOperation(format!(
+                        "Vector length mismatch in add: {} vs {}",
+                        a.len(),
+                        b.len()
+                    )));
+                }
+                Ok(ConstantValue::Vector(
+                    a.iter().zip(b.iter()).map(|(&x, &y)| x + y).collect(),
+                ))
+            }
+            (
+                ConstantValue::Matrix {
+                    values: a,
+                    shape: sa,
+                },
+                ConstantValue::Matrix {
+                    values: b,
+                    shape: sb,
+                },
+            ) => {
+                if sa != sb {
+                    return Err(OptimizationError::InvalidOperation(format!(
+                        "Matrix shape mismatch in add: {:?} vs {:?}",
+                        sa, sb
+                    )));
+                }
+                Ok(ConstantValue::Matrix {
+                    values: a.iter().zip(b.iter()).map(|(&x, &y)| x + y).collect(),
+                    shape: sa.clone(),
+                })
+            }
+            _ => Err(OptimizationError::InvalidOperation(
+                "Incompatible constant types for addition".to_string(),
+            )),
+        }
     }
 
     /// Subtract two constant values
-    pub fn sub(selfother: &Self) -> Result<Self, OptimizationError> {
-        Err(OptimizationError::InvalidOperation("Subtraction not implemented".to_string()))
+    pub fn sub(&self, other: &Self) -> Result<Self, OptimizationError> {
+        match (self, other) {
+            (ConstantValue::Scalar(a), ConstantValue::Scalar(b)) => {
+                Ok(ConstantValue::Scalar(*a - *b))
+            }
+            (ConstantValue::Vector(a), ConstantValue::Vector(b)) => {
+                if a.len() != b.len() {
+                    return Err(OptimizationError::InvalidOperation(format!(
+                        "Vector length mismatch in sub: {} vs {}",
+                        a.len(),
+                        b.len()
+                    )));
+                }
+                Ok(ConstantValue::Vector(
+                    a.iter().zip(b.iter()).map(|(&x, &y)| x - y).collect(),
+                ))
+            }
+            (
+                ConstantValue::Matrix {
+                    values: a,
+                    shape: sa,
+                },
+                ConstantValue::Matrix {
+                    values: b,
+                    shape: sb,
+                },
+            ) => {
+                if sa != sb {
+                    return Err(OptimizationError::InvalidOperation(format!(
+                        "Matrix shape mismatch in sub: {:?} vs {:?}",
+                        sa, sb
+                    )));
+                }
+                Ok(ConstantValue::Matrix {
+                    values: a.iter().zip(b.iter()).map(|(&x, &y)| x - y).collect(),
+                    shape: sa.clone(),
+                })
+            }
+            _ => Err(OptimizationError::InvalidOperation(
+                "Incompatible constant types for subtraction".to_string(),
+            )),
+        }
     }
 
     /// Multiply two constant values
-    pub fn mul(selfother: &Self) -> Result<Self, OptimizationError> {
-        Err(OptimizationError::InvalidOperation("Multiplication not implemented".to_string()))
+    pub fn mul(&self, other: &Self) -> Result<Self, OptimizationError> {
+        match (self, other) {
+            (ConstantValue::Scalar(a), ConstantValue::Scalar(b)) => {
+                Ok(ConstantValue::Scalar(*a * *b))
+            }
+            (ConstantValue::Vector(a), ConstantValue::Vector(b)) => {
+                if a.len() != b.len() {
+                    return Err(OptimizationError::InvalidOperation(format!(
+                        "Vector length mismatch in mul: {} vs {}",
+                        a.len(),
+                        b.len()
+                    )));
+                }
+                Ok(ConstantValue::Vector(
+                    a.iter().zip(b.iter()).map(|(&x, &y)| x * y).collect(),
+                ))
+            }
+            (ConstantValue::Scalar(s), ConstantValue::Vector(v))
+            | (ConstantValue::Vector(v), ConstantValue::Scalar(s)) => {
+                Ok(ConstantValue::Vector(v.iter().map(|&x| x * *s).collect()))
+            }
+            (ConstantValue::Scalar(s), ConstantValue::Matrix { values, shape })
+            | (ConstantValue::Matrix { values, shape }, ConstantValue::Scalar(s)) => {
+                Ok(ConstantValue::Matrix {
+                    values: values.iter().map(|&x| x * *s).collect(),
+                    shape: shape.clone(),
+                })
+            }
+            (
+                ConstantValue::Matrix {
+                    values: a,
+                    shape: sa,
+                },
+                ConstantValue::Matrix {
+                    values: b,
+                    shape: sb,
+                },
+            ) => {
+                if sa != sb {
+                    return Err(OptimizationError::InvalidOperation(format!(
+                        "Matrix shape mismatch in mul: {:?} vs {:?}",
+                        sa, sb
+                    )));
+                }
+                Ok(ConstantValue::Matrix {
+                    values: a.iter().zip(b.iter()).map(|(&x, &y)| x * y).collect(),
+                    shape: sa.clone(),
+                })
+            }
+            (ConstantValue::Vector(_), ConstantValue::Matrix { .. })
+            | (ConstantValue::Matrix { .. }, ConstantValue::Vector(_)) => {
+                Err(OptimizationError::InvalidOperation(
+                    "Incompatible constant types for multiplication (Vector vs Matrix)".to_string(),
+                ))
+            }
+        }
     }
 
     /// Divide two constant values
-    pub fn div(selfother: &Self) -> Result<Self, OptimizationError> {
-        Err(OptimizationError::InvalidOperation("Division not implemented".to_string()))
+    pub fn div(&self, other: &Self) -> Result<Self, OptimizationError> {
+        match (self, other) {
+            (ConstantValue::Scalar(a), ConstantValue::Scalar(b)) => {
+                if b.is_zero() {
+                    return Err(OptimizationError::InvalidOperation(
+                        "Division by zero".to_string(),
+                    ));
+                }
+                Ok(ConstantValue::Scalar(*a / *b))
+            }
+            (ConstantValue::Vector(a), ConstantValue::Vector(b)) => {
+                if a.len() != b.len() {
+                    return Err(OptimizationError::InvalidOperation(format!(
+                        "Vector length mismatch in div: {} vs {}",
+                        a.len(),
+                        b.len()
+                    )));
+                }
+                if b.iter().any(|x| x.is_zero()) {
+                    return Err(OptimizationError::InvalidOperation(
+                        "Division by zero in vector".to_string(),
+                    ));
+                }
+                Ok(ConstantValue::Vector(
+                    a.iter().zip(b.iter()).map(|(&x, &y)| x / y).collect(),
+                ))
+            }
+            (ConstantValue::Vector(v), ConstantValue::Scalar(s)) => {
+                if s.is_zero() {
+                    return Err(OptimizationError::InvalidOperation(
+                        "Division by zero".to_string(),
+                    ));
+                }
+                Ok(ConstantValue::Vector(v.iter().map(|&x| x / *s).collect()))
+            }
+            (ConstantValue::Matrix { values, shape }, ConstantValue::Scalar(s)) => {
+                if s.is_zero() {
+                    return Err(OptimizationError::InvalidOperation(
+                        "Division by zero".to_string(),
+                    ));
+                }
+                Ok(ConstantValue::Matrix {
+                    values: values.iter().map(|&x| x / *s).collect(),
+                    shape: shape.clone(),
+                })
+            }
+            (
+                ConstantValue::Matrix {
+                    values: a,
+                    shape: sa,
+                },
+                ConstantValue::Matrix {
+                    values: b,
+                    shape: sb,
+                },
+            ) => {
+                if sa != sb {
+                    return Err(OptimizationError::InvalidOperation(format!(
+                        "Matrix shape mismatch in div: {:?} vs {:?}",
+                        sa, sb
+                    )));
+                }
+                if b.iter().any(|x| x.is_zero()) {
+                    return Err(OptimizationError::InvalidOperation(
+                        "Division by zero in matrix".to_string(),
+                    ));
+                }
+                Ok(ConstantValue::Matrix {
+                    values: a.iter().zip(b.iter()).map(|(&x, &y)| x / y).collect(),
+                    shape: sa.clone(),
+                })
+            }
+            (ConstantValue::Scalar(_), ConstantValue::Vector(_))
+            | (ConstantValue::Scalar(_), ConstantValue::Matrix { .. })
+            | (ConstantValue::Vector(_), ConstantValue::Matrix { .. })
+            | (ConstantValue::Matrix { .. }, ConstantValue::Vector(_)) => {
+                Err(OptimizationError::InvalidOperation(
+                    "Incompatible constant types for division".to_string(),
+                ))
+            }
+        }
     }
 
     /// Negate a constant value
@@ -230,7 +452,9 @@ impl<F: Float> ConstantValue<F> {
     {
         match self {
             ConstantValue::Scalar(x) => Ok(ConstantValue::Scalar(func(*x))),
-            ConstantValue::Vector(v) => Ok(ConstantValue::Vector(v.iter().map(|x| func(*x)).collect())),
+            ConstantValue::Vector(v) => {
+                Ok(ConstantValue::Vector(v.iter().map(|x| func(*x)).collect()))
+            }
             ConstantValue::Matrix { values, shape } => Ok(ConstantValue::Matrix {
                 values: values.iter().map(|x| func(*x)).collect(),
                 shape: shape.clone(),
@@ -251,7 +475,7 @@ mod tests {
     #[test]
     fn test_constant_value_creation() {
         let scalar = ConstantValue::Scalar(42.0f32);
-        assert_eq!(scalar.shape(), vec![]);
+        assert_eq!(scalar.shape(), Vec::<usize>::new());
 
         let vector = ConstantValue::Vector(vec![1.0, 2.0, 3.0]);
         assert_eq!(vector.shape(), vec![3]);

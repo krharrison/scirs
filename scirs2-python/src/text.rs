@@ -125,8 +125,9 @@ impl PyNgramTokenizer {
     #[new]
     #[pyo3(signature = (n=2))]
     fn new(n: usize) -> PyResult<Self> {
-        let tokenizer = NgramTokenizer::new(n)
-            .map_err(|e| PyRuntimeError::new_err(format!("NgramTokenizer creation failed: {}", e)))?;
+        let tokenizer = NgramTokenizer::new(n).map_err(|e| {
+            PyRuntimeError::new_err(format!("NgramTokenizer creation failed: {}", e))
+        })?;
         Ok(Self { inner: tokenizer })
     }
 
@@ -170,8 +171,9 @@ impl PyRegexTokenizer {
     #[new]
     #[pyo3(signature = (pattern, gaps=false))]
     fn new(pattern: &str, gaps: bool) -> PyResult<Self> {
-        let tokenizer = RegexTokenizer::new(pattern, gaps)
-            .map_err(|e| PyRuntimeError::new_err(format!("RegexTokenizer creation failed: {}", e)))?;
+        let tokenizer = RegexTokenizer::new(pattern, gaps).map_err(|e| {
+            PyRuntimeError::new_err(format!("RegexTokenizer creation failed: {}", e))
+        })?;
         Ok(Self { inner: tokenizer })
     }
 
@@ -221,7 +223,11 @@ impl PyCountVectorizer {
         Ok(result.into_pyarray(py).unbind())
     }
 
-    fn transform_batch(&self, py: Python, texts: &Bound<'_, PyList>) -> PyResult<Py<PyArray2<f64>>> {
+    fn transform_batch(
+        &self,
+        py: Python,
+        texts: &Bound<'_, PyList>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let texts_owned: Vec<String> = texts
             .iter()
             .map(|item| item.extract::<String>())
@@ -234,7 +240,11 @@ impl PyCountVectorizer {
         Ok(result.into_pyarray(py).unbind())
     }
 
-    fn fit_transform(&mut self, py: Python, texts: &Bound<'_, PyList>) -> PyResult<Py<PyArray2<f64>>> {
+    fn fit_transform(
+        &mut self,
+        py: Python,
+        texts: &Bound<'_, PyList>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let texts_owned: Vec<String> = texts
             .iter()
             .map(|item| item.extract::<String>())
@@ -298,7 +308,11 @@ impl PyTfidfVectorizer {
         Ok(result.into_pyarray(py).unbind())
     }
 
-    fn transform_batch(&self, py: Python, texts: &Bound<'_, PyList>) -> PyResult<Py<PyArray2<f64>>> {
+    fn transform_batch(
+        &self,
+        py: Python,
+        texts: &Bound<'_, PyList>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let texts_owned: Vec<String> = texts
             .iter()
             .map(|item| item.extract::<String>())
@@ -311,7 +325,11 @@ impl PyTfidfVectorizer {
         Ok(result.into_pyarray(py).unbind())
     }
 
-    fn fit_transform(&mut self, py: Python, texts: &Bound<'_, PyList>) -> PyResult<Py<PyArray2<f64>>> {
+    fn fit_transform(
+        &mut self,
+        py: Python,
+        texts: &Bound<'_, PyList>,
+    ) -> PyResult<Py<PyArray2<f64>>> {
         let texts_owned: Vec<String> = texts
             .iter()
             .map(|item| item.extract::<String>())
@@ -439,8 +457,9 @@ impl PySnowballStemmer {
     #[new]
     #[pyo3(signature = (language="english"))]
     fn new(language: &str) -> PyResult<Self> {
-        let stemmer = SnowballStemmer::new(language)
-            .map_err(|e| PyRuntimeError::new_err(format!("SnowballStemmer creation failed: {}", e)))?;
+        let stemmer = SnowballStemmer::new(language).map_err(|e| {
+            PyRuntimeError::new_err(format!("SnowballStemmer creation failed: {}", e))
+        })?;
         Ok(Self { inner: stemmer })
     }
 

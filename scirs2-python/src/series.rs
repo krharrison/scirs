@@ -7,16 +7,16 @@ use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict, PyType};
 
 // NumPy types for Python array interface (scirs2-numpy with native ndarray 0.17)
-use scirs2_numpy::{IntoPyArray, ToPyArray, PyArray1, PyReadonlyArray1};
+use scirs2_numpy::{IntoPyArray, PyArray1, PyReadonlyArray1, ToPyArray};
 
 // ndarray types from scirs2-core
 use scirs2_core::Array1;
 
 // Direct imports from scirs2-series (native ndarray 0.17 support)
+use scirs2_series::arima_models::ArimaModel;
+use scirs2_series::decomposition::stl::stl_decomposition;
 use scirs2_series::transformations::{adf_test, box_cox_transform, inverse_box_cox_transform};
 use scirs2_series::utils::{difference_series, seasonal_difference_series};
-use scirs2_series::decomposition::stl::stl_decomposition;
-use scirs2_series::arima_models::ArimaModel;
 
 use std::collections::HashMap;
 
@@ -24,9 +24,30 @@ use std::collections::HashMap;
 #[pyclass]
 #[derive(Clone, Debug)]
 pub struct PyTimeSeries {
-    values: Array1<f64>,
-    timestamps: Option<Array1<f64>>,
-    frequency: Option<f64>,
+    pub(crate) values: Array1<f64>,
+    pub(crate) timestamps: Option<Array1<f64>>,
+    pub(crate) frequency: Option<f64>,
+}
+
+impl PyTimeSeries {
+    /// Create a new time series from Rust-owned arrays (crate-internal)
+    pub(crate) fn from_arrays(values: Array1<f64>, timestamps: Option<Array1<f64>>) -> Self {
+        PyTimeSeries {
+            values,
+            timestamps,
+            frequency: None,
+        }
+    }
+
+    /// Get values as an owned array (crate-internal)
+    pub(crate) fn values_owned(&self) -> Array1<f64> {
+        self.values.clone()
+    }
+
+    /// Get timestamps as an owned array (crate-internal)
+    pub(crate) fn timestamps_owned(&self) -> Option<Array1<f64>> {
+        self.timestamps.clone()
+    }
 }
 
 #[pymethods]
@@ -64,7 +85,10 @@ impl PyTimeSeries {
 
     /// Get timestamps as numpy array (if available)
     fn get_timestamps<'py>(&self, py: Python<'py>) -> PyResult<Option<Py<PyArray1<f64>>>> {
-        Ok(self.timestamps.as_ref().map(|ts| ts.clone().into_pyarray(py).unbind()))
+        Ok(self
+            .timestamps
+            .as_ref()
+            .map(|ts| ts.clone().into_pyarray(py).unbind()))
     }
 
     /// Convert to pandas-compatible dictionary
@@ -113,12 +137,8 @@ impl PyTimeSeries {
         let mean = values.iter().sum::<f64>() / n;
         let variance = values.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / n;
         let std = variance.sqrt();
-        let min = values
-            .iter()
-            .fold(f64::INFINITY, |a, &b| a.min(b));
-        let max = values
-            .iter()
-            .fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+        let min = values.iter().fold(f64::INFINITY, |a, &b| a.min(b));
+        let max = values.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
 
         stats.insert("count".to_string(), n);
         stats.insert("mean".to_string(), mean);
@@ -167,7 +187,8 @@ impl PyARIMA {
     fn fit(&mut self, data: &PyTimeSeries) -> PyResult<()> {
         let mut model = ArimaModel::new(self.p, self.d, self.q)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
-        model.fit(&data.values)
+        model
+            .fit(&data.values)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
         self.model = Some(model);
@@ -179,7 +200,8 @@ impl PyARIMA {
     fn forecast(&self, py: Python, steps: usize) -> PyResult<Py<PyArray1<f64>>> {
         match (&self.model, &self.data) {
             (Some(model), Some(data)) => {
-                let forecasts = model.forecast(steps, data)
+                let forecasts = model
+                    .forecast(steps, data)
                     .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
                 Ok(forecasts.into_pyarray(py).unbind())
             }
@@ -207,9 +229,7 @@ impl PyARIMA {
     /// Get AR coefficients
     fn get_ar_coefficients(&self, py: Python) -> PyResult<Py<PyArray1<f64>>> {
         match &self.model {
-            Some(model) => {
-                Ok(model.ar_coeffs.to_pyarray(py).unbind())
-            }
+            Some(model) => Ok(model.ar_coeffs.to_pyarray(py).unbind()),
             None => Err(pyo3::exceptions::PyRuntimeError::new_err(
                 "Model not fitted. Call fit() first.",
             )),
@@ -219,9 +239,7 @@ impl PyARIMA {
     /// Get MA coefficients
     fn get_ma_coefficients(&self, py: Python) -> PyResult<Py<PyArray1<f64>>> {
         match &self.model {
-            Some(model) => {
-                Ok(model.ma_coeffs.to_pyarray(py).unbind())
-            }
+            Some(model) => Ok(model.ma_coeffs.to_pyarray(py).unbind()),
             None => Err(pyo3::exceptions::PyRuntimeError::new_err(
                 "Model not fitted. Call fit() first.",
             )),
@@ -232,7 +250,8 @@ impl PyARIMA {
     fn summary(&self) -> PyResult<String> {
         match &self.model {
             Some(model) => {
-                let mut summary = format!("ARIMA({},{},{}) Model Results\n", self.p, self.d, self.q);
+                let mut summary =
+                    format!("ARIMA({},{},{}) Model Results\n", self.p, self.d, self.q);
                 summary.push_str("=====================================\n");
                 summary.push_str(&format!("AIC:                  {:10.4}\n", model.aic()));
                 summary.push_str(&format!("BIC:                  {:10.4}\n", model.bic()));
@@ -288,11 +307,7 @@ fn apply_seasonal_differencing(
 
 /// Perform STL decomposition
 #[pyfunction]
-fn stl_decomposition_py(
-    py: Python,
-    data: &PyTimeSeries,
-    period: usize,
-) -> PyResult<Py<PyAny>> {
+fn stl_decomposition_py(py: Python, data: &PyTimeSeries, period: usize) -> PyResult<Py<PyAny>> {
     use scirs2_series::decomposition::stl::STLOptions;
 
     let options = STLOptions::default();
@@ -310,14 +325,21 @@ fn stl_decomposition_py(
 /// Perform Augmented Dickey-Fuller test for stationarity
 #[pyfunction]
 #[pyo3(signature = (data, max_lags=None, regression="c"))]
-fn adf_test_py(data: &PyTimeSeries, max_lags: Option<usize>, regression: &str) -> PyResult<HashMap<String, f64>> {
+fn adf_test_py(
+    data: &PyTimeSeries,
+    max_lags: Option<usize>,
+    regression: &str,
+) -> PyResult<HashMap<String, f64>> {
     let result = adf_test(&data.values, max_lags, regression)
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
     let mut output = HashMap::new();
     output.insert("statistic".to_string(), result.statistic);
     output.insert("p_value".to_string(), result.p_value);
-    output.insert("is_stationary".to_string(), if result.is_stationary { 1.0 } else { 0.0 });
+    output.insert(
+        "is_stationary".to_string(),
+        if result.is_stationary { 1.0 } else { 0.0 },
+    );
 
     Ok(output)
 }

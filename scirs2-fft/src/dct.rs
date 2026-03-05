@@ -329,11 +329,26 @@ where
     // Determine which axes to transform
     let axes_to_transform = axes.unwrap_or_else(|| (0..n_dims).collect());
 
-    // Create an initial copy of the input array as float
-    let mut result = Array::from_shape_fn(IxDyn(&xshape), |idx| {
+    // Create an initial copy of the input array as float, with proper error handling
+    let mut conversion_error: Option<FFTError> = None;
+    let result_init = Array::from_shape_fn(IxDyn(&xshape), |idx| {
         let val = x[idx];
-        NumCast::from(val).unwrap_or(0.0)
+        match NumCast::from(val) {
+            Some(v) => v,
+            None => {
+                if conversion_error.is_none() {
+                    conversion_error = Some(FFTError::ValueError(
+                        "Could not convert input value to f64".to_string(),
+                    ));
+                }
+                0.0
+            }
+        }
     });
+    if let Some(err) = conversion_error {
+        return Err(err);
+    }
+    let mut result = result_init;
 
     // Transform along each axis
     let type_val = dct_type.unwrap_or(DCTType::Type2);
@@ -401,11 +416,26 @@ where
     // Determine which axes to transform
     let axes_to_transform = axes.unwrap_or_else(|| (0..n_dims).collect());
 
-    // Create an initial copy of the input array as float
-    let mut result = Array::from_shape_fn(IxDyn(&xshape), |idx| {
+    // Create an initial copy of the input array as float, with proper error handling
+    let mut conversion_error: Option<FFTError> = None;
+    let result_init = Array::from_shape_fn(IxDyn(&xshape), |idx| {
         let val = x[idx];
-        NumCast::from(val).unwrap_or(0.0)
+        match NumCast::from(val) {
+            Some(v) => v,
+            None => {
+                if conversion_error.is_none() {
+                    conversion_error = Some(FFTError::ValueError(
+                        "Could not convert input value to f64".to_string(),
+                    ));
+                }
+                0.0
+            }
+        }
     });
+    if let Some(err) = conversion_error {
+        return Err(err);
+    }
+    let mut result = result_init;
 
     // Transform along each axis
     let type_val = dct_type.unwrap_or(DCTType::Type2);
@@ -770,6 +800,166 @@ fn idct4(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
     }
 
     dct4(&input, norm)
+}
+
+// ============================================================================
+// FFT-BASED DCT IMPLEMENTATIONS (O(n log n) via FFT)
+// ============================================================================
+
+/// Compute DCT-II via FFT for O(n log n) complexity.
+///
+/// The algorithm works by:
+/// 1. Reorder input into even-odd interleave pattern
+/// 2. Compute FFT of the reordered array
+/// 3. Multiply by twiddle factors to extract DCT coefficients
+///
+/// # Arguments
+///
+/// * `x` - Input real-valued signal
+/// * `norm` - Normalization mode (None, "ortho")
+///
+/// # Returns
+///
+/// The DCT-II of the input array, computed via FFT
+///
+/// # Errors
+///
+/// Returns an error if the FFT computation fails
+#[allow(dead_code)]
+pub fn dct2_fft(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
+    use scirs2_core::numeric::Complex64;
+
+    let n = x.len();
+    if n == 0 {
+        return Err(FFTError::ValueError(
+            "Input array cannot be empty".to_string(),
+        ));
+    }
+
+    if n == 1 {
+        return Ok(vec![x[0]]);
+    }
+
+    // Makhoul's algorithm for DCT-II via FFT:
+    // 1. Reorder input: y[k] = x[2k] for k < ceil(n/2), y[n-1-k] = x[2k+1] for k < n/2
+    // 2. FFT of reordered sequence
+    // 3. Multiply by twiddle factors to extract DCT-II coefficients
+    let mut y = vec![0.0; n];
+    for k in 0..n.div_ceil(2) {
+        y[k] = x[2 * k];
+    }
+    for k in 0..(n / 2) {
+        y[n - 1 - k] = x[2 * k + 1];
+    }
+
+    // Compute FFT of reordered sequence (must use exact size, not next power of 2)
+    let y_complex: Vec<Complex64> = y.iter().map(|&v| Complex64::new(v, 0.0)).collect();
+    let fft_result = crate::fft::fft(&y_complex, Some(n))?;
+
+    // Extract DCT-II coefficients:
+    // DCT[k] = Re(FFT[k] * exp(-j*pi*k/(2n)))
+    let mut result = Vec::with_capacity(n);
+    for k in 0..n {
+        let twiddle_phase = -PI * k as f64 / (2.0 * n as f64);
+        let twiddle = Complex64::from_polar(1.0, twiddle_phase);
+        let val = fft_result[k] * twiddle;
+        result.push(val.re);
+    }
+
+    // Apply normalization
+    if norm == Some("ortho") {
+        let norm_factor = (2.0 / n as f64).sqrt();
+        let first_factor = 1.0 / 2.0_f64.sqrt();
+        result[0] *= norm_factor * first_factor;
+        for val in result.iter_mut().skip(1) {
+            *val *= norm_factor;
+        }
+    }
+
+    Ok(result)
+}
+
+/// Compute IDCT-II (which is DCT-III) via FFT for O(n log n) complexity.
+///
+/// # Arguments
+///
+/// * `x` - Input DCT-II coefficients
+/// * `norm` - Normalization mode (None, "ortho")
+///
+/// # Returns
+///
+/// The inverse DCT-II (DCT-III) of the input array, computed via FFT
+///
+/// # Errors
+///
+/// Returns an error if the FFT computation fails
+#[allow(dead_code)]
+pub fn idct2_fft(x: &[f64], norm: Option<&str>) -> FFTResult<Vec<f64>> {
+    use scirs2_core::numeric::Complex64;
+
+    let n = x.len();
+    if n == 0 {
+        return Err(FFTError::ValueError(
+            "Input array cannot be empty".to_string(),
+        ));
+    }
+
+    if n == 1 {
+        return Ok(vec![x[0]]);
+    }
+
+    let mut input = x.to_vec();
+
+    // Undo orthonormal normalization if needed
+    if norm == Some("ortho") {
+        let norm_factor = (n as f64 / 2.0).sqrt();
+        let first_factor = 2.0_f64.sqrt();
+        input[0] *= norm_factor * first_factor;
+        for val in input.iter_mut().skip(1) {
+            *val *= norm_factor;
+        }
+    }
+
+    // Inverse Makhoul algorithm for IDCT-II:
+    //
+    // Forward: DCT[k] = Re(Y[k] * exp(-j*pi*k/(2n))) where Y = FFT(y_reordered)
+    //
+    // Using conjugate symmetry of Y (since y is real), we can reconstruct Y[k]:
+    //   Y[k] * W_k = DCT[k] + j*DCT[n-k]  (for 0 < k < n)
+    //   So Y[k] = (DCT[k] + j*DCT[n-k]) * conj(W_k)
+    //   where W_k = exp(-j*pi*k/(2n))
+    //
+    // Special cases: Y[0] = DCT[0], and for k=n/2 (if n even): needs special handling.
+
+    let mut y_fft = vec![Complex64::new(0.0, 0.0); n];
+
+    // k=0: Y[0] is real, DCT[0] = Y[0]
+    y_fft[0] = Complex64::new(input[0], 0.0);
+
+    // k = 1..n-1: Y[k] = (DCT[k] - j*DCT[n-k]) * exp(j*pi*k/(2n))
+    for k in 1..n {
+        let dct_k = input[k];
+        let dct_nk = if n - k < n { input[n - k] } else { 0.0 };
+        let combined = Complex64::new(dct_k, -dct_nk);
+        let inv_twiddle = Complex64::from_polar(1.0, PI * k as f64 / (2.0 * n as f64));
+        y_fft[k] = combined * inv_twiddle;
+    }
+
+    // IFFT to recover the reordered sequence (must use exact size)
+    let y = crate::fft::ifft(&y_fft, Some(n))?;
+
+    // Un-reorder (inverse of Makhoul reordering)
+    // Forward: y[k] = x[2k] for k < ceil(n/2), y[n-1-k] = x[2k+1] for k < n/2
+    // Inverse: x[2k] = y[k] for k < ceil(n/2), x[2k+1] = y[n-1-k] for k < n/2
+    let mut result = vec![0.0; n];
+    for k in 0..n.div_ceil(2) {
+        result[2 * k] = y[k].re;
+    }
+    for k in 0..(n / 2) {
+        result[2 * k + 1] = y[n - 1 - k].re;
+    }
+
+    Ok(result)
 }
 
 // ============================================================================
@@ -1247,6 +1437,186 @@ mod tests {
         assert!(dct_coeffs[0].abs() > 1e-10);
         for i in 1..signal.len() {
             assert!(dct_coeffs[i].abs() < 1e-10);
+        }
+    }
+
+    #[test]
+    fn test_dct2_fft_matches_naive() {
+        // Verify FFT-based DCT-II matches the naive implementation
+        let signal = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
+
+        let naive_result = dct(&signal, Some(DCTType::Type2), None).expect("Naive DCT-II failed");
+        let fft_result = dct2_fft(&signal, None).expect("FFT DCT-II failed");
+
+        assert_eq!(naive_result.len(), fft_result.len());
+        for i in 0..signal.len() {
+            assert_relative_eq!(naive_result[i], fft_result[i], epsilon = 1e-8);
+        }
+    }
+
+    #[test]
+    fn test_dct2_fft_ortho_matches_naive() {
+        // Verify FFT-based DCT-II with ortho normalization matches naive
+        let signal = vec![1.0, -1.0, 2.0, -2.0, 3.0, -3.0];
+
+        let naive_result =
+            dct(&signal, Some(DCTType::Type2), Some("ortho")).expect("Naive DCT-II ortho failed");
+        let fft_result = dct2_fft(&signal, Some("ortho")).expect("FFT DCT-II ortho failed");
+
+        assert_eq!(naive_result.len(), fft_result.len());
+        for i in 0..signal.len() {
+            assert_relative_eq!(naive_result[i], fft_result[i], epsilon = 1e-8);
+        }
+    }
+
+    #[test]
+    fn test_dct2_fft_roundtrip() {
+        // Test DCT-II -> IDCT-II round-trip via FFT
+        let signal = vec![3.14, 2.71, 1.41, 1.73, 0.577, 2.30];
+
+        let coeffs = dct2_fft(&signal, Some("ortho")).expect("DCT-II FFT forward failed");
+        let recovered = idct2_fft(&coeffs, Some("ortho")).expect("IDCT-II FFT inverse failed");
+
+        for i in 0..signal.len() {
+            assert_relative_eq!(recovered[i], signal[i], epsilon = 1e-8);
+        }
+    }
+
+    #[test]
+    fn test_dct_large_signal() {
+        // Test DCT on a larger signal
+        // Use a smooth signal (low frequency) that naturally concentrates energy
+        // in the first few DCT coefficients
+        let n = 64;
+        let signal: Vec<f64> = (0..n)
+            .map(|i| {
+                let t = i as f64 / n as f64;
+                // Smooth polynomial signal -- energy concentrates in low-frequency DCT coefficients
+                3.0 + 2.0 * t - 1.5 * t * t + 0.5 * (2.0 * PI * t).cos()
+            })
+            .collect();
+
+        // Forward DCT-II
+        let coeffs =
+            dct(&signal, Some(DCTType::Type2), Some("ortho")).expect("DCT-II large failed");
+
+        // The energy should be concentrated in low-frequency coefficients
+        // for a smooth signal
+        let total_energy: f64 = coeffs.iter().map(|c| c * c).sum();
+        let first_10_energy: f64 = coeffs.iter().take(10).map(|c| c * c).sum();
+        assert!(
+            first_10_energy / total_energy > 0.99,
+            "Most energy should be in first 10 coefficients for a smooth signal, \
+             got ratio = {}",
+            first_10_energy / total_energy
+        );
+
+        // Inverse should recover original
+        let recovered =
+            idct(&coeffs, Some(DCTType::Type2), Some("ortho")).expect("IDCT-II large failed");
+        for i in 0..n {
+            assert_relative_eq!(recovered[i], signal[i], epsilon = 1e-8);
+        }
+    }
+
+    #[test]
+    fn test_dct_linearity() {
+        // Test that DCT is linear: DCT(a*x + b*y) = a*DCT(x) + b*DCT(y)
+        let x = vec![1.0, 2.0, 3.0, 4.0];
+        let y = vec![5.0, 6.0, 7.0, 8.0];
+        let a = 2.5;
+        let b = -1.3;
+
+        let dct_x = dct(&x, Some(DCTType::Type2), None).expect("DCT(x) failed");
+        let dct_y = dct(&y, Some(DCTType::Type2), None).expect("DCT(y) failed");
+
+        let combined: Vec<f64> = x
+            .iter()
+            .zip(y.iter())
+            .map(|(&xi, &yi)| a * xi + b * yi)
+            .collect();
+        let dct_combined =
+            dct(&combined, Some(DCTType::Type2), None).expect("DCT(combined) failed");
+
+        for i in 0..x.len() {
+            let expected = a * dct_x[i] + b * dct_y[i];
+            assert_relative_eq!(dct_combined[i], expected, epsilon = 1e-10);
+        }
+    }
+
+    #[test]
+    fn test_dct_energy_preservation_ortho() {
+        // With ortho normalization, Parseval's theorem: sum(x^2) = sum(DCT(x)^2)
+        let signal = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
+
+        let coeffs =
+            dct(&signal, Some(DCTType::Type2), Some("ortho")).expect("DCT-II ortho failed");
+
+        let time_energy: f64 = signal.iter().map(|x| x * x).sum();
+        let freq_energy: f64 = coeffs.iter().map(|c| c * c).sum();
+
+        assert_relative_eq!(time_energy, freq_energy, epsilon = 1e-8);
+    }
+
+    #[test]
+    fn test_dct_odd_length() {
+        // Test DCT with odd-length signals
+        let signal = vec![1.0, 2.0, 3.0, 4.0, 5.0]; // 5 elements
+
+        let coeffs =
+            dct(&signal, Some(DCTType::Type2), Some("ortho")).expect("DCT-II odd length failed");
+        let recovered =
+            idct(&coeffs, Some(DCTType::Type2), Some("ortho")).expect("IDCT-II odd length failed");
+
+        for i in 0..signal.len() {
+            assert_relative_eq!(recovered[i], signal[i], epsilon = 1e-10);
+        }
+    }
+
+    #[test]
+    fn test_dct_single_element() {
+        // DCT of a single element should return that element
+        let signal = vec![42.0];
+        let coeffs = dct(&signal, Some(DCTType::Type2), None).expect("DCT single element failed");
+        assert_eq!(coeffs.len(), 1);
+        assert_relative_eq!(coeffs[0], 42.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_dct2_4x4() {
+        // Test 2D DCT on a 4x4 matrix
+        let arr = Array2::from_shape_vec(
+            (4, 4),
+            vec![
+                1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0,
+                16.0,
+            ],
+        )
+        .expect("Array creation failed");
+
+        let coeffs = dct2(&arr.view(), Some(DCTType::Type2), Some("ortho")).expect("2D DCT failed");
+        let recovered =
+            idct2(&coeffs.view(), Some(DCTType::Type2), Some("ortho")).expect("2D IDCT failed");
+
+        for i in 0..4 {
+            for j in 0..4 {
+                assert_relative_eq!(recovered[[i, j]], arr[[i, j]], epsilon = 1e-8);
+            }
+        }
+    }
+
+    #[test]
+    fn test_dct_type4_symmetry() {
+        // DCT-IV is its own inverse (up to scaling)
+        let signal = vec![1.0, 2.0, 3.0, 4.0];
+
+        let coeffs = dct(&signal, Some(DCTType::Type4), Some("ortho")).expect("DCT-IV failed");
+        let recovered =
+            dct(&coeffs, Some(DCTType::Type4), Some("ortho")).expect("DCT-IV self-inverse failed");
+
+        // DCT-IV is self-inverse with ortho normalization
+        for i in 0..signal.len() {
+            assert_relative_eq!(recovered[i], signal[i], epsilon = 1e-8);
         }
     }
 }

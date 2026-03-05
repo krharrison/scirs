@@ -4,13 +4,15 @@
 
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use scirs2_numpy::{PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
-use scirs2_core::python::numpy_compat::{scirs_to_numpy_array1, scirs_to_numpy_array2, Array1, Array2};
 use scirs2_core::ndarray::Array2 as Array2_17;
+use scirs2_core::python::numpy_compat::{
+    scirs_to_numpy_array1, scirs_to_numpy_array2, Array1, Array2,
+};
+use scirs2_numpy::{PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
 
 // Import KDTree
-use scirs2_spatial::KDTree;
 use scirs2_spatial::distance::EuclideanDistance;
+use scirs2_spatial::KDTree;
 
 // Import ConvexHull
 use scirs2_spatial::convex_hull::ConvexHull;
@@ -21,18 +23,18 @@ use scirs2_spatial::convex_hull::ConvexHull;
 
 /// Euclidean distance between two points
 #[pyfunction]
-fn euclidean_py(
-    u: PyReadonlyArray1<f64>,
-    v: PyReadonlyArray1<f64>,
-) -> PyResult<f64> {
+fn euclidean_py(u: PyReadonlyArray1<f64>, v: PyReadonlyArray1<f64>) -> PyResult<f64> {
     let u_arr = u.as_array();
     let v_arr = v.as_array();
 
     if u_arr.len() != v_arr.len() {
-        return Err(pyo3::exceptions::PyValueError::new_err("Arrays must have same length"));
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "Arrays must have same length",
+        ));
     }
 
-    let dist: f64 = u_arr.iter()
+    let dist: f64 = u_arr
+        .iter()
         .zip(v_arr.iter())
         .map(|(a, b)| (a - b).powi(2))
         .sum::<f64>()
@@ -43,18 +45,18 @@ fn euclidean_py(
 
 /// Manhattan (city block) distance between two points
 #[pyfunction]
-fn cityblock_py(
-    u: PyReadonlyArray1<f64>,
-    v: PyReadonlyArray1<f64>,
-) -> PyResult<f64> {
+fn cityblock_py(u: PyReadonlyArray1<f64>, v: PyReadonlyArray1<f64>) -> PyResult<f64> {
     let u_arr = u.as_array();
     let v_arr = v.as_array();
 
     if u_arr.len() != v_arr.len() {
-        return Err(pyo3::exceptions::PyValueError::new_err("Arrays must have same length"));
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "Arrays must have same length",
+        ));
     }
 
-    let dist: f64 = u_arr.iter()
+    let dist: f64 = u_arr
+        .iter()
         .zip(v_arr.iter())
         .map(|(a, b)| (a - b).abs())
         .sum();
@@ -64,18 +66,18 @@ fn cityblock_py(
 
 /// Chebyshev distance between two points
 #[pyfunction]
-fn chebyshev_py(
-    u: PyReadonlyArray1<f64>,
-    v: PyReadonlyArray1<f64>,
-) -> PyResult<f64> {
+fn chebyshev_py(u: PyReadonlyArray1<f64>, v: PyReadonlyArray1<f64>) -> PyResult<f64> {
     let u_arr = u.as_array();
     let v_arr = v.as_array();
 
     if u_arr.len() != v_arr.len() {
-        return Err(pyo3::exceptions::PyValueError::new_err("Arrays must have same length"));
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "Arrays must have same length",
+        ));
     }
 
-    let dist: f64 = u_arr.iter()
+    let dist: f64 = u_arr
+        .iter()
         .zip(v_arr.iter())
         .map(|(a, b)| (a - b).abs())
         .fold(0.0, f64::max);
@@ -85,19 +87,18 @@ fn chebyshev_py(
 
 /// Minkowski distance between two points
 #[pyfunction]
-fn minkowski_py(
-    u: PyReadonlyArray1<f64>,
-    v: PyReadonlyArray1<f64>,
-    p: f64,
-) -> PyResult<f64> {
+fn minkowski_py(u: PyReadonlyArray1<f64>, v: PyReadonlyArray1<f64>, p: f64) -> PyResult<f64> {
     let u_arr = u.as_array();
     let v_arr = v.as_array();
 
     if u_arr.len() != v_arr.len() {
-        return Err(pyo3::exceptions::PyValueError::new_err("Arrays must have same length"));
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "Arrays must have same length",
+        ));
     }
 
-    let dist: f64 = u_arr.iter()
+    let dist: f64 = u_arr
+        .iter()
         .zip(v_arr.iter())
         .map(|(a, b)| (a - b).abs().powf(p))
         .sum::<f64>()
@@ -108,15 +109,14 @@ fn minkowski_py(
 
 /// Cosine distance between two points
 #[pyfunction]
-fn cosine_py(
-    u: PyReadonlyArray1<f64>,
-    v: PyReadonlyArray1<f64>,
-) -> PyResult<f64> {
+fn cosine_py(u: PyReadonlyArray1<f64>, v: PyReadonlyArray1<f64>) -> PyResult<f64> {
     let u_arr = u.as_array();
     let v_arr = v.as_array();
 
     if u_arr.len() != v_arr.len() {
-        return Err(pyo3::exceptions::PyValueError::new_err("Arrays must have same length"));
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "Arrays must have same length",
+        ));
     }
 
     let dot: f64 = u_arr.iter().zip(v_arr.iter()).map(|(a, b)| a * b).sum();
@@ -137,11 +137,7 @@ fn cosine_py(
 /// Compute pairwise distances between observations
 #[pyfunction]
 #[pyo3(signature = (x, metric="euclidean"))]
-fn pdist_py(
-    py: Python,
-    x: PyReadonlyArray2<f64>,
-    metric: &str,
-) -> PyResult<Py<PyArray1<f64>>> {
+fn pdist_py(py: Python, x: PyReadonlyArray2<f64>, metric: &str) -> PyResult<Py<PyArray1<f64>>> {
     let x_arr = x.as_array();
     let n = x_arr.nrows();
 
@@ -152,32 +148,32 @@ fn pdist_py(
     for i in 0..n {
         for j in (i + 1)..n {
             let dist = match metric {
-                "euclidean" => {
-                    x_arr.row(i).iter()
-                        .zip(x_arr.row(j).iter())
-                        .map(|(a, b)| (a - b).powi(2))
-                        .sum::<f64>()
-                        .sqrt()
-                }
-                "cityblock" | "manhattan" => {
-                    x_arr.row(i).iter()
-                        .zip(x_arr.row(j).iter())
-                        .map(|(a, b)| (a - b).abs())
-                        .sum()
-                }
-                "chebyshev" => {
-                    x_arr.row(i).iter()
-                        .zip(x_arr.row(j).iter())
-                        .map(|(a, b)| (a - b).abs())
-                        .fold(0.0, f64::max)
-                }
-                _ => {
-                    x_arr.row(i).iter()
-                        .zip(x_arr.row(j).iter())
-                        .map(|(a, b)| (a - b).powi(2))
-                        .sum::<f64>()
-                        .sqrt()
-                }
+                "euclidean" => x_arr
+                    .row(i)
+                    .iter()
+                    .zip(x_arr.row(j).iter())
+                    .map(|(a, b)| (a - b).powi(2))
+                    .sum::<f64>()
+                    .sqrt(),
+                "cityblock" | "manhattan" => x_arr
+                    .row(i)
+                    .iter()
+                    .zip(x_arr.row(j).iter())
+                    .map(|(a, b)| (a - b).abs())
+                    .sum(),
+                "chebyshev" => x_arr
+                    .row(i)
+                    .iter()
+                    .zip(x_arr.row(j).iter())
+                    .map(|(a, b)| (a - b).abs())
+                    .fold(0.0, f64::max),
+                _ => x_arr
+                    .row(i)
+                    .iter()
+                    .zip(x_arr.row(j).iter())
+                    .map(|(a, b)| (a - b).powi(2))
+                    .sum::<f64>()
+                    .sqrt(),
             };
             result.push(dist);
         }
@@ -201,7 +197,9 @@ fn cdist_py(
     let nb = xb_arr.nrows();
 
     if xa_arr.ncols() != xb_arr.ncols() {
-        return Err(pyo3::exceptions::PyValueError::new_err("Arrays must have same number of columns"));
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "Arrays must have same number of columns",
+        ));
     }
 
     let mut result = Vec::with_capacity(na * nb);
@@ -209,32 +207,32 @@ fn cdist_py(
     for i in 0..na {
         for j in 0..nb {
             let dist = match metric {
-                "euclidean" => {
-                    xa_arr.row(i).iter()
-                        .zip(xb_arr.row(j).iter())
-                        .map(|(a, b)| (a - b).powi(2))
-                        .sum::<f64>()
-                        .sqrt()
-                }
-                "cityblock" | "manhattan" => {
-                    xa_arr.row(i).iter()
-                        .zip(xb_arr.row(j).iter())
-                        .map(|(a, b)| (a - b).abs())
-                        .sum()
-                }
-                "chebyshev" => {
-                    xa_arr.row(i).iter()
-                        .zip(xb_arr.row(j).iter())
-                        .map(|(a, b)| (a - b).abs())
-                        .fold(0.0, f64::max)
-                }
-                _ => {
-                    xa_arr.row(i).iter()
-                        .zip(xb_arr.row(j).iter())
-                        .map(|(a, b)| (a - b).powi(2))
-                        .sum::<f64>()
-                        .sqrt()
-                }
+                "euclidean" => xa_arr
+                    .row(i)
+                    .iter()
+                    .zip(xb_arr.row(j).iter())
+                    .map(|(a, b)| (a - b).powi(2))
+                    .sum::<f64>()
+                    .sqrt(),
+                "cityblock" | "manhattan" => xa_arr
+                    .row(i)
+                    .iter()
+                    .zip(xb_arr.row(j).iter())
+                    .map(|(a, b)| (a - b).abs())
+                    .sum(),
+                "chebyshev" => xa_arr
+                    .row(i)
+                    .iter()
+                    .zip(xb_arr.row(j).iter())
+                    .map(|(a, b)| (a - b).abs())
+                    .fold(0.0, f64::max),
+                _ => xa_arr
+                    .row(i)
+                    .iter()
+                    .zip(xb_arr.row(j).iter())
+                    .map(|(a, b)| (a - b).powi(2))
+                    .sum::<f64>()
+                    .sqrt(),
             };
             result.push(dist);
         }
@@ -249,10 +247,7 @@ fn cdist_py(
 
 /// Convert condensed distance matrix to square form
 #[pyfunction]
-fn squareform_py(
-    py: Python,
-    x: PyReadonlyArray1<f64>,
-) -> PyResult<Py<PyArray2<f64>>> {
+fn squareform_py(py: Python, x: PyReadonlyArray1<f64>) -> PyResult<Py<PyArray2<f64>>> {
     let x_arr = x.as_array();
     let n_dist = x_arr.len();
 
@@ -281,10 +276,7 @@ fn squareform_py(
 ///
 /// Returns indices of points that form the convex hull vertices
 #[pyfunction]
-fn convex_hull_py(
-    py: Python,
-    points: PyReadonlyArray2<f64>,
-) -> PyResult<Py<PyAny>> {
+fn convex_hull_py(py: Python, points: PyReadonlyArray2<f64>) -> PyResult<Py<PyAny>> {
     let points_arr = points.as_array();
     let n = points_arr.nrows();
     let k = points_arr.ncols();
@@ -304,7 +296,8 @@ fn convex_hull_py(
 
     // Get vertices and simplices
     let vertices: Vec<i64> = hull.vertex_indices().iter().map(|&i| i as i64).collect();
-    let simplices: Vec<Vec<i64>> = hull.simplices()
+    let simplices: Vec<Vec<i64>> = hull
+        .simplices()
         .iter()
         .map(|s| s.iter().map(|&i| i as i64).collect())
         .collect();
@@ -314,7 +307,10 @@ fn convex_hull_py(
     let area = hull.area().unwrap_or(0.0);
 
     let dict = PyDict::new(py);
-    dict.set_item("vertices", scirs_to_numpy_array1(Array1::from_vec(vertices), py)?)?;
+    dict.set_item(
+        "vertices",
+        scirs_to_numpy_array1(Array1::from_vec(vertices), py)?,
+    )?;
 
     // Convert simplices to a flat representation for Python
     let simplices_py: Vec<Vec<i64>> = simplices;
@@ -361,13 +357,19 @@ impl PyConvexHull {
 
     /// Get the indices of vertices that form the convex hull
     fn vertices(&self, py: Python) -> PyResult<Py<PyArray1<i64>>> {
-        let vertices: Vec<i64> = self.hull.vertex_indices().iter().map(|&i| i as i64).collect();
+        let vertices: Vec<i64> = self
+            .hull
+            .vertex_indices()
+            .iter()
+            .map(|&i| i as i64)
+            .collect();
         scirs_to_numpy_array1(Array1::from_vec(vertices), py)
     }
 
     /// Get the simplices (facets) of the convex hull
     fn simplices(&self) -> Vec<Vec<i64>> {
-        self.hull.simplices()
+        self.hull
+            .simplices()
             .iter()
             .map(|s| s.iter().map(|&i| i as i64).collect())
             .collect()
@@ -375,20 +377,23 @@ impl PyConvexHull {
 
     /// Calculate the volume of the convex hull
     fn volume(&self) -> PyResult<f64> {
-        self.hull.volume()
+        self.hull
+            .volume()
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))
     }
 
     /// Calculate the surface area of the convex hull
     fn area(&self) -> PyResult<f64> {
-        self.hull.area()
+        self.hull
+            .area()
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))
     }
 
     /// Check if a point is inside the convex hull
     fn contains(&self, point: PyReadonlyArray1<f64>) -> PyResult<bool> {
         let point_vec: Vec<f64> = point.as_array().to_vec();
-        self.hull.contains(&point_vec)
+        self.hull
+            .contains(&point_vec)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))
     }
 }
@@ -439,20 +444,26 @@ impl PyKDTree {
     ///
     /// Returns:
     /// - Tuple of (indices, distances) arrays
-    fn query(
-        &self,
-        py: Python,
-        point: PyReadonlyArray1<f64>,
-        k: usize,
-    ) -> PyResult<Py<PyAny>> {
+    fn query(&self, py: Python, point: PyReadonlyArray1<f64>, k: usize) -> PyResult<Py<PyAny>> {
         let point_vec: Vec<f64> = point.as_array().to_vec();
 
-        let (indices, distances) = self.tree.query(&point_vec, k)
+        let (indices, distances) = self
+            .tree
+            .query(&point_vec, k)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
         let dict = PyDict::new(py);
-        dict.set_item("indices", scirs_to_numpy_array1(Array1::from_vec(indices.iter().map(|&i| i as i64).collect()), py)?)?;
-        dict.set_item("distances", scirs_to_numpy_array1(Array1::from_vec(distances), py)?)?;
+        dict.set_item(
+            "indices",
+            scirs_to_numpy_array1(
+                Array1::from_vec(indices.iter().map(|&i| i as i64).collect()),
+                py,
+            )?,
+        )?;
+        dict.set_item(
+            "distances",
+            scirs_to_numpy_array1(Array1::from_vec(distances), py)?,
+        )?;
 
         Ok(dict.into())
     }
@@ -473,12 +484,23 @@ impl PyKDTree {
     ) -> PyResult<Py<PyAny>> {
         let point_vec: Vec<f64> = point.as_array().to_vec();
 
-        let (indices, distances) = self.tree.query_radius(&point_vec, r)
+        let (indices, distances) = self
+            .tree
+            .query_radius(&point_vec, r)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
         let dict = PyDict::new(py);
-        dict.set_item("indices", scirs_to_numpy_array1(Array1::from_vec(indices.iter().map(|&i| i as i64).collect()), py)?)?;
-        dict.set_item("distances", scirs_to_numpy_array1(Array1::from_vec(distances), py)?)?;
+        dict.set_item(
+            "indices",
+            scirs_to_numpy_array1(
+                Array1::from_vec(indices.iter().map(|&i| i as i64).collect()),
+                py,
+            )?,
+        )?;
+        dict.set_item(
+            "distances",
+            scirs_to_numpy_array1(Array1::from_vec(distances), py)?,
+        )?;
 
         Ok(dict.into())
     }

@@ -16,7 +16,7 @@
 //!
 //! # Examples
 //!
-//! ```rust,ignore
+//! ```rust
 //! use scirs2_neural::models::architectures::{MLPMixer, MLPMixerConfig};
 //! use scirs2_core::random::SeedableRng;
 //!
@@ -29,6 +29,7 @@
 //!     token_mlp_dim: 256,
 //!     channel_mlp_dim: 2048,
 //!     dropout_rate: 0.0,
+//!     in_channels: 3,
 //! };
 //!
 //! let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(42);

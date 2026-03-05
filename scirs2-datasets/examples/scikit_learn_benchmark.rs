@@ -315,7 +315,7 @@ fn run_sklearn_toy_dataset_comparison() {
                     "iris" => load_iris().map(|_| ()),
                     "boston" => load_boston().map(|_| ()),
                     "digits" => load_digits().map(|_| ()),
-                    "wine" => load_wine(false).map(|_| ()),
+                    "wine" => load_wine().map(|_| ()),
                     "breast_cancer" => load_breast_cancer().map(|_| ()),
                     _ => Ok(()),
                 };

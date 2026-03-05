@@ -10,6 +10,8 @@
 mod adaptive_chunking;
 mod adaptive_feedback;
 mod adaptive_prefetch;
+/// Async out-of-core I/O with LRU caching and chunk-based streaming
+pub mod async_out_of_core;
 mod chunk_format;
 mod chunked;
 #[cfg(feature = "memory_compression")]
@@ -24,6 +26,8 @@ mod memmap;
 mod memmap_chunks;
 mod memmap_slice;
 mod memory_layout;
+/// Memory-mapped array wrapper with COW semantics and zero-copy views
+pub mod mmap_array;
 mod numa_topology;
 mod out_of_core;
 mod out_of_core_v2;

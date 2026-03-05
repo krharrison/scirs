@@ -24,11 +24,8 @@
 use criterion::{
     criterion_group, criterion_main, BenchmarkId, Criterion, SamplingMode, Throughput,
 };
-use ndarray::{Array1, Array2};
-use ndarray_rand::RandomExt;
-use rand::SeedableRng;
-use rand_chacha::ChaCha8Rng;
-use rand_distr::{Distribution, Uniform};
+use scirs2_core::ndarray::{Array1, Array2, RandomExt};
+use scirs2_core::random::{ChaCha8Rng, Distribution, SeedableRng, Uniform};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::File;

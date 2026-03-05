@@ -775,7 +775,32 @@ pub use boolean_ops::{
 pub mod kriging;
 pub use kriging::{KrigingPrediction, OrdinaryKriging, SimpleKriging, VariogramModel};
 
-// Geospatial functionality
+// Enhanced geospatial analysis components (geo module)
+pub mod geo;
+pub use geo::{
+    bearing,
+    destination_point as geo_destination_point,
+    geohash_decode,
+    geohash_encode,
+    geohash_neighbors,
+    // Distance calculations
+    haversine_distance as geo_haversine_distance,
+    lat_lon_to_utm,
+    // Coordinate transformations
+    lat_lon_to_xyz,
+    point_in_polygon as geo_point_in_polygon,
+    polygon_area as geo_polygon_area,
+    utm_to_lat_lon,
+    vincenty_distance as geo_vincenty_distance,
+    xyz_to_lat_lon,
+    // Bounding box and polygon
+    BoundingBox as GeoBoundingBox,
+    // GeoHash
+    GeoHash,
+    GeoHashCenter,
+};
+
+// Geospatial functionality (legacy module)
 pub mod geospatial;
 pub use geospatial::{
     cross_track_distance, destination_point, final_bearing, geographic_to_utm,
@@ -797,6 +822,9 @@ pub use polygon::{
     point_on_boundary, polygon_area, polygon_centroid, polygon_contains_polygon,
     visvalingam_whyatt_simplify,
 };
+
+// Computational geometry algorithms (sweep line, bounding, Fortune's Voronoi, incremental 3D hull)
+pub mod computational_geometry;
 
 // R-tree for efficient spatial indexing
 pub mod rtree;
@@ -858,7 +886,23 @@ pub use collision::continuous::continuous_sphere_sphere_collision;
 // Spatial statistics and pattern analysis
 pub mod spatial_stats;
 pub use spatial_stats::{
-    clark_evans_index, distance_weights_matrix, gearys_c, getis_ord_gi, local_morans_i, morans_i,
+    average_nearest_neighbor, clark_evans_index, contiguity_weights_matrix,
+    distance_weights_matrix, gearys_c, getis_ord_gi, knn_weights_matrix, local_morans_i, morans_i,
+    ripleys_k, ripleys_l, AnnResult,
+};
+
+// Triangle mesh operations (simplification, smoothing, normals, quality, I/O)
+pub mod mesh;
+pub use mesh::{
+    face_aspect_ratio, face_min_angle, laplacian_smooth, mesh_quality_stats, simplify_mesh,
+    taubin_smooth, Edge as MeshEdge, Face, QualityStats, TriangleMesh, Vertex,
+};
+
+// Proximity queries (Hausdorff, Frechet, MST, Gabriel, RNG, alpha shapes)
+pub mod proximity;
+pub use proximity::{
+    alpha_shape_edges, discrete_frechet_distance, euclidean_mst, gabriel_graph,
+    hausdorff_distance_detailed, relative_neighborhood_graph, HausdorffResult, MstEdge,
 };
 
 // Variogram analysis for geostatistics and spatial interpolation

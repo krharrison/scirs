@@ -24,7 +24,7 @@ use scirs2_optim::optimizers as optim_optimizers;
 /// let mut params = vec![Array::from_vec(vec![1.0, 2.0, 3.0]).into_dyn()];
 /// let grads = vec![Array::from_vec(vec![0.1, 0.2, 0.3]).into_dyn()];
 /// // Update parameters
-/// adagrad.update(&mut params, &grads).unwrap();
+/// adagrad.update(&mut params, &grads).expect("operation should succeed");
 pub struct Adagrad<F: Float + Debug + NumAssign> {
     /// Inner Adagrad optimizer from scirs2-optim
     inner: optim, optimizers: Adagrad<F>,

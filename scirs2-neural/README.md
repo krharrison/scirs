@@ -1,418 +1,222 @@
-# SciRS2 Neural
+# scirs2-neural
 
 [![crates.io](https://img.shields.io/crates/v/scirs2-neural.svg)](https://crates.io/crates/scirs2-neural)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-neural)](https://docs.rs/scirs2-neural)
-[![Build Status](https://img.shields.io/badge/build-passing-green.svg)]()
-[![Version](https://img.shields.io/badge/version-0.1.0--stable-orange.svg)]()
-[![Tests](https://img.shields.io/badge/tests-303%20passing-green.svg)]()
-[![Quality](https://img.shields.io/badge/clippy-clean-green.svg)]()
-[![Status](https://img.shields.io/badge/status-production%20ready-green.svg)]()
 
-**🚀 Production-Ready Neural Network Module (v0.1.5)** for the SciRS2 scientific computing library. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module provides comprehensive, battle-tested tools for building, training, and evaluating neural networks with state-of-the-art performance optimizations and ecosystem consistency.
+A comprehensive, production-ready neural network library for Rust, part of the [SciRS2](https://github.com/cool-japan/scirs) scientific computing ecosystem.
 
-## ✅ Production Status
+## Overview
 
-**Version 0.1.0** (SciRS2 POLICY & Enhanced Performance) is **production-ready** with:
-- ✅ Zero compilation warnings
-- ✅ 303 tests passing (100% coverage of core functionality)  
-- ✅ Clippy clean code quality
-- ✅ Comprehensive API documentation
-- ✅ Performance optimizations active
-- ✅ Memory safety verified
+`scirs2-neural` provides PyTorch-style neural network building blocks with state-of-the-art architectures, training utilities, and advanced capabilities including Mixture of Experts, Spiking Neural Networks, Graph Neural Networks, Reinforcement Learning, and generative models. The library is designed for both research and production use, with a focus on correctness, performance, and idiomatic Rust.
 
 ## Features
 
-### 🚀 **Core Neural Network Components**
-- **Complete Layer Library**: Dense, Convolutional (1D/2D/3D), Pooling, Recurrent (LSTM, GRU), Normalization (Batch, Layer, Instance, Group), Attention, Transformer, Embedding, and Regularization layers
-- **Advanced Activations**: ReLU variants, Sigmoid, Tanh, Softmax, GELU, Swish/SiLU, Mish, Snake, and parametric activations
-- **Comprehensive Loss Functions**: MSE, Cross-entropy variants, Focal loss, Contrastive loss, Triplet loss, Huber/Smooth L1, KL-divergence, CTC loss
-- **Sequential Model API**: Intuitive API for building complex neural network architectures
+### Attention Mechanisms
+- Multi-head attention, self-attention, cross-attention
+- Rotary Position Embeddings (RoPE)
+- Grouped Query Attention (GQA) for memory-efficient inference
+- Linear attention and efficient attention variants
+- Sparse attention patterns
+- Multi-head latent attention
 
-### ⚡ **Performance & Optimization**
-- **JIT Compilation**: Just-in-time compilation for neural network operations with multiple optimization strategies
-- **SIMD Acceleration**: Vectorized operations for improved performance
-- **Memory Efficiency**: Optimized memory usage with adaptive pooling and efficient implementations
-- **Mixed Precision Training**: Support for half-precision floating point for faster training
-- **TPU Compatibility**: Basic infrastructure for Tensor Processing Unit support
+### Mixture of Experts (MoE)
+- Top-k routing with load balancing
+- Configurable expert capacity and auxiliary loss
+- Integration with transformer blocks
 
-### 🏗️ **Model Architecture Support**
-- **Pre-defined Architectures**: ResNet, EfficientNet, Vision Transformer (ViT), ConvNeXt, MobileNet, BERT-like, GPT-like, CLIP-like models
-- **Transformer Implementation**: Full transformer encoder/decoder with multi-head attention, position encoding
-- **Multi-modal Support**: Cross-modal architectures and feature fusion capabilities
-- **Transfer Learning**: Weight initialization, layer freezing/unfreezing, fine-tuning utilities
+### Capsule Networks
+- Dynamic routing between capsules (Sabour et al.)
+- Squash activation and routing agreement
 
-### 🎯 **Training Infrastructure**
-- **Advanced Training Loop**: Epoch-based training with gradient accumulation, mixed precision, and distributed training support
-- **Dataset Handling**: Data loaders with prefetching, batch generation, data augmentation pipeline
-- **Training Callbacks**: Model checkpointing, early stopping, learning rate scheduling, gradient clipping, TensorBoard logging
-- **Evaluation Framework**: Comprehensive metrics computation, cross-validation, test set evaluation
+### Spiking Neural Networks (SNN)
+- Leaky Integrate-and-Fire (LIF) neurons
+- Spike-Timing Dependent Plasticity (STDP)
+- Temporal coding and rate coding
 
-### 🔧 **Advanced Capabilities**
-- **Model Serialization**: Save/load functionality with version compatibility and portable format specification
-- **Model Pruning & Compression**: Magnitude-based pruning, structured pruning, knowledge distillation
-- **Model Interpretation**: Gradient-based attributions, feature visualization, layer activation analysis
-- **Quantization Support**: Post-training quantization and quantization-aware training
+### Graph Neural Networks (GNN)
+- Graph Convolutional Networks (GCN)
+- Graph Attention Networks (GAT)
+- GraphSAGE and GraphSAGE-Mean
+- Graph Isomorphism Network (GIN)
+- Message Passing Neural Networks (MPNN)
+- Graph pooling: DiffPool, SAGPool, global pooling
 
-### 🌐 **Integration & Deployment**
-- **Framework Interoperability**: ONNX model export/import, PyTorch/TensorFlow weight conversion
-- **Deployment Ready**: C/C++ binding generation, WebAssembly target, mobile deployment utilities
-- **Visualization Tools**: Network architecture visualization, training curves, attention visualization
+### Vision Architectures
+- SWIN Transformer (shifted window attention)
+- Vision Transformer (ViT) with patch embeddings
+- UNet for dense prediction / segmentation
+- CLIP dual-encoder for vision-language alignment
+- ConvNeXt (Tiny to XLarge variants)
+- PatchEmbedding layers
 
-## Installation
+### NLP / Sequence Architectures
+- GPT-2 architecture (decoder-only transformer)
+- T5 encoder-decoder architecture
+- Full transformer (encoder + decoder)
+- Positional encodings: sinusoidal, learned, RoPE, relative
 
-Add the following to your `Cargo.toml`:
+### Generative Models
+- Generative Adversarial Networks (GAN)
+- Variational Autoencoders (VAE / autoencoder)
+- Diffusion models (DDPM-style)
+- Normalizing flow models
+- Energy-based models (EBM)
 
-```toml
-[dependencies]
-scirs2-neural = "0.1.5"
-```
+### Training Infrastructure
+- Knowledge distillation (response-based and feature-based)
+- Continual learning (EWC, progressive networks)
+- Meta-learning (MAML-style)
+- Contrastive learning (SimCLR, MoCo-style)
+- Multitask learning
+- Self-supervised pretraining utilities
+- Magnitude-based and structured pruning
+- Post-training and quantization-aware training
+- DPO (Direct Preference Optimization)
+- PPO for reinforcement learning from human feedback
+- Reward modeling and preference data handling
 
-To enable optimizations and optional features:
+### Reinforcement Learning
+- Proximal Policy Optimization (PPO)
+- Actor-critic architectures
+- Policy and value networks
+- Replay buffers (uniform and prioritized)
 
-```toml
-[dependencies]
-scirs2-neural = { version = "0.1.5", features = ["simd", "parallel"] }
+### Serialization and Deployment
+- Model graph serialization
+- Weight format (portable, versioned)
+- Gradient checkpointing for memory-efficient training
+- Half-precision (FP16) support
 
-# For performance optimization
-scirs2-neural = { version = "0.1.5", features = ["jit", "cuda"] }
+### Core Layers
+- Dense / Linear with configurable activations
+- Conv1D, Conv2D, Conv3D and transposed variants
+- Depthwise separable convolutions
+- MaxPool, AvgPool, GlobalPool, AdaptivePool
+- LSTM, GRU, bidirectional RNNs
+- BatchNorm, LayerNorm, GroupNorm, InstanceNorm, RMSNorm
+- Dropout, SpatialDropout, AlphaDropout
+- Embedding layers
+- Mamba / Selective State Space (S4)
+- MLP-Mixer blocks
 
-# For integration with scirs2-metrics
-scirs2-neural = { version = "0.1.5", features = ["metrics_integration"] }
-```
+### Activation Functions
+- ReLU, LeakyReLU, PReLU, ELU, SELU
+- GELU, Swish/SiLU, Mish, Snake
+- Sigmoid, Tanh, Softmax, LogSoftmax
+
+### Loss Functions
+- MSE, MAE, Huber / Smooth-L1
+- Cross-entropy, Binary cross-entropy, Sparse categorical cross-entropy
+- Focal loss for class-imbalanced datasets
+- Contrastive loss, Triplet loss
+- KL divergence, CTC loss
+
+### Optimizers
+- SGD (with momentum and Nesterov)
+- Adam, AdamW, RAdam
+- AdaGrad, RMSprop
+- Learning rate schedulers: step decay, cosine annealing, warm restarts
 
 ## Quick Start
 
-Here's a simple example to get you started:
+Add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+scirs2-neural = "0.3.0"
+```
+
+With optional features:
+
+```toml
+[dependencies]
+scirs2-neural = { version = "0.3.0", features = ["parallel"] }
+```
+
+### Building a Sequential MLP
 
 ```rust
 use scirs2_neural::prelude::*;
-use scirs2_neural::layers::{Sequential, Dense};
-use scirs2_neural::losses::MeanSquaredError;
-use ndarray::Array2;
-use rand::rngs::SmallRng;
-use rand::SeedableRng;
+use scirs2_core::random::rng;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut rng = SmallRng::seed_from_u64(42);
-    
-    // Create a simple neural network
-    let mut model = Sequential::new();
-    model.add(Dense::new(2, 64, Some("relu"), &mut rng)?);
-    model.add(Dense::new(64, 32, Some("relu"), &mut rng)?);
-    model.add(Dense::new(32, 1, Some("sigmoid"), &mut rng)?);
-    
-    // Create sample data (XOR problem)
-    let x = Array2::from_shape_vec((4, 2), vec![0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0])?;
-    let y = Array2::from_shape_vec((4, 1), vec![0.0, 1.0, 1.0, 0.0])?;
-    
-    // Forward pass
-    let predictions = model.forward(&x.into_dyn())?;
-    println!("Predictions: {:?}", predictions);
-    
+    let mut rng = rng();
+
+    let mut model = Sequential::<f32>::new();
+    model.add(Dense::new(784, 256, Some("relu"), &mut rng)?);
+    model.add(Dense::new(256, 128, Some("relu"), &mut rng)?);
+    model.add(Dense::new(128, 10, None, &mut rng)?);
+
+    println!("Model: {} layers", model.len());
     Ok(())
 }
 ```
 
-## Comprehensive Examples
-
-The library includes complete working examples for various use cases:
-
-- **[Image Classification](examples/image_classification_complete.rs)**: CNN architectures for computer vision
-- **[Text Classification](examples/text_classification_complete.rs)**: NLP models with embeddings and attention
-- **[Semantic Segmentation](examples/semantic_segmentation_complete.rs)**: U-Net for pixel-wise classification
-- **[Object Detection](examples/object_detection_complete.rs)**: Feature extraction and bounding box regression
-- **[Generative Models](examples/generative_models_complete.rs)**: VAE and GAN implementations
-
-## Usage
-
-Detailed usage examples:
+### Using Transformer Attention
 
 ```rust
-use scirs2_neural::prelude::*;
-use scirs2_neural::layers::{Sequential, Dense, Conv2D, MaxPool2D, Dropout, BatchNorm};
-use scirs2_neural::losses::{CrossEntropyLoss, MeanSquaredError};
-use scirs2_neural::training::{TrainingConfig, ValidationSettings};
-use rand::rngs::SmallRng;
-use rand::SeedableRng;
-use ndarray::Array4;
+use scirs2_neural::layers::attention::MultiHeadAttention;
+use scirs2_core::random::rng;
 
-// Create a CNN for image classification
-fn create_cnn() -> Result<Sequential<f32>, Box<dyn std::error::Error>> {
-    // Create a sequential model
-    let mut model = models::sequential::Sequential::new();
-    
-    // Add layers
-    model.add_layer(layers::dense::Dense::new(2, 32, None, None)?);
-    model.add_layer(activations::relu::ReLU::new());
-    model.add_layer(layers::dense::Dense::new(32, 16, None, None)?);
-    model.add_layer(activations::relu::ReLU::new());
-    model.add_layer(layers::dense::Dense::new(16, 1, None, None)?);
-    model.add_layer(activations::sigmoid::Sigmoid::new());
-    
-    // Set loss function and optimizer
-    let loss = losses::mse::MeanSquaredError::new();
-    let optimizer = optimizers::adam::Adam::new(0.001, 0.9, 0.999, 1e-8);
-    
-    // Compile the model
-    model.compile(loss, optimizer);
-    
-    // Sample training data (XOR problem)
-    let x_train = array![[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]];
-    let y_train = array![[0.0], [1.0], [1.0], [0.0]];
-    
-    // Train the model
-    model.fit(&x_train, &y_train, 1000, 4, None, None)?;
-    
-    // Make predictions
-    let predictions = model.predict(&x_train)?;
-    println!("Predictions: {:?}", predictions);
-    
-    Ok(())
-}
-
-// Using autograd for manual gradient computation
-fn autograd_example() -> CoreResult<()> {
-    use scirs2_neural::autograd::{Variable, Graph};
-    
-    // Create computation graph
-    let mut graph = Graph::new();
-    
-    // Create input variables
-    let x = graph.variable(2.0);
-    let y = graph.variable(3.0);
-    
-    // Build computation
-    let z = graph.add(&x, &y);  // z = x + y
-    let w = graph.multiply(&z, &x);  // w = z * x = (x + y) * x
-    
-    // Forward pass
-    graph.forward()?;
-    println!("Result: {}", w.value()?);  // Should be (2 + 3) * 2 = 10
-    
-    // Backward pass to compute gradients
-    graph.backward(&w)?;
-    
-    // Get gradients
-    println!("dw/dx: {}", x.gradient()?);  // Should be d((x+y)*x)/dx = (x+y) + x*1 = 2+3 + 2*1 = 7
-    println!("dw/dy: {}", y.gradient()?);  // Should be d((x+y)*x)/dy = x*1 = 2
-    
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut rng = rng();
+    // 8 heads, 64-dim model, 16-dim key/value
+    let attn = MultiHeadAttention::<f32>::new(8, 64, 16, &mut rng)?;
     Ok(())
 }
 ```
 
-## Components
-
-### Layers
-
-Neural network layer implementations:
+### Knowledge Distillation
 
 ```rust
-use scirs2_neural::layers::{
-    Layer,                  // Layer trait
-    dense::Dense,           // Fully connected layer
-    dropout::Dropout,       // Dropout layer
-    conv::Conv2D,           // 2D convolutional layer
-    conv::Conv2DTranspose,  // 2D transposed convolutional layer
-    pooling::MaxPool2D,     // 2D max pooling layer
-    pooling::AvgPool2D,     // 2D average pooling layer
-    pooling::GlobalPooling, // Global pooling layer
-    norm::BatchNorm,        // Batch normalization layer
-    norm::LayerNorm,        // Layer normalization layer
-    recurrent::LSTM,        // Long Short-Term Memory layer
-    recurrent::GRU,         // Gated Recurrent Unit layer
-    recurrent::RNN,         // Simple RNN layer
-    attention::MultiHeadAttention, // Multi-head attention mechanism
-    attention::SelfAttention,      // Self-attention mechanism
-    transformer::TransformerEncoder, // Transformer encoder block
-    transformer::TransformerDecoder, // Transformer decoder block
-    transformer::Transformer,        // Full transformer architecture
-};
-```
-
-### Activations
-
-Activation functions:
-
-```rust
-use scirs2_neural::activations::{
-    Activation,             // Activation trait
-    relu::ReLU,             // Rectified Linear Unit
-    sigmoid::Sigmoid,       // Sigmoid activation
-    tanh::Tanh,             // Hyperbolic tangent
-    softmax::Softmax,       // Softmax activation
-    gelu::GELU,             // Gaussian Error Linear Unit
-    swish::Swish,           // Swish/SiLU activation
-    mish::Mish,             // Mish activation
-};
-```
-
-### Loss Functions
-
-Loss function implementations:
-
-```rust
-use scirs2_neural::losses::{
-    Loss,                   // Loss trait
-    mse::MeanSquaredError,  // Mean Squared Error
-    crossentropy::CrossEntropy, // Cross Entropy Loss
-};
-```
-
-### Models
-
-Neural network model implementations:
-
-```rust
-use scirs2_neural::models::{
-    sequential::Sequential,  // Sequential model
-    trainer::Trainer,        // Training utilities
-};
-```
-
-### Optimizers
-
-Optimization algorithms:
-
-```rust
-use scirs2_neural::optimizers::{
-    Optimizer,              // Optimizer trait
-    sgd::SGD,               // Stochastic Gradient Descent
-    adagrad::AdaGrad,       // Adaptive Gradient Algorithm
-    rmsprop::RMSprop,       // Root Mean Square Propagation
-    adam::Adam,             // Adaptive Moment Estimation
-    adamw::AdamW,           // Adam with decoupled weight decay
-    radam::RAdam,           // Rectified Adam
-};
-```
-
-### Autograd
-
-Automatic differentiation functionality:
-
-```rust
-use scirs2_neural::autograd::{
-    Variable,               // Variable holding value and gradient
-    Graph,                  // Computation graph
-    Tape,                   // Gradient tape
-    Function,               // Function trait
-    ops,                    // Basic operations
-};
-```
-
-### Utilities
-
-Helper utilities:
-
-```rust
-use scirs2_neural::utils::{
-    initializers,           // Weight initialization functions
-    metrics,                // Evaluation metrics
-    datasets,               // Dataset utilities
+use scirs2_neural::training::knowledge_distillation::{
+    DistillationConfig, KnowledgeDistillationTrainer,
 };
 
-// Model serialization
-use scirs2_neural::serialization::{
-    SaveLoad,               // Save/load trait for models
-    ModelConfig,            // Configuration for model serialization
-    load_model,             // Load model from file
-};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = DistillationConfig {
+        temperature: 4.0,
+        alpha: 0.7,   // weight for soft targets
+        ..Default::default()
+    };
+    // Pair teacher and student models, then call trainer.train()
+    Ok(())
+}
 ```
 
-## Integration with Other SciRS2 Modules
-
-This module integrates with other SciRS2 modules:
-
-- **scirs2-linalg**: For efficient matrix operations
-- **scirs2-optim**: For advanced optimization algorithms
-- **scirs2-autograd**: For automatic differentiation (if used separately)
-- **scirs2-metrics**: For advanced evaluation metrics and visualizations
-
-Example of using linear algebra functions:
+### Graph Neural Network
 
 ```rust
-use scirs2_neural::linalg::batch_operations;
-use ndarray::Array3;
+use scirs2_neural::layers::gnn::{GCNLayer, GATLayer};
+use scirs2_core::random::rng;
 
-// Batch matrix multiplication
-let a = Array3::<f64>::zeros((32, 10, 20));
-let b = Array3::<f64>::zeros((32, 20, 15));
-let result = batch_operations::batch_matmul(&a, &b);
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut rng = rng();
+    let gcn = GCNLayer::<f32>::new(32, 64, &mut rng)?;
+    let gat = GATLayer::<f32>::new(64, 32, 4, &mut rng)?; // 4 attention heads
+    Ok(())
+}
 ```
 
-### Metrics Integration
+## Examples
 
-With the `metrics_integration` feature, you can use scirs2-metrics for advanced evaluation:
+See `examples/image_classification.rs` for a complete image classification pipeline with convolutional networks.
 
-```rust
-use scirs2_metrics::integration::neural::{NeuralMetricAdapter, MetricsCallback};
-use scirs2_neural::callbacks::ScirsMetricsCallback;
-use scirs2_neural::evaluation::MetricType;
+## Feature Flags
 
-// Create metric adapters
-let metrics = vec![
-    NeuralMetricAdapter::<f32>::accuracy(),
-    NeuralMetricAdapter::<f32>::precision(),
-    NeuralMetricAdapter::<f32>::f1_score(),
-    NeuralMetricAdapter::<f32>::mse(),
-    NeuralMetricAdapter::<f32>::r2(),
-];
+| Flag | Description |
+|------|-------------|
+| `parallel` | Enable Rayon-based multi-threaded operations |
+| `simd` | SIMD-accelerated activation functions and matrix ops |
 
-// Create callback for tracking metrics during training
-let metrics_callback = ScirsMetricsCallback::new(metrics);
+## Related Crates
 
-// Train model with metrics tracking
-model.fit(&x_train, &y_train, 
-    epochs, 
-    batch_size, 
-    Some(&[&metrics_callback]), 
-    None
-)?;
-
-// Get evaluation metrics
-let eval_results = model.evaluate(
-    &x_test, 
-    &y_test, 
-    Some(batch_size),
-    Some(vec![
-        MetricType::Accuracy,
-        MetricType::Precision,
-        MetricType::F1Score,
-    ])
-)?;
-
-// Visualize results
-let roc_viz = neural_roc_curve_visualization(&y_true, &y_pred, Some(auc))?;
-```
-
-## 🏭 Production Deployment
-
-This module is ready for production deployment in:
-
-### ✅ Enterprise Applications
-- **High-Performance Computing**: Optimized for large-scale neural network training
-- **Real-Time Inference**: Low-latency prediction capabilities
-- **Distributed Systems**: Thread-safe, concurrent operations support
-- **Memory-Constrained Environments**: Efficient memory usage patterns
-
-### ✅ Development Workflows
-- **Research & Development**: Flexible API for experimentation
-- **Prototyping**: Quick model iteration and testing
-- **Production Pipelines**: Stable API with backward compatibility
-- **Cross-Platform Deployment**: Support for various target architectures
-
-### ✅ Quality Assurance
-- **Comprehensive Testing**: 303 unit tests covering all major functionality
-- **Code Quality**: Clippy-clean codebase following Rust best practices
-- **Documentation**: Complete API docs with practical examples
-- **Performance**: Benchmarked and optimized for real-world workloads
-
-## Contributing
-
-See the [CONTRIBUTING.md](../CONTRIBUTING.md) file for contribution guidelines.
+- [`scirs2-autograd`](../scirs2-autograd) - Automatic differentiation engine
+- [`scirs2-linalg`](../scirs2-linalg) - Linear algebra primitives
+- [`scirs2-optimize`](../scirs2-optimize) - Optimization algorithms
+- [SciRS2 project](https://github.com/cool-japan/scirs)
 
 ## License
 
-This project is Licensed under the Apache License 2.0. See LICENSE for details.
-
-You can choose to use either license. See the [LICENSE](../LICENSE) file for details.
+Licensed under the Apache License, Version 2.0. See [LICENSE](../LICENSE) for details.

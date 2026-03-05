@@ -11,12 +11,12 @@ use pyo3::types::PyDict;
 use scirs2_numpy::IntoPyArray;
 
 // ndarray types from scirs2-core
-use scirs2_core::{Array1, ndarray::ArrayView1};
+use scirs2_core::{ndarray::ArrayView1, Array1};
 
 // Direct imports from scirs2-optimize (native ndarray 0.17 support)
-use scirs2_optimize::scalar::{minimize_scalar, Method as ScalarMethod, Options as ScalarOptions};
 use scirs2_optimize::global::{differential_evolution, DifferentialEvolutionOptions};
-use scirs2_optimize::unconstrained::{minimize, Method, Options, Bounds};
+use scirs2_optimize::scalar::{minimize_scalar, Method as ScalarMethod, Options as ScalarOptions};
+use scirs2_optimize::unconstrained::{minimize, Bounds, Method, Options};
 
 /// Minimize a scalar function of one variable
 ///
@@ -125,7 +125,7 @@ fn brentq_py(
 
     if fa * fb > 0.0 {
         return Err(pyo3::exceptions::PyValueError::new_err(
-            "f(a) and f(b) must have opposite signs"
+            "f(a) and f(b) must have opposite signs",
         ));
     }
 
@@ -182,8 +182,10 @@ fn brentq_py(
                 // Inverse quadratic interpolation
                 let q = fa / fc;
                 let r = fb / fc;
-                (s * (2.0 * m * q * (q - r) - (b - a) * (r - 1.0)),
-                 (q - 1.0) * (r - 1.0) * (s - 1.0))
+                (
+                    s * (2.0 * m * q * (q - r) - (b - a) * (r - 1.0)),
+                    (q - 1.0) * (r - 1.0) * (s - 1.0),
+                )
             };
 
             let (p, q) = if p > 0.0 { (p, -q) } else { (-p, q) };
@@ -452,7 +454,7 @@ fn curve_fit_py(
 
     if xdata.len() != ydata.len() {
         return Err(pyo3::exceptions::PyValueError::new_err(
-            "xdata and ydata must have the same length"
+            "xdata and ydata must have the same length",
         ));
     }
 
@@ -517,9 +519,12 @@ fn curve_fit_py(
         &Array1::from_vec(params_init),
         ls_method,
         None::<fn(&[f64], &[f64]) -> scirs2_core::ndarray::Array2<f64>>, // No jacobian provided
-        &empty_data,  // No additional data
+        &empty_data,                                                     // No additional data
         Some(options),
-    ).map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Curve fitting failed: {}", e)))?;
+    )
+    .map_err(|e| {
+        pyo3::exceptions::PyRuntimeError::new_err(format!("Curve fitting failed: {}", e))
+    })?;
 
     // Return results
     let dict = PyDict::new(py);

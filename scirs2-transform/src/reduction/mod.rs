@@ -4,13 +4,29 @@
 //! which is useful for visualization, feature extraction, and reducing
 //! computational complexity.
 
+/// Factor Analysis module
+pub mod factor_analysis;
 mod isomap;
 mod lle;
 mod spectral_embedding;
 mod tsne;
 mod umap;
 
+/// Laplacian Eigenmaps for manifold learning
+pub mod laplacian_eigenmaps;
+
+/// Diffusion Maps for nonlinear dimensionality reduction
+pub mod diffusion_maps;
+
+pub use crate::reduction::diffusion_maps::DiffusionMaps;
+pub use crate::reduction::factor_analysis::{
+    factor_analysis, scree_plot_data, FactorAnalysis, FactorAnalysisResult, RotationMethod,
+    ScreePlotData,
+};
 pub use crate::reduction::isomap::Isomap;
+pub use crate::reduction::laplacian_eigenmaps::{
+    GraphMethod, LaplacianEigenmaps, LaplacianType as LELaplacianType,
+};
 pub use crate::reduction::lle::LLE;
 pub use crate::reduction::spectral_embedding::{AffinityMethod, SpectralEmbedding};
 pub use crate::reduction::tsne::{trustworthiness, TSNE};

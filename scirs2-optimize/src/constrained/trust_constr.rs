@@ -39,7 +39,7 @@
 //!     Some(gradient),           // Custom gradient
 //!     None::<fn(&[f64]) -> _>,  // No custom Hessian (use BFGS)
 //!     HessianUpdate::BFGS,
-//! ).unwrap();
+//! ).expect("valid input");
 //!
 //! assert!(result.success);
 //! ```
@@ -429,7 +429,7 @@ where
 ///     Some(rosenbrock_grad),
 ///     None::<fn(&[f64]) -> Array2<f64>>,
 ///     HessianUpdate::BFGS,
-/// ).unwrap();
+/// ).expect("valid input");
 /// ```
 #[allow(clippy::many_single_char_names)]
 #[allow(clippy::too_many_arguments)]

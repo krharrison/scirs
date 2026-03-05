@@ -7,30 +7,33 @@ use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict};
 use scirs2_numpy::{PyArray1, PyArrayMethods};
 
-use super::types::{PyBeta, PyBinomial, PyCauchy, PyChiSquare, PyExponential, PyF, PyGamma, PyGeometric, PyLaplace, PyLogistic, PyLognormal, PyNormal, PyPareto, PyPoisson, PyStudentT, PyUniform, PyWeibull};
+use super::types::{
+    PyBeta, PyBinomial, PyCauchy, PyChiSquare, PyExponential, PyF, PyGamma, PyGeometric, PyLaplace,
+    PyLogistic, PyLognormal, PyNormal, PyPareto, PyPoisson, PyStudentT, PyUniform, PyWeibull,
+};
 
 // Import functions from other modules for register_module
+use super::batch::register_batch_module;
 use super::functions::{
-    describe_py, mean_py, std_py, var_py, percentile_py, correlation_py,
-    covariance_py, median_py, iqr_py, ttest_1samp_py, ttest_ind_py,
+    correlation_py, covariance_py, describe_py, iqr_py, mean_py, median_py, percentile_py, std_py,
+    ttest_1samp_py, ttest_ind_py, var_py,
 };
 use super::functions_2::{
-    ttest_rel_py, skew_py, kurtosis_py, mode_py, gmean_py, hmean_py, zscore_py,
-    mean_abs_deviation_py, median_abs_deviation_py, data_range_py, coef_variation_py,
-    gini_coefficient_py, boxplot_stats_py, quartiles_py, winsorized_mean_py,
-    winsorized_variance_py, entropy_py, kl_divergence_py, cross_entropy_py,
-    weighted_mean_py, moment_py, quintiles_py, skewness_ci_py, kurtosis_ci_py,
+    boxplot_stats_py, coef_variation_py, cross_entropy_py, data_range_py, entropy_py,
+    gini_coefficient_py, gmean_py, hmean_py, kl_divergence_py, kurtosis_ci_py, kurtosis_py,
+    mean_abs_deviation_py, median_abs_deviation_py, mode_py, moment_py, quartiles_py, quintiles_py,
+    skew_py, skewness_ci_py, ttest_rel_py, weighted_mean_py, winsorized_mean_py,
+    winsorized_variance_py, zscore_py,
 };
 use super::functions_3::{
-    deciles_py, sem_py, percentile_range_py, skewness_simd_py, kurtosis_simd_py,
-    pearson_r_simd_py, covariance_simd_py, moment_simd_py, mean_simd_py, std_simd_py,
-    variance_simd_py, shapiro_py, chisquare_py, f_oneway_py, wilcoxon_py, mannwhitneyu_py,
-    kruskal_py, levene_py, bartlett_test_py, brown_forsythe_py, anderson_darling_py,
-    dagostino_k2_py,
+    anderson_darling_py, bartlett_test_py, brown_forsythe_py, chisquare_py, covariance_simd_py,
+    dagostino_k2_py, deciles_py, f_oneway_py, kruskal_py, kurtosis_simd_py, levene_py,
+    mannwhitneyu_py, mean_simd_py, moment_simd_py, pearson_r_simd_py, percentile_range_py, sem_py,
+    shapiro_py, skewness_simd_py, std_simd_py, variance_simd_py, wilcoxon_py,
 };
 use super::functions_4::{
-    ks_2samp_py, friedman_py, chi2_independence_py, chi2_yates_py, fisher_exact_py,
-    odds_ratio_py, relative_risk_py, linregress_py, tukey_hsd_py, pearsonr_py, spearmanr_py,
+    chi2_independence_py, chi2_yates_py, fisher_exact_py, friedman_py, ks_2samp_py, linregress_py,
+    odds_ratio_py, pearsonr_py, relative_risk_py, spearmanr_py, tukey_hsd_py,
 };
 use scirs2_stats::kendalltau;
 
@@ -62,9 +65,7 @@ fn kendalltau_py(
     let y_readonly = y.readonly();
     let y_arr = y_readonly.as_array();
     let (tau, pvalue) = kendalltau(&x_arr.view(), &y_arr.view(), method, alternative)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Kendall tau test failed: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("Kendall tau test failed: {}", e)))?;
     let dict = PyDict::new(py);
     dict.set_item("correlation", tau)?;
     dict.set_item("pvalue", pvalue)?;
@@ -158,5 +159,7 @@ pub fn register_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pearsonr_py, m)?)?;
     m.add_function(wrap_pyfunction!(spearmanr_py, m)?)?;
     m.add_function(wrap_pyfunction!(kendalltau_py, m)?)?;
+    // Batch/vectorized APIs
+    register_batch_module(m)?;
     Ok(())
 }

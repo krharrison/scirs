@@ -347,14 +347,9 @@ pub fn validate_periodogram_consistency() -> SignalResult<ValidationResult> {
     let (ref_freqs, ref_psd) = compute_reference_periodogram(&signal, fs)?;
 
     // Compute using our implementation
-    let (our_freqs, our_psd) = crate::spectral::periodogram(
-        signal.as_slice().unwrap_or(&[]),
-        Some(fs),
-        None,
-        None,
-        None,
-        None,
-    )?;
+    let signal_slice: &[f64] = signal.as_slice().unwrap_or(&[]);
+    let (our_freqs, our_psd) =
+        crate::spectral::periodogram(signal_slice, Some(fs), None, None, None, None)?;
 
     // Compare results
     let min_len = ref_freqs.len().min(our_freqs.len());
@@ -378,9 +373,9 @@ pub fn validate_periodogram_consistency() -> SignalResult<ValidationResult> {
     let ref_mean = ref_psd.iter().take(min_len).sum::<f64>() / min_len as f64;
     let our_mean: f64 = our_psd.iter().take(min_len).sum::<f64>() / min_len as f64;
 
-    let mut cov = 0.0;
-    let mut var_ref = 0.0;
-    let mut var_our = 0.0;
+    let mut cov: f64 = 0.0;
+    let mut var_ref: f64 = 0.0;
+    let mut var_our: f64 = 0.0;
 
     for i in 0..min_len {
         let d_ref = ref_psd[i] - ref_mean;

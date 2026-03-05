@@ -149,7 +149,7 @@ mod tests {
 
     // Using AdaptivePlanner instead of optimize_plan_for_platform
     #[test]
-    #[cfg(target_arch = "aarch64")]
+    #[cfg(all(target_arch = "aarch64", feature = "rustfft-backend"))]
     fn test_arm_plan_optimization() -> FFTResult<()> {
         // Create a test signal
         let n = 2048;
@@ -198,7 +198,7 @@ mod tests {
 
     /// Test parallel planning strategies on ARM platforms
     #[test]
-    #[cfg(target_arch = "aarch64")]
+    #[cfg(all(target_arch = "aarch64", feature = "rustfft-backend"))]
     fn test_arm_parallel_planning() -> FFTResult<()> {
         // Skip test on systems with only 1 core
         let num_cpus = num_cpus::get();

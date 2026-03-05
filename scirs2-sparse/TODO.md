@@ -1,142 +1,106 @@
-# scirs2-sparse TODO
+# scirs2-sparse Development TODO
 
-## Release Status: 0.1.0 (Stable Release)
+## v0.3.0 — COMPLETED
 
-This Stable Release continues the production-ready sparse matrix library with comprehensive platform testing and zero-warning code quality. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), the module provides comprehensive sparse matrix functionality with feature parity to SciPy's sparse module in key areas, enhanced GPU operations (from beta.4), and ecosystem consistency.
+### New Sparse Formats
+- ELLPACK/ITPACK format with uniform nnz-per-row storage (GPU-friendly)
+- BCSR (Block CSR) for problems with dense block substructure
+- `SymCsrArray` / `SymCooArray` — symmetric half-storage variants
+- Enhanced index dtype handling with automatic i32/i64 selection
 
-## Implemented Features ✅
+### Eigenvalue Solvers
+- LOBPCG (Locally Optimal Block Preconditioned CG) for extreme eigenvalues
+- IRAM (Implicitly Restarted Arnoldi Method) for non-symmetric matrices
+- Shift-and-invert eigenvalue mode for interior spectrum
+- Generalized eigenvalue problem `Ax = λBx`
+- Lanczos iteration for symmetric SPD matrices
 
-### Core Sparse Matrix Formats
-- **CSR (Compressed Sparse Row)** - Efficient row-wise operations
-- **CSC (Compressed Sparse Column)** - Efficient column-wise operations  
-- **COO (Coordinate)** - Simple triplet format, easy construction
-- **DOK (Dictionary of Keys)** - Efficient incremental construction
-- **LIL (List of Lists)** - Efficient row-wise incremental construction
-- **DIA (Diagonal)** - Memory-efficient diagonal matrix storage
-- **BSR (Block Sparse Row)** - Block-structured sparse matrices
+### Advanced Preconditioners
+- Block Jacobi preconditioner with block-diagonal factorization
+- SPAI (Sparse Approximate Inverse) via minimization in Frobenius norm
+- Additive Schwarz method with configurable overlap
+- Restricted Additive Schwarz (RAS)
+- Two-level Schwarz with coarse correction
+- Smoothed aggregation AMG (Algebraic Multigrid) — full setup and solve cycle
 
-### Matrix Operations
-- Format conversions between all sparse formats
-- Basic arithmetic operations (add, subtract, multiply, divide)
-- Matrix multiplication (sparse-sparse, sparse-dense, sparse-vector)
-- Transpose and conjugate transpose
-- Element-wise operations (Hadamard product)
-- Matrix norms (Frobenius, 1-norm, 2-norm, infinity norm)
+### Iterative Solvers
+- SYMMLQ for symmetric indefinite systems
+- LGMRES (augmented GMRES with deflation)
+- Recycled Krylov (GCRO-DR style)
+- LSQR and LSMR for least-squares problems
+- SOR and SSOR iterative relaxation solvers
+- Saddle-point block preconditioned solver
+- GCROT and TFQMR
 
-### Construction Utilities
-- Identity matrices (`eye`)
-- Diagonal matrices (`diags`)
-- Random sparse matrices (`random`)
-- Kronecker products (`kron`)
-- Kronecker sums (`kronsum`)
-- Block matrices (`bmat`)
-- Block diagonal matrices (`block_diag`)
-- Matrix stacking (`hstack`, `vstack`)
-- Triangular extraction (`tril`, `triu`)
+### Graph Algorithms (csgraph)
+- Graph Laplacian: standard, normalized, random-walk variants
+- Algebraic connectivity (Fiedler eigenvalue/vector) via LOBPCG
+- Spectral clustering using sparse eigensolver output
+- Enhanced connected component labeling with weak/strong modes
 
-### Specialized Formats
-- Symmetric sparse matrices (SymCsrMatrix, SymCooMatrix)
-- Enhanced index dtype handling with automatic optimization
-- Safe index casting utilities
+### Hierarchical Matrices
+- H-matrix structure (row/column cluster tree)
+- Adaptive cross approximation (ACA) for off-diagonal block compression
+- H-matrix-vector multiply
+- H-matrix preconditioner apply
 
-### Linear Algebra
-- **Iterative Solvers**: CG, BiCG, BiCGSTAB, CGS, GMRES, LGMRES, MINRES, QMR
-- **Preconditioners**: Jacobi, SSOR, Incomplete Cholesky (IC), Incomplete LU (ILU), SPAI
-- **Matrix Functions**: Matrix exponential (expm), matrix powers, expm_multiply
-- **Linear Operators**: Abstract linear operator interface with composition support
+### Domain Decomposition
+- Additive Schwarz with overlap
+- Restricted Additive Schwarz
+- Two-level method with coarse-grid solve
+- Subdomain interface identification from CSR graph
 
-### Array-based API
-- Modern array-focused API similar to SciPy 1.13+
-- Support for NumPy-like array semantics
-- Consistent element-wise and matrix multiplication operators
+### Neural Adaptive Sparse
+- Neural network for sparsity pattern prediction
+- Learned sparse preconditioner training loop
+- Data-driven fill-reducing reordering heuristics
 
-### Graph Algorithms (csgraph module)
-- **Shortest Path Algorithms**: Dijkstra, Bellman-Ford, Floyd-Warshall with automatic selection
-- **Connected Components**: Undirected, strongly connected, and weakly connected components
-- **Graph Traversal**: BFS, DFS, topological sort, and reachability analysis
-- **Laplacian Matrices**: Standard, normalized, and random walk Laplacians with algebraic connectivity
-- **Minimum Spanning Trees**: Kruskal and Prim algorithms with validation utilities
-- **Advanced Features**: Path reconstruction, component extraction, and graph validation
+### Other Additions
+- Sparse matrix exponential (`expm` via scaling/squaring on CSR)
+- `expm_multiply`: compute `expm(A) @ v` without forming `expm(A)`
+- Saddle-point system (block 2x2) specialized solver
+- Smoothed aggregation setup: strength of connection, aggregation, prolongation smoothing
+- Sparse format benchmark suite
 
-### Performance Optimizations
-- **SIMD Acceleration**: Comprehensive SIMD optimization for matrix operations using `scirs2-core::simd_ops`
-- **Parallel Processing**: Multi-threaded implementations using `scirs2-core::parallel_ops`
-- **GPU Acceleration**: Multi-backend GPU support (CUDA, OpenCL, Metal) with automatic backend selection and CPU fallback
-- **Memory Efficiency**: Out-of-core processing, cache-aware operations, and memory pooling
-- **Platform Detection**: Automatic capability detection and algorithm selection
+---
 
-## Completed Features for 1.0.0 Release ✅
+## v0.4.0 — Planned
 
-### High Priority - COMPLETED
+### GPU Sparse BLAS
+- [ ] CSR SpMV on GPU via compute shaders (OxiFFT GPU backend model)
+- [ ] GPU-accelerated COO/CSR construction from triplets
+- [ ] GPU BiCGSTAB and CG solvers
+- [ ] Mixed CPU/GPU preconditioning (ILU on CPU, SpMV on GPU)
 
-- **Advanced Linear Algebra Enhancements**
-  - ✅ Cholesky decomposition with pivoting for indefinite matrices
-  - ✅ Enhanced pivoting strategies for LU decomposition (Partial, Scaled Partial, Threshold, Complete, Rook)
-  - ✅ 2-norm estimation and condition number computation
-  - ✅ Shift-and-invert eigenvalue mode for interior eigenvalues
-  - ✅ Generalized eigenvalue problems (Ax = λBx)
+### Distributed Sparse Solvers
+- [ ] Distributed CSR with row-based partitioning
+- [ ] Distributed SpMV with halo exchange
+- [ ] Distributed AMG via `scirs2-core` ring allreduce
 
-### Medium Priority - COMPLETED
+### Graph Algorithm Enhancements
+- [ ] Approximate graph coloring for parallel Gauss-Seidel
+- [ ] Nested dissection reordering (via graph partitioning)
+- [ ] Cuthill-McKee and reverse Cuthill-McKee reordering
+- [ ] Approximate minimum degree (AMD) reordering
 
-- **Enhanced Linear Operators**
-  - ✅ Operator composition (addition, subtraction, multiplication)
-  - ✅ Matrix-free operator implementations
-  - ✅ Custom operator support with function operators
-  - ✅ Transpose, adjoint, and power operators
-  - ✅ Utility functions for operator manipulation
+### Format Enhancements
+- [ ] Sliced ELLPACK (SELL) for variable nnz-per-row with GPU padding
+- [ ] CSR5 format for GPU-friendly SpMV
+- [ ] Compressed sparse fiber (CSF) for sparse tensors
 
-- **Specialized Formats**
-  - ✅ Additional symmetric sparse formats (SymCsrArray, SymCooArray)
-  - ✅ Banded matrix formats with specialized solvers
-  - ✅ Block diagonal and other specialized formats
+### Additional Preconditioners
+- [ ] Multilevel ILU (MILUE) with coarse correction
+- [ ] Sparse approximate inverse via AINV (robust incomplete factorization)
+- [ ] Polynomial preconditioner (Chebyshev acceleration)
 
-- **Advanced Solvers**
-  - ✅ Least squares solvers (LSQR, LSMR)
-  - ✅ Additional Krylov methods (GCROT, TFQMR)
-  - ✅ Algebraic Multigrid (AMG) preconditioners
+---
 
-### Production Readiness Enhancements
+## Known Issues / Technical Debt
 
-- **Documentation and Examples**
-  - ✅ Comprehensive documentation with examples for core types
-  - ✅ Production-ready API documentation
-  - ✅ Comprehensive tutorial showcasing all features
-  - ✅ Clear performance characteristics documentation
-
-- **Error Handling and Diagnostics**
-  - ✅ Enhanced error messages with helpful suggestions
-  - ✅ Context-aware error diagnostics
-  - ✅ Recovery suggestions for common issues
-  - ✅ User-friendly error descriptions
-
-## Migration Guide
-
-For users upgrading from earlier alpha versions:
-
-1. **Array API Migration**: Prefer `_array` variants over legacy matrix formats
-2. **Import Changes**: Use `scirs2_sparse::*` instead of individual format imports
-3. **Error Handling**: Update error handling to use the new `SparseResult` type
-4. **Deprecated Features**: Remove usage of deprecated matrix-specific operators
-
-## Testing and Quality Assurance
-
-All implemented features have been thoroughly tested with:
-- ✅ Unit tests for individual components
-- ✅ Integration tests for complex workflows  
-- ✅ Numerical accuracy tests against SciPy reference implementations
-- ✅ Performance benchmarks and regression tests
-- ✅ Memory leak detection and profiling
-- ✅ Cross-platform compatibility testing
-
-## Production Readiness
-
-This stable release is production-ready for:
-- ✅ Core sparse matrix operations and formats
-- ✅ Basic linear algebra computations with GPU acceleration
-- ✅ Iterative solver applications with advanced preconditioners
-- ✅ Format conversions and data manipulation
-- ✅ Integration with other scirs2 modules
-- ✅ Graph algorithms (csgraph module) with BFS, DFS, shortest paths, MST
-- ✅ SIMD and parallel processing optimizations
-
-**Note**: This 0.1.0 release maintains all sparse matrix GPU enhancements from beta.4 and continues with zero-warning code quality improvements from the workspace-wide quality initiative.
+- `krylov.rs` was deleted and replaced by the `krylov/` submodule; ensure no lingering re-exports break downstream
+- `neural_adaptive_sparse/neural_network.rs` needs more training data and documented hyperparameters
+- H-matrix implementation is a structural sketch; ACA convergence not yet validated against dense reference
+- GPU sparse stubs in `linalg/` are feature-gated but untested without actual GPU; add mock tests
+- Several solver files exceed 2000 lines; use `rslines 50` to identify split candidates
+- SPAI preconditioner setup cost is O(n * bandwidth^2); document when to prefer it over ILU
+- Saddle-point solver assumes 2x2 block structure; generalize to block-n

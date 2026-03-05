@@ -48,13 +48,13 @@
 //! let prices = array![10.0, 11.0, 12.0, 11.5, 13.0, 14.0, 13.5, 15.0];
 //!
 //! // Simple moving average
-//! let sma_values = sma(&prices, 3).unwrap();
+//! let sma_values = sma(&prices, 3).expect("should succeed");
 //!
 //! // RSI momentum oscillator
-//! let rsi_values = rsi(&prices, 6).unwrap();
+//! let rsi_values = rsi(&prices, 6).expect("should succeed");
 //!
 //! // Basic Bollinger Bands
-//! let (upper, middle, lower) = bollinger_bands(&prices, 5, 2.0).unwrap();
+//! let (upper, middle, lower) = bollinger_bands(&prices, 5, 2.0).expect("should succeed");
 //! ```
 //!
 //! ## Using Advanced Indicators
@@ -72,10 +72,10 @@
 //!     std_dev_multiplier: 2.0,
 //!     ma_type: MovingAverageType::Exponential,
 //! };
-//! let bands = bollinger_bands(&prices, &config).unwrap();
+//! let bands = bollinger_bands(&prices, &config).expect("should succeed");
 //!
 //! // Adaptive moving average
-//! let kama_values = kama(&prices, 5, 2, 30).unwrap();
+//! let kama_values = kama(&prices, 5, 2, 30).expect("should succeed");
 //! ```
 //!
 //! ## Combining Multiple Indicators
@@ -86,11 +86,11 @@
 //! let prices = array![10.0, 12.0, 11.0, 13.0, 15.0, 14.0, 16.0, 18.0];
 //!
 //! // Trend analysis with multiple indicators
-//! let sma_trend = basic::sma(&prices, 3).unwrap();
-//! let kama_adaptive = advanced::kama(&prices, 5, 2, 30).unwrap();
+//! let sma_trend = basic::sma(&prices, 3).expect("should succeed");
+//! let kama_adaptive = advanced::kama(&prices, 5, 2, 30).expect("should succeed");
 //!
 //! // Momentum confirmation
-//! let rsi_momentum = basic::rsi(&prices, 6).unwrap();
+//! let rsi_momentum = basic::rsi(&prices, 6).expect("should succeed");
 //! ```
 
 pub mod advanced;

@@ -6,12 +6,12 @@
 
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use scirs2_numpy::{PyArray1, PyReadonlyArray1};
-use scirs2_core::python::numpy_compat::{scirs_to_numpy_array1, Array1};
 use scirs2_core::ndarray::{Array1 as Array1_17, ArrayView1};
+use scirs2_core::python::numpy_compat::{scirs_to_numpy_array1, Array1};
+use scirs2_numpy::{PyArray1, PyReadonlyArray1};
 
-use scirs2_integrate::quad::{quad, QuadOptions};
 use scirs2_integrate::ode::{solve_ivp, ODEMethod, ODEOptions};
+use scirs2_integrate::quad::{quad, QuadOptions};
 
 // =============================================================================
 // Array-based Integration (works without callbacks)
@@ -30,13 +30,17 @@ fn trapezoid_array_py(
     let y_arr = y.as_array();
 
     if y_arr.len() < 2 {
-        return Err(pyo3::exceptions::PyValueError::new_err("Need at least 2 points"));
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "Need at least 2 points",
+        ));
     }
 
     let result = if let Some(x_py) = x {
         let x_arr = x_py.as_array();
         if x_arr.len() != y_arr.len() {
-            return Err(pyo3::exceptions::PyValueError::new_err("x and y must have same length"));
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "x and y must have same length",
+            ));
         }
         // Non-uniform spacing
         let mut total = 0.0;
@@ -71,14 +75,18 @@ fn simpson_array_py(
     let n = y_arr.len();
 
     if n < 3 {
-        return Err(pyo3::exceptions::PyValueError::new_err("Need at least 3 points"));
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "Need at least 3 points",
+        ));
     }
 
     // Use Simpson's rule for even number of intervals, fall back to trapezoid for odd
     let result = if let Some(x_py) = x {
         let x_arr = x_py.as_array();
         if x_arr.len() != y_arr.len() {
-            return Err(pyo3::exceptions::PyValueError::new_err("x and y must have same length"));
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "x and y must have same length",
+            ));
         }
 
         let mut total = 0.0;
@@ -126,7 +134,9 @@ fn cumulative_trapezoid_py(
     let y_arr = y.as_array();
 
     if y_arr.len() < 2 {
-        return Err(pyo3::exceptions::PyValueError::new_err("Need at least 2 points"));
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "Need at least 2 points",
+        ));
     }
 
     let n = y_arr.len();
@@ -158,15 +168,14 @@ fn cumulative_trapezoid_py(
 
 /// Romberg integration using array data
 #[pyfunction]
-fn romberg_array_py(
-    y: PyReadonlyArray1<f64>,
-    dx: f64,
-) -> PyResult<f64> {
+fn romberg_array_py(y: PyReadonlyArray1<f64>, dx: f64) -> PyResult<f64> {
     let y_arr = y.as_array();
     let n = y_arr.len();
 
     if n < 3 {
-        return Err(pyo3::exceptions::PyValueError::new_err("Need at least 3 points"));
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "Need at least 3 points",
+        ));
     }
 
     // Simple implementation using available data points
@@ -335,8 +344,12 @@ fn solve_ivp_py(
             }
         }
         transposed
-    }).map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
-    dict.set_item("y", scirs2_core::python::numpy_compat::scirs_to_numpy_array2(y_arr, py)?)?;
+    })
+    .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+    dict.set_item(
+        "y",
+        scirs2_core::python::numpy_compat::scirs_to_numpy_array2(y_arr, py)?,
+    )?;
 
     dict.set_item("nfev", result.n_eval)?;
     dict.set_item("success", result.success)?;

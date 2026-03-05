@@ -532,6 +532,305 @@ where
             SelectionCriterion::HQC => self.hqc(),
         }
     }
+
+    /// Get the fitted values (one-step-ahead predictions on the training data)
+    ///
+    /// Returns an array of the same length as the original data where each
+    /// value is the model's one-step-ahead prediction for that time step.
+    /// The first max(p, q) values are set to the actual data values since
+    /// there is insufficient history for prediction.
+    pub fn fitted_values(&self, data: &Array1<F>) -> Result<Array1<F>> {
+        if !self.is_fitted {
+            return Err(TimeSeriesError::ModelNotFitted(
+                "Model must be fitted before computing fitted values".to_string(),
+            ));
+        }
+
+        let diff_data = self.difference(data)?;
+        let residuals = self.calculate_residuals(&diff_data)?;
+        let n = diff_data.len();
+        let mut fitted = Array1::zeros(n);
+        let start = self.p.max(self.q);
+
+        // Copy initial values where we can't predict
+        for t in 0..start {
+            fitted[t] = diff_data[t];
+        }
+
+        // Calculate one-step-ahead predictions
+        for t in start..n {
+            let mut pred = self.intercept;
+
+            // AR component
+            for i in 0..self.p {
+                if t > i {
+                    pred = pred + self.ar_coeffs[i] * diff_data[t - i - 1];
+                }
+            }
+
+            // MA component
+            for i in 0..self.q {
+                if t > i {
+                    pred = pred + self.ma_coeffs[i] * residuals[t - i - 1];
+                }
+            }
+
+            fitted[t] = pred;
+        }
+
+        // If differenced, integrate back
+        if self.d > 0 {
+            self.integrate_fitted(&fitted, data)
+        } else {
+            Ok(fitted)
+        }
+    }
+
+    /// Integrate fitted values back to original scale
+    fn integrate_fitted(&self, fitted: &Array1<F>, original: &Array1<F>) -> Result<Array1<F>> {
+        // For d-th order differencing, we need to reconstruct from the original scale
+        // The fitted values are on the differenced scale, so we integrate them back
+        let mut result = fitted.to_owned();
+
+        for d_idx in 0..self.d {
+            let mut integrated = Array1::zeros(result.len() + 1);
+            // Use the first value from original data (d_idx levels up)
+            let mut orig = original.to_owned();
+            for _ in 0..d_idx {
+                let mut new_orig = Array1::zeros(orig.len() - 1);
+                for i in 1..orig.len() {
+                    new_orig[i - 1] = orig[i] - orig[i - 1];
+                }
+                orig = new_orig;
+            }
+            integrated[0] = orig[0];
+            for i in 0..result.len() {
+                integrated[i + 1] = integrated[i] + result[i];
+            }
+            // Drop the first element (it was the anchor)
+            result = integrated.slice(s![1..]).to_owned();
+        }
+
+        Ok(result)
+    }
+
+    /// Get the residuals (actual - fitted values) from the fitted model
+    ///
+    /// Returns an array of residuals from the model fit.
+    pub fn residuals(&self, data: &Array1<F>) -> Result<Array1<F>> {
+        if !self.is_fitted {
+            return Err(TimeSeriesError::ModelNotFitted(
+                "Model must be fitted before computing residuals".to_string(),
+            ));
+        }
+
+        let fitted = self.fitted_values(data)?;
+        let n = fitted.len().min(data.len());
+        let mut resid = Array1::zeros(n);
+
+        for i in 0..n {
+            resid[i] = data[i] - fitted[i];
+        }
+
+        Ok(resid)
+    }
+
+    /// Forecast future values with confidence intervals
+    ///
+    /// Returns point forecasts along with lower and upper confidence bounds
+    /// at the specified confidence level (e.g., 0.95 for 95% intervals).
+    ///
+    /// The prediction intervals grow with the forecast horizon, reflecting
+    /// increasing uncertainty for longer-term predictions.
+    pub fn forecast_with_confidence(
+        &self,
+        steps: usize,
+        data: &Array1<F>,
+        confidence_level: f64,
+    ) -> Result<ArimaForecastResult<F>> {
+        if !self.is_fitted {
+            return Err(TimeSeriesError::InvalidModel(
+                "Model must be fitted before forecasting".to_string(),
+            ));
+        }
+
+        if confidence_level <= 0.0 || confidence_level >= 1.0 {
+            return Err(TimeSeriesError::InvalidParameter {
+                name: "confidence_level".to_string(),
+                message: "Confidence level must be between 0 and 1 (exclusive)".to_string(),
+            });
+        }
+
+        crate::validation::validate_forecast_horizon(steps, Some(1000))?;
+
+        // Get point forecasts
+        let point_forecast = self.forecast(steps, data)?;
+
+        // Calculate z-score for the confidence level
+        let alpha = 1.0 - confidence_level;
+        let z = quantile_normal(1.0 - alpha / 2.0);
+        let z_f = F::from(z).ok_or_else(|| {
+            TimeSeriesError::NumericalInstability("Failed to convert z-score".to_string())
+        })?;
+
+        // Calculate forecast error variance
+        // For ARIMA models, the variance of h-step-ahead forecast error is:
+        // Var(e_h) = sigma2 * sum_{j=0}^{h-1} psi_j^2
+        // where psi_j are the MA(infinity) coefficients
+        let psi = self.compute_psi_weights(steps)?;
+
+        let mut lower_ci = Array1::zeros(steps);
+        let mut upper_ci = Array1::zeros(steps);
+        let mut forecast_se = Array1::zeros(steps);
+
+        for h in 0..steps {
+            // Cumulative variance through horizon h
+            let mut cumulative_psi_sq = F::one(); // psi_0 = 1
+            for j in 0..h {
+                if j < psi.len() {
+                    cumulative_psi_sq = cumulative_psi_sq + psi[j] * psi[j];
+                }
+            }
+
+            let se = (self.sigma2 * cumulative_psi_sq).sqrt();
+            forecast_se[h] = se;
+            lower_ci[h] = point_forecast[h] - z_f * se;
+            upper_ci[h] = point_forecast[h] + z_f * se;
+        }
+
+        Ok(ArimaForecastResult {
+            point_forecast,
+            lower_ci,
+            upper_ci,
+            forecast_se,
+            confidence_level,
+        })
+    }
+
+    /// Compute the psi (MA infinity) weights for forecast error variance
+    ///
+    /// For an ARMA(p,q) model, the psi weights satisfy:
+    /// psi_j = phi_1*psi_{j-1} + ... + phi_p*psi_{j-p} + theta_j
+    /// where psi_0 = 1
+    fn compute_psi_weights(&self, n_weights: usize) -> Result<Array1<F>> {
+        let mut psi = Array1::zeros(n_weights);
+
+        for j in 0..n_weights {
+            let mut val = F::zero();
+
+            // AR contribution
+            for i in 0..self.p {
+                if j >= i + 1 {
+                    // psi_{j-i-1} contribution
+                    let prev_idx = j - i - 1;
+                    let prev_psi = if prev_idx == 0 {
+                        F::one() // psi_0 = 1
+                    } else if prev_idx <= psi.len() {
+                        psi[prev_idx - 1]
+                    } else {
+                        F::zero()
+                    };
+                    val = val + self.ar_coeffs[i] * prev_psi;
+                } else if j == 0 && i == 0 {
+                    val = val + self.ar_coeffs[i]; // psi_1 = phi_1 + theta_1
+                }
+            }
+
+            // MA contribution
+            if j < self.q {
+                val = val + self.ma_coeffs[j];
+            }
+
+            psi[j] = val;
+        }
+
+        Ok(psi)
+    }
+}
+
+/// Result of ARIMA forecast with confidence intervals
+#[derive(Debug, Clone)]
+pub struct ArimaForecastResult<F> {
+    /// Point forecasts
+    pub point_forecast: Array1<F>,
+    /// Lower confidence interval
+    pub lower_ci: Array1<F>,
+    /// Upper confidence interval
+    pub upper_ci: Array1<F>,
+    /// Forecast standard errors
+    pub forecast_se: Array1<F>,
+    /// Confidence level used
+    pub confidence_level: f64,
+}
+
+/// Convenience function to fit an ARIMA model
+///
+/// Creates and fits an ARIMA(p, d, q) model on the given data.
+///
+/// # Arguments
+///
+/// * `data` - Time series data
+/// * `p` - Autoregressive order
+/// * `d` - Differencing order
+/// * `q` - Moving average order
+///
+/// # Returns
+///
+/// A fitted `ArimaModel` ready for forecasting
+///
+/// # Example
+///
+/// ```
+/// use scirs2_core::ndarray::array;
+/// use scirs2_series::arima_models::arima;
+///
+/// let data = array![1.0, 2.4, 3.2, 4.1, 5.5, 6.2, 7.8, 8.3, 9.7, 10.1];
+/// let model = arima(&data, 1, 0, 0).expect("Failed to fit ARIMA");
+/// let forecast = model.forecast(3, &data).expect("Failed to forecast");
+/// assert_eq!(forecast.len(), 3);
+/// ```
+pub fn arima<S, F>(data: &ArrayBase<S, Ix1>, p: usize, d: usize, q: usize) -> Result<ArimaModel<F>>
+where
+    S: Data<Elem = F>,
+    F: Float + FromPrimitive + Debug + Display + ScalarOperand,
+{
+    let mut model = ArimaModel::new(p, d, q)?;
+    model.fit(data)?;
+    Ok(model)
+}
+
+/// Approximate quantile of the standard normal distribution
+///
+/// Uses the rational approximation from Abramowitz and Stegun.
+pub fn quantile_normal(p: f64) -> f64 {
+    if p <= 0.0 || p >= 1.0 {
+        return 0.0;
+    }
+    if (p - 0.5).abs() < 1e-15 {
+        return 0.0;
+    }
+
+    // Rational approximation (Abramowitz & Stegun 26.2.23)
+    let t = if p < 0.5 {
+        (-2.0 * p.ln()).sqrt()
+    } else {
+        (-2.0 * (1.0 - p).ln()).sqrt()
+    };
+
+    let c0 = 2.515517;
+    let c1 = 0.802853;
+    let c2 = 0.010328;
+    let d1 = 1.432788;
+    let d2 = 0.189269;
+    let d3 = 0.001308;
+
+    let z = t - (c0 + c1 * t + c2 * t * t) / (1.0 + d1 * t + d2 * t * t + d3 * t * t * t);
+
+    if p < 0.5 {
+        -z
+    } else {
+        z
+    }
 }
 
 /// Automatic ARIMA order selection
@@ -905,5 +1204,211 @@ mod tests {
 
         let forecasts = model.forecast(3, &data).expect("Operation failed");
         assert_eq!(forecasts.len(), 3);
+    }
+
+    #[test]
+    fn test_arima_convenience_function() {
+        let data = array![1.0, 2.4, 3.2, 4.1, 5.5, 6.2, 7.8, 8.3, 9.7, 10.1];
+        let model = arima(&data, 1, 0, 0).expect("Failed to fit ARIMA via convenience function");
+        assert!(model.is_fitted);
+        assert_eq!(model.p, 1);
+        assert_eq!(model.d, 0);
+        assert_eq!(model.q, 0);
+
+        let forecast = model.forecast(5, &data).expect("Forecast failed");
+        assert_eq!(forecast.len(), 5);
+    }
+
+    #[test]
+    fn test_fitted_values() {
+        let data = array![1.0, 2.4, 3.2, 4.1, 5.5, 6.2, 7.8, 8.3, 9.7, 10.1];
+        let model = arima(&data, 1, 0, 0).expect("Failed to fit ARIMA");
+
+        let fitted = model
+            .fitted_values(&data)
+            .expect("Failed to compute fitted values");
+        assert_eq!(fitted.len(), data.len());
+
+        // Fitted values should be reasonably close to actual data for a good fit
+        for i in 1..data.len() {
+            let error = (data[i] - fitted[i]).abs();
+            assert!(
+                error < 5.0,
+                "Fitted value at index {} deviates too much: error = {}",
+                i,
+                error
+            );
+        }
+    }
+
+    #[test]
+    fn test_residuals() {
+        let data = array![1.0, 2.4, 3.2, 4.1, 5.5, 6.2, 7.8, 8.3, 9.7, 10.1];
+        let model = arima(&data, 1, 0, 0).expect("Failed to fit ARIMA");
+
+        let resid = model.residuals(&data).expect("Failed to compute residuals");
+        assert_eq!(resid.len(), data.len());
+
+        // Residuals should have mean approximately zero
+        let mean_resid: f64 = resid.iter().copied().sum::<f64>() / resid.len() as f64;
+        assert!(
+            mean_resid.abs() < 3.0,
+            "Mean residual should be close to zero, got {}",
+            mean_resid
+        );
+    }
+
+    #[test]
+    fn test_forecast_with_confidence() {
+        let data = array![1.0, 2.4, 3.2, 4.1, 5.5, 6.2, 7.8, 8.3, 9.7, 10.1];
+        let model = arima(&data, 1, 0, 0).expect("Failed to fit ARIMA");
+
+        let result = model
+            .forecast_with_confidence(5, &data, 0.95)
+            .expect("Failed to forecast with confidence");
+
+        assert_eq!(result.point_forecast.len(), 5);
+        assert_eq!(result.lower_ci.len(), 5);
+        assert_eq!(result.upper_ci.len(), 5);
+        assert_eq!(result.forecast_se.len(), 5);
+        assert!((result.confidence_level - 0.95).abs() < 1e-10);
+
+        // Lower CI should be below point forecast
+        for i in 0..5 {
+            assert!(
+                result.lower_ci[i] <= result.point_forecast[i],
+                "Lower CI should be <= point forecast at step {}",
+                i
+            );
+            assert!(
+                result.upper_ci[i] >= result.point_forecast[i],
+                "Upper CI should be >= point forecast at step {}",
+                i
+            );
+        }
+
+        // Confidence intervals should widen over time
+        for i in 1..5 {
+            let width_prev = result.upper_ci[i - 1] - result.lower_ci[i - 1];
+            let width_curr = result.upper_ci[i] - result.lower_ci[i];
+            // Allow small tolerance for numerical precision
+            assert!(
+                width_curr >= width_prev - 1e-10,
+                "CI width should not decrease: step {} width {} < step {} width {}",
+                i,
+                width_curr,
+                i - 1,
+                width_prev
+            );
+        }
+    }
+
+    #[test]
+    fn test_forecast_confidence_invalid_level() {
+        let data = array![1.0, 2.4, 3.2, 4.1, 5.5, 6.2, 7.8, 8.3, 9.7, 10.1];
+        let model = arima(&data, 1, 0, 0).expect("Failed to fit ARIMA");
+
+        let result = model.forecast_with_confidence(5, &data, 1.5);
+        assert!(result.is_err());
+
+        let result = model.forecast_with_confidence(5, &data, 0.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_information_criteria() {
+        let data = array![1.0, 2.4, 3.2, 4.1, 5.5, 6.2, 7.8, 8.3, 9.7, 10.1];
+        let model = arima(&data, 1, 0, 0).expect("Failed to fit ARIMA");
+
+        let aic_val = model.aic();
+        let bic_val = model.bic();
+        let aicc_val = model.aicc();
+        let hqc_val = model.hqc();
+
+        // All criteria should be finite
+        assert!(aic_val.is_finite(), "AIC should be finite");
+        assert!(bic_val.is_finite(), "BIC should be finite");
+        assert!(aicc_val.is_finite(), "AICc should be finite");
+        assert!(hqc_val.is_finite(), "HQC should be finite");
+
+        // BIC penalizes more than AIC for n > 7 (which it is here, n=10)
+        // This is a mathematical property: BIC penalty = k*ln(n) vs AIC penalty = 2k
+        // For n=10, ln(10) ~ 2.30 > 2, so BIC > AIC
+        assert!(
+            bic_val >= aic_val,
+            "BIC ({}) should be >= AIC ({}) for n=10",
+            bic_val,
+            aic_val
+        );
+    }
+
+    #[test]
+    fn test_model_not_fitted_errors() {
+        let model = ArimaModel::<f64>::new(1, 0, 0).expect("Failed to create model");
+        let data = array![1.0, 2.0, 3.0, 4.0, 5.0];
+
+        assert!(model.fitted_values(&data).is_err());
+        assert!(model.residuals(&data).is_err());
+        assert!(model.forecast_with_confidence(3, &data, 0.95).is_err());
+    }
+
+    #[test]
+    fn test_arima_with_differencing() {
+        // Data with a trend that requires differencing
+        let data = array![1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 36.0, 45.0, 55.0, 66.0, 78.0];
+        let model = arima(&data, 1, 1, 0).expect("Failed to fit ARIMA(1,1,0)");
+
+        let forecast = model.forecast(3, &data).expect("Forecast failed");
+        assert_eq!(forecast.len(), 3);
+
+        // Forecasts should be increasing for this upward-trending data
+        for i in 0..3 {
+            assert!(
+                forecast[i] > data[data.len() - 1] * 0.5,
+                "Forecast should be in reasonable range"
+            );
+        }
+    }
+
+    #[test]
+    fn test_quantile_normal() {
+        // Test known quantiles
+        let z_95 = quantile_normal(0.975);
+        assert!(
+            (z_95 - 1.96).abs() < 0.01,
+            "z_0.975 should be ~1.96, got {}",
+            z_95
+        );
+
+        let z_50 = quantile_normal(0.5);
+        assert!(z_50.abs() < 0.01, "z_0.5 should be ~0, got {}", z_50);
+
+        let z_99 = quantile_normal(0.995);
+        assert!(
+            (z_99 - 2.576).abs() < 0.02,
+            "z_0.995 should be ~2.576, got {}",
+            z_99
+        );
+    }
+
+    #[test]
+    fn test_psi_weights() {
+        let data = array![1.0, 2.4, 3.2, 4.1, 5.5, 6.2, 7.8, 8.3, 9.7, 10.1];
+        let model = arima(&data, 1, 0, 0).expect("Failed to fit ARIMA");
+
+        let psi = model
+            .compute_psi_weights(10)
+            .expect("Failed to compute psi weights");
+        assert_eq!(psi.len(), 10);
+
+        // For AR(1), psi_j = phi^j, so they should decay geometrically
+        if model.ar_coeffs[0].abs() < 1.0 {
+            for j in 1..10 {
+                assert!(
+                    psi[j].abs() <= psi[j - 1].abs() + 1e-10,
+                    "Psi weights should decay for stationary AR(1)"
+                );
+            }
+        }
     }
 }

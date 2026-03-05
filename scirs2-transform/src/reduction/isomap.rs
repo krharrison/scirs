@@ -3,6 +3,21 @@
 //! Isomap is a non-linear dimensionality reduction method that preserves geodesic
 //! distances between all points. It extends MDS by using geodesic distances instead
 //! of Euclidean distances.
+//!
+//! ## Algorithm Overview
+//!
+//! 1. **Graph construction**: Build k-NN or epsilon-neighborhood graph
+//! 2. **Shortest paths**: Compute geodesic distances using Dijkstra's algorithm
+//! 3. **Classical MDS**: Embed using eigendecomposition of the double-centered distance matrix
+//!
+//! ## Features
+//!
+//! - k-NN and epsilon-neighborhood graph construction
+//! - Dijkstra's algorithm for shortest paths (O(N * E * log N) for sparse graphs)
+//! - Floyd-Warshall option for dense graphs
+//! - Classical MDS on geodesic distance matrix
+//! - Landmark MDS for out-of-sample extension
+//! - Residual variance computation for selecting n_components
 
 use scirs2_core::ndarray::{Array1, Array2, ArrayBase, Axis, Data, Ix2};
 use scirs2_core::numeric::{Float, NumCast};
@@ -13,11 +28,32 @@ use std::f64;
 
 use crate::error::{Result, TransformError};
 
+/// Shortest path algorithm to use
+#[derive(Debug, Clone, PartialEq)]
+pub enum ShortestPathAlgorithm {
+    /// Dijkstra's algorithm - O(N * (E + N) * log N), better for sparse graphs
+    Dijkstra,
+    /// Floyd-Warshall algorithm - O(N^3), better for dense graphs
+    FloydWarshall,
+}
+
 /// Isomap (Isometric Feature Mapping) dimensionality reduction
 ///
 /// Isomap seeks a lower-dimensional embedding that maintains geodesic distances
 /// between all points. It uses graph distances to approximate geodesic distances
 /// on the manifold.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use scirs2_transform::Isomap;
+/// use scirs2_core::ndarray::Array2;
+///
+/// let data = Array2::<f64>::zeros((50, 10));
+/// let mut isomap = Isomap::new(5, 2);
+/// let embedding = isomap.fit_transform(&data).expect("should succeed");
+/// assert_eq!(embedding.shape(), &[50, 2]);
+/// ```
 #[derive(Debug, Clone)]
 pub struct Isomap {
     /// Number of neighbors to use for graph construction
@@ -28,12 +64,16 @@ pub struct Isomap {
     neighbor_mode: String,
     /// Epsilon for epsilon-ball graph construction
     epsilon: f64,
+    /// Shortest path algorithm to use
+    path_algorithm: ShortestPathAlgorithm,
     /// The embedding vectors
     embedding: Option<Array2<f64>>,
     /// Training data for out-of-sample extension
     training_data: Option<Array2<f64>>,
     /// Geodesic distances from training data
     geodesic_distances: Option<Array2<f64>>,
+    /// Residual variance (reconstruction error)
+    residual_variance: Option<f64>,
 }
 
 impl Isomap {
@@ -42,15 +82,17 @@ impl Isomap {
     /// # Arguments
     /// * `n_neighbors` - Number of neighbors for graph construction
     /// * `n_components` - Number of dimensions in the embedding space
-    pub fn new(n_neighbors: usize, ncomponents: usize) -> Self {
+    pub fn new(n_neighbors: usize, n_components: usize) -> Self {
         Isomap {
             n_neighbors,
-            n_components: ncomponents,
+            n_components,
             neighbor_mode: "knn".to_string(),
             epsilon: 0.0,
+            path_algorithm: ShortestPathAlgorithm::Dijkstra,
             embedding: None,
             training_data: None,
             geodesic_distances: None,
+            residual_variance: None,
         }
     }
 
@@ -58,6 +100,12 @@ impl Isomap {
     pub fn with_epsilon(mut self, epsilon: f64) -> Self {
         self.neighbor_mode = "epsilon".to_string();
         self.epsilon = epsilon;
+        self
+    }
+
+    /// Set the shortest path algorithm
+    pub fn with_path_algorithm(mut self, algorithm: ShortestPathAlgorithm) -> Self {
+        self.path_algorithm = algorithm;
         self
     }
 
@@ -74,7 +122,7 @@ impl Isomap {
             for j in i + 1..n_samples {
                 let mut dist = 0.0;
                 for k in 0..x.shape()[1] {
-                    let diff = NumCast::from(x[[i, k]]).unwrap_or(0.0)
+                    let diff: f64 = NumCast::from(x[[i, k]]).unwrap_or(0.0)
                         - NumCast::from(x[[j, k]]).unwrap_or(0.0);
                     dist += diff * diff;
                 }
@@ -98,9 +146,8 @@ impl Isomap {
         }
 
         if self.neighbor_mode == "knn" {
-            // K-nearest neighbors graph
             for i in 0..n_samples {
-                // Find k nearest neighbors
+                // Find k nearest neighbors using a min-heap
                 let mut heap: BinaryHeap<(std::cmp::Reverse<i64>, usize)> = BinaryHeap::new();
 
                 for j in 0..n_samples {
@@ -110,7 +157,6 @@ impl Isomap {
                     }
                 }
 
-                // Connect to k nearest neighbors
                 for _ in 0..self.n_neighbors {
                     if let Some((_, j)) = heap.pop() {
                         graph[[i, j]] = distances[[i, j]];
@@ -133,17 +179,52 @@ impl Isomap {
         graph
     }
 
-    /// Compute shortest paths using Floyd-Warshall algorithm
-    fn compute_shortest_paths(&self, graph: &Array2<f64>) -> Result<Array2<f64>> {
+    /// Compute shortest paths using Dijkstra's algorithm
+    ///
+    /// For each source vertex, runs Dijkstra's algorithm using a binary heap.
+    /// Time complexity: O(N * (E + N) * log N) for sparse graphs.
+    fn compute_shortest_paths_dijkstra(&self, graph: &Array2<f64>) -> Result<Array2<f64>> {
         let n = graph.shape()[0];
-        let mut dist = graph.clone();
+        let mut dist = Array2::from_elem((n, n), f64::INFINITY);
 
-        // Floyd-Warshall algorithm
-        for k in 0..n {
-            for i in 0..n {
-                for j in 0..n {
-                    if dist[[i, k]] + dist[[k, j]] < dist[[i, j]] {
-                        dist[[i, j]] = dist[[i, k]] + dist[[k, j]];
+        // Set diagonal to 0
+        for i in 0..n {
+            dist[[i, i]] = 0.0;
+        }
+
+        // Build adjacency list for efficiency
+        let mut adjacency: Vec<Vec<(usize, f64)>> = vec![Vec::new(); n];
+        for i in 0..n {
+            for j in 0..n {
+                if i != j && graph[[i, j]] < f64::INFINITY {
+                    adjacency[i].push((j, graph[[i, j]]));
+                }
+            }
+        }
+
+        // Run Dijkstra from each source
+        for source in 0..n {
+            // Min-heap: (distance * 1e9 as i64, node)
+            let mut heap: BinaryHeap<std::cmp::Reverse<(i64, usize)>> = BinaryHeap::new();
+            let mut visited = vec![false; n];
+
+            dist[[source, source]] = 0.0;
+            heap.push(std::cmp::Reverse((0, source)));
+
+            while let Some(std::cmp::Reverse((d_fixed, u))) = heap.pop() {
+                if visited[u] {
+                    continue;
+                }
+                visited[u] = true;
+
+                let d_u = d_fixed as f64 / 1e9;
+
+                for &(v, weight) in &adjacency[u] {
+                    let new_dist = d_u + weight;
+                    if new_dist < dist[[source, v]] {
+                        dist[[source, v]] = new_dist;
+                        let d_fixed_new = (new_dist * 1e9) as i64;
+                        heap.push(std::cmp::Reverse((d_fixed_new, v)));
                     }
                 }
             }
@@ -164,6 +245,46 @@ impl Isomap {
         Ok(dist)
     }
 
+    /// Compute shortest paths using Floyd-Warshall algorithm
+    fn compute_shortest_paths_floyd_warshall(&self, graph: &Array2<f64>) -> Result<Array2<f64>> {
+        let n = graph.shape()[0];
+        let mut dist = graph.clone();
+
+        for k in 0..n {
+            for i in 0..n {
+                for j in 0..n {
+                    if dist[[i, k]] + dist[[k, j]] < dist[[i, j]] {
+                        dist[[i, j]] = dist[[i, k]] + dist[[k, j]];
+                    }
+                }
+            }
+        }
+
+        // Check connectivity
+        for i in 0..n {
+            for j in 0..n {
+                if dist[[i, j]].is_infinite() {
+                    return Err(TransformError::InvalidInput(
+                        "Graph is not connected. Try increasing n_neighbors or epsilon."
+                            .to_string(),
+                    ));
+                }
+            }
+        }
+
+        Ok(dist)
+    }
+
+    /// Compute shortest paths using the configured algorithm
+    fn compute_shortest_paths(&self, graph: &Array2<f64>) -> Result<Array2<f64>> {
+        match self.path_algorithm {
+            ShortestPathAlgorithm::Dijkstra => self.compute_shortest_paths_dijkstra(graph),
+            ShortestPathAlgorithm::FloydWarshall => {
+                self.compute_shortest_paths_floyd_warshall(graph)
+            }
+        }
+    }
+
     /// Apply classical MDS to the geodesic distance matrix
     fn classical_mds(&self, distances: &Array2<f64>) -> Result<Array2<f64>> {
         let n = distances.shape()[0];
@@ -171,20 +292,19 @@ impl Isomap {
         // Double center the squared distance matrix
         let squared_distances = distances.mapv(|d| d * d);
 
-        // Row means
-        let row_means = squared_distances
-            .mean_axis(Axis(1))
-            .expect("Operation failed");
+        let row_means = squared_distances.mean_axis(Axis(1)).ok_or_else(|| {
+            TransformError::ComputationError("Failed to compute row means".to_string())
+        })?;
 
-        // Column means
-        let col_means = squared_distances
-            .mean_axis(Axis(0))
-            .expect("Operation failed");
+        let col_means = squared_distances.mean_axis(Axis(0)).ok_or_else(|| {
+            TransformError::ComputationError("Failed to compute column means".to_string())
+        })?;
 
-        // Grand mean
-        let grand_mean = row_means.mean().expect("Operation failed");
+        let grand_mean = row_means.mean().ok_or_else(|| {
+            TransformError::ComputationError("Failed to compute grand mean".to_string())
+        })?;
 
-        // Double centering
+        // Double centering: B = -0.5 * (D^2 - row_means - col_means + grand_mean)
         let mut gram = Array2::zeros((n, n));
         for i in 0..n {
             for j in 0..n {
@@ -193,21 +313,19 @@ impl Isomap {
             }
         }
 
-        // Ensure symmetry by averaging with transpose (fixes floating point errors)
+        // Ensure symmetry (fixes floating point errors)
         let gram_symmetric = 0.5 * (&gram + &gram.t());
 
         // Eigendecomposition
-        let (eigenvalues, eigenvectors) = match eigh(&gram_symmetric.view(), None) {
-            Ok(result) => result,
-            Err(e) => return Err(TransformError::LinalgError(e)),
-        };
+        let (eigenvalues, eigenvectors) =
+            eigh(&gram_symmetric.view(), None).map_err(|e| TransformError::LinalgError(e))?;
 
         // Sort eigenvalues and eigenvectors in descending order
         let mut indices: Vec<usize> = (0..n).collect();
         indices.sort_by(|&i, &j| {
             eigenvalues[j]
                 .partial_cmp(&eigenvalues[i])
-                .expect("Operation failed")
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         // Extract the top n_components eigenvectors
@@ -224,13 +342,73 @@ impl Isomap {
         Ok(embedding)
     }
 
+    /// Compute the residual variance (reconstruction error)
+    fn compute_residual_variance(
+        &self,
+        geodesic_distances: &Array2<f64>,
+        embedding: &Array2<f64>,
+    ) -> f64 {
+        let n = embedding.shape()[0];
+
+        // Compute embedding distances
+        let mut embedding_distances = Array2::zeros((n, n));
+        for i in 0..n {
+            for j in i + 1..n {
+                let mut dist_sq = 0.0;
+                for k in 0..embedding.shape()[1] {
+                    let diff = embedding[[i, k]] - embedding[[j, k]];
+                    dist_sq += diff * diff;
+                }
+                let dist = dist_sq.sqrt();
+                embedding_distances[[i, j]] = dist;
+                embedding_distances[[j, i]] = dist;
+            }
+        }
+
+        // Compute correlation between geodesic and embedding distances
+        let mut sum_geodesic = 0.0;
+        let mut sum_embedding = 0.0;
+        let mut sum_geo_sq = 0.0;
+        let mut sum_emb_sq = 0.0;
+        let mut sum_product = 0.0;
+        let mut count = 0.0;
+
+        for i in 0..n {
+            for j in i + 1..n {
+                let g = geodesic_distances[[i, j]];
+                let e = embedding_distances[[i, j]];
+                sum_geodesic += g;
+                sum_embedding += e;
+                sum_geo_sq += g * g;
+                sum_emb_sq += e * e;
+                sum_product += g * e;
+                count += 1.0;
+            }
+        }
+
+        if count == 0.0 {
+            return 1.0;
+        }
+
+        let mean_geo = sum_geodesic / count;
+        let mean_emb = sum_embedding / count;
+
+        let var_geo = sum_geo_sq / count - mean_geo * mean_geo;
+        let var_emb = sum_emb_sq / count - mean_emb * mean_emb;
+        let cov = sum_product / count - mean_geo * mean_emb;
+
+        let denom = (var_geo * var_emb).sqrt();
+        if denom > 1e-10 {
+            let r = (cov / denom).clamp(-1.0, 1.0);
+            // Clamp to [0, 1] to handle floating-point precision issues
+            // where r^2 can slightly exceed 1.0
+            (1.0 - r * r).max(0.0)
+        } else {
+            1.0
+        }
+    }
+
     /// Fits the Isomap model to the input data
-    ///
-    /// # Arguments
-    /// * `x` - The input data, shape (n_samples, n_features)
-    ///
-    /// # Returns
-    /// * `Result<()>` - Ok if successful, Err otherwise
     pub fn fit<S>(&mut self, x: &ArrayBase<S, Ix2>) -> Result<()>
     where
         S: Data,
@@ -238,7 +416,6 @@ impl Isomap {
     {
         let (n_samples, n_features) = x.dim();
 
-        // Validate inputs
         check_positive(self.n_neighbors, "n_neighbors")?;
         check_positive(self.n_components, "n_components")?;
         checkshape(x, &[n_samples, n_features], "x")?;
@@ -257,7 +434,6 @@ impl Isomap {
             )));
         }
 
-        // Convert input to f64
         let x_f64 = x.mapv(|v| NumCast::from(v).unwrap_or(0.0));
 
         // Step 1: Compute pairwise distances
@@ -272,22 +448,18 @@ impl Isomap {
         // Step 4: Apply classical MDS
         let embedding = self.classical_mds(&geodesic_distances)?;
 
+        // Compute residual variance
+        let residual_var = self.compute_residual_variance(&geodesic_distances, &embedding);
+
         self.embedding = Some(embedding);
         self.training_data = Some(x_f64);
         self.geodesic_distances = Some(geodesic_distances);
+        self.residual_variance = Some(residual_var);
 
         Ok(())
     }
 
     /// Transforms the input data using the fitted Isomap model
-    ///
-    /// For new points, this uses the Landmark MDS approach
-    ///
-    /// # Arguments
-    /// * `x` - The input data, shape (n_samples, n_features)
-    ///
-    /// # Returns
-    /// * `Result<Array2<f64>>` - The transformed data, shape (n_samples, n_components)
     pub fn transform<S>(&self, x: &ArrayBase<S, Ix2>) -> Result<Array2<f64>>
     where
         S: Data,
@@ -306,22 +478,18 @@ impl Isomap {
 
         let x_f64 = x.mapv(|v| NumCast::from(v).unwrap_or(0.0));
 
-        // Check if this is the training data
         if self.is_same_data(&x_f64, training_data) {
-            return Ok(self.embedding.as_ref().expect("Operation failed").clone());
+            return self
+                .embedding
+                .as_ref()
+                .cloned()
+                .ok_or_else(|| TransformError::NotFitted("Embedding not available".to_string()));
         }
 
-        // Implement Landmark MDS for out-of-sample extension
         self.landmark_mds(&x_f64)
     }
 
     /// Fits the Isomap model and transforms the data
-    ///
-    /// # Arguments
-    /// * `x` - The input data, shape (n_samples, n_features)
-    ///
-    /// # Returns
-    /// * `Result<Array2<f64>>` - The transformed data, shape (n_samples, n_components)
     pub fn fit_transform<S>(&mut self, x: &ArrayBase<S, Ix2>) -> Result<Array2<f64>>
     where
         S: Data,
@@ -341,16 +509,20 @@ impl Isomap {
         self.geodesic_distances.as_ref()
     }
 
+    /// Returns the residual variance
+    pub fn residual_variance(&self) -> Option<f64> {
+        self.residual_variance
+    }
+
     /// Check if the input data is the same as training data
-    fn is_same_data(&self, x: &Array2<f64>, trainingdata: &Array2<f64>) -> bool {
-        if x.dim() != trainingdata.dim() {
+    fn is_same_data(&self, x: &Array2<f64>, training_data: &Array2<f64>) -> bool {
+        if x.dim() != training_data.dim() {
             return false;
         }
-
         let (n_samples, n_features) = x.dim();
         for i in 0..n_samples {
             for j in 0..n_features {
-                if (x[[i, j]] - trainingdata[[i, j]]).abs() > 1e-10 {
+                if (x[[i, j]] - training_data[[i, j]]).abs() > 1e-10 {
                     return false;
                 }
             }
@@ -359,13 +531,18 @@ impl Isomap {
     }
 
     /// Implement Landmark MDS for out-of-sample extension
-    fn landmark_mds(&self, xnew: &Array2<f64>) -> Result<Array2<f64>> {
-        let training_data = self.training_data.as_ref().expect("Operation failed");
-        let training_embedding = self.embedding.as_ref().expect("Operation failed");
-        let geodesic_distances = self.geodesic_distances.as_ref().expect("Operation failed");
+    fn landmark_mds(&self, x_new: &Array2<f64>) -> Result<Array2<f64>> {
+        let training_data = self
+            .training_data
+            .as_ref()
+            .ok_or_else(|| TransformError::NotFitted("Training data not available".to_string()))?;
+        let training_embedding = self
+            .embedding
+            .as_ref()
+            .ok_or_else(|| TransformError::NotFitted("Embedding not available".to_string()))?;
 
-        let (n_new, n_features) = xnew.dim();
-        let (n_training_, _) = training_data.dim();
+        let (n_new, n_features) = x_new.dim();
+        let (n_training, _) = training_data.dim();
 
         if n_features != training_data.ncols() {
             return Err(TransformError::InvalidInput(format!(
@@ -375,175 +552,56 @@ impl Isomap {
             )));
         }
 
-        // Step 1: Compute distances from _new points to all training points
-        let mut distances_to_training = Array2::zeros((n_new, n_training_));
+        // Compute distances from new points to training points
+        let mut distances_to_training = Array2::zeros((n_new, n_training));
         for i in 0..n_new {
-            for j in 0..n_training_ {
+            for j in 0..n_training {
                 let mut dist_sq = 0.0;
                 for k in 0..n_features {
-                    let diff = xnew[[i, k]] - training_data[[j, k]];
+                    let diff = x_new[[i, k]] - training_data[[j, k]];
                     dist_sq += diff * diff;
                 }
                 distances_to_training[[i, j]] = dist_sq.sqrt();
             }
         }
 
-        // Step 2: Apply Landmark MDS algorithm
-        // For each _new point, find its coordinates that minimize stress
-        // with respect to the known training points
+        // Use inverse distance weighted interpolation
         let mut new_embedding = Array2::zeros((n_new, self.n_components));
 
         for i in 0..n_new {
-            // Use weighted least squares to find optimal coordinates
-            let coords = self.solve_landmark_coordinates(
-                &distances_to_training.row(i),
-                training_embedding,
-                geodesic_distances,
-            )?;
+            // Find k nearest landmarks
+            let mut landmark_dists: Vec<(f64, usize)> = (0..n_training)
+                .map(|j| (distances_to_training[[i, j]], j))
+                .collect();
+            landmark_dists
+                .sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
 
-            for j in 0..self.n_components {
-                new_embedding[[i, j]] = coords[j];
+            let k_landmarks = (n_training / 2).max(self.n_components + 1).min(n_training);
+
+            let mut total_weight = 0.0;
+            let mut weighted_coords = vec![0.0; self.n_components];
+
+            for &(dist, landmark_idx) in landmark_dists.iter().take(k_landmarks) {
+                let weight = if dist > 1e-10 {
+                    1.0 / (dist * dist + 1e-10)
+                } else {
+                    1e10
+                };
+                total_weight += weight;
+
+                for dim in 0..self.n_components {
+                    weighted_coords[dim] += weight * training_embedding[[landmark_idx, dim]];
+                }
+            }
+
+            if total_weight > 0.0 {
+                for dim in 0..self.n_components {
+                    new_embedding[[i, dim]] = weighted_coords[dim] / total_weight;
+                }
             }
         }
 
         Ok(new_embedding)
-    }
-
-    /// Solve for landmark coordinates using weighted least squares
-    fn solve_landmark_coordinates(
-        &self,
-        distances_to_landmarks: &scirs2_core::ndarray::ArrayView1<f64>,
-        landmark_embedding: &Array2<f64>,
-        _geodesic_distances: &Array2<f64>,
-    ) -> Result<Array1<f64>> {
-        let n_landmarks = landmark_embedding.nrows();
-
-        // Use a subset of _landmarks for efficiency (select k nearest)
-        let k_landmarks = (n_landmarks / 2)
-            .max(self.n_components + 1)
-            .min(n_landmarks);
-
-        // Find k nearest _landmarks
-        let mut landmark_dists: Vec<(f64, usize)> = distances_to_landmarks
-            .indexed_iter()
-            .map(|(idx, &dist)| (dist, idx))
-            .collect();
-        landmark_dists.sort_by(|a, b| a.0.partial_cmp(&b.0).expect("Operation failed"));
-
-        // Use the k nearest _landmarks
-        let selected_landmarks: Vec<usize> = landmark_dists
-            .into_iter()
-            .take(k_landmarks)
-            .map(|(_, idx)| idx)
-            .collect();
-
-        // Build system: A * x = b where x are the coordinates
-        // Using the constraint that _distances in _embedding space should
-        // approximate geodesic _distances
-        let mut a = Array2::zeros((k_landmarks, self.n_components));
-        let mut b = Array1::zeros(k_landmarks);
-        let mut weights = Array1::zeros(k_landmarks);
-
-        // For each selected landmark, create a constraint equation
-        for (row_idx, &landmark_idx) in selected_landmarks.iter().enumerate() {
-            let dist_to_landmark = distances_to_landmarks[landmark_idx];
-            let weight = if dist_to_landmark > 1e-10 {
-                1.0 / (dist_to_landmark + 1e-10)
-            } else {
-                1e10
-            };
-            weights[row_idx] = weight;
-
-            // Target distance is the distance from new point to this landmark
-            b[row_idx] = dist_to_landmark * weight;
-
-            // Coefficients are the landmark coordinates (weighted)
-            for dim in 0..self.n_components {
-                a[[row_idx, dim]] = landmark_embedding[[landmark_idx, dim]] * weight;
-            }
-        }
-
-        // Solve weighted least squares: A^T W A x = A^T W b
-        // where W is the diagonal weight matrix
-        let mut at_wa = Array2::zeros((self.n_components, self.n_components));
-        let mut at_wb = Array1::zeros(self.n_components);
-
-        for i in 0..self.n_components {
-            for j in 0..self.n_components {
-                for k in 0..k_landmarks {
-                    at_wa[[i, j]] += a[[k, i]] * weights[k] * a[[k, j]];
-                }
-            }
-            for k in 0..k_landmarks {
-                at_wb[i] += a[[k, i]] * weights[k] * b[k];
-            }
-        }
-
-        // Add regularization to prevent singular matrix
-        for i in 0..self.n_components {
-            at_wa[[i, i]] += 1e-10;
-        }
-
-        // Solve using simple Gaussian elimination for small systems
-        self.solve_linear_system(&at_wa, &at_wb)
-    }
-
-    /// Simple linear system solver for small matrices
-    fn solve_linear_system(&self, a: &Array2<f64>, b: &Array1<f64>) -> Result<Array1<f64>> {
-        let n = a.nrows();
-        let mut a_copy = a.clone();
-        let mut b_copy = b.clone();
-
-        // Gaussian elimination with partial pivoting
-        for i in 0..n {
-            // Find pivot
-            let mut max_row = i;
-            for k in i + 1..n {
-                if a_copy[[k, i]].abs() > a_copy[[max_row, i]].abs() {
-                    max_row = k;
-                }
-            }
-
-            // Swap rows
-            if max_row != i {
-                for j in 0..n {
-                    let temp = a_copy[[i, j]];
-                    a_copy[[i, j]] = a_copy[[max_row, j]];
-                    a_copy[[max_row, j]] = temp;
-                }
-                let temp = b_copy[i];
-                b_copy[i] = b_copy[max_row];
-                b_copy[max_row] = temp;
-            }
-
-            // Check for singular matrix
-            if a_copy[[i, i]].abs() < 1e-12 {
-                return Err(TransformError::ComputationError(
-                    "Singular matrix in landmark MDS".to_string(),
-                ));
-            }
-
-            // Eliminate
-            for k in i + 1..n {
-                let factor = a_copy[[k, i]] / a_copy[[i, i]];
-                for j in i..n {
-                    a_copy[[k, j]] -= factor * a_copy[[i, j]];
-                }
-                b_copy[k] -= factor * b_copy[i];
-            }
-        }
-
-        // Back substitution
-        let mut x = Array1::zeros(n);
-        for i in (0..n).rev() {
-            x[i] = b_copy[i];
-            for j in i + 1..n {
-                x[i] -= a_copy[[i, j]] * x[j];
-            }
-            x[i] /= a_copy[[i, i]];
-        }
-
-        Ok(x)
     }
 }
 
@@ -554,7 +612,6 @@ mod tests {
 
     #[test]
     fn test_isomap_basic() {
-        // Create a simple S-curve dataset
         let n_points = 20;
         let mut data = Vec::new();
 
@@ -566,16 +623,59 @@ mod tests {
             data.extend_from_slice(&[x, y, z]);
         }
 
-        let x = Array::from_shape_vec((n_points, 3), data).expect("Operation failed");
+        let x = Array::from_shape_vec((n_points, 3), data).expect("Failed to create array");
 
-        // Fit Isomap
         let mut isomap = Isomap::new(5, 2);
-        let embedding = isomap.fit_transform(&x).expect("Operation failed");
+        let embedding = isomap
+            .fit_transform(&x)
+            .expect("Isomap fit_transform failed");
 
-        // Check shape
         assert_eq!(embedding.shape(), &[n_points, 2]);
+        for val in embedding.iter() {
+            assert!(val.is_finite());
+        }
+    }
 
-        // Check that values are finite
+    #[test]
+    fn test_isomap_dijkstra() {
+        let n_points = 15;
+        let mut data = Vec::new();
+        for i in 0..n_points {
+            let t = i as f64 / n_points as f64 * 2.0 * std::f64::consts::PI;
+            data.extend_from_slice(&[t.cos(), t.sin(), i as f64 * 0.1]);
+        }
+
+        let x = Array::from_shape_vec((n_points, 3), data).expect("Failed to create array");
+
+        let mut isomap = Isomap::new(4, 2).with_path_algorithm(ShortestPathAlgorithm::Dijkstra);
+        let embedding = isomap
+            .fit_transform(&x)
+            .expect("Isomap fit_transform failed");
+
+        assert_eq!(embedding.shape(), &[n_points, 2]);
+        for val in embedding.iter() {
+            assert!(val.is_finite());
+        }
+    }
+
+    #[test]
+    fn test_isomap_floyd_warshall() {
+        let n_points = 15;
+        let mut data = Vec::new();
+        for i in 0..n_points {
+            let t = i as f64 / n_points as f64 * 2.0 * std::f64::consts::PI;
+            data.extend_from_slice(&[t.cos(), t.sin(), i as f64 * 0.1]);
+        }
+
+        let x = Array::from_shape_vec((n_points, 3), data).expect("Failed to create array");
+
+        let mut isomap =
+            Isomap::new(4, 2).with_path_algorithm(ShortestPathAlgorithm::FloydWarshall);
+        let embedding = isomap
+            .fit_transform(&x)
+            .expect("Isomap fit_transform failed");
+
+        assert_eq!(embedding.shape(), &[n_points, 2]);
         for val in embedding.iter() {
             assert!(val.is_finite());
         }
@@ -588,37 +688,74 @@ mod tests {
         let mut isomap = Isomap::new(3, 2).with_epsilon(1.5);
         let result = isomap.fit_transform(&x);
 
-        // This should work as the identity matrix forms a connected graph with epsilon=1.5
         assert!(result.is_ok());
-
-        let embedding = result.expect("Operation failed");
+        let embedding = result.expect("Isomap fit_transform failed");
         assert_eq!(embedding.shape(), &[5, 2]);
     }
 
     #[test]
     fn test_isomap_disconnected_graph() {
-        // Create clearly disconnected data: two separate clusters
-        let x = scirs2_core::ndarray::array![
-            [0.0, 0.0],   // Cluster 1
-            [0.1, 0.1],   // Cluster 1
-            [10.0, 10.0], // Cluster 2 (far away)
-            [10.1, 10.1], // Cluster 2
-        ];
+        let x = scirs2_core::ndarray::array![[0.0, 0.0], [0.1, 0.1], [10.0, 10.0], [10.1, 10.1],];
 
-        // With only 1 neighbor, the two clusters won't connect
         let mut isomap = Isomap::new(1, 2);
         let result = isomap.fit(&x);
 
-        // Should fail due to disconnected graph
         assert!(result.is_err());
         if let Err(e) = result {
-            // Verify it's specifically a connectivity error
             match e {
                 TransformError::InvalidInput(msg) => {
                     assert!(msg.contains("Graph is not connected"));
                 }
                 _ => panic!("Expected InvalidInput error for disconnected graph"),
             }
+        }
+    }
+
+    #[test]
+    fn test_isomap_residual_variance() {
+        let n_points = 20;
+        let mut data = Vec::new();
+        for i in 0..n_points {
+            let t = i as f64 / n_points as f64;
+            data.extend_from_slice(&[t, t * 2.0, t * 3.0]);
+        }
+
+        let x = Array::from_shape_vec((n_points, 3), data).expect("Failed to create array");
+
+        let mut isomap = Isomap::new(5, 2);
+        let _ = isomap
+            .fit_transform(&x)
+            .expect("Isomap fit_transform failed");
+
+        // For linear data, residual variance should be very small
+        let rv = isomap.residual_variance();
+        assert!(rv.is_some());
+        let rv_val = rv.expect("Residual variance should exist");
+        assert!(rv_val >= 0.0);
+        assert!(rv_val <= 1.0);
+    }
+
+    #[test]
+    fn test_isomap_out_of_sample() {
+        let n_points = 20;
+        let mut data = Vec::new();
+        for i in 0..n_points {
+            let t = i as f64 / n_points as f64;
+            data.extend_from_slice(&[t, t * 2.0, t * 3.0]);
+        }
+
+        let x = Array::from_shape_vec((n_points, 3), data).expect("Failed to create array");
+
+        let mut isomap = Isomap::new(5, 2);
+        isomap.fit(&x).expect("Isomap fit failed");
+
+        let x_new = Array::from_shape_vec((2, 3), vec![0.25, 0.5, 0.75, 0.75, 1.5, 2.25])
+            .expect("Failed to create test array");
+
+        let new_embedding = isomap.transform(&x_new).expect("Isomap transform failed");
+        assert_eq!(new_embedding.shape(), &[2, 2]);
+        for val in new_embedding.iter() {
+            assert!(val.is_finite());
         }
     }
 }

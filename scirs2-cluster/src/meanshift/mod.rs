@@ -1,3 +1,37 @@
+//! Mean Shift clustering implementation
+//!
+//! Mean Shift is a non-parametric clustering technique that does not require
+//! specifying the number of clusters in advance. It works by iteratively
+//! shifting each data point towards the mode of the local density.
+//!
+//! # Features
+//!
+//! - **Flat kernel** and **Gaussian kernel** support
+//! - **Bandwidth estimation**: Silverman's rule, Scott's rule, k-NN quantile
+//! - **Bin seeding** for acceleration on large datasets
+//! - **Cluster-all** mode and noise detection mode
+//!
+//! # Examples
+//!
+//! ```
+//! use scirs2_core::ndarray::array;
+//! use scirs2_cluster::meanshift::{mean_shift, MeanShiftOptions, KernelType};
+//!
+//! let data = array![
+//!     [1.0, 1.0], [2.0, 1.0], [1.0, 0.0],
+//!     [4.0, 7.0], [3.0, 5.0], [3.0, 6.0]
+//! ];
+//!
+//! let options = MeanShiftOptions {
+//!     bandwidth: Some(2.0),
+//!     kernel: KernelType::Gaussian,
+//!     ..Default::default()
+//! };
+//!
+//! let (centers, labels) = mean_shift(&data.view(), options).expect("Operation failed");
+//! println!("Number of clusters: {}", centers.nrows());
+//! ```
+
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1, ArrayView2, Axis};
 use scirs2_core::numeric::{Float, FromPrimitive};
 use std::collections::HashMap;
@@ -13,9 +47,41 @@ use scirs2_core::validation::{
 use scirs2_spatial::distance::EuclideanDistance;
 use scirs2_spatial::kdtree::KDTree;
 
+/// Kernel type for Mean Shift
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KernelType {
+    /// Flat (uniform) kernel: all points within bandwidth contribute equally
+    Flat,
+    /// Gaussian kernel: points are weighted by exp(-||x - xi||^2 / (2 * bandwidth^2))
+    Gaussian,
+}
+
+impl Default for KernelType {
+    fn default() -> Self {
+        KernelType::Flat
+    }
+}
+
+/// Bandwidth estimation method
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BandwidthEstimator {
+    /// k-NN quantile method (default): uses quantile of nearest neighbor distances
+    KNNQuantile,
+    /// Silverman's rule of thumb: h = 0.9 * min(std, IQR/1.34) * n^(-1/5)
+    Silverman,
+    /// Scott's rule: h = n^(-1/(d+4)) * std
+    Scott,
+}
+
+impl Default for BandwidthEstimator {
+    fn default() -> Self {
+        BandwidthEstimator::KNNQuantile
+    }
+}
+
 /// Configuration options for Mean Shift algorithm
 pub struct MeanShiftOptions<T: Float> {
-    /// Bandwidth parameter used in the flat kernel.
+    /// Bandwidth parameter.
     /// If not provided, it will be estimated from the data.
     pub bandwidth: Option<T>,
 
@@ -24,20 +90,22 @@ pub struct MeanShiftOptions<T: Float> {
     pub seeds: Option<Array2<T>>,
 
     /// If true, initial kernels are located on a grid with bin_size = bandwidth.
-    /// This can significantly speed up the algorithm for large datasets.
     pub bin_seeding: bool,
 
     /// Only bins with at least min_bin_freq points will be selected as seeds.
-    /// Only relevant when bin_seeding is true.
     pub min_bin_freq: usize,
 
-    /// If true, all points are assigned to clusters, even those not within any kernel.
-    /// Orphans are assigned to the nearest kernel.
-    /// If false, orphans are given a cluster label of -1.
+    /// If true, all points are assigned to clusters, even outliers.
     pub cluster_all: bool,
 
-    /// Maximum number of iterations for a single seed before stopping.
+    /// Maximum number of iterations for a single seed.
     pub max_iter: usize,
+
+    /// Kernel type to use
+    pub kernel: KernelType,
+
+    /// Bandwidth estimation method (used when bandwidth is None)
+    pub bandwidth_estimator: BandwidthEstimator,
 }
 
 impl<T: Float> Default for MeanShiftOptions<T> {
@@ -49,6 +117,8 @@ impl<T: Float> Default for MeanShiftOptions<T> {
             min_bin_freq: 1,
             cluster_all: true,
             max_iter: 300,
+            kernel: KernelType::Flat,
+            bandwidth_estimator: BandwidthEstimator::KNNQuantile,
         }
     }
 }
@@ -76,7 +146,6 @@ impl<T: Float> Eq for FloatPoint<T> {}
 
 impl<T: Float> Hash for FloatPoint<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        // Use fixed precision for consistent hashing of floating point numbers
         for value in &self.0 {
             let bits = if let Some(bits) = value.to_f64() {
                 (bits * 1e10).round() as i64
@@ -88,58 +157,170 @@ impl<T: Float> Hash for FloatPoint<T> {
     }
 }
 
-/// Estimate the bandwidth to use with the mean-shift algorithm.
+/// Estimate bandwidth using Silverman's rule of thumb
 ///
-/// This function estimates the bandwidth parameter for Mean Shift clustering by computing
-/// the median distance of each point to its k nearest neighbors, where k is determined
-/// by the quantile parameter.
+/// h = 0.9 * min(std, IQR/1.34) * n^(-1/5)
 ///
-/// # Arguments
+/// This works well for normally distributed data.
+pub fn estimate_bandwidth_silverman<T: Float + Display + FromPrimitive + Send + Sync + 'static>(
+    data: &ArrayView2<T>,
+) -> Result<T, ClusteringError> {
+    checkarray_finite(data, "data")?;
+
+    let n = data.nrows();
+    if n < 2 {
+        return Ok(T::from(1.0).ok_or_else(|| {
+            ClusteringError::ComputationError("Failed to convert constant".into())
+        })?);
+    }
+
+    let n_features = data.ncols();
+    let n_f = T::from(n)
+        .ok_or_else(|| ClusteringError::ComputationError("Failed to convert n".into()))?;
+
+    // Compute bandwidth per dimension and take the average
+    let mut bandwidth_sum = T::zero();
+
+    for col_idx in 0..n_features {
+        // Gather column values
+        let mut values: Vec<T> = (0..n).map(|i| data[[i, col_idx]]).collect();
+        values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+
+        // Standard deviation
+        let mean = values.iter().fold(T::zero(), |a, &b| a + b) / n_f;
+        let var = values
+            .iter()
+            .fold(T::zero(), |acc, &v| acc + (v - mean) * (v - mean))
+            / n_f;
+        let std_dev = var.sqrt();
+
+        // IQR
+        let q1_idx = n / 4;
+        let q3_idx = (3 * n) / 4;
+        let iqr = values[q3_idx.min(n - 1)] - values[q1_idx];
+        let one_point_three_four = T::from(1.34).ok_or_else(|| {
+            ClusteringError::ComputationError("Failed to convert constant".into())
+        })?;
+        let iqr_scaled = iqr / one_point_three_four;
+
+        // min(std, IQR/1.34), but skip IQR if it's zero
+        let spread = if iqr_scaled > T::zero() && iqr_scaled < std_dev {
+            iqr_scaled
+        } else {
+            std_dev
+        };
+
+        // Silverman factor: 0.9 * spread * n^(-1/5)
+        let zero_nine = T::from(0.9).ok_or_else(|| {
+            ClusteringError::ComputationError("Failed to convert constant".into())
+        })?;
+        let exponent = T::from(-0.2).ok_or_else(|| {
+            ClusteringError::ComputationError("Failed to convert constant".into())
+        })?;
+        let n_factor = n_f.powf(exponent);
+
+        let h = zero_nine * spread * n_factor;
+        bandwidth_sum = bandwidth_sum + h;
+    }
+
+    let n_feat_f = T::from(n_features)
+        .ok_or_else(|| ClusteringError::ComputationError("Failed to convert n_features".into()))?;
+    let bandwidth = bandwidth_sum / n_feat_f;
+
+    // Ensure positive bandwidth
+    if bandwidth <= T::zero() {
+        return Ok(T::from(1.0).ok_or_else(|| {
+            ClusteringError::ComputationError("Failed to convert constant".into())
+        })?);
+    }
+
+    Ok(bandwidth)
+}
+
+/// Estimate bandwidth using Scott's rule
 ///
-/// * `data` - The input data as a 2D array where rows are samples and columns are features.
-/// * `quantile` - Quantile of the pairwise distances to use as the bandwidth. Should be between 0 and 1.
-/// * `n_samples` - Number of samples to use for estimation. If None, all samples are used.
-/// * `random_state` - Optional seed for random sampling.
+/// h = n^(-1/(d+4)) * std
 ///
-/// # Returns
+/// Good general-purpose estimator for multivariate data.
+pub fn estimate_bandwidth_scott<T: Float + Display + FromPrimitive + Send + Sync + 'static>(
+    data: &ArrayView2<T>,
+) -> Result<T, ClusteringError> {
+    checkarray_finite(data, "data")?;
+
+    let n = data.nrows();
+    if n < 2 {
+        return Ok(T::from(1.0).ok_or_else(|| {
+            ClusteringError::ComputationError("Failed to convert constant".into())
+        })?);
+    }
+
+    let n_features = data.ncols();
+    let n_f = T::from(n)
+        .ok_or_else(|| ClusteringError::ComputationError("Failed to convert n".into()))?;
+
+    // Scott's exponent: -1/(d+4)
+    let d_plus_4 = T::from(n_features as f64 + 4.0)
+        .ok_or_else(|| ClusteringError::ComputationError("Failed to convert dimension".into()))?;
+    let exponent = T::from(-1.0)
+        .ok_or_else(|| ClusteringError::ComputationError("Failed to convert constant".into()))?
+        / d_plus_4;
+    let n_factor = n_f.powf(exponent);
+
+    // Average standard deviation across dimensions
+    let mut std_sum = T::zero();
+    for col_idx in 0..n_features {
+        let mean = (0..n)
+            .map(|i| data[[i, col_idx]])
+            .fold(T::zero(), |a, b| a + b)
+            / n_f;
+        let var = (0..n)
+            .map(|i| {
+                let diff = data[[i, col_idx]] - mean;
+                diff * diff
+            })
+            .fold(T::zero(), |a, b| a + b)
+            / n_f;
+        std_sum = std_sum + var.sqrt();
+    }
+
+    let avg_std = std_sum
+        / T::from(n_features).ok_or_else(|| {
+            ClusteringError::ComputationError("Failed to convert n_features".into())
+        })?;
+
+    let bandwidth = n_factor * avg_std;
+
+    if bandwidth <= T::zero() {
+        return Ok(T::from(1.0).ok_or_else(|| {
+            ClusteringError::ComputationError("Failed to convert constant".into())
+        })?);
+    }
+
+    Ok(bandwidth)
+}
+
+/// Estimate the bandwidth using k-NN quantile method.
 ///
-/// * `Result<T, ClusteringError>` - The estimated bandwidth value or an error.
-///
-/// # Examples
-///
-/// ```
-/// use scirs2_core::ndarray::array;
-/// use scirs2_cluster::meanshift::estimate_bandwidth;
-///
-/// let data = array![
-///     [1.0, 1.0], [2.0, 1.0], [1.0, 0.0],
-///     [4.0, 7.0], [3.0, 5.0], [3.0, 6.0]
-/// ];
-///
-/// let bandwidth = estimate_bandwidth(&data.view(), Some(0.5), None, None).expect("Operation failed");
-/// println!("Estimated bandwidth: {}", bandwidth);
-/// ```
-#[allow(dead_code)]
+/// Computes the average distance to the k-th nearest neighbor across all points,
+/// where k = quantile * n_samples.
 pub fn estimate_bandwidth<T: Float + Display + FromPrimitive + Send + Sync + 'static>(
     data: &ArrayView2<T>,
     quantile: Option<T>,
     n_samples: Option<usize>,
     _random_state: Option<u64>,
 ) -> Result<T, ClusteringError> {
-    // Check that all data is finite
     checkarray_finite(data, "data")?;
 
-    let quantile = quantile.unwrap_or_else(|| T::from(0.3).expect("Operation failed"));
+    let quantile = quantile
+        .unwrap_or_else(|| T::from(0.3).unwrap_or_else(|| T::from(0.3f64).unwrap_or(T::one())));
     let _quantile = check_unit_interval(quantile, "quantile", "estimate_bandwidth")?;
 
-    // Select a subset of _samples if specified
+    // Select a subset of samples if specified
     let data = if let Some(n) = n_samples {
         if n >= data.nrows() {
             data.to_owned()
         } else {
-            // Sample n_samples points randomly
             let mut rng = scirs2_core::random::rng();
-
             use scirs2_core::random::seq::SliceRandom;
             let mut indices: Vec<usize> = (0..data.nrows()).collect();
             indices.shuffle(&mut rng);
@@ -155,11 +336,11 @@ pub fn estimate_bandwidth<T: Float + Display + FromPrimitive + Send + Sync + 'st
         data.to_owned()
     };
 
-    let n_neighbors = (T::from(data.nrows()).expect("Operation failed") * quantile)
+    let n_neighbors = (T::from(data.nrows()).unwrap_or(T::one()) * quantile)
         .to_usize()
         .unwrap_or(1)
         .max(1)
-        .min(data.nrows().saturating_sub(1)); // Cannot have more neighbors than n_samples - 1
+        .min(data.nrows().saturating_sub(1));
 
     // Build KDTree for nearest neighbor search
     let kdtree = KDTree::<_, EuclideanDistance<T>>::new(&data)
@@ -167,7 +348,6 @@ pub fn estimate_bandwidth<T: Float + Display + FromPrimitive + Send + Sync + 'st
 
     let mut bandwidth_sum = T::zero();
 
-    // Process in batches to avoid memory issues with large datasets
     let batch_size = 500;
     for i in (0..data.nrows()).step_by(batch_size) {
         let end = (i + batch_size).min(data.nrows());
@@ -179,35 +359,21 @@ pub fn estimate_bandwidth<T: Float + Display + FromPrimitive + Send + Sync + 'st
             })?;
 
             if distances.len() > 1 {
-                // Skip the first distance (to itself, which is 0) and take the last (k-th neighbor)
                 let kth_dist = distances
                     .last()
                     .copied()
-                    .unwrap_or(T::from(1.0).expect("Operation failed")); // Default to 1.0 if no valid distance is found
-
+                    .unwrap_or_else(|| T::from(1.0).unwrap_or(T::one()));
                 bandwidth_sum = bandwidth_sum + kth_dist;
             } else if !distances.is_empty() {
-                // If we only have one distance (to itself), use a larger default value
-                bandwidth_sum = bandwidth_sum + T::from(1.0).expect("Operation failed");
+                bandwidth_sum = bandwidth_sum + T::from(1.0).unwrap_or(T::one());
             }
         }
     }
 
-    Ok(bandwidth_sum / T::from(data.nrows()).expect("Operation failed"))
+    Ok(bandwidth_sum / T::from(data.nrows()).unwrap_or(T::one()))
 }
 
 /// Find seeds for mean_shift by binning data onto a grid.
-///
-/// # Arguments
-///
-/// * `data` - The input data as a 2D array.
-/// * `bin_size` - The size of the bins for discretization.
-/// * `min_bin_freq` - Minimum number of points in a bin for it to be a seed.
-///
-/// # Returns
-///
-/// * `Array2<T>` - Coordinates of bin seeds to use as initial kernel positions.
-#[allow(dead_code)]
 pub fn get_bin_seeds<T: Float + Display + FromPrimitive + Send + Sync + 'static>(
     data: &ArrayView2<T>,
     bin_size: T,
@@ -219,31 +385,25 @@ pub fn get_bin_seeds<T: Float + Display + FromPrimitive + Send + Sync + 'static>
 
     let mut bin_sizes: HashMap<FloatPoint<T>, usize> = HashMap::new();
 
-    // Bin points
     for row in data.rows() {
-        // Round to nearest bin center
         let mut binned_point = Vec::with_capacity(row.len());
         for &val in row.iter() {
             binned_point.push((val / bin_size).round() * bin_size);
         }
-
         let point = FloatPoint::<T>(binned_point);
         *bin_sizes.entry(point).or_insert(0) += 1;
     }
 
-    // Select only bins with enough points
     let seeds: Vec<Vec<T>> = bin_sizes
         .into_iter()
         .filter(|(_, freq)| *freq >= min_bin_freq)
         .map(|(point, _)| point.0)
         .collect();
 
-    // If all points are seeds, just return the original data
     if seeds.len() == data.nrows() {
         return data.to_owned();
     }
 
-    // Convert to Array2
     if seeds.is_empty() {
         Array2::zeros((0, data.ncols()))
     } else {
@@ -257,20 +417,8 @@ pub fn get_bin_seeds<T: Float + Display + FromPrimitive + Send + Sync + 'static>
     }
 }
 
-/// Perform Mean Shift single seed update.
-///
-/// # Arguments
-///
-/// * `seed` - The initial position of the seed.
-/// * `data` - The dataset to operate on.
-/// * `bandwidth` - The bandwidth parameter.
-/// * `max_iter` - Maximum number of iterations.
-///
-/// # Returns
-///
-/// * `(Vec<T>, usize, usize)` - (Final seed position, number of points within bandwidth, iterations performed)
-#[allow(dead_code)]
-fn mean_shift_single_seed<
+/// Mean Shift single seed update with flat kernel
+fn mean_shift_single_seed_flat<
     T: Float
         + Display
         + std::iter::Sum
@@ -285,12 +433,10 @@ fn mean_shift_single_seed<
     bandwidth: T,
     max_iter: usize,
 ) -> (Vec<T>, usize, usize) {
-    let stop_thresh = bandwidth * T::from(1e-3).expect("Operation failed");
+    let stop_thresh = bandwidth * T::from(1e-3).unwrap_or(T::epsilon());
     let mut my_mean = seed.to_owned();
     let mut completed_iterations = 0;
 
-    // Create KDTree for efficient neighbor search
-    // Convert ArrayView2 to owned Array2 for KDTree
     let owned_data = data.to_owned();
     let kdtree = match KDTree::<_, EuclideanDistance<T>>::new(&owned_data) {
         Ok(tree) => tree,
@@ -298,7 +444,6 @@ fn mean_shift_single_seed<
     };
 
     loop {
-        // Find points within bandwidth
         let (indices, _distances) = match kdtree.query_radius(&my_mean.to_vec(), bandwidth) {
             Ok((idx, distances)) => (idx, distances),
             Err(_) => return (my_mean.to_vec(), 0, completed_iterations),
@@ -309,7 +454,7 @@ fn mean_shift_single_seed<
         }
         let my_old_mean = my_mean.clone();
 
-        // Calculate new mean
+        // Flat kernel: equal weights for all neighbors
         my_mean.fill(T::zero());
         let mut sum = Array1::zeros(my_mean.dim());
         for &point_idx in &indices {
@@ -318,9 +463,8 @@ fn mean_shift_single_seed<
                 *s = *s + *v;
             }
         }
-        my_mean = sum / T::from(indices.len()).expect("Operation failed");
+        my_mean = sum / T::from(indices.len()).unwrap_or(T::one());
 
-        // Compute Euclidean distance manually for convergence check
         let mut dist_squared = T::zero();
         for (a, b) in my_mean.iter().zip(my_old_mean.iter()) {
             dist_squared = dist_squared + (*a - *b) * (*a - *b);
@@ -334,8 +478,7 @@ fn mean_shift_single_seed<
         completed_iterations += 1;
     }
 
-    // Find number of points within bandwidth of final position
-    let (final_indices, _distances) = match kdtree.query_radius(&my_mean.to_vec(), bandwidth) {
+    let (final_indices, _) = match kdtree.query_radius(&my_mean.to_vec(), bandwidth) {
         Ok((idx, distances)) => (idx, distances),
         Err(_) => return (my_mean.to_vec(), 0, completed_iterations),
     };
@@ -343,7 +486,91 @@ fn mean_shift_single_seed<
     (my_mean.to_vec(), final_indices.len(), completed_iterations)
 }
 
-/// Perform Mean Shift clustering of data using a flat kernel.
+/// Mean Shift single seed update with Gaussian kernel
+fn mean_shift_single_seed_gaussian<
+    T: Float
+        + Display
+        + std::iter::Sum
+        + FromPrimitive
+        + Send
+        + Sync
+        + 'static
+        + scirs2_core::ndarray::ScalarOperand,
+>(
+    seed: ArrayView1<T>,
+    data: &ArrayView2<T>,
+    bandwidth: T,
+    max_iter: usize,
+) -> (Vec<T>, usize, usize) {
+    let stop_thresh = bandwidth * T::from(1e-3).unwrap_or(T::epsilon());
+    let mut my_mean = seed.to_owned();
+    let mut completed_iterations = 0;
+    let bw_sq = bandwidth * bandwidth;
+
+    // Use 3*bandwidth as the search radius for Gaussian kernel
+    let search_radius = bandwidth * T::from(3.0).unwrap_or(T::one() + T::one() + T::one());
+
+    let owned_data = data.to_owned();
+    let kdtree = match KDTree::<_, EuclideanDistance<T>>::new(&owned_data) {
+        Ok(tree) => tree,
+        Err(_) => return (seed.to_vec(), 0, 0),
+    };
+
+    loop {
+        let (indices, distances) = match kdtree.query_radius(&my_mean.to_vec(), search_radius) {
+            Ok((idx, distances)) => (idx, distances),
+            Err(_) => return (my_mean.to_vec(), 0, completed_iterations),
+        };
+
+        if indices.is_empty() {
+            break;
+        }
+        let my_old_mean = my_mean.clone();
+
+        // Gaussian kernel: weight = exp(-dist^2 / (2 * bw^2))
+        let two = T::from(2.0).unwrap_or(T::one() + T::one());
+        let n_features = my_mean.dim();
+        let mut weighted_sum = Array1::zeros(n_features);
+        let mut weight_total = T::zero();
+
+        for (local_idx, &point_idx) in indices.iter().enumerate() {
+            let dist = distances[local_idx];
+            let dist_sq = dist * dist;
+            let weight = (-dist_sq / (two * bw_sq)).exp();
+
+            let row = data.row(point_idx);
+            for (ws, &v) in weighted_sum.iter_mut().zip(row.iter()) {
+                *ws = *ws + v * weight;
+            }
+            weight_total = weight_total + weight;
+        }
+
+        if weight_total > T::zero() {
+            my_mean = weighted_sum / weight_total;
+        }
+
+        let mut dist_squared = T::zero();
+        for (a, b) in my_mean.iter().zip(my_old_mean.iter()) {
+            dist_squared = dist_squared + (*a - *b) * (*a - *b);
+        }
+        let dist = dist_squared.sqrt();
+
+        if dist <= stop_thresh || completed_iterations == max_iter {
+            break;
+        }
+
+        completed_iterations += 1;
+    }
+
+    let (final_indices, _) = match kdtree.query_radius(&my_mean.to_vec(), bandwidth) {
+        Ok((idx, distances)) => (idx, distances),
+        Err(_) => return (my_mean.to_vec(), 0, completed_iterations),
+    };
+
+    (my_mean.to_vec(), final_indices.len(), completed_iterations)
+}
+
+/// Perform Mean Shift clustering.
 ///
 /// # Arguments
 ///
@@ -352,28 +579,7 @@ fn mean_shift_single_seed<
 ///
 /// # Returns
 ///
-/// * `Result<(Array2<T>, Array1<i32>), ClusteringError>` - Tuple of (cluster centers, labels) or an error.
-///
-/// # Examples
-///
-/// ```
-/// use scirs2_core::ndarray::array;
-/// use scirs2_cluster::meanshift::{mean_shift, MeanShiftOptions};
-///
-/// let data = array![
-///     [1.0, 1.0], [2.0, 1.0], [1.0, 0.0],
-///     [4.0, 7.0], [3.0, 5.0], [3.0, 6.0]
-/// ];
-///
-/// let options = MeanShiftOptions {
-///     bandwidth: Some(2.0),
-///     ..Default::default()
-/// };
-///
-/// let (centers, labels) = mean_shift(&data.view(), options).expect("Operation failed");
-/// println!("Number of clusters: {}", centers.nrows());
-/// ```
-#[allow(dead_code)]
+/// * `Result<(Array2<T>, Array1<i32>), ClusteringError>` - Tuple of (cluster centers, labels).
 pub fn mean_shift<
     T: Float
         + Display
@@ -388,7 +594,6 @@ pub fn mean_shift<
     data: &ArrayView2<T>,
     options: MeanShiftOptions<T>,
 ) -> Result<(Array2<T>, Array1<i32>), ClusteringError> {
-    // Delegate to MeanShift::fit which implements the core algorithm
     let mut model = MeanShift::new(options);
     let model = model.fit(data)?;
     Ok((
@@ -397,12 +602,13 @@ pub fn mean_shift<
     ))
 }
 
-/// Mean Shift clustering using a flat kernel.
+/// Mean Shift clustering model.
 pub struct MeanShift<T: Float> {
     options: MeanShiftOptions<T>,
     cluster_centers_: Option<Array2<T>>,
     labels_: Option<Array1<i32>>,
     n_iter_: usize,
+    bandwidth_used_: Option<T>,
 }
 
 impl<
@@ -417,19 +623,19 @@ impl<
             + Debug,
     > MeanShift<T>
 {
-    /// Create a new Mean Shift instance with the given options.
+    /// Create a new Mean Shift instance.
     pub fn new(options: MeanShiftOptions<T>) -> Self {
         Self {
             options,
             cluster_centers_: None,
             labels_: None,
             n_iter_: 0,
+            bandwidth_used_: None,
         }
     }
 
-    /// Fit the Mean Shift model to the data.
+    /// Fit the Mean Shift model to data.
     pub fn fit(&mut self, data: &ArrayView2<T>) -> Result<&mut Self, ClusteringError> {
-        // Use comprehensive clustering data validation
         let config = crate::input_validation::ValidationConfig::default();
         crate::input_validation::validate_clustering_data(data.view(), &config)?;
 
@@ -438,13 +644,15 @@ impl<
         // Determine bandwidth
         let bandwidth = match self.options.bandwidth {
             Some(bw) => check_positive(bw, "bandwidth")?,
-            None => estimate_bandwidth(
-                data,
-                Some(T::from(0.3).expect("Operation failed")),
-                None,
-                None,
-            )?,
+            None => match self.options.bandwidth_estimator {
+                BandwidthEstimator::Silverman => estimate_bandwidth_silverman(data)?,
+                BandwidthEstimator::Scott => estimate_bandwidth_scott(data)?,
+                BandwidthEstimator::KNNQuantile => {
+                    estimate_bandwidth(data, Some(T::from(0.3).unwrap_or(T::one())), None, None)?
+                }
+            },
         };
+        self.bandwidth_used_ = Some(bandwidth);
 
         // Get seeds
         let seeds = match &self.options.seeds {
@@ -464,10 +672,18 @@ impl<
             ));
         }
 
-        // Run mean shift on each seed
+        // Run mean shift on each seed with the appropriate kernel
+        let kernel = self.options.kernel;
+        let max_iter = self.options.max_iter;
+
         let seed_results: Vec<_> = seeds
             .axis_iter(Axis(0))
-            .map(|seed| mean_shift_single_seed(seed, data, bandwidth, self.options.max_iter))
+            .map(|seed| match kernel {
+                KernelType::Flat => mean_shift_single_seed_flat(seed, data, bandwidth, max_iter),
+                KernelType::Gaussian => {
+                    mean_shift_single_seed_gaussian(seed, data, bandwidth, max_iter)
+                }
+            })
             .collect();
 
         // Process results
@@ -476,18 +692,18 @@ impl<
             if size > 0 {
                 center_intensity_dict.insert(FloatPoint(center), size);
             }
-
-            // Update maximum iterations
             self.n_iter_ = self.n_iter_.max(iterations);
         }
 
         if center_intensity_dict.is_empty() {
-            return Err(ClusteringError::ComputationError(
-                format!("No point was within bandwidth={} of any seed. Try a different seeding strategy or increase the bandwidth.", bandwidth)
-            ));
+            return Err(ClusteringError::ComputationError(format!(
+                "No point was within bandwidth={} of any seed. \
+                 Try a different seeding strategy or increase the bandwidth.",
+                bandwidth
+            )));
         }
 
-        // Sort centers by intensity (number of points within bandwidth)
+        // Sort centers by intensity
         let mut sorted_by_intensity: Vec<_> = center_intensity_dict.into_iter().collect();
         sorted_by_intensity.sort_by(|a, b| {
             b.1.cmp(&a.1).then_with(|| {
@@ -499,28 +715,15 @@ impl<
             })
         });
 
-        // If cluster_all is false, filter out centers with low intensity
-        // A center with intensity 1 means only the seed point itself is within bandwidth
-        // which indicates it's likely an outlier
         if !self.options.cluster_all {
-            let min_density_threshold = 2; // Require at least 2 points for a valid cluster
+            let min_density_threshold = 2;
             sorted_by_intensity.retain(|(_, intensity)| *intensity >= min_density_threshold);
 
             if sorted_by_intensity.is_empty() {
                 return Err(ClusteringError::ComputationError(
-                    "No clusters found with sufficient density. All points appear to be outliers."
-                        .to_string(),
+                    "No clusters found with sufficient density.".to_string(),
                 ));
             }
-        }
-
-        // Debug: print number of centers before deduplication
-        #[cfg(debug_assertions)]
-        if sorted_by_intensity.len() > 1 {
-            eprintln!(
-                "DEBUG: Found {} centers before deduplication",
-                sorted_by_intensity.len()
-            );
         }
 
         // Convert to Array2
@@ -534,23 +737,20 @@ impl<
         // Remove near-duplicate centers
         let mut unique = vec![true; sorted_centers.nrows()];
 
-        // Use KDTree for efficient radius search
         let kdtree = KDTree::<_, EuclideanDistance<T>>::new(&sorted_centers).map_err(|e| {
             ClusteringError::ComputationError(format!("Failed to build KDTree: {}", e))
         })?;
 
-        // Use a smaller threshold for merging centers (typically bandwidth/10 or less)
-        let merge_threshold = bandwidth * T::from(0.1).expect("Operation failed");
+        let merge_threshold = bandwidth * T::from(0.1).unwrap_or(T::epsilon());
 
         for i in 0..sorted_centers.nrows() {
             if unique[i] {
-                let (indices_, _distances) = kdtree
+                let (indices_, _) = kdtree
                     .query_radius(&sorted_centers.row(i).to_vec(), merge_threshold)
                     .map_err(|e| {
                         ClusteringError::ComputationError(format!("Failed to query KDTree: {}", e))
                     })?;
 
-                // Mark all neighbors as non-unique, except the current point
                 for &idx in indices_.iter() {
                     if idx != i {
                         unique[idx] = false;
@@ -559,7 +759,6 @@ impl<
             }
         }
 
-        // Extract unique centers
         let unique_indices: Vec<_> = unique
             .iter()
             .enumerate()
@@ -572,14 +771,14 @@ impl<
             cluster_centers.row_mut(i).assign(&sorted_centers.row(idx));
         }
 
-        // ASSIGN LABELS: a point belongs to the cluster that it is closest to
-        let kdtree = KDTree::<_, EuclideanDistance<T>>::new(&cluster_centers).map_err(|e| {
-            ClusteringError::ComputationError(format!("Failed to build KDTree: {}", e))
-        })?;
+        // Assign labels
+        let centers_kdtree =
+            KDTree::<_, EuclideanDistance<T>>::new(&cluster_centers).map_err(|e| {
+                ClusteringError::ComputationError(format!("Failed to build KDTree: {}", e))
+            })?;
 
         let mut labels = Array1::zeros(n_samples);
 
-        // Batch processing to handle large datasets efficiently
         let batch_size = 1000;
         for i in (0..n_samples).step_by(batch_size) {
             let end = (i + batch_size).min(n_samples);
@@ -588,29 +787,26 @@ impl<
             for (row_idx, row) in batch.rows().into_iter().enumerate() {
                 let point_idx = i + row_idx;
 
-                let (indices, distances) = kdtree.query(&row.to_vec(), 1).map_err(|e| {
+                let (indices, distances) = centers_kdtree.query(&row.to_vec(), 1).map_err(|e| {
                     ClusteringError::ComputationError(format!("Failed to query KDTree: {}", e))
                 })?;
 
                 if !indices.is_empty() {
                     let idx = indices[0];
-                    let distance = T::from(distances[0]).expect("Operation failed");
+                    let distance = T::from(distances[0]).unwrap_or(T::zero());
 
                     if self.options.cluster_all || (distance <= bandwidth) {
-                        labels[point_idx] = T::to_i32(&T::from(idx).expect("Operation failed"))
-                            .expect("Operation failed");
+                        labels[point_idx] =
+                            T::to_i32(&T::from(idx).unwrap_or(T::zero())).unwrap_or(0);
                     } else {
-                        // Mark as noise if not close to any cluster and not clustering all points
                         labels[point_idx] = -1;
                     }
                 } else {
-                    // Should never happen, but just in case
                     labels[point_idx] = -1;
                 }
             }
         }
 
-        // Store results
         self.cluster_centers_ = Some(cluster_centers);
         self.labels_ = Some(labels);
 
@@ -636,24 +832,26 @@ impl<
         self.n_iter_
     }
 
+    /// Get the bandwidth that was actually used (useful when auto-estimated).
+    pub fn bandwidth_used(&self) -> Option<T> {
+        self.bandwidth_used_
+    }
+
     /// Predict the closest cluster each sample in data belongs to.
     pub fn predict(&self, data: &ArrayView2<T>) -> Result<Array1<i32>, ClusteringError> {
         let centers = self.cluster_centers_.as_ref().ok_or_else(|| {
             ClusteringError::InvalidState("Model has not been fitted yet".to_string())
         })?;
 
-        // Check that all data is finite
         checkarray_finite(data, "prediction data")?;
 
         let n_samples = data.nrows();
         let mut labels = Array1::zeros(n_samples);
 
-        // Use KDTree for efficient nearest neighbor search
         let kdtree = KDTree::<_, EuclideanDistance<T>>::new(centers).map_err(|e| {
             ClusteringError::ComputationError(format!("Failed to build KDTree: {}", e))
         })?;
 
-        // Process in batches for memory efficiency
         let batch_size = 1000;
         for i in (0..n_samples).step_by(batch_size) {
             let end = (i + batch_size).min(n_samples);
@@ -666,10 +864,8 @@ impl<
 
                 if !indices_.is_empty() {
                     labels[i + row_idx] =
-                        T::to_i32(&T::from(indices_[0]).expect("Operation failed"))
-                            .expect("Operation failed");
+                        T::to_i32(&T::from(indices_[0]).unwrap_or(T::zero())).unwrap_or(0);
                 } else {
-                    // Should never happen, but just in case
                     labels[i + row_idx] = -1;
                 }
             }
@@ -682,38 +878,31 @@ impl<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use scirs2_core::ndarray::{array, Array2, ArrayView1};
+    use scirs2_core::ndarray::{array, Array2};
     use std::collections::HashSet;
 
-    #[test]
-    fn test_estimate_bandwidth() {
-        let data = array![
+    fn make_test_data() -> Array2<f64> {
+        array![
             [1.0, 1.0],
             [2.0, 1.0],
             [1.0, 0.0],
             [4.0, 7.0],
             [3.0, 5.0],
             [3.0, 6.0]
-        ];
+        ]
+    }
 
-        // Use a quantile that ensures we get at least one neighbor
-        // With 6 points and quantile=0.3, we should get 1 neighbor
-        // But let's be more explicit and use 0.4 to ensure 2 neighbors
-        let quantile = 0.4;
-        let n_neighbors = ((data.nrows() as f64) * quantile) as usize;
-        println!("n_neighbors calculated: {}", n_neighbors);
+    #[test]
+    fn test_estimate_bandwidth() {
+        let data = make_test_data();
+        let bandwidth = estimate_bandwidth(&data.view(), Some(0.4), None, None)
+            .expect("Bandwidth estimation should succeed");
 
-        let bandwidth =
-            estimate_bandwidth(&data.view(), Some(quantile), None, None).expect("Operation failed");
-
-        // The bandwidth should be a positive value
         assert!(
             bandwidth > 0.0,
             "Bandwidth should be positive, got: {}",
             bandwidth
         );
-
-        // With this test data, bandwidth should be reasonable
         assert!(
             bandwidth < 20.0,
             "Bandwidth should be reasonable, got: {}",
@@ -722,18 +911,32 @@ mod tests {
     }
 
     #[test]
+    fn test_estimate_bandwidth_silverman() {
+        let data = make_test_data();
+        let bandwidth = estimate_bandwidth_silverman(&data.view())
+            .expect("Silverman estimation should succeed");
+
+        assert!(bandwidth > 0.0, "Silverman bandwidth should be positive");
+        assert!(bandwidth < 20.0, "Silverman bandwidth should be reasonable");
+    }
+
+    #[test]
+    fn test_estimate_bandwidth_scott() {
+        let data = make_test_data();
+        let bandwidth =
+            estimate_bandwidth_scott(&data.view()).expect("Scott estimation should succeed");
+
+        assert!(bandwidth > 0.0, "Scott bandwidth should be positive");
+        assert!(bandwidth < 20.0, "Scott bandwidth should be reasonable");
+    }
+
+    #[test]
     fn test_estimate_bandwidth_small_sample() {
         let data = array![[1.0, 1.0]];
-
-        let bandwidth =
-            estimate_bandwidth(&data.view(), Some(0.3), None, None).expect("Operation failed");
-
-        // With only one sample, we return a default value of 1.0
-        assert!(
-            bandwidth > 0.0,
-            "Bandwidth should be positive for single sample"
-        );
-        assert_eq!(bandwidth, 1.0, "Bandwidth should be 1.0 for single sample");
+        let bandwidth = estimate_bandwidth(&data.view(), Some(0.3), None, None)
+            .expect("Should work for single sample");
+        assert!(bandwidth > 0.0);
+        assert_eq!(bandwidth, 1.0);
     }
 
     #[test]
@@ -747,87 +950,73 @@ mod tests {
             [0.0, 0.0]
         ];
 
-        // With bin_size=1.0 and min_freq=1, should get 3 bins
         let bin_seeds = get_bin_seeds(&data.view(), 1.0, 1);
         assert_eq!(bin_seeds.nrows(), 3);
 
-        // With bin_size=1.0 and min_freq=2, should get 2 bins
         let bin_seeds = get_bin_seeds(&data.view(), 1.0, 2);
         assert_eq!(bin_seeds.nrows(), 2);
 
-        // With very small bin_size, should get all points
         let bin_seeds = get_bin_seeds(&data.view(), 0.01, 1);
         assert_eq!(bin_seeds.nrows(), data.nrows());
     }
 
     #[test]
-    fn test_mean_shift_simple() {
-        let data = array![
-            [1.0, 1.0],
-            [2.0, 1.0],
-            [1.0, 0.0],
-            [4.0, 7.0],
-            [3.0, 5.0],
-            [3.0, 6.0]
-        ];
+    fn test_mean_shift_flat_kernel() {
+        let data = make_test_data();
 
         let options = MeanShiftOptions {
-            bandwidth: Some(2.0), // Adjust bandwidth for more reliable clustering
+            bandwidth: Some(2.0),
+            kernel: KernelType::Flat,
             ..Default::default()
         };
 
-        let (centers, labels) = mean_shift(&data.view(), options).expect("Operation failed");
+        let (centers, labels) =
+            mean_shift(&data.view(), options).expect("Mean shift with flat kernel should succeed");
 
-        // Should find at least 1 cluster
         assert!(centers.nrows() >= 1, "Should find at least 1 cluster");
         assert!(centers.nrows() <= 3, "Should find at most 3 clusters");
-
-        // Check that all labels are valid (non-negative)
         assert!(
             labels.iter().all(|&l| l >= 0),
             "All labels should be non-negative"
         );
+    }
 
-        // Check that labels are within range
-        let max_label = *labels.iter().max().unwrap_or(&0);
-        assert_eq!(
-            max_label as usize,
-            centers.nrows() - 1,
-            "Max label should match number of centers - 1"
+    #[test]
+    fn test_mean_shift_gaussian_kernel() {
+        let data = make_test_data();
+
+        let options = MeanShiftOptions {
+            bandwidth: Some(2.0),
+            kernel: KernelType::Gaussian,
+            ..Default::default()
+        };
+
+        let (centers, labels) = mean_shift(&data.view(), options)
+            .expect("Mean shift with Gaussian kernel should succeed");
+
+        assert!(centers.nrows() >= 1, "Should find at least 1 cluster");
+        assert!(
+            labels.iter().all(|&l| l >= 0),
+            "All labels should be non-negative"
         );
     }
 
     #[test]
     fn test_mean_shift_bin_seeding() {
-        let data = array![
-            [1.0, 1.0],
-            [2.0, 1.0],
-            [1.0, 0.0],
-            [4.0, 7.0],
-            [3.0, 5.0],
-            [3.0, 6.0]
-        ];
+        let data = make_test_data();
 
         let options = MeanShiftOptions {
-            bandwidth: Some(2.0), // Use larger bandwidth
+            bandwidth: Some(2.0),
             bin_seeding: true,
             ..Default::default()
         };
 
-        let (centers, labels) = mean_shift(&data.view(), options).expect("Operation failed");
+        let (centers, labels) =
+            mean_shift(&data.view(), options).expect("Mean shift with bin seeding should succeed");
 
-        // Should find at least 1 cluster with bin seeding
-        assert!(centers.nrows() >= 1, "Should find at least 1 cluster");
-        assert!(centers.nrows() <= 3, "Should find at most 3 clusters");
-
-        // Check that all labels are valid
-        assert!(
-            labels.iter().all(|&l| l >= 0),
-            "All labels should be non-negative"
-        );
-
-        // Verify bin seeding works (doesn't crash)
-        // The exact number of clusters can vary based on binning
+        assert!(centers.nrows() >= 1);
+        assert!(centers.nrows() <= 3);
+        assert!(labels.iter().all(|&l| l >= 0));
     }
 
     #[test]
@@ -839,7 +1028,7 @@ mod tests {
             [4.0, 7.0],
             [3.0, 5.0],
             [3.0, 6.0],
-            [10.0, 10.0] // Outlier
+            [10.0, 10.0]
         ];
 
         let options = MeanShiftOptions {
@@ -848,46 +1037,31 @@ mod tests {
             ..Default::default()
         };
 
-        let (_centers, labels) = mean_shift(&data.view(), options).expect("Operation failed");
+        let (_centers, labels) =
+            mean_shift(&data.view(), options).expect("Mean shift should succeed");
 
-        // Check that we have some noise points (-1)
         assert!(labels.iter().any(|&l| l == -1));
     }
 
     #[test]
     fn test_mean_shift_max_iter() {
-        let data = array![
-            [1.0, 1.0],
-            [2.0, 1.0],
-            [1.0, 0.0],
-            [4.0, 7.0],
-            [3.0, 5.0],
-            [3.0, 6.0]
-        ];
+        let data = make_test_data();
 
         let options = MeanShiftOptions {
             bandwidth: Some(2.0),
-            max_iter: 1, // Very low iteration limit
+            max_iter: 1,
             ..Default::default()
         };
 
         let mut model = MeanShift::new(options);
-        model.fit(&data.view()).expect("Operation failed");
+        model.fit(&data.view()).expect("Should fit");
 
-        // With very low max_iter, we should hit the limit
         assert_eq!(model.n_iter(), 1);
     }
 
     #[test]
     fn test_mean_shift_predict() {
-        let data = array![
-            [1.0, 1.0],
-            [2.0, 1.0],
-            [1.0, 0.0],
-            [4.0, 7.0],
-            [3.0, 5.0],
-            [3.0, 6.0]
-        ];
+        let data = make_test_data();
 
         let options = MeanShiftOptions {
             bandwidth: Some(2.0),
@@ -895,53 +1069,84 @@ mod tests {
         };
 
         let mut model = MeanShift::new(options);
-        model.fit(&data.view()).expect("Operation failed");
+        model.fit(&data.view()).expect("Should fit");
 
-        // Predict the same data
-        let predicted_labels = model.predict(&data.view()).expect("Operation failed");
-
-        // Predictions on the same data should match the fitted labels
+        let predicted_labels = model.predict(&data.view()).expect("Predict should succeed");
         assert_eq!(predicted_labels, model.labels().clone());
     }
 
     #[test]
+    fn test_mean_shift_silverman_bandwidth() {
+        let data = make_test_data();
+
+        let options = MeanShiftOptions {
+            bandwidth: None,
+            bandwidth_estimator: BandwidthEstimator::Silverman,
+            ..Default::default()
+        };
+
+        let mut model = MeanShift::new(options);
+        model
+            .fit(&data.view())
+            .expect("Should fit with Silverman bandwidth");
+
+        assert!(model.bandwidth_used().is_some());
+        assert!(
+            model.bandwidth_used().unwrap_or(0.0) > 0.0,
+            "Silverman bandwidth should be positive"
+        );
+    }
+
+    #[test]
+    fn test_mean_shift_scott_bandwidth() {
+        let data = make_test_data();
+
+        let options = MeanShiftOptions {
+            bandwidth: None,
+            bandwidth_estimator: BandwidthEstimator::Scott,
+            ..Default::default()
+        };
+
+        let mut model = MeanShift::new(options);
+        model
+            .fit(&data.view())
+            .expect("Should fit with Scott bandwidth");
+
+        assert!(model.bandwidth_used().is_some());
+        assert!(
+            model.bandwidth_used().unwrap_or(0.0) > 0.0,
+            "Scott bandwidth should be positive"
+        );
+    }
+
+    #[test]
     fn test_mean_shift_large_dataset() {
-        // Create a dataset with two clear clusters
         let mut data = Array2::zeros((20, 2));
 
-        // First cluster - tighter
         for i in 0..10 {
             data[[i, 0]] = 1.0 + 0.05 * (i as f64);
             data[[i, 1]] = 1.0 + 0.05 * (i as f64);
         }
 
-        // Second cluster - tighter and farther away
         for i in 10..20 {
             data[[i, 0]] = 8.0 + 0.05 * ((i - 10) as f64);
             data[[i, 1]] = 8.0 + 0.05 * ((i - 10) as f64);
         }
 
         let options = MeanShiftOptions {
-            bandwidth: Some(1.5), // Adjust bandwidth to capture cluster structure
-            bin_seeding: true,    // Use bin seeding for efficiency
+            bandwidth: Some(1.5),
+            bin_seeding: true,
             ..Default::default()
         };
 
-        let (centers, labels) = mean_shift(&data.view(), options).expect("Operation failed");
+        let (centers, labels) =
+            mean_shift(&data.view(), options).expect("Should handle larger dataset");
 
-        // Should find 1-2 clusters (algorithm can merge distant clusters with large bandwidth)
-        assert!(centers.nrows() >= 1, "Should find at least 1 cluster");
-        assert!(centers.nrows() <= 3, "Should find at most 3 clusters");
+        assert!(centers.nrows() >= 1);
+        assert!(centers.nrows() <= 3);
 
-        // Check that we have valid labels
         let unique_labels: HashSet<_> = labels.iter().cloned().collect();
-        assert!(
-            !unique_labels.is_empty(),
-            "Should have at least 1 unique label"
-        );
-        assert!(
-            unique_labels.len() <= centers.nrows(),
-            "Unique labels should not exceed number of centers"
-        );
+        assert!(!unique_labels.is_empty());
+        assert!(unique_labels.len() <= centers.nrows());
     }
 }

@@ -405,6 +405,125 @@ fn variance(data: &scirs2_core::ndarray::ArrayView2<f32>) -> f32 {
     data.mapv(|x| (x - mean).powi(2)).mean_or(0.0)
 }
 
+/// Compute Mean Squared Error (MSE) between two images
+///
+/// # Arguments
+///
+/// * `img1` - First image (reference)
+/// * `img2` - Second image (distorted)
+///
+/// # Returns
+///
+/// * MSE value (lower is better, 0 means identical)
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use scirs2_vision::quality::mse;
+/// use image::DynamicImage;
+///
+/// # fn main() -> scirs2_vision::error::Result<()> {
+/// let img1 = image::open("ref.jpg").expect("Operation failed");
+/// let img2 = image::open("distorted.jpg").expect("Operation failed");
+/// let mse_value = mse(&img1, &img2)?;
+/// println!("MSE: {:.4}", mse_value);
+/// # Ok(())
+/// # }
+/// ```
+pub fn mse(img1: &DynamicImage, img2: &DynamicImage) -> Result<f32> {
+    let gray1 = img1.to_luma8();
+    let gray2 = img2.to_luma8();
+
+    if gray1.dimensions() != gray2.dimensions() {
+        return Err(VisionError::DimensionMismatch(
+            "Images must have the same dimensions".to_string(),
+        ));
+    }
+
+    let (width, height) = gray1.dimensions();
+    let mut sum_sq = 0.0f64;
+
+    for y in 0..height {
+        for x in 0..width {
+            let p1 = gray1.get_pixel(x, y)[0] as f64;
+            let p2 = gray2.get_pixel(x, y)[0] as f64;
+            let diff = p1 - p2;
+            sum_sq += diff * diff;
+        }
+    }
+
+    Ok((sum_sq / (width * height) as f64) as f32)
+}
+
+/// Available image quality metrics
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum QualityMetric {
+    /// Peak Signal-to-Noise Ratio (higher is better)
+    PSNR,
+    /// Structural Similarity Index (higher is better, max 1.0)
+    SSIM,
+    /// Mean Squared Error (lower is better, 0 = identical)
+    MSE,
+    /// Mean Absolute Error (lower is better, 0 = identical)
+    MAE,
+    /// Multi-Scale SSIM (higher is better)
+    MSSSIM,
+    /// Visual Information Fidelity (higher is better)
+    VIF,
+}
+
+/// Compute an image quality metric between a reference and distorted image
+///
+/// This is a unified API that dispatches to the appropriate metric computation.
+///
+/// # Arguments
+///
+/// * `reference` - Reference (original) image
+/// * `distorted` - Distorted (degraded) image
+/// * `metric` - Which quality metric to compute
+///
+/// # Returns
+///
+/// * The computed metric value as f32
+///
+/// # Example
+///
+/// ```rust
+/// use scirs2_vision::quality::{image_quality, QualityMetric};
+/// use image::{DynamicImage, GrayImage, Luma};
+///
+/// # fn main() -> scirs2_vision::error::Result<()> {
+/// let mut buf = GrayImage::new(32, 32);
+/// for y in 0..32u32 {
+///     for x in 0..32u32 {
+///         buf.put_pixel(x, y, Luma([(x + y) as u8]));
+///     }
+/// }
+/// let img = DynamicImage::ImageLuma8(buf);
+///
+/// let psnr_val = image_quality(&img, &img, QualityMetric::PSNR)?;
+/// assert!(psnr_val.is_infinite()); // identical images
+///
+/// let mse_val = image_quality(&img, &img, QualityMetric::MSE)?;
+/// assert!(mse_val < 1e-6); // zero MSE for identical images
+/// # Ok(())
+/// # }
+/// ```
+pub fn image_quality(
+    reference: &DynamicImage,
+    distorted: &DynamicImage,
+    metric: QualityMetric,
+) -> Result<f32> {
+    match metric {
+        QualityMetric::PSNR => psnr(reference, distorted, 255.0),
+        QualityMetric::SSIM => ssim(reference, distorted, &SSIMParams::default()),
+        QualityMetric::MSE => mse(reference, distorted),
+        QualityMetric::MAE => mae(reference, distorted),
+        QualityMetric::MSSSIM => ms_ssim(reference, distorted, &SSIMParams::default(), 3),
+        QualityMetric::VIF => vif(reference, distorted),
+    }
+}
+
 /// Mean Absolute Error (MAE)
 #[allow(dead_code)]
 pub fn mae(img1: &DynamicImage, img2: &DynamicImage) -> Result<f32> {
@@ -484,5 +603,95 @@ mod tests {
 
         // Center should have highest value
         assert!(window[[2, 2]] > window[[0, 0]]);
+    }
+
+    #[test]
+    fn test_mse_identical() {
+        let img = DynamicImage::new_luma8(30, 30);
+        let mse_value = mse(&img, &img).expect("MSE failed");
+        assert!(
+            mse_value.abs() < 1e-6,
+            "MSE of identical images should be 0"
+        );
+    }
+
+    #[test]
+    fn test_mse_different() {
+        let img1 = DynamicImage::new_luma8(30, 30);
+        let mut buf = img1.to_luma8();
+        for y in 0..30 {
+            for x in 0..30 {
+                buf.put_pixel(x, y, image::Luma([10u8]));
+            }
+        }
+        let img2 = DynamicImage::ImageLuma8(buf);
+        let mse_value = mse(&img1, &img2).expect("MSE failed");
+        // MSE should be 10^2 = 100
+        assert!(
+            (mse_value - 100.0).abs() < 1.0,
+            "Expected MSE ~100, got {}",
+            mse_value
+        );
+    }
+
+    #[test]
+    fn test_mse_dimension_mismatch() {
+        let img1 = DynamicImage::new_luma8(10, 10);
+        let img2 = DynamicImage::new_luma8(20, 20);
+        assert!(mse(&img1, &img2).is_err());
+    }
+
+    #[test]
+    fn test_image_quality_psnr() {
+        let img = DynamicImage::new_luma8(30, 30);
+        let val = image_quality(&img, &img, QualityMetric::PSNR).expect("PSNR failed");
+        assert!(val.is_infinite());
+    }
+
+    #[test]
+    fn test_image_quality_ssim() {
+        let mut buf = image::GrayImage::new(50, 50);
+        for (x, y, pixel) in buf.enumerate_pixels_mut() {
+            *pixel = image::Luma([(x + y) as u8]);
+        }
+        let img = DynamicImage::ImageLuma8(buf);
+
+        let val = image_quality(&img, &img, QualityMetric::SSIM).expect("SSIM failed");
+        assert!(
+            (val - 1.0).abs() < 0.02,
+            "SSIM of identical images should be ~1.0, got {val}"
+        );
+    }
+
+    #[test]
+    fn test_image_quality_mse() {
+        let img = DynamicImage::new_luma8(30, 30);
+        let val = image_quality(&img, &img, QualityMetric::MSE).expect("MSE failed");
+        assert!(val.abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_image_quality_mae() {
+        let img = DynamicImage::new_luma8(30, 30);
+        let val = image_quality(&img, &img, QualityMetric::MAE).expect("MAE failed");
+        assert!(val.abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_image_quality_all_metrics_consistent() {
+        // For identical images: PSNR=inf, SSIM~1, MSE=0, MAE=0
+        let mut buf = image::GrayImage::new(50, 50);
+        for (x, y, pixel) in buf.enumerate_pixels_mut() {
+            *pixel = image::Luma([((x * 5 + y * 3) % 256) as u8]);
+        }
+        let img = DynamicImage::ImageLuma8(buf);
+
+        let psnr_val = image_quality(&img, &img, QualityMetric::PSNR).expect("PSNR failed");
+        let mse_val = image_quality(&img, &img, QualityMetric::MSE).expect("MSE failed");
+        let mae_val = image_quality(&img, &img, QualityMetric::MAE).expect("MAE failed");
+
+        assert!(psnr_val.is_infinite());
+        assert!(mse_val < 1e-6);
+        assert!(mae_val < 1e-6);
     }
 }

@@ -44,6 +44,7 @@ required-features = ["simd"]
 [dev-dependencies]
 approx = { workspace = true }
 criterion = { workspace = true }
+scirs2-sparse = { path = "../scirs2-sparse", default-features = false }
 
 [features]
 # Default features - OxiBLAS (pure Rust) is used for all platforms
@@ -67,7 +68,7 @@ cpu-fallback = [] # CPU fallback when no GPU backend available
 rocm = [] # AMD ROCm support
 metal = [] # Apple Metal support
 vulkan = [] # Vulkan compute support (cross-platform)
-gpu = [] # GPU abstraction layer - does NOT auto-enable specific backends
+gpu = ["scirs2-core/gpu"] # GPU abstraction layer using scirs2-core GPU backends
 
 [[bench]]
 name = "linalg_bench"

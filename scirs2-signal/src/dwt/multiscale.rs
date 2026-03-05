@@ -30,7 +30,7 @@ use std::fmt::Debug;
 /// use scirs2_signal::dwt::{wavedec, Wavelet};
 ///
 /// let signal = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
-/// let coeffs = wavedec(&signal, Wavelet::DB(4), Some(2), None).unwrap();
+/// let coeffs = wavedec(&signal, Wavelet::DB(4), Some(2), None).expect("operation should succeed");
 ///
 /// // coeffs[0] contains level-2 approximation
 /// // coeffs[1] contains level-2 detail
@@ -124,10 +124,10 @@ where
 /// use scirs2_signal::dwt::{wavedec, waverec, Wavelet};
 ///
 /// let signal = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
-/// let coeffs = wavedec(&signal, Wavelet::DB(4), Some(2), None).unwrap();
+/// let coeffs = wavedec(&signal, Wavelet::DB(4), Some(2), None).expect("operation should succeed");
 ///
 /// // Reconstruct the signal
-/// let reconstructed = waverec(&coeffs, Wavelet::DB(4)).unwrap();
+/// let reconstructed = waverec(&coeffs, Wavelet::DB(4)).expect("operation should succeed");
 ///
 /// // Check that reconstructed signal is close to original
 /// for i in 0..signal.len() {

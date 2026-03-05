@@ -1,291 +1,283 @@
 # scirs2-text
 
 [![crates.io](https://img.shields.io/crates/v/scirs2-text.svg)](https://crates.io/crates/scirs2-text)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)]
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-text)](https://docs.rs/scirs2-text)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]
-[![Tests](https://img.shields.io/badge/tests-160%20passing-brightgreen.svg)]
-[![Production Ready](https://img.shields.io/badge/status-production%20ready-green.svg)]
+[![Version](https://img.shields.io/badge/version-0.3.0-green)]()
 
-**Production-ready text processing module** for SciRS2 (Scientific Computing in Rust - Next Generation) v0.1.5. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this crate provides comprehensive, high-performance text processing, natural language processing, and machine learning text utilities optimized for scientific and industrial applications with ecosystem consistency.
-
-> **🚀 Production Status**: Version 0.1.0 (SciRS2 POLICY & Enhanced Performance) is **production-ready** with stable APIs, comprehensive test coverage, proven performance, and ecosystem consistency through scirs2-core abstractions.
-
-## Why Choose scirs2-text?
-
-- **🚀 Production Ready**: Stable APIs, comprehensive test suite (160+ tests), zero-warning builds
-- **⚡ High Performance**: Optimized algorithms with parallel processing via Rayon
-- **🔬 Scientific Focus**: Designed for scientific computing and research applications
-- **🛡️ Memory Safe**: Built in Rust with efficient memory management
-- **📚 Comprehensive**: Complete NLP pipeline from tokenization to advanced analytics
-- **🔧 Flexible**: Modular design with customizable components and parameters
-- **🌍 Multilingual**: Unicode-first with multilingual text processing support
+Comprehensive natural language processing and text processing library for the SciRS2 scientific computing ecosystem. Provides tokenization, vectorization, word embeddings, NER, CRF sequence labelling, BPE, dependency parsing, topic modeling, summarization, question answering, knowledge graph extraction, and much more — all in pure, safe Rust with parallel processing.
 
 ## Features
 
+### Tokenization
+- **Word tokenizer**: Unicode-aware, configurable punctuation handling
+- **Sentence tokenizer**: Rule-based sentence boundary detection
+- **Character/grapheme tokenizer**: Unicode grapheme cluster segmentation
+- **N-gram tokenizer**: Unigrams through arbitrary n-grams, range support
+- **Regex tokenizer**: Pattern-based tokenization and gap tokenization
+- **BPE tokenizer** (Byte Pair Encoding): Subword tokenization with vocabulary learning
+- **WordPiece tokenizer**: BERT-style subword tokenization
+
 ### Text Preprocessing
-- **Normalization**: Unicode normalization, case folding
-- **Cleaning**: 
-  - Remove special characters, normalize whitespace, stop word removal
-  - HTML/XML stripping, URL/email handling
-  - Unicode normalization and accent removal
-  - Contraction expansion
-- **Tokenization**:
-  - Word tokenization with customizable patterns
-  - Sentence tokenization
-  - Character/grapheme tokenization
-  - N-gram tokenization (with range support)
-  - Regex-based tokenization
-  - Whitespace tokenization
+- Unicode normalization (NFC, NFD, NFKC, NFKD)
+- Case folding, accent removal
+- HTML/XML stripping, URL and email normalization
+- Contraction expansion
+- Number normalization (dates, currencies, percentages)
+- Stopword removal, whitespace normalization
+- `TextPreprocessor` pipeline: chain normalizers and cleaners
 
 ### Stemming and Lemmatization
-- **Porter Stemmer**: Classic algorithm for word stemming
-- **Snowball Stemmer**: Advanced stemmer for English
-- **Simple Lemmatizer**: Dictionary-based lemmatization
+- Porter Stemmer (English)
+- Snowball Stemmer (English, extensible)
+- Lancaster Stemmer
+- Rule-based lemmatizer with morphological analysis
 
 ### Text Vectorization
-- **Count Vectorizer**: Bag-of-words representation
-- **TF-IDF Vectorizer**: Term frequency-inverse document frequency with normalization
-- **Binary Vectorizer**: Binary occurrence vectors
-- **Advanced Features**: 
-  - N-gram support (unigrams, bigrams, trigrams, etc.)
-  - Document frequency filtering (min_df, max_df)
-  - Maximum features limitation
-  - IDF smoothing and sublinear TF scaling
+- **Count Vectorizer**: Bag-of-words, N-gram support, min/max document frequency filtering
+- **TF-IDF Vectorizer**: IDF smoothing, sublinear TF scaling, L1/L2 normalization
+- **Binary Vectorizer**: Occurrence-only representation
+- **Enhanced vectorizers**: `EnhancedCountVectorizer`, `EnhancedTfidfVectorizer` with max_features, vocabulary pruning
+- Sparse matrix representation for memory efficiency
 
 ### Word Embeddings
-- **Word2Vec**: Skip-gram and CBOW models with negative sampling
-- **Embedding utilities**: Loading, saving, and manipulation
-- **Similarity computation**: Cosine similarity between word vectors
+- **Word2Vec** (Skip-gram and CBOW): negative sampling, configurable window size, hierarchical softmax
+- **GloVe loading**: Load pre-trained GloVe vectors
+- **FastText** (pure Rust): Subword embeddings with character n-gram support
+- Embedding similarity: cosine similarity, most-similar-words
+- Save/load in binary and text formats
 
-### Distance and String Metrics
-- **Vector Similarity**:
-  - **Cosine similarity**: Between vectors and documents
-  - **Jaccard similarity**: Set-based similarity
-- **String Distances**:
-  - **Levenshtein distance**: Basic edit distance
-  - **Jaro-Winkler similarity**: String similarity
-  - **Damerau-Levenshtein distance**: Edit distance with transpositions
-  - **Optimal String Alignment**: Restricted Damerau-Levenshtein
-  - **Weighted Levenshtein**: Edit distance with custom operation costs
-  - **Weighted Damerau-Levenshtein**: Flexible weights for all edit operations
-- **Phonetic Algorithms**:
-  - **Soundex**: Phonetic encoding for similar-sounding words
-  - **Metaphone**: Advanced phonetic algorithm
+### Sequence Labelling
+- **CRF** (Conditional Random Fields): Viterbi decoding, feature engineering, sequence-to-label
+- **HMM** (Hidden Markov Model): Forward-backward, Viterbi, for POS tagging
+- Custom feature extractors for NER, POS, chunking tasks
 
-### Vocabulary Management
-- Dynamic vocabulary building
-- Vocabulary pruning and filtering
-- Persistence (save/load)
-- Frequency-based filtering
+### Named Entity Recognition (NER)
+- Rule-based NER with regex patterns
+- Dictionary-based NER with gazetteer support
+- CRF-based NER with feature engineering
+- Standard entity types: PER, ORG, LOC, DATE, TIME, MONEY, PERCENT
+
+### Advanced NLP (v0.3.0+)
+- **Coreference resolution**: mention detection and clustering
+- **Dependency parsing**: arc-factored dependency graph construction
+- **Discourse analysis**: rhetorical structure theory primitives
+- **Event extraction**: event trigger and argument extraction
+- **Question answering**: extractive span detection
+- **Knowledge graph extraction**: entity-relation-entity triples from text
+- **Semantic parsing**: logical form generation from natural language
+- **Temporal extraction**: date and time expression normalization
+- **Grammar checking**: rule-based error detection
+
+### Topic Modeling
+- **LDA** (Latent Dirichlet Allocation): variational inference, coherence metrics (CV, UMass, UCI)
+- **NMF-based topic modeling**: non-negative matrix factorization topics
+- `TopicModel` trait for interchangeable backends
+
+### Text Summarization
+- **Extractive**: TextRank, centroid-based, keyword-based extraction
+- **Abstractive**: sequence-to-sequence summarization primitives (`abstractive_summary.rs`)
+
+### Sentiment Analysis
+- **Lexicon-based**: VADER-style sentiment scoring with basic lexicon
+- **Rule-based**: negation handling, intensifiers, modifiers
+- **ML-based** adapter: integrate trained classifiers
+
+### Text Classification
+- Feature extraction pipeline for classification
+- Multinomial Naive Bayes (text-optimized)
+- Logistic regression adapter
+- Dataset handling utilities
+
+### String Metrics and Phonetics
+- Levenshtein distance (basic and Damerau-Levenshtein)
+- Optimal String Alignment (restricted Damerau-Levenshtein)
+- Weighted Levenshtein / Weighted Damerau-Levenshtein (custom operation costs)
+- Jaro-Winkler similarity
+- Cosine similarity, Jaccard similarity
+- **Soundex** phonetic encoding
+- **Metaphone** phonetic algorithm
+- **NYSIIS** phonetic algorithm
+
+### Language Model Primitives
+- N-gram language model with Kneser-Ney smoothing
+- Character-level language model
+- Perplexity computation
+
+### Multilingual Support
+- Unicode-first throughout
+- Language detection via N-gram character models
+- Multilingual utilities (`multilingual_ext.rs`)
+
+### Performance
+- **Parallel processing**: Rayon-based multi-threaded tokenization and corpus vectorization
+- **Batch processing**: Efficient large document collection handling
+- **Sparse matrices**: Memory-efficient vectorizer outputs
+- **SIMD operations**: `simd_ops.rs` for accelerated string comparisons and distance computation
+- **Memory-mapped corpus**: Streaming large corpus without full RAM loading
 
 ## Installation
 
-Add the following to your `Cargo.toml`:
-
 ```toml
 [dependencies]
-scirs2-text = "0.1.5"
+scirs2-text = "0.3.0"
 ```
 
 ## Quick Start
 
+### Tokenization and Vectorization
+
 ```rust
 use scirs2_text::{
-    preprocess::{BasicNormalizer, BasicTextCleaner, TextCleaner, TextNormalizer},
-    tokenize::{NgramTokenizer, RegexTokenizer, Tokenizer, WordTokenizer},
-    vectorize::{CountVectorizer, TfidfVectorizer, Vectorizer},
+    tokenize::{WordTokenizer, NgramTokenizer, Tokenizer},
+    vectorize::{TfidfVectorizer, CountVectorizer, Vectorizer},
     stemming::{PorterStemmer, Stemmer},
+    preprocess::{BasicNormalizer, BasicTextCleaner, TextNormalizer, TextCleaner},
 };
 
-// Text normalization
+// Normalization
 let normalizer = BasicNormalizer::default();
-let normalized = normalizer.normalize("Hello, World!")?;
+let normalized = normalizer.normalize("Hello, World! THIS is a TEST.")?;
 
-// Tokenization
-let tokenizer = WordTokenizer::new(true);
-let tokens = tokenizer.tokenize("The quick brown fox")?;
+// Word tokenization
+let tokenizer = WordTokenizer::new(true);  // lowercase=true
+let tokens = tokenizer.tokenize("The quick brown fox jumps")?;
 
 // N-gram tokenization
-let ngram_tokenizer = NgramTokenizer::new(2)?;
-let ngrams = ngram_tokenizer.tokenize("hello world test")?;
+let bigrams = NgramTokenizer::new(2)?.tokenize("hello world test")?;
+let range   = NgramTokenizer::with_range(1, 3)?.tokenize("hello world test")?;
 
 // Stemming
 let stemmer = PorterStemmer::new();
-let stemmed = stemmer.stem("running")?;
+let stem    = stemmer.stem("running")?;    // "run"
 
-// Vectorization
-let mut vectorizer = CountVectorizer::new(false);
-let documents = vec!["Hello world", "World of Rust"];
-let doc_refs: Vec<&str> = documents.iter().map(|s| s.as_ref()).collect();
-vectorizer.fit(&doc_refs)?;
-let vector = vectorizer.transform("Hello Rust")?;
-```
-
-## Examples
-
-See the `examples/` directory for comprehensive demonstrations:
-- `text_processing_demo.rs`: Complete text processing pipeline
-- `word2vec_example.rs`: Word embedding training and usage
-- `enhanced_vectorization_demo.rs`: Advanced vectorization with n-grams and filtering
-
-### Text Statistics and Readability
-
-```rust
-use scirs2_text::text_statistics::{TextStatistics, ReadabilityMetrics};
-
-// Create text statistics analyzer
-let stats = TextStatistics::new();
-
-// Calculate readability metrics
-let text = "The quick brown fox jumps over the lazy dog. This is a simple text passage used for demonstration purposes.";
-let metrics = stats.get_all_metrics(text)?;
-
-println!("Flesch Reading Ease: {}", metrics.flesch_reading_ease);
-println!("Flesch-Kincaid Grade Level: {}", metrics.flesch_kincaid_grade_level);
-println!("Gunning Fog Index: {}", metrics.gunning_fog);
-println!("Lexical Diversity: {}", metrics.lexical_diversity);
-println!("Word Count: {}", metrics.text_statistics.word_count);
-println!("Average Sentence Length: {}", metrics.text_statistics.avg_sentence_length);
-```
-
-Run examples with:
-```bash
-cargo run --example text_processing_demo
-cargo run --example word2vec_example
-cargo run --example enhanced_vectorization_demo
-```
-
-## Advanced Usage
-
-### Custom Tokenizers
-
-```rust
-use scirs2_text::tokenize::{RegexTokenizer, Tokenizer};
-
-// Custom regex tokenizer
-let tokenizer = RegexTokenizer::new(r"\b\w+\b", false)?;
-let tokens = tokenizer.tokenize("Hello, world!")?;
-
-// Tokenize with gaps (pattern matches separators)
-let gap_tokenizer = RegexTokenizer::new(r"\s*,\s*", true)?;
-let tokens = gap_tokenizer.tokenize("apple, banana, cherry")?;
-```
-
-### N-gram Extraction
-
-```rust
-use scirs2_text::tokenize::{NgramTokenizer, Tokenizer};
-
-// Bigrams
-let bigram_tokenizer = NgramTokenizer::new(2)?;
-let bigrams = bigram_tokenizer.tokenize("Hello world test")?;
-
-// Range of n-grams (2-3)
-let range_tokenizer = NgramTokenizer::with_range(2, 3)?;
-let ngrams = range_tokenizer.tokenize("Hello world test")?;
-
-// Alphanumeric only
-let alpha_tokenizer = NgramTokenizer::new(2)?.only_alphanumeric(true);
-```
-
-### TF-IDF Vectorization
-
-```rust
-use scirs2_text::vectorize::{TfidfVectorizer, Vectorizer};
-
+// TF-IDF vectorization
+let documents = vec![
+    "The quick brown fox jumps over the lazy dog",
+    "A quick brown dog outpaces a quick fox",
+    "The lazy dog sleeps all day",
+];
 let mut tfidf = TfidfVectorizer::new(false, true, Some("l2".to_string()));
-tfidf.fit(&documents)?;
-let tfidf_matrix = tfidf.transform_batch(&documents)?;
+let matrix    = tfidf.fit_transform(&documents)?;
 ```
 
-### Enhanced Vectorization with N-grams
+### BPE Tokenizer
 
 ```rust
-use scirs2_text::enhanced_vectorize::{EnhancedCountVectorizer, EnhancedTfidfVectorizer};
+use scirs2_text::bpe_tokenizer::BpeTokenizer;
 
-// Count vectorizer with bigrams
-let mut count_vec = EnhancedCountVectorizer::new()
-    .set_ngram_range((1, 2))?
-    .set_max_features(Some(100));
-count_vec.fit(&documents)?;
+let corpus = vec![
+    "the quick brown fox",
+    "the lazy dog",
+    "quick brown dog",
+];
 
-// TF-IDF with document frequency filtering
-let mut tfidf = EnhancedTfidfVectorizer::new()
-    .set_ngram_range((1, 3))?
-    .set_min_df(0.1)?  // Minimum 10% document frequency
-    .set_smooth_idf(true)
-    .set_sublinear_tf(true);
-tfidf.fit(&documents)?;
+// Learn BPE vocabulary from corpus
+let mut bpe = BpeTokenizer::new(1000);  // vocab_size=1000
+bpe.fit(&corpus)?;
+
+let tokens = bpe.tokenize("the quick fox")?;
+println!("{:?}", tokens);
+
+// Save/load vocabulary
+bpe.save_vocab("bpe_vocab.json")?;
+let loaded = BpeTokenizer::load_vocab("bpe_vocab.json")?;
 ```
 
-### String Metrics and Phonetic Algorithms
+### CRF Sequence Labelling (NER)
 
 ```rust
-use scirs2_text::string_metrics::{
-    DamerauLevenshteinMetric, StringMetric, Soundex, Metaphone, PhoneticAlgorithm
-};
-use scirs2_text::weighted_distance::{
-    WeightedLevenshtein, WeightedDamerauLevenshtein, WeightedStringMetric,
-    LevenshteinWeights, DamerauLevenshteinWeights
-};
-use std::collections::HashMap;
+use scirs2_text::sequence_labeling::CrfTagger;
 
-// Damerau-Levenshtein distance with transpositions
-let dl_metric = DamerauLevenshteinMetric::new();
-let distance = dl_metric.distance("kitten", "sitting")?;
-let similarity = dl_metric.similarity("kitten", "sitting")?;
+// Build CRF tagger for NER
+let mut crf = CrfTagger::new();
+crf.add_feature_fn(|token, _context| {
+    vec![
+        format!("word={}", token.to_lowercase()),
+        format!("is_upper={}", token.chars().next().map_or(false, |c| c.is_uppercase())),
+    ]
+});
 
-// Restricted Damerau-Levenshtein (Optimal String Alignment)
-let osa_metric = DamerauLevenshteinMetric::restricted();
-let osa_distance = osa_metric.distance("kitten", "sitting")?;
+// Train on labelled data
+crf.fit(&train_sequences, &train_labels, 100, 0.01)?;
 
-// Weighted Levenshtein with custom operation costs
-let weights = LevenshteinWeights::new(2.0, 1.0, 0.5);  // insertions=2, deletions=1, substitutions=0.5
-let weighted = WeightedLevenshtein::with_weights(weights);
-let weighted_distance = weighted.distance("kitten", "sitting")?;
-
-// Weighted Levenshtein with character-specific costs
-let mut costs = HashMap::new();
-costs.insert(('k', 's'), 0.1); // Make k->s substitution very cheap
-let char_weights = LevenshteinWeights::default().with_substitution_costs(costs);
-let custom_metric = WeightedLevenshtein::with_weights(char_weights);
-
-// Weighted Damerau-Levenshtein with custom transposition cost
-let dl_weights = DamerauLevenshteinWeights::new(1.0, 1.0, 1.0, 0.5); // transpositions cost 0.5
-let weighted_dl = WeightedDamerauLevenshtein::with_weights(dl_weights);
-let trans_distance = weighted_dl.distance("abc", "acb")?;  // Returns 0.5 (one transposition)
-
-// Soundex phonetic encoding
-let soundex = Soundex::new();
-let code = soundex.encode("Robert")?;  // Returns "R163"
-let sounds_like = soundex.sounds_like("Smith", "Smythe")?;  // Returns true
-
-// Metaphone phonetic algorithm
-let metaphone = Metaphone::new();
-let code = metaphone.encode("programming")?;  // Returns "PRKRMN"
+// Predict labels for new sequence
+let tokens = vec!["John", "Smith", "visited", "London"];
+let labels = crf.predict(&tokens)?;
+// e.g. ["B-PER", "I-PER", "O", "B-LOC"]
 ```
 
-### Text Preprocessing Pipeline
+### Named Entity Recognition
 
 ```rust
-use scirs2_text::preprocess::{BasicNormalizer, BasicTextCleaner, TextPreprocessor};
+use scirs2_text::ner::NerTagger;
 
-// Create a complete preprocessing pipeline
-let normalizer = BasicNormalizer::new(true, true);
-let cleaner = BasicTextCleaner::new(true, true, true);
-let preprocessor = TextPreprocessor::new(normalizer, cleaner);
+let mut ner = NerTagger::new();
+ner.add_gazetteer("PER", &["John Smith", "Jane Doe"])?;
+ner.add_pattern("DATE", r"\d{4}-\d{2}-\d{2}")?;
 
-let processed = preprocessor.process("Hello, WORLD! This is a TEST.")?;
-// Output: "hello world test"
+let text     = "John Smith visited London on 2024-01-15.";
+let entities = ner.extract(text)?;
+
+for entity in &entities {
+    println!("{}: {} ({}..{})", entity.label, entity.text, entity.start, entity.end);
+}
 ```
 
-### Word Embeddings
+### Topic Modeling (LDA)
+
+```rust
+use scirs2_text::topic_model::LatentDirichletAllocation;
+
+let documents = load_corpus()?;
+let mut lda = LatentDirichletAllocation::new(10, 0.1, 0.01, 1000, Some(42));
+lda.fit(&documents)?;
+
+// Get top words per topic
+for (topic_id, words) in lda.top_words(10).iter().enumerate() {
+    println!("Topic {}: {}", topic_id, words.join(", "));
+}
+
+// Document-topic distributions
+let dist = lda.transform(&["new document text"])?;
+
+// Coherence score
+let coherence = lda.coherence_cv(&documents, 10)?;
+println!("CV coherence: {:.4}", coherence);
+```
+
+### Sentiment Analysis
+
+```rust
+use scirs2_text::sentiment::LexiconSentimentAnalyzer;
+
+let analyzer  = LexiconSentimentAnalyzer::with_basiclexicon();
+let result    = analyzer.analyze("I love this library! It's fantastic.")?;
+
+println!("Sentiment: {:?}", result.sentiment);   // Positive
+println!("Score: {:.4}", result.compound_score);
+```
+
+### Knowledge Graph Extraction
+
+```rust
+use scirs2_text::knowledge_graph::KnowledgeGraphExtractor;
+
+let extractor = KnowledgeGraphExtractor::new();
+let text      = "Albert Einstein developed the theory of relativity.";
+let triples   = extractor.extract(text)?;
+
+for triple in &triples {
+    println!("({}, {}, {})", triple.subject, triple.relation, triple.object);
+}
+// -> ("Albert Einstein", "developed", "theory of relativity")
+```
+
+### Word Embeddings (Word2Vec)
 
 ```rust
 use scirs2_text::embeddings::{Word2Vec, Word2VecConfig, Word2VecAlgorithm};
 
-// Configure Word2Vec
 let config = Word2VecConfig {
     vector_size: 100,
     window: 5,
@@ -296,73 +288,115 @@ let config = Word2VecConfig {
     ..Default::default()
 };
 
-// Train embeddings
-let mut word2vec = Word2Vec::builder()
-    .config(config)
-    .build()?;
+let mut model = Word2Vec::builder().config(config).build()?;
+model.train(&documents)?;
 
-word2vec.train(&documents)?;
-
-// Get word vectors
-if let Some(vector) = word2vec.get_vector("hello") {
-    println!("Vector for 'hello': {:?}", vector);
+let similar = model.most_similar("computer", 5)?;
+for (word, similarity) in &similar {
+    println!("{}: {:.4}", word, similarity);
 }
-
-// Find similar words
-let similar = word2vec.most_similar("hello", 5)?;
 ```
 
-## Production Performance
+### Advanced String Metrics
 
-**Proven performance in production environments:**
+```rust
+use scirs2_text::string_metrics::{DamerauLevenshteinMetric, StringMetric, Soundex};
+use scirs2_text::weighted_distance::{WeightedLevenshtein, LevenshteinWeights};
+use std::collections::HashMap;
 
-- **🔥 Parallel Processing**: Built-in multi-threading via Rayon for CPU-intensive operations
-- **💾 Memory Efficiency**: Optimized sparse matrix representations and efficient vocabulary management
-- **⚡ Optimized Algorithms**: Fast string operations, pattern matching, and distance calculations
-- **📊 Benchmarked**: Thoroughly tested performance characteristics
-- **🎯 Zero-Copy**: Minimal memory allocations where possible
-- **🔄 Batch Processing**: Efficient handling of large document collections
+// Damerau-Levenshtein with transpositions
+let dl = DamerauLevenshteinMetric::new();
+let d  = dl.distance("kitten", "sitting")?;
 
-### Performance Benchmarks
-- Tokenization: ~1M tokens/second (parallel)
-- TF-IDF Vectorization: ~10K documents/second
-- String Similarity: ~100K comparisons/second
-- Topic Modeling: Scales to 100K+ documents
+// Weighted Levenshtein with custom operation costs
+let weights = LevenshteinWeights::new(2.0, 1.0, 0.5);  // ins=2, del=1, sub=0.5
+let wl      = WeightedLevenshtein::with_weights(weights);
+let wd      = wl.distance("kitten", "sitting")?;
+
+// Character-pair specific substitution costs
+let mut costs = HashMap::new();
+costs.insert(('k', 's'), 0.1);   // Make k→s substitution cheap
+let char_weights = LevenshteinWeights::default().with_substitution_costs(costs);
+let cwl = WeightedLevenshtein::with_weights(char_weights);
+
+// Phonetic encoding
+let soundex = Soundex::new();
+println!("{}", soundex.encode("Robert")?);      // R163
+println!("{}", soundex.sounds_like("Smith", "Smythe")?);  // true
+```
+
+### Text Statistics and Readability
+
+```rust
+use scirs2_text::text_statistics::{TextStatistics, ReadabilityMetrics};
+
+let stats   = TextStatistics::new();
+let text    = "The quick brown fox jumps over the lazy dog. A simple sentence.";
+let metrics = stats.get_all_metrics(text)?;
+
+println!("Flesch Reading Ease: {:.2}",          metrics.flesch_reading_ease);
+println!("Flesch-Kincaid Grade: {:.2}",         metrics.flesch_kincaid_grade_level);
+println!("Gunning Fog Index: {:.2}",            metrics.gunning_fog);
+println!("Lexical Diversity: {:.4}",            metrics.lexical_diversity);
+println!("Word count: {}",                      metrics.text_statistics.word_count);
+println!("Avg sentence length: {:.2}",          metrics.text_statistics.avg_sentence_length);
+```
+
+## Module Map
+
+| Module | Contents |
+|--------|----------|
+| `tokenize` | Word, sentence, char, n-gram, regex tokenizers |
+| `bpe_tokenizer` | Byte Pair Encoding tokenizer with vocabulary learning |
+| `preprocess` | Normalizers, cleaners, preprocessing pipeline |
+| `stemming` | Porter, Snowball, Lancaster stemmers; lemmatizer |
+| `vectorize` | Count, TF-IDF, binary vectorizers |
+| `enhanced_vectorize` | Enhanced vectorizers with n-gram and filtering |
+| `embeddings` | Word2Vec (Skip-gram/CBOW), GloVe loader, FastText |
+| `ner` | Named entity recognition (rule, dictionary, CRF-based) |
+| `sequence_labeling` | CRF and HMM for sequence labelling (POS, NER, chunking) |
+| `sentiment` | Lexicon-based and rule-based sentiment analysis |
+| `topic_model` | LDA, NMF-based topic modeling |
+| `text_classification` | Feature extraction, Naive Bayes, evaluation |
+| `string_metrics` | Levenshtein, Damerau-Levenshtein, Jaro-Winkler, phonetics |
+| `weighted_distance` | Weighted edit distances with custom operation costs |
+| `text_statistics` | Readability metrics (Flesch, Gunning Fog, SMOG, etc.) |
+| `knowledge_graph` | Entity-relation triple extraction |
+| `coreference` | Mention detection and coreference clustering |
+| `dependency` | Dependency parsing |
+| `discourse` | Discourse analysis and RST primitives |
+| `event_extraction` | Event trigger and argument extraction |
+| `question_answering` | Extractive QA |
+| `abstractive_summary` | Abstractive summarization primitives |
+| `temporal` | Date/time expression extraction and normalization |
+| `grammar` | Rule-based grammar checking |
+| `semantic_parsing` | Logical form generation |
+| `multilingual_ext` | Multilingual utilities and language detection |
+| `language_models` | N-gram language model, character LM, perplexity |
+| `information_theory` | Entropy, mutual information, KL divergence for text |
+| `simd_ops` | SIMD-accelerated string operations |
+| `parallel` | Parallel corpus processing utilities |
+
+## Performance
+
+- Tokenization: ~1M tokens/second (parallel mode)
+- TF-IDF vectorization: ~10K documents/second
+- String similarity: ~100K comparisons/second
+- Topic modeling: scales to 100K+ documents
+- Zero-copy sparse matrix output from vectorizers
+- Memory-mapped corpus support for corpora larger than RAM
 
 ## Dependencies
 
-- `ndarray`: N-dimensional arrays
-- `regex`: Regular expressions
-- `unicode-segmentation`: Unicode text segmentation
-- `unicode-normalization`: Unicode normalization
-- `scirs2-core`: Core utilities and parallel processing
-- `lazy_static`: Lazy static initialization
-
-## Production Support
-
-### API Stability
-- **Stable API**: All public APIs are stable and follow semantic versioning
-- **Deprecation Policy**: Any future API changes will follow proper deprecation procedures
-
-### Quality Assurance
-- **Test Coverage**: 160+ unit tests, 8 doc tests, comprehensive integration tests
-- **Code Quality**: Zero warnings, clippy-clean, formatted with `rustfmt`
-- **Memory Safety**: No unsafe code, comprehensive error handling
-- **Documentation**: Full API documentation with examples
+- `scirs2-core` — RNG, parallel utilities, SIMD primitives
+- `regex` — Regular expression matching
+- `unicode-segmentation` — Unicode grapheme cluster segmentation
+- `unicode-normalization` — Unicode normalization forms (NFC/NFD/NFKC/NFKD)
 
 ## License
 
-Licensed under the Apache License 2.0. See LICENSE for details.
+Licensed under the Apache License 2.0. See [LICENSE](../LICENSE) for details.
 
-## Contributing
+## Authors
 
-This is a production-ready crate. Contributions are welcome for:
-- Bug fixes and performance improvements
-- Additional test coverage
-- Documentation enhancements
-- New feature proposals (will be considered for post-1.0 releases)
-
-Please ensure all contributions maintain the production quality standards:
-- All tests must pass
-- Code must be clippy-clean with no warnings
-- New features require comprehensive tests and documentation
+COOLJAPAN OU (Team KitaSan)

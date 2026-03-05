@@ -102,7 +102,7 @@ where
 ///
 /// let signal: Vec<f32> = (0..10000).map(|x| x as f32).collect();
 /// let kernel = vec![0.25f32, 0.5, 0.25];
-/// let result = parallel_convolve_simd_ultra(&signal, &kernel, "same").unwrap();
+/// let result = parallel_convolve_simd_ultra(&signal, &kernel, "same").expect("operation should succeed");
 /// ```
 pub fn parallel_convolve_simd_ultra(a: &[f32], v: &[f32], mode: &str) -> SignalResult<Vec<f32>> {
     if a.is_empty() || v.is_empty() {

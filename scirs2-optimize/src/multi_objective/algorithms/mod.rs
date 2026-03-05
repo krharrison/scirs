@@ -155,6 +155,29 @@ impl OptimizerFactory {
         ))
     }
 
+    /// Create MOEA/D optimizer
+    pub fn create_moead(
+        config: MultiObjectiveConfig,
+        n_objectives: usize,
+        n_variables: usize,
+    ) -> MOEAD {
+        MOEAD::with_config(
+            config,
+            n_objectives,
+            n_variables,
+            moead::ScalarizationMethod::Tchebycheff,
+        )
+    }
+
+    /// Create SPEA2 optimizer
+    pub fn create_spea2(
+        config: MultiObjectiveConfig,
+        n_objectives: usize,
+        n_variables: usize,
+    ) -> SPEA2 {
+        SPEA2::with_config(config, n_objectives, n_variables)
+    }
+
     /// Create optimizer by name
     pub fn create_by_name(
         algorithm: &str,
@@ -171,6 +194,14 @@ impl OptimizerFactory {
             "nsga3" | "nsga-iii" => Ok(MultiObjectiveOptimizerWrapper::NSGAIII(
                 Self::create_nsga3(config, n_objectives, n_variables, None)?,
             )),
+            "moead" | "moea/d" | "moea-d" => Ok(MultiObjectiveOptimizerWrapper::MOEAD(
+                Self::create_moead(config, n_objectives, n_variables),
+            )),
+            "spea2" => Ok(MultiObjectiveOptimizerWrapper::SPEA2(Self::create_spea2(
+                config,
+                n_objectives,
+                n_variables,
+            ))),
             _ => Err(OptimizeError::InvalidInput(format!(
                 "Unknown algorithm: {}",
                 algorithm
@@ -268,7 +299,7 @@ pub mod utils {
             .collect();
 
         // Sort by first objective in descending order for correct hypervolume calculation
-        points.sort_by(|a, b| b.0.partial_cmp(&a.0).expect("Operation failed"));
+        points.sort_by(|a, b| b.0.total_cmp(&a.0));
 
         let mut hypervolume = 0.0;
         let mut prev_x = reference_point[0];

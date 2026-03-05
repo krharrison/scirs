@@ -1,0 +1,167 @@
+name: WASM Check
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "scirs2-wasm/**"
+      - "scirs2-core/**"
+      - ".github/workflows/wasm-check.yml"
+  pull_request:
+    branches: [master, main]
+    paths:
+      - "scirs2-wasm/**"
+      - "scirs2-core/**"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  wasm-build:
+    name: WASM Build (${{ matrix.build-type }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build-type: [dev, release]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-wasm-${{ matrix.build-type }}"
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build WASM (${{ matrix.build-type }})
+        run: |
+          cd scirs2-wasm
+          wasm-pack build --${{ matrix.build-type }} --target bundler
+
+      - name: Check WASM size (release only)
+        if: matrix.build-type == 'release'
+        run: |
+          if ls scirs2-wasm/pkg/*.wasm 2>/dev/null; then
+            echo "WASM artifact sizes:"
+            du -h scirs2-wasm/pkg/*.wasm
+          fi
+
+      - name: Upload WASM artifacts (release only)
+        if: matrix.build-type == 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-bundler-release
+          path: scirs2-wasm/pkg/
+          retention-days: 7
+
+  wasm-cargo-check:
+    name: Cargo check (wasm32 target)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check core with wasm32 target
+        run: |
+          cargo check \
+            -p scirs2-core \
+            --target wasm32-unknown-unknown \
+            --no-default-features
+
+      - name: Check scirs2-wasm crate
+        run: |
+          cargo check \
+            -p scirs2-wasm \
+            --target wasm32-unknown-unknown
+
+  wasm-test-node:
+    name: WASM Tests (Node.js)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Run WASM tests in Node.js
+        run: |
+          cd scirs2-wasm
+          wasm-pack test --node
+
+  wasm-simd:
+    name: WASM SIMD Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust nightly toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-wasm-simd-nightly"
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build WASM with SIMD128
+        run: |
+          cd scirs2-wasm
+          RUSTFLAGS='-C target-feature=+simd128' \
+            wasm-pack build --dev --target bundler -- --features simd || true
+        # Allow failure since simd feature may not exist yet; this is a check job
+
+  wasm-success:
+    name: WASM Check Success
+    runs-on: ubuntu-latest
+    needs:
+      - wasm-build
+      - wasm-cargo-check
+      - wasm-test-node
+    if: always()
+
+    steps:
+      - name: Verify all WASM jobs passed
+        run: |
+          results=(
+            "${{ needs.wasm-build.result }}"
+            "${{ needs.wasm-cargo-check.result }}"
+            "${{ needs.wasm-test-node.result }}"
+          )
+          for result in "${results[@]}"; do
+            if [[ "$result" != "success" ]]; then
+              echo "WASM check failed (result: $result)"
+              exit 1
+            fi
+          done
+          echo "All WASM checks passed."

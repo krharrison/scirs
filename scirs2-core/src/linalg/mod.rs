@@ -27,10 +27,10 @@
 //! // Linear solve
 //! let a = array![[2.0, 1.0], [1.0, 3.0]];
 //! let b = array![5.0, 7.0];
-//! let x = solve_ndarray(&a, &b).unwrap();
+//! let x = solve_ndarray(&a, &b).expect("should succeed");
 //!
 //! // SVD decomposition
-//! let svd = svd_ndarray(&a).unwrap();
+//! let svd = svd_ndarray(&a).expect("should succeed");
 //! ```
 //!
 //! # SciRS2 POLICY Compliance

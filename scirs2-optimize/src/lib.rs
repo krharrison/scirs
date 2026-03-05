@@ -313,7 +313,7 @@
 //! // Alternative: create from separate lower and upper bound vectors
 //! let lb = vec![Some(0.0), Some(-1.0), None, None];
 //! let ub = vec![Some(1.0), None, Some(10.0), None];
-//! let bounds2 = Bounds::from_vecs(lb, ub).unwrap();
+//! let bounds2 = Bounds::from_vecs(lb, ub).expect("valid input");
 //! ```
 //!
 //! ### Robust Least Squares Example
@@ -373,6 +373,7 @@ pub mod advanced_coordinator;
 #[cfg(feature = "async")]
 pub mod async_parallel;
 pub mod automatic_differentiation;
+pub mod bayesian;
 pub mod benchmarking;
 pub mod constrained;
 pub mod distributed;
@@ -419,6 +420,12 @@ pub use async_parallel::{
 pub use automatic_differentiation::{
     autodiff, create_ad_gradient, create_ad_hessian, optimize_ad_mode, ADMode, ADResult,
     AutoDiffFunction, AutoDiffOptions,
+};
+pub use bayesian::{
+    optimize as bayesian_optimize_advanced, AcquisitionFn, AcquisitionType, BayesianOptResult,
+    BayesianOptimizer as AdvancedBayesianOptimizer, BayesianOptimizerConfig, GpSurrogate,
+    GpSurrogateConfig, MaternKernel, MaternVariant, RbfKernel, SamplingConfig, SamplingStrategy,
+    SurrogateKernel,
 };
 pub use benchmarking::{
     benchmark_suites, test_functions, AlgorithmRanking, BenchmarkConfig, BenchmarkResults,
@@ -505,7 +512,10 @@ pub use streaming::{
     StreamingConfig, StreamingDataPoint, StreamingObjective, StreamingOptimizer, StreamingStats,
     StreamingTrustRegion,
 };
-pub use unconstrained::{minimize, Bounds};
+pub use unconstrained::{
+    cauchy_point, dogleg_step, minimize, solve_trust_subproblem, trust_region_minimize, Bounds,
+    TrustRegionConfig, TrustRegionResult,
+};
 pub use unified_pipeline::{
     presets as unified_presets, UnifiedOptimizationConfig, UnifiedOptimizationResults,
     UnifiedOptimizer,
@@ -529,6 +539,12 @@ pub mod prelude {
     pub use crate::automatic_differentiation::{
         autodiff, create_ad_gradient, create_ad_hessian, optimize_ad_mode, ADMode, ADResult,
         AutoDiffFunction, AutoDiffOptions, Dual, DualNumber,
+    };
+    pub use crate::bayesian::{
+        optimize as bayesian_optimize_advanced, AcquisitionFn, AcquisitionType, BayesianOptResult,
+        BayesianOptimizer as AdvancedBayesianOptimizer, BayesianOptimizerConfig, GpSurrogate,
+        GpSurrogateConfig, MaternKernel, MaternVariant, RbfKernel, SamplingConfig,
+        SamplingStrategy, SurrogateKernel,
     };
     pub use crate::benchmarking::{
         benchmark_suites, test_functions, AlgorithmRanking, BenchmarkConfig, BenchmarkResults,
@@ -628,7 +644,10 @@ pub mod prelude {
         StreamingConfig, StreamingDataPoint, StreamingObjective, StreamingOptimizer,
         StreamingStats, StreamingTrustRegion,
     };
-    pub use crate::unconstrained::{minimize, Bounds, Method as UnconstrainedMethod, Options};
+    pub use crate::unconstrained::{
+        cauchy_point, dogleg_step, minimize, solve_trust_subproblem, trust_region_minimize, Bounds,
+        Method as UnconstrainedMethod, Options, TrustRegionConfig, TrustRegionResult,
+    };
     pub use crate::unified_pipeline::{
         presets as unified_presets, UnifiedOptimizationConfig, UnifiedOptimizationResults,
         UnifiedOptimizer,

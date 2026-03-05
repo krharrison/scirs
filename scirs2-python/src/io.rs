@@ -20,11 +20,11 @@ use scirs2_io::{
     csv::{read_csv_numeric, write_csv, CsvReaderConfig, CsvWriterConfig},
     // Matrix Market format
     matrix_market::{
-        read_sparse_matrix, write_sparse_matrix, read_dense_matrix, write_dense_matrix,
-        MMSparseMatrix, MMDenseMatrix, MMHeader, MMFormat, MMDataType, MMSymmetry, SparseEntry,
+        read_dense_matrix, read_sparse_matrix, write_dense_matrix, write_sparse_matrix, MMDataType,
+        MMDenseMatrix, MMFormat, MMHeader, MMSparseMatrix, MMSymmetry, SparseEntry,
     },
     // Serialization
-    serialize::{serialize_array, deserialize_array, SerializationFormat},
+    serialize::{deserialize_array, serialize_array, SerializationFormat},
     // WAV files
     wavfile::{read_wav, write_wav},
 };
@@ -36,12 +36,7 @@ use scirs2_io::{
 /// Read CSV file into array
 #[pyfunction]
 #[pyo3(signature = (path, has_header=true, delimiter=","))]
-fn read_csv_py(
-    py: Python,
-    path: &str,
-    has_header: bool,
-    delimiter: &str,
-) -> PyResult<Py<PyAny>> {
+fn read_csv_py(py: Python, path: &str, has_header: bool, delimiter: &str) -> PyResult<Py<PyAny>> {
     let config = CsvReaderConfig {
         has_header,
         delimiter: delimiter.chars().next().unwrap_or(','),
@@ -75,8 +70,13 @@ fn write_csv_py(
         None => (0..arr.ncols()).map(|i| format!("col_{}", i)).collect(),
     };
 
-    write_csv(path, &arr_owned, Some(&default_headers), None::<CsvWriterConfig>)
-        .map_err(|e| PyRuntimeError::new_err(format!("Failed to write CSV: {}", e)))?;
+    write_csv(
+        path,
+        &arr_owned,
+        Some(&default_headers),
+        None::<CsvWriterConfig>,
+    )
+    .map_err(|e| PyRuntimeError::new_err(format!("Failed to write CSV: {}", e)))?;
 
     Ok(())
 }
@@ -120,7 +120,11 @@ fn write_matrix_market_sparse_py(
         .into_iter()
         .zip(cols)
         .zip(data)
-        .map(|((r, c), v)| SparseEntry { row: r, col: c, value: v })
+        .map(|((r, c), v)| SparseEntry {
+            row: r,
+            col: c,
+            value: v,
+        })
         .collect();
 
     let header = MMHeader {
@@ -188,11 +192,7 @@ fn write_matrix_market_dense_py(path: &str, data: &Bound<'_, PyArray2<f64>>) -> 
 /// Save array to binary file
 #[pyfunction]
 #[pyo3(signature = (path, data, format="binary"))]
-fn save_array_py(
-    path: &str,
-    data: &Bound<'_, PyArray2<f64>>,
-    format: &str,
-) -> PyResult<()> {
+fn save_array_py(path: &str, data: &Bound<'_, PyArray2<f64>>, format: &str) -> PyResult<()> {
     let binding = data.readonly();
     let arr = binding.as_array();
 
@@ -228,7 +228,8 @@ fn load_array_py(py: Python, path: &str, format: &str) -> PyResult<Py<PyArray2<f
     // Convert to 2D
     let shape = arr.shape();
     if shape.len() == 2 {
-        let arr2d = arr.into_dimensionality::<scirs2_core::ndarray::Ix2>()
+        let arr2d = arr
+            .into_dimensionality::<scirs2_core::ndarray::Ix2>()
             .map_err(|e| PyRuntimeError::new_err(format!("Shape conversion failed: {}", e)))?;
         Ok(arr2d.into_pyarray(py).unbind())
     } else {

@@ -446,6 +446,20 @@ impl<F: Float + Debug + ScalarOperand + Send + Sync + NumAssign + 'static> Layer
             self.parameter_count()
         )
     }
+
+    fn params(&self) -> Vec<Array<F, IxDyn>> {
+        vec![self.weights.clone(), self.biases.clone()]
+    }
+
+    fn set_params(&mut self, params: &[Array<F, IxDyn>]) -> Result<()> {
+        if params.len() >= 2 {
+            self.weights = params[0].clone();
+            self.biases = params[1].clone();
+        } else if params.len() == 1 {
+            self.weights = params[0].clone();
+        }
+        Ok(())
+    }
 }
 
 impl<F: Float + Debug + ScalarOperand + Send + Sync + NumAssign + 'static> ParamLayer<F>

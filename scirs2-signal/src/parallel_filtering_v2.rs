@@ -151,7 +151,7 @@ impl Default for BatchFilterConfig {
 /// let coefficients = vec![0.25, 0.5, 0.25]; // Simple smoothing filter
 /// let config = ParallelFIRConfig::default();
 ///
-/// let filtered = parallel_fir_filter(&signal, &coefficients, &config).unwrap();
+/// let filtered = parallel_fir_filter(&signal, &coefficients, &config).expect("operation should succeed");
 /// ```
 pub fn parallel_fir_filter(
     signal: &Array1<f64>,

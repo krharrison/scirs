@@ -42,8 +42,8 @@
 use pyo3::prelude::*;
 
 // Core modules (always available)
-pub mod error;
 pub mod async_ops;
+pub mod error;
 pub mod pandas_compat;
 
 // Submodules
@@ -123,7 +123,10 @@ pub mod neural;
 fn scirs2(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Package metadata
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
-    m.add("__author__", "COOLJAPAN OU (Team KitaSan) <contact@cooljapan.tech>")?;
+    m.add(
+        "__author__",
+        "COOLJAPAN OU (Team KitaSan) <contact@cooljapan.tech>",
+    )?;
 
     // Register core modules (async and pandas support)
     async_ops::register_async_module(m)?;

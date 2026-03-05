@@ -5,14 +5,13 @@
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict};
+use scirs2_core::{ndarray::ArrayView1, Array1};
 use scirs2_numpy::{PyArray1, PyArrayMethods};
-use scirs2_core::{Array1, ndarray::ArrayView1};
 use scirs2_stats::{
-    deciles,
-    QuantileInterpolation, sem_simd, percentile_range_simd, skewness_simd, kurtosis_simd,
-    pearson_r_simd, covariance_simd, moment_simd, mean_simd, std_simd, variance_simd,
-    shapiro_wilk, chi2_gof, one_way_anova, wilcoxon, mann_whitney, kruskal_wallis,
-    levene, bartlett, brown_forsythe, anderson_darling, dagostino_k2,
+    anderson_darling, bartlett, brown_forsythe, chi2_gof, covariance_simd, dagostino_k2, deciles,
+    kruskal_wallis, kurtosis_simd, levene, mann_whitney, mean_simd, moment_simd, one_way_anova,
+    pearson_r_simd, percentile_range_simd, sem_simd, shapiro_wilk, skewness_simd, std_simd,
+    variance_simd, wilcoxon, QuantileInterpolation,
 };
 
 /// Compute deciles (10th, 20th, ..., 90th percentiles) of a dataset
@@ -21,9 +20,7 @@ pub fn deciles_py(data: &Bound<'_, PyArray1<f64>>) -> PyResult<Py<PyArray1<f64>>
     let binding = data.readonly();
     let arr = binding.as_array();
     let result = deciles::<f64>(&arr.view(), QuantileInterpolation::Linear)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Deciles calculation failed: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("Deciles calculation failed: {}", e)))?;
     Ok(PyArray1::from_vec(data.py(), result.to_vec()).into())
 }
 /// Compute standard error of the mean (SEM)
@@ -47,9 +44,7 @@ pub fn percentile_range_py(
     let binding = data.readonly();
     let mut arr = binding.as_array().to_owned();
     percentile_range_simd::<f64, _>(&mut arr, lower_pct, upper_pct, interpolation)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Percentile range calculation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("Percentile range calculation failed: {}", e)))
 }
 /// Compute SIMD-optimized skewness (third standardized moment)
 #[pyfunction]
@@ -58,9 +53,7 @@ pub fn skewness_simd_py(data: &Bound<'_, PyArray1<f64>>, bias: bool) -> PyResult
     let binding = data.readonly();
     let arr = binding.as_array();
     skewness_simd::<f64, _>(&arr.view(), bias)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("SIMD skewness calculation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("SIMD skewness calculation failed: {}", e)))
 }
 /// Compute SIMD-optimized kurtosis (fourth standardized moment)
 #[pyfunction]
@@ -73,9 +66,7 @@ pub fn kurtosis_simd_py(
     let binding = data.readonly();
     let arr = binding.as_array();
     kurtosis_simd::<f64, _>(&arr.view(), fisher, bias)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("SIMD kurtosis calculation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("SIMD kurtosis calculation failed: {}", e)))
 }
 /// Compute SIMD-optimized Pearson correlation coefficient
 #[pyfunction]
@@ -87,10 +78,12 @@ pub fn pearson_r_simd_py(
     let y_binding = y.readonly();
     let x_arr = x_binding.as_array();
     let y_arr = y_binding.as_array();
-    pearson_r_simd::<f64, _>(&x_arr.view(), &y_arr.view())
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("SIMD Pearson correlation calculation failed: {}", e),
+    pearson_r_simd::<f64, _>(&x_arr.view(), &y_arr.view()).map_err(|e| {
+        PyRuntimeError::new_err(format!(
+            "SIMD Pearson correlation calculation failed: {}",
+            e
         ))
+    })
 }
 /// Compute SIMD-optimized covariance
 #[pyfunction]
@@ -105,9 +98,7 @@ pub fn covariance_simd_py(
     let x_arr = x_binding.as_array();
     let y_arr = y_binding.as_array();
     covariance_simd::<f64, _>(&x_arr.view(), &y_arr.view(), ddof)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("SIMD covariance calculation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("SIMD covariance calculation failed: {}", e)))
 }
 /// Compute SIMD-optimized nth statistical moment
 #[pyfunction]
@@ -120,9 +111,7 @@ pub fn moment_simd_py(
     let binding = data.readonly();
     let arr = binding.as_array();
     moment_simd::<f64, _>(&arr.view(), moment_order, center)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("SIMD moment calculation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("SIMD moment calculation failed: {}", e)))
 }
 /// Compute SIMD-optimized mean
 #[pyfunction]
@@ -130,9 +119,7 @@ pub fn mean_simd_py(data: &Bound<'_, PyArray1<f64>>) -> PyResult<f64> {
     let binding = data.readonly();
     let arr = binding.as_array();
     mean_simd::<f64, _>(&arr.view())
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("SIMD mean calculation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("SIMD mean calculation failed: {}", e)))
 }
 /// Compute SIMD-optimized standard deviation
 #[pyfunction]
@@ -140,10 +127,9 @@ pub fn mean_simd_py(data: &Bound<'_, PyArray1<f64>>) -> PyResult<f64> {
 pub fn std_simd_py(data: &Bound<'_, PyArray1<f64>>, ddof: usize) -> PyResult<f64> {
     let binding = data.readonly();
     let arr = binding.as_array();
-    std_simd::<f64, _>(&arr.view(), ddof)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("SIMD standard deviation calculation failed: {}", e),
-        ))
+    std_simd::<f64, _>(&arr.view(), ddof).map_err(|e| {
+        PyRuntimeError::new_err(format!("SIMD standard deviation calculation failed: {}", e))
+    })
 }
 /// Compute SIMD-optimized variance
 #[pyfunction]
@@ -152,9 +138,7 @@ pub fn variance_simd_py(data: &Bound<'_, PyArray1<f64>>, ddof: usize) -> PyResul
     let binding = data.readonly();
     let arr = binding.as_array();
     variance_simd::<f64, _>(&arr.view(), ddof)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("SIMD variance calculation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("SIMD variance calculation failed: {}", e)))
 }
 /// Shapiro-Wilk test for normality
 ///
@@ -170,9 +154,7 @@ pub fn shapiro_py(py: Python, data: &Bound<'_, PyArray1<f64>>) -> PyResult<Py<Py
     let binding = data.readonly();
     let arr = binding.as_array();
     let (statistic, pvalue) = shapiro_wilk(&arr.view())
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Shapiro-Wilk test failed: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("Shapiro-Wilk test failed: {}", e)))?;
     let dict = PyDict::new(py);
     dict.set_item("statistic", statistic)?;
     dict.set_item("pvalue", pvalue)?;
@@ -199,12 +181,11 @@ pub fn chisquare_py(
     let obs_arr = obs_binding.as_array();
     let obs_int: Vec<i64> = obs_arr.iter().map(|&x| x.round() as i64).collect();
     let obs_int_arr = Array1::from_vec(obs_int);
-    let exp_opt = expected
-        .map(|e| {
-            let e_binding = e.readonly();
-            let e_arr = e_binding.as_array();
-            e_arr.to_owned()
-        });
+    let exp_opt = expected.map(|e| {
+        let e_binding = e.readonly();
+        let e_arr = e_binding.as_array();
+        e_arr.to_owned()
+    });
     let result = chi2_gof(&obs_int_arr.view(), exp_opt.as_ref().map(|e| e.view()))
         .map_err(|e| PyRuntimeError::new_err(format!("Chi-square test failed: {}", e)))?;
     let dict = PyDict::new(py);
@@ -224,10 +205,7 @@ pub fn chisquare_py(
 /// - Dict with 'f_statistic', 'pvalue', 'df_between', 'df_within',
 ///   'ss_between', 'ss_within', 'ms_between', 'ms_within'
 #[pyfunction(signature = (*args))]
-pub fn f_oneway_py(
-    py: Python,
-    args: &Bound<'_, pyo3::types::PyTuple>,
-) -> PyResult<Py<PyAny>> {
+pub fn f_oneway_py(py: Python, args: &Bound<'_, pyo3::types::PyTuple>) -> PyResult<Py<PyAny>> {
     if args.len() < 2 {
         return Err(PyRuntimeError::new_err("Need at least 2 groups for ANOVA"));
     }
@@ -237,10 +215,7 @@ pub fn f_oneway_py(
         let binding = arr.readonly();
         group_arrays.push(binding.as_array().to_owned());
     }
-    let group_views: Vec<ArrayView1<f64>> = group_arrays
-        .iter()
-        .map(|a| a.view())
-        .collect();
+    let group_views: Vec<ArrayView1<f64>> = group_arrays.iter().map(|a| a.view()).collect();
     let group_refs: Vec<&ArrayView1<f64>> = group_views.iter().collect();
     let result = one_way_anova(&group_refs)
         .map_err(|e| PyRuntimeError::new_err(format!("ANOVA failed: {}", e)))?;
@@ -278,12 +253,7 @@ pub fn wilcoxon_py(
     let x_arr = x_data.as_array();
     let y_data = y.readonly();
     let y_arr = y_data.as_array();
-    let (statistic, pvalue) = wilcoxon(
-            &x_arr.view(),
-            &y_arr.view(),
-            zero_method,
-            correction,
-        )
+    let (statistic, pvalue) = wilcoxon(&x_arr.view(), &y_arr.view(), zero_method, correction)
         .map_err(|e| PyRuntimeError::new_err(format!("Wilcoxon test failed: {}", e)))?;
     let dict = PyDict::new(py);
     dict.set_item("statistic", statistic)?;
@@ -313,15 +283,9 @@ pub fn mannwhitneyu_py(
     let x_arr = x_data.as_array();
     let y_data = y.readonly();
     let y_arr = y_data.as_array();
-    let (statistic, pvalue) = mann_whitney(
-            &x_arr.view(),
-            &y_arr.view(),
-            alternative,
-            use_continuity,
-        )
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Mann-Whitney U test failed: {}", e),
-        ))?;
+    let (statistic, pvalue) =
+        mann_whitney(&x_arr.view(), &y_arr.view(), alternative, use_continuity)
+            .map_err(|e| PyRuntimeError::new_err(format!("Mann-Whitney U test failed: {}", e)))?;
     let dict = PyDict::new(py);
     dict.set_item("statistic", statistic)?;
     dict.set_item("pvalue", pvalue)?;
@@ -335,14 +299,11 @@ pub fn mannwhitneyu_py(
 /// Returns:
 /// - Dict with 'statistic', 'pvalue'
 #[pyfunction(signature = (*args))]
-pub fn kruskal_py(
-    py: Python,
-    args: &Bound<'_, pyo3::types::PyTuple>,
-) -> PyResult<Py<PyAny>> {
+pub fn kruskal_py(py: Python, args: &Bound<'_, pyo3::types::PyTuple>) -> PyResult<Py<PyAny>> {
     if args.len() < 2 {
-        return Err(
-            PyRuntimeError::new_err("Need at least 2 groups for Kruskal-Wallis test"),
-        );
+        return Err(PyRuntimeError::new_err(
+            "Need at least 2 groups for Kruskal-Wallis test",
+        ));
     }
     let mut arrays = Vec::new();
     for item in args.iter() {
@@ -353,9 +314,7 @@ pub fn kruskal_py(
     }
     let views: Vec<_> = arrays.iter().map(|a| a.view()).collect();
     let (statistic, pvalue) = kruskal_wallis(&views)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Kruskal-Wallis test failed: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("Kruskal-Wallis test failed: {}", e)))?;
     let dict = PyDict::new(py);
     dict.set_item("statistic", statistic)?;
     dict.set_item("pvalue", pvalue)?;
@@ -378,7 +337,9 @@ pub fn levene_py(
     proportion_to_cut: f64,
 ) -> PyResult<Py<PyAny>> {
     if args.len() < 2 {
-        return Err(PyRuntimeError::new_err("Need at least 2 groups for Levene's test"));
+        return Err(PyRuntimeError::new_err(
+            "Need at least 2 groups for Levene's test",
+        ));
     }
     let mut arrays = Vec::new();
     for item in args.iter() {
@@ -403,14 +364,11 @@ pub fn levene_py(
 /// Returns:
 /// - Dict with 'statistic', 'pvalue'
 #[pyfunction(signature = (*args))]
-pub fn bartlett_test_py(
-    py: Python,
-    args: &Bound<'_, pyo3::types::PyTuple>,
-) -> PyResult<Py<PyAny>> {
+pub fn bartlett_test_py(py: Python, args: &Bound<'_, pyo3::types::PyTuple>) -> PyResult<Py<PyAny>> {
     if args.len() < 2 {
-        return Err(
-            PyRuntimeError::new_err("Need at least 2 groups for Bartlett's test"),
-        );
+        return Err(PyRuntimeError::new_err(
+            "Need at least 2 groups for Bartlett's test",
+        ));
     }
     let mut arrays = Vec::new();
     for item in args.iter() {
@@ -440,9 +398,9 @@ pub fn brown_forsythe_py(
     args: &Bound<'_, pyo3::types::PyTuple>,
 ) -> PyResult<Py<PyAny>> {
     if args.len() < 2 {
-        return Err(
-            PyRuntimeError::new_err("Need at least 2 groups for Brown-Forsythe test"),
-        );
+        return Err(PyRuntimeError::new_err(
+            "Need at least 2 groups for Brown-Forsythe test",
+        ));
     }
     let mut arrays = Vec::new();
     for item in args.iter() {
@@ -453,9 +411,7 @@ pub fn brown_forsythe_py(
     }
     let views: Vec<_> = arrays.iter().map(|a| a.view()).collect();
     let (statistic, pvalue) = brown_forsythe(&views)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Brown-Forsythe test failed: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("Brown-Forsythe test failed: {}", e)))?;
     let dict = PyDict::new(py);
     dict.set_item("statistic", statistic)?;
     dict.set_item("pvalue", pvalue)?;
@@ -477,9 +433,7 @@ pub fn anderson_darling_py(py: Python, x: &Bound<'_, PyArray1<f64>>) -> PyResult
     let x_data = x.readonly();
     let x_arr = x_data.as_array();
     let (statistic, pvalue) = anderson_darling(&x_arr.view())
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Anderson-Darling test failed: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("Anderson-Darling test failed: {}", e)))?;
     let dict = PyDict::new(py);
     dict.set_item("statistic", statistic)?;
     dict.set_item("pvalue", pvalue)?;
@@ -500,9 +454,7 @@ pub fn dagostino_k2_py(py: Python, x: &Bound<'_, PyArray1<f64>>) -> PyResult<Py<
     let x_data = x.readonly();
     let x_arr = x_data.as_array();
     let (statistic, pvalue) = dagostino_k2(&x_arr.view())
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("D'Agostino K² test failed: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("D'Agostino K² test failed: {}", e)))?;
     let dict = PyDict::new(py);
     dict.set_item("statistic", statistic)?;
     dict.set_item("pvalue", pvalue)?;

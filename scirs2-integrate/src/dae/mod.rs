@@ -65,3 +65,8 @@ pub use self::methods::block_precond::{
 pub use self::index_reduction::{
     DAEStructure, DummyDerivativeReducer, PantelidesReducer, ProjectionMethod,
 };
+
+// Re-export Radau IIA DAE solver
+pub use self::methods::radau::{
+    estimate_dae_index, find_consistent_initial_conditions, radau_iia_dae, ImplicitDAESystem,
+};

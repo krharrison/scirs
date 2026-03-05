@@ -1,507 +1,239 @@
-# SciRS2 Interpolation Module
+# scirs2-interpolate
 
 [![crates.io](https://img.shields.io/crates/v/scirs2-interpolate.svg)](https://crates.io/crates/scirs2-interpolate)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-interpolate)](https://docs.rs/scirs2-interpolate)
-[![Build Status](https://img.shields.io/github/workflow/status/cool-japan/scirs/CI)](https://github.com/cool-japan/scirs/actions)
 
-The `scirs2-interpolate` crate provides a **production-ready**, comprehensive set of interpolation methods for scientific computing in Rust. As part of the SciRS2 project, it delivers functionality equivalent to SciPy's interpolation module while leveraging Rust's performance, safety, and parallelization capabilities.
+**Advanced interpolation and approximation for the SciRS2 scientific computing library (v0.3.0).**
 
-## 🚀 Version 0.1.0 - Production stable Release
+`scirs2-interpolate` provides comprehensive interpolation methods for 1D, 2D, and N-dimensional data. It covers standard spline families (cubic, Akima, PCHIP, B-splines, NURBS), scattered-data methods (RBF, Kriging, Moving Least Squares, Natural Neighbor, Barycentric Rational, Thin-Plate Splines, Shepard's method), and advanced features including adaptive error-controlled refinement, meshless methods, spherical harmonic interpolation, and B-spline surface fitting — all as pure Rust.
 
-This **Stable Release** (stable) represents a **production-ready** implementation with comprehensive feature coverage, extensive testing, performance optimization, and zero-warning code quality. The API is stable and ready for production use cases.
+## Features (v0.3.0)
 
-## 🚀 Installation
+### 1D Interpolation
+- **Linear / nearest-neighbor**: Basic 1D interpolation with boundary handling
+- **Cubic spline**: Natural, not-a-knot, clamped, and periodic boundary conditions
+- **Akima spline**: Outlier-robust local spline; resists oscillation from rogue data points
+- **PCHIP**: Piecewise Cubic Hermite Interpolating Polynomial; shape- and monotonicity-preserving
+- **B-splines**: Arbitrary-order B-spline basis with de Boor evaluation; knot insertion and removal
+- **NURBS**: Non-Uniform Rational B-Splines for exact conic sections and free-form curves
+- **Bezier curves**: Rational and polynomial Bezier; de Casteljau evaluation
+- **Tension splines**: Splines under tension for feature-preserving interpolation
+- **Penalized splines (P-splines)**: Regularized B-spline fitting for noisy data
+- **Monotone splines**: Constrained splines preserving monotonicity
+- **Hermite splines**: Specified derivative values at knots
+- **Floater-Hormann barycentric rational**: Stable barycentric rational interpolation of arbitrary order
 
-Add this to your `Cargo.toml`:
+### Scattered Data Interpolation
+- **RBF (Radial Basis Function)**: Multiquadric, thin-plate spline, Gaussian, inverse multiquadric, linear; parameter optimization included
+- **Kriging**: Ordinary Kriging, Universal Kriging, Indicator Kriging; variogram fitting; Bayesian uncertainty quantification
+- **Moving Least Squares (MLS)**: Weighted polynomial fitting for scattered point clouds
+- **Natural Neighbor (Sibson)**: Voronoi-based area-steal interpolation; C1 continuity
+- **Thin-Plate Spline (TPS)**: Global scattered-data interpolant; bending energy minimization
+- **Shepard's method**: Inverse distance weighting; modified Shepard for reduced flat-spot artifacts
+- **Scattered 2D interpolation**: Delaunay triangulation based linear/cubic interpolation
+
+### Spherical and Parametric Interpolation
+- **Spherical harmonic interpolation**: Expand scattered data on the sphere in terms of real spherical harmonics
+- **Parametric curve interpolation**: Arc-length parameterized fitting of 2D/3D point sequences
+- **Barycentric coordinates on manifolds**: Interpolation in generalized barycentric coordinates
+
+### Multidimensional Grid Interpolation
+- **Regular grid (N-D)**: `RegularGridInterpolator` for arbitrary-dimensional rectilinear grids; linear and cubic
+- **Tensor product interpolation**: Kronecker product construction for separable grids
+- **Bivariate splines**: Smoothing and interpolating splines on 2D rectangular grids
+- **B-spline surface fitting**: NURBS surface interpolation of 3D point clouds
+
+### Adaptive Interpolation
+- **Error-controlled refinement**: Iterative subdivision until local error tolerance is met
+- **Hierarchical adaptive interpolation**: Multi-level sparse-grid construction
+- **Meshless methods**: Partition-of-unity and reproducing-kernel methods for complex domains
+
+### Performance and Accuracy
+- **SIMD-accelerated B-spline evaluation**: Vectorized de Boor algorithm (2-4x speedup)
+- **Parallel interpolation**: Multi-threaded batch evaluation for large point clouds
+- **Fast Kriging**: O(k^3) local Kriging; fixed-rank approximation; sparse tapering; HODLR
+- **Spatial data structures**: K-d trees and ball trees for O(log n) neighbor queries
+- **Cache-aware memory access**: Minimized cache misses in hot evaluation paths
+
+## Quick Start
+
+Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scirs2-interpolate = "0.1.5"
-
-# Optional: Enable high-performance features
-scirs2-interpolate = { version = "0.1.5", features = ["simd", "linalg"] }
+scirs2-interpolate = "0.3.0"
 ```
 
-### Feature Flags
+With optional performance features:
 
-- **`simd`**: Enable SIMD acceleration (2-4x performance boost)
-- **`linalg`**: Enable advanced linear algebra operations via OxiBLAS (pure Rust, no system dependencies)
-- **`gpu`**: Enable GPU acceleration for large datasets (experimental)
-
-```bash
-# Install with all performance features
-cargo add scirs2-interpolate --features simd,linalg
+```toml
+[dependencies]
+scirs2-interpolate = { version = "0.3.0", features = ["simd", "linalg"] }
 ```
 
-## ✨ Features
-
-### **Core Interpolation Methods**
-- **1D Interpolation**: Linear, nearest neighbor, cubic, and spline interpolation
-- **Multi-dimensional Interpolation**: Regular grid and scattered data interpolation 
-- **Advanced Methods**: RBF, Kriging, barycentric, natural neighbor, moving least squares
-
-### **Comprehensive Spline Support** 
-- **Basic Splines**: Natural cubic, not-a-knot, clamped, periodic boundary conditions
-- **Advanced Splines**: Akima (outlier-robust), PCHIP (shape-preserving), NURBS
-- **Specialized Splines**: Penalized (P-splines), constrained (monotonic/convex), tension splines
-- **High-Performance**: Multiscale B-splines, Hermite splines, Bezier curves/surfaces
-
-### **High-Performance Computing**
-- **SIMD Acceleration**: Vectorized B-spline evaluation and distance calculations
-- **Parallel Processing**: Multi-threaded interpolation for large datasets
-- **GPU Acceleration**: CUDA-accelerated RBF and batch evaluation (optional)
-- **Memory Efficiency**: Cache-aware algorithms and optimized data structures
-
-### **Advanced Statistical Methods**
-- **Fast Kriging**: O(k³) local kriging, fixed-rank approximation, sparse tapering
-- **Uncertainty Quantification**: Bayesian kriging with prediction intervals
-- **Adaptive Methods**: Error-based refinement, hierarchical interpolation
-- **Machine Learning Integration**: Neural-enhanced interpolation, physics-informed models
-
-### **Production-Ready Features**
-- **Robust Error Handling**: Comprehensive error types and validation
-- **Feature Gates**: Optional dependencies (SIMD, GPU, advanced linalg)
-- **Extensive Testing**: 100+ unit tests, property-based testing, numerical validation
-- **Performance Benchmarks**: Comprehensive benchmarking suite against SciPy
-- **Documentation**: Complete API documentation with 35+ working examples
-
-## Usage Examples
-
-### 1D Interpolation
+### Cubic spline interpolation
 
 ```rust
-use ndarray::array;
-use scirs2_interpolate::{Interp1d, InterpolationMethod};
+use scirs2_core::ndarray::array;
+use scirs2_interpolate::spline::{CubicSpline, SplineBoundaryCondition};
 
-// Create sample data
-let x = array![0.0, 1.0, 2.0, 3.0, 4.0];
-let y = array![0.0, 1.0, 4.0, 9.0, 16.0];
+let x = array![0.0f64, 1.0, 2.0, 3.0, 4.0];
+let y = array![0.0f64, 1.0, 4.0, 9.0, 16.0];
 
-// Create a 1D interpolator with linear interpolation
-let interp = Interp1d::new(&x.view(), &y.view(), InterpolationMethod::Linear).unwrap();
+let spline = CubicSpline::new(
+    x.view(),
+    y.view(),
+    SplineBoundaryCondition::Natural,
+    SplineBoundaryCondition::Natural,
+)?;
 
-// Evaluate at a specific point
-let y_interp = interp.evaluate(2.5).unwrap();
-println!("Interpolated value at x=2.5: {}", y_interp);
-
-// Evaluate at multiple points
-let x_new = array![1.5, 2.5, 3.5];
-let y_new = interp.evaluate_array(&x_new.view()).unwrap();
-println!("Interpolated values: {:?}", y_new);
+let y_interp = spline.evaluate(2.5)?;
+println!("spline(2.5) = {}", y_interp);
 ```
 
-### Cubic Spline Interpolation
+### PCHIP (shape-preserving)
 
 ```rust
-use ndarray::array;
-use scirs2_interpolate::{CubicSpline, make_interp_spline};
+use scirs2_core::ndarray::array;
+use scirs2_interpolate::pchip::{PchipInterpolator, pchip_interpolate};
 
-// Create sample data
-let x = array![0.0, 1.0, 2.0, 3.0, 4.0];
-let y = array![0.0, 1.0, 4.0, 9.0, 16.0];
+let x = array![0.0f64, 1.0, 2.0, 3.0, 4.0];
+let y = array![0.0f64, 1.0, 4.0, 9.0, 16.0];
 
-// Create a cubic spline
-let spline = make_interp_spline(&x.view(), &y.view()).unwrap();
+// Convenience function
+let x_new = array![0.5f64, 1.5, 2.5, 3.5];
+let y_new = pchip_interpolate(&x.view(), &y.view(), &x_new.view())?;
 
-// Evaluate at a specific point
-let y_interp = spline.evaluate(2.5).unwrap();
-println!("Spline interpolated value at x=2.5: {}", y_interp);
-
-// Compute the derivative
-let y_prime = spline.derivative(2.5).unwrap();
-println!("Spline derivative at x=2.5: {}", y_prime);
+// Or create an object for repeated evaluation
+let interp = PchipInterpolator::new(&x.view(), &y.view())?;
+println!("PCHIP(2.5) = {}", interp.evaluate(2.5)?);
 ```
 
-### Multidimensional Regular Grid Interpolation
+### RBF interpolation of scattered 2D data
 
 ```rust
-use ndarray::{array, Array2};
-use scirs2_interpolate::{make_interp_nd, InterpolationMethod};
+use scirs2_core::ndarray::{array, Array2};
+use scirs2_interpolate::rbf::{RBFInterpolator, RBFKernel};
 
-// Create sample grid coordinates
-let x = array![0.0, 1.0, 2.0];
-let y = array![0.0, 1.0, 2.0];
+// Scattered points (x,y) in 2D
+let pts = Array2::from_shape_vec((5, 2), vec![
+    0.0, 0.0,  1.0, 0.0,  0.0, 1.0,  1.0, 1.0,  0.5, 0.5,
+])?;
+let vals = array![0.0f64, 1.0, 1.0, 2.0, 0.5];
 
-// Create 2D grid values (z = x^2 + y^2)
-let mut grid_values = Array2::zeros((3, 3));
-for i in 0..3 {
-    for j in 0..3 {
-        grid_values[[i, j]] = x[i].powi(2) + y[j].powi(2);
-    }
-}
+let interp = RBFInterpolator::new(&pts.view(), &vals.view(), RBFKernel::ThinPlateSpline, 0.0)?;
 
-// Create interpolator
-let interp = make_interp_nd(
-    &[x, y],
-    &grid_values.view(),
-    InterpolationMethod::Linear
-).unwrap();
-
-// Points to evaluate
-let points = Array2::from_shape_vec((2, 2), vec![
-    0.5, 0.5,
-    1.5, 1.5
-]).unwrap();
-
-// Interpolate
-let results = interp.evaluate(&points.view()).unwrap();
-println!("Interpolated values: {:?}", results);
+let query = Array2::from_shape_vec((1, 2), vec![0.25, 0.75])?;
+let result = interp.interpolate(&query.view())?;
+println!("RBF(0.25, 0.75) = {}", result[0]);
 ```
 
-### Radial Basis Function Interpolation
+### Kriging with uncertainty
 
 ```rust
-use ndarray::{array, Array2};
-use scirs2_interpolate::{RBFInterpolator, RBFKernel};
+use scirs2_core::ndarray::{array, Array2};
+use scirs2_interpolate::kriging::{OrdinaryKriging, CovarianceFunction};
 
-// Create scattered data points
-let points = Array2::from_shape_vec((5, 2), vec![
-    0.0, 0.0, 
-    1.0, 0.0, 
-    0.0, 1.0, 
-    1.0, 1.0, 
-    0.5, 0.5
-]).unwrap();
+let pts = Array2::from_shape_vec((5, 2), vec![
+    0.0, 0.0,  1.0, 0.0,  0.0, 1.0,  1.0, 1.0,  0.5, 0.5,
+])?;
+let vals = array![0.0f64, 1.0, 1.0, 2.0, 0.5];
 
-// Values at those points (z = x^2 + y^2)
-let values = array![0.0, 1.0, 1.0, 2.0, 0.5];
+let kriging = OrdinaryKriging::fit(
+    &pts.view(),
+    &vals.view(),
+    CovarianceFunction::SquaredExponential { variance: 1.0, length_scale: 0.5 },
+)?;
 
-// Create RBF interpolator with Gaussian kernel
-let interp = RBFInterpolator::new(
-    &points.view(),
-    &values.view(),
-    RBFKernel::Gaussian,
-    1.0  // epsilon parameter
-).unwrap();
-
-// Interpolate at new points
-let test_points = Array2::from_shape_vec((2, 2), vec![
-    0.25, 0.25,
-    0.75, 0.75
-]).unwrap();
-
-let results = interp.interpolate(&test_points.view()).unwrap();
-println!("RBF interpolated values: {:?}", results);
+let query = Array2::from_shape_vec((1, 2), vec![0.3, 0.7])?;
+let (pred, variance) = kriging.predict(&query.view())?;
+println!("Kriging pred = {}, std = {}", pred[0], variance[0].sqrt());
 ```
 
-### High-Performance Fast Kriging with Uncertainty
+### Natural Neighbor interpolation
 
 ```rust
-use ndarray::{array, Array2};
-use scirs2_interpolate::advanced::fast_kriging::{FastKrigingBuilder, CovarianceFunction};
+use scirs2_core::ndarray::{array, Array2};
+use scirs2_interpolate::natural_neighbor::NaturalNeighborInterpolator;
 
-// Create scattered data points (works efficiently with 1000s of points)
-let points = Array2::from_shape_vec((5, 2), vec![
-    0.0, 0.0, 
-    1.0, 0.0, 
-    0.0, 1.0, 
-    1.0, 1.0, 
-    0.5, 0.5
-]).unwrap();
+let pts = Array2::from_shape_vec((6, 2), vec![
+    0.0, 0.0,  2.0, 0.0,  1.0, 1.5,
+    0.0, 3.0,  2.0, 3.0,  1.0, 1.0,
+])?;
+let vals = array![0.0f64, 1.0, 2.0, 3.0, 4.0, 5.0];
 
-// Values at those points (z = x^2 + y^2)
-let values = array![0.0, 1.0, 1.0, 2.0, 0.5];
-
-// Create Fast Kriging interpolator with automatic method selection
-let interp = FastKrigingBuilder::new()
-    .covariance_function(CovarianceFunction::SquaredExponential)
-    .signal_variance(1.0)
-    .length_scale(0.5)
-    .nugget(1e-10)
-    .max_local_points(50)  // For large datasets
-    .build(&points.view(), &values.view())
-    .unwrap();
-
-// Interpolate with uncertainty estimates
-let test_points = Array2::from_shape_vec((2, 2), vec![0.25, 0.25, 0.75, 0.75]).unwrap();
-let result = interp.predict(&test_points.view()).unwrap();
-
-println!("Fast Kriging predictions: {:?}", result.values);
-println!("Prediction uncertainties: {:?}", result.variances);
-
-// For large datasets (>10K points), the fast kriging automatically 
-// selects the optimal method (local, fixed-rank, or tapering)
+let interp = NaturalNeighborInterpolator::new(&pts.view(), &vals.view())?;
+println!("NN(1.0, 1.0) = {}", interp.evaluate(&[1.0, 1.0])?);
 ```
 
-### Grid Resampling
+### Barycentric rational interpolation (Floater-Hormann)
 
 ```rust
-use ndarray::{array, Array2};
-use scirs2_interpolate::{resample_to_grid, GridTransformMethod};
+use scirs2_core::ndarray::array;
+use scirs2_interpolate::barycentric::{FloaterHormann, fh_interpolate};
 
-// Create scattered data points
-let points = Array2::from_shape_vec((5, 2), vec![
-    0.0, 0.0, 
-    1.0, 0.0, 
-    0.0, 1.0, 
-    1.0, 1.0, 
-    0.5, 0.5
-]).unwrap();
+let x = array![0.0f64, 1.0, 2.0, 3.0, 4.0];
+let y = array![0.0f64, 0.841, 0.909, 0.141, -0.757];
 
-// Values at those points (z = x^2 + y^2)
-let values = array![0.0, 1.0, 1.0, 2.0, 0.5];
-
-// Resample to a 10x10 grid
-let (grid_coords, grid_values) = resample_to_grid(
-    &points.view(),
-    &values.view(),
-    &[10, 10],
-    &[(0.0, 1.0), (0.0, 1.0)],
-    GridTransformMethod::Linear,
-    0.0
-).unwrap();
-
-println!("Resampled grid size: {:?}", grid_values.shape());
+// d=3 blending parameter
+let interp = FloaterHormann::new(&x.view(), &y.view(), 3)?;
+println!("FH(1.5) = {}", interp.evaluate(1.5)?);
 ```
 
-## 🔥 Advanced Features
-
-### High-Performance SIMD B-Splines
+### Adaptive error-controlled refinement
 
 ```rust
-use ndarray::array;
-use scirs2_interpolate::simd_bspline::SIMDBSpline;
+use scirs2_core::ndarray::array;
+use scirs2_interpolate::adaptive_interpolation::{AdaptiveInterpolator, AdaptiveConfig};
 
-// Enable SIMD acceleration for B-spline evaluation (requires "simd" feature)
-#[cfg(feature = "simd")]
-{
-    let x = array![0.0, 1.0, 2.0, 3.0, 4.0, 5.0];
-    let y = array![0.0, 1.0, 4.0, 9.0, 16.0, 25.0];
-    
-    // SIMD-accelerated B-spline provides 2-4x speedup
-    let spline = SIMDBSpline::new(&x.view(), &y.view(), 3).unwrap();
-    
-    // Vectorized evaluation at multiple points
-    let x_eval = array![1.5, 2.5, 3.5, 4.5];
-    let results = spline.evaluate_batch(&x_eval.view()).unwrap();
-    println!("SIMD B-spline results: {:?}", results);
-}
+let cfg = AdaptiveConfig { tol: 1e-6, max_levels: 12, ..Default::default() };
+let interp = AdaptiveInterpolator::build(|x: f64| x.sin(), 0.0, 2.0 * std::f64::consts::PI, cfg)?;
+println!("adaptive sin(pi) = {}", interp.evaluate(std::f64::consts::PI)?);
 ```
 
-### Akima Spline (Robust to Outliers)
+## API Overview
 
-```rust
-use ndarray::array;
-use scirs2_interpolate::{AkimaSpline, make_akima_spline};
+| Module | Description |
+|--------|-------------|
+| `interp1d` | 1D interpolation: linear, nearest, cubic, PCHIP |
+| `spline` | Cubic splines with multiple boundary conditions |
+| `bspline` | B-spline basis and fitting |
+| `bspline_curves` | B-spline curves: knot insertion, fitting |
+| `bspline_surface` | B-spline surface fitting of 3D clouds |
+| `nurbs` | NURBS curves and surfaces |
+| `bezier` | Rational and polynomial Bezier |
+| `pchip` | PCHIP shape-preserving interpolation |
+| `barycentric` | Floater-Hormann barycentric rational interpolation |
+| `rbf` | Radial Basis Function interpolation |
+| `rbf_compact` | Compactly supported RBF kernels |
+| `kriging` | Ordinary, Universal, Indicator Kriging |
+| `mls` / `moving_least_squares` | Moving Least Squares |
+| `natural_neighbor` | Natural Neighbor (Sibson) interpolation |
+| `thin_plate_spline` | Thin-Plate Spline scattered data |
+| `shepard` | Shepard inverse-distance weighting |
+| `scattered_2d` | Delaunay-based 2D scattered interpolation |
+| `spherical` | Spherical harmonic interpolation |
+| `parametric` | Parametric arc-length curve interpolation |
+| `tensor_product` | Tensor product N-D grid interpolation |
+| `interpnd` | Regular grid N-D interpolation |
+| `polynomial_interpolation` | Lagrange, Newton polynomial interpolation |
+| `adaptive_interpolation` | Error-controlled adaptive refinement |
+| `meshless` | Partition-of-unity and reproducing-kernel methods |
+| `utils` | Differentiation, integration, error estimation helpers |
 
-// Data with an outlier at x=3
-let x = array![0.0, 1.0, 2.0, 3.0, 4.0, 5.0];
-let y = array![0.0, 1.0, 4.0, 20.0, 16.0, 25.0];
+## Feature Flags
 
-// Create Akima spline which handles outliers better than cubic spline
-let spline = make_akima_spline(&x.view(), &y.view()).unwrap();
+| Feature | Description |
+|---------|-------------|
+| `default` | Core interpolation methods |
+| `simd` | SIMD-accelerated B-spline and distance computations |
+| `linalg` | Advanced linear algebra via OxiBLAS (pure Rust) |
 
-// Evaluate at some test points
-for x_val in [1.5, 2.5, 3.5, 4.5].iter() {
-    println!("Akima spline at x={}: {}", x_val, spline.evaluate(*x_val).unwrap());
-}
-```
+## Documentation
 
-### PCHIP Interpolation (Shape Preserving)
-
-```rust
-use ndarray::array;
-use scirs2_interpolate::{pchip_interpolate, PchipInterpolator};
-
-// Monotonically increasing data
-let x = array![0.0, 1.0, 2.0, 3.0, 4.0];
-let y = array![0.0, 1.0, 4.0, 9.0, 16.0];
-
-// Using the convenience function
-let x_new = array![0.5, 1.5, 2.5, 3.5];
-let y_interp = pchip_interpolate(&x.view(), &y.view(), &x_new.view()).unwrap();
-println!("PCHIP interpolated values: {:?}", y_interp);
-
-// Or create an interpolator object for more control
-let interp = PchipInterpolator::new(&x.view(), &y.view()).unwrap();
-let y_at_point = interp.evaluate(2.5).unwrap();
-println!("PCHIP value at x=2.5: {}", y_at_point);
-
-// PCHIP preserves monotonicity of the data, unlike cubic spline which may introduce oscillations
-```
-
-### Tensor Product Interpolation
-
-```rust
-use ndarray::{array, Array2};
-use scirs2_interpolate::{tensor_product_interpolate, InterpolationMethod};
-
-// Create coordinates for each dimension
-let x = array![0.0, 1.0, 2.0, 3.0, 4.0];
-let y = array![0.0, 1.0, 2.0, 3.0];
-
-// Create values on the grid (z = sin(x) * cos(y))
-let mut values = ndarray::ArrayD::zeros(vec![5, 4]);
-for i in 0..5 {
-    for j in 0..4 {
-        values[[i, j]] = (x[i]).sin() * (y[j]).cos();
-    }
-}
-
-// Points to interpolate
-let points = Array2::from_shape_vec((2, 2), vec![
-    2.5, 1.5,
-    1.5, 2.5
-]).unwrap();
-
-// Interpolate using tensor product method
-let results = tensor_product_interpolate(
-    &[x, y],
-    &values,
-    &points.view(),
-    InterpolationMethod::Linear
-).unwrap();
-
-println!("Tensor product interpolation results: {:?}", results);
-```
-
-### Error Estimation and Differentiation
-
-```rust
-use ndarray::array;
-use scirs2_interpolate::{utils, interp1d::linear_interpolate};
-
-// Create sample data
-let x = array![0.0, 1.0, 2.0, 3.0, 4.0];
-let y = array![0.0, 1.0, 4.0, 9.0, 16.0];
-
-// Estimate error of linear interpolation
-let error = utils::error_estimate(&x.view(), &y.view(), linear_interpolate).unwrap();
-println!("Linear interpolation error estimate: {}", error);
-
-// Create a function that evaluates the interpolation
-let eval_fn = |x_val| {
-    linear_interpolate(&x.view(), &y.view(), &array![x_val].view())
-        .map(|arr| arr[0])
-};
-
-// Compute the derivative at x=2.5
-let derivative = utils::differentiate(2.5, 0.001, eval_fn).unwrap();
-println!("Numerical derivative at x=2.5: {}", derivative);
-
-// Compute the integral from x=1 to x=3
-let integral = utils::integrate(1.0, 3.0, 100, eval_fn).unwrap();
-println!("Numerical integral from x=1 to x=3: {}", integral);
-```
-
-## Error Handling
-
-The module uses the `InterpolateResult` and `InterpolateError` types for error handling:
-
-```rust
-pub enum InterpolateError {
-    /// Computation error (generic error)
-    ComputationError(String),
-
-    /// Domain error (input outside valid domain)
-    DomainError(String),
-
-    /// Value error (invalid value)
-    ValueError(String),
-
-    /// Not implemented error
-    NotImplementedError(String),
-}
-
-pub type InterpolateResult<T> = Result<T, InterpolateError>;
-```
-
-## ⚡ Performance
-
-The module is designed for **high-performance scientific computing**:
-
-### **Memory Efficiency**
-- Zero-copy operations with `ndarray` views
-- Cache-aware memory access patterns
-- Minimal allocations in hot paths
-- Efficient sparse matrix representations
-
-### **Computational Performance** 
-- **SIMD Acceleration**: 2-4x speedup with vectorized operations
-- **Parallel Processing**: Multi-threaded interpolation using Rayon
-- **Algorithm Optimization**: O(log n) spatial searches, optimized basis functions
-- **GPU Acceleration**: CUDA kernels for large-scale RBF evaluation
-
-### **Benchmarks vs SciPy**
-```text
-Interpolation Method     | SciRS2 (ms) | SciPy (ms) | Speedup
-------------------------|-------------|------------|--------
-1D Linear (10K points)  |        0.8  |       2.1  |   2.6x
-Cubic Spline (10K)      |        1.2  |       3.4  |   2.8x
-RBF Gaussian (1K)       |       12.3  |      45.7  |   3.7x
-Kriging (5K points)     |       8.9   |      67.2  |   7.5x
-SIMD B-spline (10K)     |       0.4   |       2.1  |   5.2x
-```
-
-*Benchmarks run on Intel i7-12700K, averaged over 100 runs*
-
-## 📊 Production Status - Ready for 0.1.0
-
-### **✅ Complete Implementation**
-
-**Core Features (100% Complete)**:
-- ✅ All standard 1D interpolation methods with optimized performance
-- ✅ Complete spline implementation (cubic, Akima, PCHIP, B-splines, NURBS)
-- ✅ Advanced spline variants (penalized, constrained, tension, multiscale)
-- ✅ Multi-dimensional interpolation (regular grid, scattered data, tensor product)
-- ✅ High-performance spatial data structures (kd-trees, ball trees)
-
-**Advanced Methods (100% Complete)**:
-- ✅ Full RBF implementation with 10+ kernel types and parameter optimization  
-- ✅ Production-ready fast kriging (local, fixed-rank, tapering, HODLR)
-- ✅ Natural neighbor, moving least squares, local polynomial regression
-- ✅ Adaptive interpolation with error-based refinement
-- ✅ Neural-enhanced and physics-informed interpolation methods
-
-**Performance & Optimization (95% Complete)**:
-- ✅ SIMD acceleration for critical paths (2-4x speedup)
-- ✅ Parallel processing with configurable worker threads  
-- ✅ GPU acceleration for large-scale RBF and batch evaluation
-- ✅ Cache-aware memory access patterns
-- 🔄 Continued optimization for extremely large datasets (>10M points)
-
-**Production Quality (100% Complete)**:
-- ✅ Comprehensive error handling and input validation
-- ✅ 100+ unit tests with 95%+ code coverage
-- ✅ Extensive benchmarking suite comparing performance to SciPy
-- ✅ Complete API documentation with 35+ working examples
-- ✅ Feature-gated dependencies for minimal binary size
-
-### **🎯 Release Readiness**
-This crate is **production-ready** for the 0.1.0 release with stable APIs, comprehensive testing, and performance that meets or exceeds SciPy in most use cases.
-
-## 📋 API Stability
-
-**Stable APIs** (guaranteed backward compatibility):
-- All basic interpolation methods (`Interp1d`, `make_interp_spline`, etc.)
-- Core spline implementations (`CubicSpline`, `BSpline`, `AkimaSpline`)
-- Multi-dimensional interpolation (`make_interp_nd`, `RegularGridInterpolator`)
-- RBF and Kriging interfaces
-
-**Experimental APIs** (may change in future versions):
-- GPU acceleration features
-- Some neural-enhanced interpolation methods
-- Advanced adaptive refinement algorithms
-
-## 🛠️ Contributing
-
-We welcome contributions! This crate follows the SciRS2 project guidelines:
-
-- **Code Style**: Run `cargo fmt` and `cargo clippy`
-- **Testing**: Maintain >95% test coverage
-- **Documentation**: Document all public APIs
-- **Performance**: Benchmark against SciPy where applicable
-
-## 📚 Documentation
-
-- **API Documentation**: [docs.rs/scirs2-interpolate](https://docs.rs/scirs2-interpolate)
-- **Examples**: See the `examples/` directory for 35+ working examples
-- **Benchmarks**: Run `cargo bench` for performance comparisons
-- **SciRS2 Book**: [scirs2.github.io](https://scirs2.github.io) (coming soon)
+Full API documentation is available at [docs.rs/scirs2-interpolate](https://docs.rs/scirs2-interpolate).
 
 ## License
 
-This project is Licensed under the Apache License 2.0. See LICENSE for details.
-
-You can choose to use either license. See the [LICENSE](../LICENSE) file for details.
+Licensed under the Apache License 2.0. See [LICENSE](../LICENSE) for details.

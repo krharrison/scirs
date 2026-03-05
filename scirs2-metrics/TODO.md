@@ -1,410 +1,184 @@
-# SciRS2 Metrics - Production Release Summary
+# scirs2-metrics TODO
 
-SciRS2 Metrics has reached production readiness with version 0.1.0. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this document summarizes the comprehensive features implemented with ecosystem consistency and platform testing.
+## Status: v0.3.0 Released (February 26, 2026)
 
-## Production Release Highlights
+## v0.3.0 Completed
 
-### Core Infrastructure ✅
-- **Complete module architecture** with proper error handling and validation
-- **Zero-warning codebase** with comprehensive linting and formatting
-- **142+ comprehensive tests** covering all functionality and edge cases
-- **Full API documentation** with mathematical formulations and examples
-- **Production-grade performance** with SIMD optimizations and parallel processing
+### Classification Metrics
+- [x] `accuracy_score` with sample weighting
+- [x] `precision_score`, `recall_score`, `f1_score`, `fbeta_score`
+- [x] `precision_recall_fscore_support` (all in one)
+- [x] Matthews correlation coefficient (MCC)
+- [x] Balanced accuracy, Cohen's kappa
+- [x] `roc_curve`, `roc_auc_score`
+- [x] `average_precision_score`, `precision_recall_curve`
+- [x] `confusion_matrix`, `classification_report`
+- [x] `log_loss`, `brier_score_loss`
+- [x] `hinge_loss`, `hamming_loss`, `jaccard_score`
+- [x] Multi-class: micro/macro/weighted/samples averaging
+- [x] `cohen_kappa_score`, `matthews_corrcoef`
+- [x] Optimal threshold: `g_means_score`, `find_optimal_threshold`
+- [x] Label binarization utilities
 
-## Implemented Features
+### Regression Metrics
+- [x] `mean_squared_error` (MSE), `root_mean_squared_error` (RMSE)
+- [x] `mean_absolute_error` (MAE), `median_absolute_error`
+- [x] `mean_absolute_percentage_error` (MAPE), symmetric MAPE
+- [x] `r2_score`, `explained_variance_score`, adjusted R²
+- [x] `mean_squared_log_error` (MSLE)
+- [x] `mean_tweedie_deviance`, Poisson/Gamma deviance
+- [x] Huber loss, quantile (pinball) loss
+- [x] Max error, relative absolute/squared error
+- [x] `regression_advanced`: interval score, coverage probability, Winkler score
 
-### Classification Metrics ✅
-**Basic Metrics**
-- Accuracy score with sample weighting support
-- Precision, recall, and F1-score (binary, multiclass, multilabel)
-- F-beta score with customizable beta parameter
-- Matthews correlation coefficient
-- Balanced accuracy and Cohen's kappa
-- Confusion matrix with label handling
-- Classification report (scikit-learn compatible)
+### Clustering Metrics
+- [x] `silhouette_score`, `silhouette_samples`
+- [x] `calinski_harabasz_score` (variance ratio)
+- [x] `davies_bouldin_score`
+- [x] Dunn index, gap statistic
+- [x] `adjusted_rand_index` (ARI)
+- [x] `normalized_mutual_info_score`, `adjusted_mutual_info_score`
+- [x] `homogeneity_completeness_v_measure`
+- [x] `fowlkes_mallows_score`
+- [x] Contingency matrix, pair confusion matrix
+- [x] Cluster stability, consensus scoring
 
-**Advanced Classification**
-- ROC curve analysis and AUC scoring
-- Precision-recall curves and average precision
-- Binary and multiclass log loss
-- Brier score loss for probability calibration
-- Calibration curves and reliability diagrams
-- Hamming loss and Jaccard similarity
-- Hinge loss for SVM evaluation
+### Ranking and Information Retrieval
+- [x] `ndcg_score` at k, DCG
+- [x] `mean_average_precision` (MAP), MAP@k
+- [x] `mrr_score` (MRR)
+- [x] `precision_at_k`, `recall_at_k`
+- [x] Kendall's tau, Spearman's rank correlation
+- [x] Label ranking average precision (LRAP)
+- [x] `ir_metrics` module: comprehensive IR evaluation
 
-**Multi-class/Multi-label Support**
-- One-vs-rest and one-vs-one evaluation strategies
-- Micro, macro, and weighted averaging methods
-- Label ranking metrics (coverage error, ranking loss)
-- Multilabel confusion matrix
-- Label binarization utilities
+### Object Detection Metrics (New in v0.3.0)
+- [x] `iou_score` for axis-aligned bounding boxes
+- [x] `average_precision` at IoU threshold
+- [x] `compute_map` (mAP) with configurable IoU thresholds
+- [x] Non-Maximum Suppression (NMS) utilities
+- [x] PASCAL VOC-style evaluation
+- [x] COCO-style mAP@[0.5:0.95] evaluation
+- [x] Per-class AP breakdown
 
-**Threshold Optimization**
-- G-means score for optimal threshold finding
-- Precision-recall curve analysis
-- Lift and gain chart generation
-- Optimal threshold finding with custom metrics
+### Generative Model Evaluation (New in v0.3.0)
+- [x] Fréchet Inception Distance (FID)
+- [x] Inception Score (IS)
+- [x] Precision and Recall for generative models
+- [x] Maximum Mean Discrepancy (MMD)
+- [x] Kernel-based evaluation metrics
 
-### Regression Metrics ✅
-**Basic Metrics**
-- Mean squared error (MSE) and root MSE
-- Mean absolute error (MAE) and median AE
-- Mean absolute percentage error (MAPE)
-- Symmetric MAPE for better percentage handling
-- Maximum error for worst-case analysis
-- R² score (coefficient of determination)
-- Explained variance score
+### Segmentation Metrics (New in v0.3.0)
+- [x] Pixel accuracy, mean pixel accuracy
+- [x] Per-class IoU, mean IoU (mIoU)
+- [x] Dice coefficient, Jaccard index
+- [x] Boundary F-measure
+- [x] Panoptic Quality (PQ)
 
-**Advanced Regression**
-- Mean squared logarithmic error (MSLE)
-- Huber loss for robust regression
-- Quantile loss for quantile regression
-- Tweedie deviance (Poisson, Gamma variants)
-- Normalized metrics (NRMSE)
-- Adjusted R² score
-- Relative absolute and squared error
+### Fairness and Bias Detection
+- [x] `demographic_parity` (difference and ratio)
+- [x] `equalized_odds` difference
+- [x] `equal_opportunity` difference
+- [x] `disparate_impact` ratio
+- [x] Consistency score across subgroups
+- [x] Slice analysis for subgroup performance
+- [x] Intersectional fairness measures
+- [x] Robustness testing: performance invariance, sensitivity
 
-**Error Analysis**
-- Residual analysis tools
-- Error distribution analysis
-- Q-Q plot functionality
-- Robust regression metrics
+### Streaming Metrics
+- [x] Memory-efficient online evaluation
+- [x] `streaming/optimization/patterns/batching.rs` - batch accumulator
+- [x] `streaming/optimization/patterns/buffering.rs` - ring-buffer streaming
+- [x] `streaming/optimization/patterns/partitioning.rs` - keyed/group metrics
+- [x] `streaming/optimization/patterns/windowing.rs` - sliding/tumbling windows
+- [x] Online Welford variance for streaming statistics
 
-### Clustering Metrics ✅
-**Internal Metrics (No Ground Truth)**
-- Silhouette analysis (score, samples, per-cluster)
-- Calinski-Harabasz index (variance ratio)
-- Davies-Bouldin index
-- Dunn index for cluster separation
-- Elbow method for optimal k-selection
-- Gap statistic implementation
+### Evaluation Framework
+- [x] K-fold cross-validation, stratified K-fold, leave-one-out
+- [x] Time series cross-validation
+- [x] `cross_val_score`, `cross_validate`
+- [x] Learning curve, validation curve generation
+- [x] `grid_search_cv`, `randomized_search_cv`
+- [x] Bootstrap confidence intervals
+- [x] McNemar's test, Friedman test, Wilcoxon signed-rank test
 
-**External Metrics (With Ground Truth)**
-- Adjusted Rand Index (ARI)
-- Normalized and Adjusted Mutual Information
-- Homogeneity, completeness, and V-measure
-- Fowlkes-Mallows score
-- Contingency matrix analysis
-- Pair confusion matrix
+### Bayesian Evaluation
+- [x] Bayes factor computation
+- [x] BIC, AIC, WAIC, LOO-CV, DIC
+- [x] Posterior predictive checks
+- [x] Bayesian model averaging
+- [x] Credible intervals and HPD intervals
 
-**Distance-based Analysis**
-- Inter-cluster and intra-cluster distances
-- Distance ratio index
-- Isolation index for outlier detection
-- Density-based cluster validity
-- Local density factors
-- Relative density index
+### Hardware Acceleration
+- [x] SIMD-accelerated computations (SSE2, AVX2, AVX-512)
+- [x] Automatic hardware capability detection
+- [x] Configurable acceleration settings
+- [x] Parallel Rayon-based batch evaluation
 
-**Clustering Validation**
-- Cluster stability measures
-- Consensus scoring across runs
-- Jaccard similarity for cluster comparison
-- Fold stability analysis
+### Visualization
+- [x] ROC curve, precision-recall curve, calibration curve
+- [x] Confusion matrix heatmap (normalized and unnormalized)
+- [x] Learning and validation curves
+- [x] Histogram, scatter, bar chart, heatmap
+- [x] Plotters backend (PNG/SVG)
+- [x] Plotly backend (interactive HTML)
+- [x] Dashboard server (HTTP, Chart.js, RESTful API)
+- [x] Export: JSON, CSV, HTML
 
-### Ranking and Retrieval Metrics ✅
-**Basic Ranking**
-- Mean reciprocal rank (MRR)
-- Discounted cumulative gain (DCG)
-- Normalized DCG (NDCG)
-- Mean average precision (MAP)
-- Precision@k and Recall@k
+### Neural Integration (`neural_common` feature)
+- [x] `NeuralMetricAdapter` for `scirs2-neural` trainer callbacks
+- [x] `MetricsCallback` for per-epoch metric collection
+- [x] Training history visualization
 
-**Advanced Ranking**
-- Kendall's tau correlation
-- Spearman's rank correlation
-- Click-through rate prediction metrics
-- MAP@k and other top-k metrics
-- Label ranking average precision
+### Optimization Integration (`optim_integration` feature)
+- [x] `MetricScheduler` (reduce-on-plateau)
+- [x] `HyperParameterTuner` with random and grid search
+- [x] `MetricBasedReduceOnPlateau` optimizer wrapper
 
-### Anomaly Detection Metrics ✅
-**Detection Accuracy**
-- Anomaly detection accuracy
-- False alarm rate and miss detection rate
-- AUC for anomaly detection tasks
-- Average precision for anomalies
+## v0.4.0 Roadmap
 
-**Distribution Analysis**
-- Kullback-Leibler divergence
-- Jensen-Shannon divergence
-- Wasserstein (Earth Mover's) distance
-- Maximum mean discrepancy (MMD)
+### Distributional Metrics
+- [ ] Wasserstein distance (Earth Mover's distance) — exact and approximate
+- [ ] Sinkhorn divergence for regularized optimal transport
+- [ ] Energy distance between empirical distributions
+- [ ] Kernel Stein Discrepancy (KSD) for goodness-of-fit
+- [ ] Total variation distance
 
-**Time Series Anomalies**
-- Numenta Anomaly Benchmark (NAB) scoring
-- Precision/recall with tolerance windows
-- Point-adjustment measures for time series
-- Temporal anomaly detection metrics
+### Uncertainty Calibration Metrics
+- [ ] Expected Calibration Error (ECE)
+- [ ] Maximum Calibration Error (MCE)
+- [ ] Reliability diagram generation
+- [ ] Temperature scaling calibration diagnostic
+- [ ] Adaptive Calibration Error (ACE)
+- [ ] Conformal prediction coverage metrics
 
-### Fairness and Bias Detection ✅
-**Group Fairness**
-- Demographic parity difference
-- Equalized odds difference
-- Equal opportunity difference
-- Disparate impact ratio
-- Consistency score across groups
+### Active Learning Utility
+- [ ] Margin sampling score
+- [ ] Entropy-based uncertainty score
+- [ ] Query-by-committee disagreement
+- [ ] Core-set selection metrics
+- [ ] Expected model change
 
-**Bias Analysis**
-- Slice analysis for subgroup performance
-- Subgroup performance metrics
-- Intersectional fairness measures
-- Comprehensive bias detection framework
+### Expanded Detection Metrics
+- [ ] 3D IoU for point cloud bounding boxes
+- [ ] Rotated bounding box IoU
+- [ ] Tracking metrics: MOTA, MOTP, IDF1
+- [ ] Keypoint metrics: OKS (Object Keypoint Similarity), PCK
 
-**Robustness Testing**
-- Performance invariance measures
-- Influence function analysis
-- Sensitivity to perturbations
-- Multiple perturbation types
+### Time Series Metrics
+- [ ] Dynamic Time Warping (DTW) distance as metric
+- [ ] Forecast skill scores (Brier skill score, CRPS)
+- [ ] Directional accuracy (hit rate) for forecasts
+- [ ] Diebold-Mariano test for forecast comparison
 
-### Evaluation Framework ✅
-**Cross-validation**
-- K-fold cross-validation
-- Stratified K-fold for balanced sampling
-- Leave-one-out cross-validation
-- Time series cross-validation
-- Grouped cross-validation
-- Nested cross-validation
+### Documentation and Examples
+- [ ] Comprehensive cookbook with domain-specific metric selection guides
+- [ ] Integration examples with popular ML frameworks
+- [ ] Benchmark report vs `sklearn.metrics`
 
-**Statistical Testing**
-- McNemar's test for classifier comparison
-- Cochran's Q test for multiple classifiers
-- Friedman test for non-parametric comparison
-- Wilcoxon signed-rank test
-- Bootstrap confidence intervals
+## Known Issues
 
-**Evaluation Workflows**
-- Train/test splitting utilities
-- Learning curve generation
-- Validation curve analysis
-- Batch evaluation for multiple models
-- Pipeline evaluation utilities
-- Automated report generation
-
-### Advanced Capabilities ✅
-
-#### Bayesian Evaluation
-- Bayesian model comparison with Bayes factors
-- Information criteria (BIC, WAIC, LOO-CV, DIC)
-- Posterior predictive checks
-- Credible intervals and HPD intervals
-- Bayesian model averaging
-- MCMC-based evidence estimation
-- Bridge sampling and importance sampling
-
-#### Hardware Acceleration
-- SIMD vectorization (SSE2, AVX2, AVX-512)
-- Hardware capability auto-detection
-- Accelerated statistical computations
-- SIMD-optimized matrix operations
-- Configurable acceleration settings
-- Performance benchmarking utilities
-- Fallback implementations for compatibility
-
-#### Streaming and Online Metrics
-- Incremental metric computation
-- Memory-efficient streaming algorithms
-- Windowed metrics for sliding windows
-- Real-time metrics monitoring
-- Batch processing for large datasets
-- Concept drift detection utilities
-- Reset capabilities for new periods
-
-#### Custom Metrics Framework
-- Trait-based custom metric system
-- Support for all metric types
-- Custom metric suites
-- Type-safe validation
-- Integration with evaluation pipelines
-- Comprehensive examples and documentation
-
-#### Model Selection and AutoML
-- Multi-metric model evaluation
-- Flexible aggregation strategies
-- Pareto optimal model identification
-- Threshold-based filtering
-- Builder pattern for complex selection
-- Domain-specific workflows
-- Comprehensive comparison capabilities
-
-### Integration Features ✅
-
-#### Neural Network Integration
-- Neural metric adapters
-- Training callback system
-- Real-time metric monitoring
-- Visualization during training
-- ROC curve visualization
-- Confusion matrix visualization
-- Training history plotting
-
-#### Optimization Integration
-- Metric-based learning rate scheduling
-- Hyperparameter tuning utilities
-- MetricOptimizer and MetricScheduler
-- Configuration bridge patterns
-- External optimizer compatibility
-- Comprehensive integration tests
-
-#### Scikit-learn Compatibility
-- Complete API equivalence
-- classification_report compatibility
-- precision_recall_fscore_support matching
-- cohen_kappa_score with weighting
-- multilabel_confusion_matrix support
-- Loss function implementations
-- Identical parameter handling
-
-### Visualization System ✅
-**Core Visualization**
-- ROC curve plotting with AUC display
-- Precision-recall curve visualization
-- Confusion matrix heatmaps
-- Calibration curve plotting
-- Learning curve visualization
-- Generic metric plotting
-
-**Advanced Visualizations**
-- Multi-curve comparison plots
-- Histogram visualization
-- Custom heatmap generation
-- Interactive dashboard framework
-- Real-time metric monitoring
-- Configurable themes and layouts
-
-**Multiple Backends**
-- Plotters backend for static plots
-- Plotly backend for interactive plots
-- Feature-gated backend selection
-- SVG and PNG export support
-- Multiple export formats (JSON, CSV, HTML)
-
-**Dashboard System**
-- Web-based interactive dashboard
-- Widget system for customization
-- Time-series data management
-- Statistical analysis integration
-- Domain-specific dashboard creation
-- Mock server for development
-
-### Domain-Specific Collections ✅
-
-#### Computer Vision
-- Object detection evaluation (IoU, mAP)
-- Image classification metrics
-- Segmentation evaluation (Dice, IoU)
-- Pixel-wise accuracy measures
-- Bounding box analysis
-
-#### Natural Language Processing
-- BLEU score for translation
-- ROUGE metrics for summarization
-- Named entity recognition evaluation
-- Sentiment analysis accuracy
-- Text classification metrics
-- Text generation evaluation
-
-#### Time Series Analysis
-- Forecasting accuracy metrics (MAPE, SMAPE)
-- Trend analysis metrics
-- Autocorrelation analysis
-- Seasonal decomposition metrics
-- Time series anomaly detection
-
-#### Recommender Systems
-- Ranking quality metrics
-- Rating prediction accuracy
-- Diversity and novelty measures
-- Coverage analysis
-- Gini coefficient for fairness
-- Mean reciprocal rank calculation
-
-#### Anomaly Detection Domain
-- Comprehensive anomaly suite
-- Detection accuracy measurement
-- Distribution divergence analysis
-- Time series anomaly scoring
-- Range-based anomaly finding
-
-## Quality Assurance Achievements ✅
-
-### Testing Coverage
-- **142+ comprehensive unit tests** covering all functionality
-- **Edge case testing** for numerical stability
-- **Performance regression testing** with benchmarks
-- **Cross-platform compatibility** verification
-- **Integration testing** for module interactions
-- **Property-based testing** for mathematical properties
-- **Reference benchmarking** against scikit-learn
-
-### Code Quality
-- **Zero-warning compilation** across all targets
-- **Comprehensive clippy compliance** with targeted allows
-- **Consistent formatting** with rustfmt
-- **Full API documentation** with examples
-- **Mathematical formulations** in documentation
-- **Best practices documentation** with guides
-
-### Performance Optimization
-- **SIMD-accelerated computations** where applicable
-- **Memory-efficient algorithms** for large datasets
-- **Parallel processing** via Rayon integration
-- **Chunked processing** for memory constraints
-- **Hardware-specific optimizations** with fallbacks
-- **Streaming algorithms** for online evaluation
-
-## Production Deployment Guide
-
-### Recommended Installation
-```toml
-[dependencies]
-scirs2-metrics = "0.1.5"  # Includes default features
-```
-
-### Feature Selection Guide
-- **Default features**: Recommended for most production use
-- **Minimal installation**: Use `default-features = false` for size optimization
-- **Full capabilities**: Add `neural_common` and `plotters_backend` features
-- **High-performance**: Ensure hardware acceleration features are enabled
-
-### Performance Considerations
-- Enable parallel processing for large datasets
-- Use streaming metrics for memory-constrained environments
-- Configure hardware acceleration based on target architecture
-- Consider chunked processing for very large datasets
-
-### Integration Best Practices
-- Use domain-specific metric collections for specialized applications
-- Leverage custom metrics framework for unique requirements
-- Implement proper error handling with provided error types
-- Follow scikit-learn compatibility patterns for Python migration
-
-## Future Development Roadmap
-
-### Maintenance Priorities
-1. **API Stability**: Maintain backward compatibility
-2. **Performance**: Continue optimization efforts
-3. **Documentation**: Keep examples and guides updated
-4. **Testing**: Expand edge case coverage
-
-### Potential Enhancements
-1. **GPU Acceleration**: CUDA/OpenCL support for large-scale computation
-2. **Distributed Computing**: Support for cluster-based evaluation
-3. **Additional Domains**: Expand domain-specific collections
-4. **Extended Visualization**: More interactive dashboard features
-
-### Community Contributions
-- Welcome performance improvements
-- Domain-specific metric additions
-- Visualization enhancements
-- Documentation improvements
-- Bug fixes and edge case handling
-
-## Conclusion
-
-SciRS2 Metrics has achieved comprehensive production readiness with:
-- **Complete feature coverage** across all ML evaluation domains
-- **Production-grade quality** with extensive testing and documentation
-- **High-performance implementation** with hardware optimizations
-- **Flexible integration** capabilities with other SciRS2 modules
-- **Rich visualization** support for interactive analysis
-
-The library is ready for production deployment in scientific computing, machine learning research, and industrial AI applications.
+- `plotly_backend` feature generates HTML that requires a network connection to load Chart.js from CDN; add offline/bundled mode.
+- `dashboard_server` requires `tokio` runtime; document how to integrate with existing async applications.
+- SIMD acceleration is only available on x86/x86_64 targets; ARM NEON support is planned for v0.4.0.
+- The `generative` module (FID, IS) requires pre-computed feature vectors; it does not include the Inception network — document this clearly.

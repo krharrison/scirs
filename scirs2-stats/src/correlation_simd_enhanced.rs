@@ -358,6 +358,324 @@ where
     Ok(result)
 }
 
+// ============================================================================
+// SIMD Pearson correlation matrix (parallel over variable pairs)
+// ============================================================================
+
+/// Compute the full Pearson correlation matrix for a dataset using SIMD
+/// dot-product kernels and Rayon parallelism across variable pairs.
+///
+/// The data layout follows the convention where **rows are observations** and
+/// **columns are variables** (i.e. each column is one variable).
+///
+/// # Algorithm
+///
+/// 1. Compute per-column means in parallel.
+/// 2. For every off-diagonal `(i, j)` pair compute the Pearson r using SIMD
+///    dot-products on the mean-centred columns.
+/// 3. Assemble the symmetric result matrix.
+///
+/// # Arguments
+///
+/// * `data` — 2-D array with shape `(n_obs, n_vars)`.
+///
+/// # Errors
+///
+/// Returns [`StatsError`] when fewer than 2 observations are present, the
+/// data contains fewer than 2 variables, or a column has zero variance.
+///
+/// # Examples
+///
+/// ```
+/// use scirs2_core::ndarray::array;
+/// use scirs2_stats::correlation_simd_enhanced::simd_pearson_correlation_matrix;
+///
+/// let data = array![
+///     [1.0_f64, 4.0],
+///     [2.0_f64, 3.0],
+///     [3.0_f64, 2.0],
+///     [4.0_f64, 1.0],
+/// ];
+/// let r = simd_pearson_correlation_matrix(&data.view()).expect("should succeed");
+/// // x1 and x2 are perfectly negatively correlated
+/// assert!((r[(0, 1)] + 1.0_f64).abs() < 1e-10);
+/// assert!((r[(0, 0)] - 1.0_f64).abs() < 1e-10);
+/// ```
+pub fn simd_pearson_correlation_matrix(data: &ArrayView2<f64>) -> StatsResult<Array2<f64>> {
+    let n_obs = data.nrows();
+    let n_vars = data.ncols();
+
+    if n_obs < 2 {
+        return Err(StatsError::invalid_argument(
+            "At least 2 observations are required for Pearson correlation",
+        ));
+    }
+    if n_vars < 2 {
+        return Err(StatsError::invalid_argument(
+            "At least 2 variables are required for a correlation matrix",
+        ));
+    }
+
+    use scirs2_core::parallel_ops::*;
+
+    // ── Step 1: per-column means ──────────────────────────────────────────────
+    let optimizer = AutoOptimizer::new();
+    let means: Vec<f64> = (0..n_vars)
+        .map(|j| {
+            let col = data.column(j);
+            if optimizer.should_use_simd(n_obs) {
+                let arr = col.to_owned();
+                F64::simd_sum(&arr.view()) / n_obs as f64
+            } else {
+                col.iter().sum::<f64>() / n_obs as f64
+            }
+        })
+        .collect();
+
+    // ── Step 2: per-column std-dev (population, no Bessel correction) ─────────
+    let stds: Vec<f64> = (0..n_vars)
+        .map(|j| {
+            let col = data.column(j);
+            let m = means[j];
+            let var: f64 = if optimizer.should_use_simd(n_obs) {
+                let arr = col.to_owned();
+                let mean_arr = Array1::from_elem(n_obs, m);
+                let dev = F64::simd_sub(&arr.view(), &mean_arr.view());
+                let sq = F64::simd_mul(&dev.view(), &dev.view());
+                F64::simd_sum(&sq.view()) / n_obs as f64
+            } else {
+                col.iter().map(|&x| (x - m).powi(2)).sum::<f64>() / n_obs as f64
+            };
+            var.sqrt()
+        })
+        .collect();
+
+    // Validate — no zero-variance columns.
+    for (j, &sd) in stds.iter().enumerate() {
+        if sd <= f64::EPSILON {
+            return Err(StatsError::invalid_argument(&format!(
+                "Variable {j} has zero variance; Pearson r is undefined"
+            )));
+        }
+    }
+
+    // ── Step 3: build upper-triangle pair list ────────────────────────────────
+    let pairs: Vec<(usize, usize)> = (0..n_vars)
+        .flat_map(|i| ((i + 1)..n_vars).map(move |j| (i, j)))
+        .collect();
+
+    // ── Step 4: parallel computation of each (i, j) correlation ──────────────
+    type SIMDf64 = f64; // alias to satisfy the closure type inference below
+    let corrs: Result<Vec<((usize, usize), f64)>, StatsError> = pairs
+        .par_iter()
+        .map(|&(i, j)| {
+            let col_i = data.column(i).to_owned();
+            let col_j = data.column(j).to_owned();
+            let mi = means[i];
+            let mj = means[j];
+            let si = stds[i];
+            let sj = stds[j];
+
+            let r: SIMDf64 = if optimizer.should_use_simd(n_obs) {
+                let mean_i_arr = Array1::from_elem(n_obs, mi);
+                let mean_j_arr = Array1::from_elem(n_obs, mj);
+                let dev_i = F64::simd_sub(&col_i.view(), &mean_i_arr.view());
+                let dev_j = F64::simd_sub(&col_j.view(), &mean_j_arr.view());
+                let products = F64::simd_mul(&dev_i.view(), &dev_j.view());
+                let cov = F64::simd_sum(&products.view()) / n_obs as f64;
+                cov / (si * sj)
+            } else {
+                let cov: f64 = col_i
+                    .iter()
+                    .zip(col_j.iter())
+                    .map(|(&xi, &xj)| (xi - mi) * (xj - mj))
+                    .sum::<f64>()
+                    / n_obs as f64;
+                cov / (si * sj)
+            };
+
+            // Clamp to [-1, 1] to defend against floating-point overshoot.
+            Ok(((i, j), r.clamp(-1.0, 1.0)))
+        })
+        .collect();
+
+    let corrs = corrs?;
+
+    // ── Step 5: assemble the symmetric matrix ─────────────────────────────────
+    let mut out = Array2::<f64>::zeros((n_vars, n_vars));
+    for j in 0..n_vars {
+        out[(j, j)] = 1.0;
+    }
+    for ((i, j), r) in corrs {
+        out[(i, j)] = r;
+        out[(j, i)] = r;
+    }
+
+    Ok(out)
+}
+
+// Private type alias so closures can call SIMD methods without generics.
+struct F64;
+impl F64 {
+    #[inline]
+    fn simd_sub(
+        a: &scirs2_core::ndarray::ArrayView1<f64>,
+        b: &scirs2_core::ndarray::ArrayView1<f64>,
+    ) -> Array1<f64> {
+        <f64 as SimdUnifiedOps>::simd_sub(a, b)
+    }
+    #[inline]
+    fn simd_mul(
+        a: &scirs2_core::ndarray::ArrayView1<f64>,
+        b: &scirs2_core::ndarray::ArrayView1<f64>,
+    ) -> Array1<f64> {
+        <f64 as SimdUnifiedOps>::simd_mul(a, b)
+    }
+    #[inline]
+    fn simd_sum(a: &scirs2_core::ndarray::ArrayView1<f64>) -> f64 {
+        <f64 as SimdUnifiedOps>::simd_sum(a)
+    }
+}
+
+// ============================================================================
+// SIMD Spearman one-vs-many batch correlation
+// ============================================================================
+
+/// Compute the Spearman rank correlation of a single reference vector `x`
+/// against every column in `ys` using SIMD-accelerated rank-based Pearson
+/// computation and Rayon parallelism.
+///
+/// # Arguments
+///
+/// * `x`  — Reference vector of length `n`.
+/// * `ys` — 2-D array with shape `(n, m)`.  Each column is one comparison
+///           target.
+///
+/// # Returns
+///
+/// A length-`m` array where element `k` is `spearman_r(x, ys.column(k))`.
+///
+/// # Errors
+///
+/// Returns [`StatsError`] when `x` is empty, the row count of `ys` doesn't
+/// match `x.len()`, or any column has zero variance in rank space.
+///
+/// # Examples
+///
+/// ```
+/// use scirs2_core::ndarray::{array, Array2};
+/// use scirs2_stats::correlation_simd_enhanced::simd_spearman_correlation_batch;
+///
+/// let x = array![1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// // Two columns: perfect positive and perfect negative relationship.
+/// let ys = Array2::from_shape_fn((5, 2), |(i, j)| {
+///     if j == 0 { (i + 1) as f64 } else { (5 - i) as f64 }
+/// });
+/// let rhos = simd_spearman_correlation_batch(&x.view(), &ys.view())
+///     .expect("should succeed");
+/// assert!((rhos[0] - 1.0).abs() < 1e-10, "perfect positive: {}", rhos[0]);
+/// assert!((rhos[1] + 1.0).abs() < 1e-10, "perfect negative: {}", rhos[1]);
+/// ```
+pub fn simd_spearman_correlation_batch(
+    x: &ArrayView1<f64>,
+    ys: &ArrayView2<f64>,
+) -> StatsResult<Array1<f64>> {
+    let n = x.len();
+    if n == 0 {
+        return Err(StatsError::invalid_argument(
+            "Reference vector x must not be empty",
+        ));
+    }
+    if ys.nrows() != n {
+        return Err(StatsError::dimension_mismatch(
+            "Number of rows in ys must equal the length of x",
+        ));
+    }
+    let m = ys.ncols();
+    if m == 0 {
+        return Err(StatsError::invalid_argument(
+            "ys must have at least one column",
+        ));
+    }
+
+    use scirs2_core::parallel_ops::*;
+
+    // Pre-compute ranks of the reference vector once.
+    let x_owned = x.to_owned();
+    let rank_x = compute_ranks(&x_owned.view());
+
+    // Parallel map over columns of ys.
+    let results: Result<Vec<f64>, StatsError> = (0..m)
+        .into_par_iter()
+        .map(|j| {
+            let col = ys.column(j).to_owned();
+            let rank_y = compute_ranks(&col.view());
+
+            // Pearson correlation on rank arrays (= Spearman).
+            spearman_r_simd_on_ranks(&rank_x.view(), &rank_y.view(), n)
+        })
+        .collect();
+
+    let results = results?;
+    Ok(Array1::from_vec(results))
+}
+
+/// Compute Pearson correlation of pre-computed rank arrays using SIMD.
+fn spearman_r_simd_on_ranks(
+    rank_x: &ArrayView1<f64>,
+    rank_y: &ArrayView1<f64>,
+    n: usize,
+) -> StatsResult<f64> {
+    let optimizer = AutoOptimizer::new();
+
+    let mean_rx: f64 = if optimizer.should_use_simd(n) {
+        F64::simd_sum(rank_x) / n as f64
+    } else {
+        rank_x.iter().sum::<f64>() / n as f64
+    };
+    let mean_ry: f64 = if optimizer.should_use_simd(n) {
+        F64::simd_sum(rank_y) / n as f64
+    } else {
+        rank_y.iter().sum::<f64>() / n as f64
+    };
+
+    let (sum_xy, sum_rx2, sum_ry2) = if optimizer.should_use_simd(n) {
+        let mrx = Array1::from_elem(n, mean_rx);
+        let mry = Array1::from_elem(n, mean_ry);
+        let rx_dev = F64::simd_sub(rank_x, &mrx.view());
+        let ry_dev = F64::simd_sub(rank_y, &mry.view());
+        let xy = F64::simd_mul(&rx_dev.view(), &ry_dev.view());
+        let rx2 = F64::simd_mul(&rx_dev.view(), &rx_dev.view());
+        let ry2 = F64::simd_mul(&ry_dev.view(), &ry_dev.view());
+        (
+            F64::simd_sum(&xy.view()),
+            F64::simd_sum(&rx2.view()),
+            F64::simd_sum(&ry2.view()),
+        )
+    } else {
+        let mut sxy = 0.0_f64;
+        let mut srx2 = 0.0_f64;
+        let mut sry2 = 0.0_f64;
+        for i in 0..n {
+            let dx = rank_x[i] - mean_rx;
+            let dy = rank_y[i] - mean_ry;
+            sxy += dx * dy;
+            srx2 += dx * dx;
+            sry2 += dy * dy;
+        }
+        (sxy, srx2, sry2)
+    };
+
+    if sum_rx2 <= f64::EPSILON || sum_ry2 <= f64::EPSILON {
+        return Err(StatsError::invalid_argument(
+            "Cannot compute Spearman r: one or both rank vectors have zero variance",
+        ));
+    }
+
+    let corr = (sum_xy / (sum_rx2 * sum_ry2).sqrt()).clamp(-1.0, 1.0);
+    Ok(corr)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -393,5 +711,177 @@ mod tests {
 
         let rolling_corr = rolling_correlation_simd(&x.view(), &y.view(), 3).expect("Failed");
         assert_eq!(rolling_corr.len(), 8);
+    }
+
+    // ── simd_pearson_correlation_matrix ──────────────────────────────────────
+
+    #[test]
+    fn test_simd_pearson_correlation_matrix_diagonal() {
+        // Diagonal entries must all be 1.0.
+        let data = array![
+            [1.0_f64, 3.0, 7.0],
+            [2.0_f64, 2.0, 5.0],
+            [3.0_f64, 1.0, 3.0],
+            [4.0_f64, 4.0, 9.0],
+        ];
+        let r = simd_pearson_correlation_matrix(&data.view()).expect("should succeed");
+        assert_eq!(r.shape(), &[3, 3]);
+        for i in 0..3 {
+            assert_abs_diff_eq!(r[(i, i)], 1.0_f64, epsilon = 1e-10);
+        }
+    }
+
+    #[test]
+    fn test_simd_pearson_correlation_matrix_symmetry() {
+        let data = array![
+            [1.0_f64, 4.0, 9.0],
+            [2.0_f64, 3.0, 6.0],
+            [3.0_f64, 2.0, 3.0],
+            [4.0_f64, 1.0, 0.0],
+        ];
+        let r = simd_pearson_correlation_matrix(&data.view()).expect("should succeed");
+        for i in 0..3 {
+            for j in 0..3 {
+                assert_abs_diff_eq!(r[(i, j)], r[(j, i)], epsilon = 1e-12);
+            }
+        }
+    }
+
+    #[test]
+    fn test_simd_pearson_correlation_matrix_perfect_negative() {
+        // x2 = -x1 → r(x1, x2) = -1
+        let data = array![
+            [1.0_f64, -1.0_f64],
+            [2.0_f64, -2.0_f64],
+            [3.0_f64, -3.0_f64],
+            [4.0_f64, -4.0_f64],
+        ];
+        let r = simd_pearson_correlation_matrix(&data.view()).expect("should succeed");
+        assert_abs_diff_eq!(r[(0, 1)], -1.0_f64, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_simd_pearson_correlation_matrix_perfect_positive() {
+        // x2 = 2*x1 → r(x1, x2) = 1
+        let data = array![
+            [1.0_f64, 2.0_f64],
+            [2.0_f64, 4.0_f64],
+            [3.0_f64, 6.0_f64],
+            [4.0_f64, 8.0_f64],
+        ];
+        let r = simd_pearson_correlation_matrix(&data.view()).expect("should succeed");
+        assert_abs_diff_eq!(r[(0, 1)], 1.0_f64, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_simd_pearson_correlation_matrix_rejects_few_obs() {
+        let data = array![[1.0_f64, 2.0_f64]]; // only 1 row
+        assert!(simd_pearson_correlation_matrix(&data.view()).is_err());
+    }
+
+    #[test]
+    fn test_simd_pearson_correlation_matrix_rejects_single_var() {
+        // need at least 2 columns
+        let data = array![[1.0_f64], [2.0_f64], [3.0_f64]];
+        assert!(simd_pearson_correlation_matrix(&data.view()).is_err());
+    }
+
+    #[test]
+    fn test_simd_pearson_correlation_matrix_values_in_range() {
+        // With an arbitrary 10×5 matrix, all entries should be in [-1, 1].
+        use scirs2_core::ndarray::Array2;
+        let n_obs = 20;
+        let n_vars = 5;
+        let data = Array2::from_shape_fn((n_obs, n_vars), |(i, j)| {
+            ((i * n_vars + j) as f64).sin() * 3.7 + 1.2
+        });
+        let r = simd_pearson_correlation_matrix(&data.view()).expect("should succeed");
+        for &val in r.iter() {
+            assert!(
+                val >= -1.0 - 1e-12 && val <= 1.0 + 1e-12,
+                "r={val} outside [-1,1]"
+            );
+        }
+    }
+
+    // ── simd_spearman_correlation_batch ──────────────────────────────────────
+
+    #[test]
+    fn test_simd_spearman_correlation_batch_perfect_positive() {
+        let x = array![1.0_f64, 2.0, 3.0, 4.0, 5.0];
+        // Both columns perfectly monotonic with x.
+        use scirs2_core::ndarray::Array2;
+        let ys = Array2::from_shape_fn((5, 2), |(i, _j)| (i + 1) as f64);
+        let rhos = simd_spearman_correlation_batch(&x.view(), &ys.view()).expect("should succeed");
+        assert_eq!(rhos.len(), 2);
+        assert_abs_diff_eq!(rhos[0], 1.0_f64, epsilon = 1e-10);
+        assert_abs_diff_eq!(rhos[1], 1.0_f64, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_simd_spearman_correlation_batch_perfect_negative() {
+        let x = array![1.0_f64, 2.0, 3.0, 4.0, 5.0];
+        use scirs2_core::ndarray::Array2;
+        let ys = Array2::from_shape_fn((5, 1), |(i, _j)| (5 - i) as f64);
+        let rhos = simd_spearman_correlation_batch(&x.view(), &ys.view()).expect("should succeed");
+        assert_abs_diff_eq!(rhos[0], -1.0_f64, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_simd_spearman_correlation_batch_mixed() {
+        // One positive, one negative column.
+        let x = array![1.0_f64, 2.0, 3.0, 4.0, 5.0];
+        use scirs2_core::ndarray::Array2;
+        let ys = Array2::from_shape_fn((5, 2), |(i, j)| {
+            if j == 0 {
+                (i + 1) as f64
+            } else {
+                (5 - i) as f64
+            }
+        });
+        let rhos = simd_spearman_correlation_batch(&x.view(), &ys.view()).expect("should succeed");
+        assert_abs_diff_eq!(rhos[0], 1.0_f64, epsilon = 1e-10);
+        assert_abs_diff_eq!(rhos[1], -1.0_f64, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_simd_spearman_correlation_batch_output_length() {
+        let x = array![1.0_f64, 2.0, 3.0, 4.0];
+        use scirs2_core::ndarray::Array2;
+        let ys = Array2::from_shape_fn((4, 7), |(i, j)| (i * 7 + j) as f64);
+        let rhos = simd_spearman_correlation_batch(&x.view(), &ys.view()).expect("should succeed");
+        assert_eq!(rhos.len(), 7);
+    }
+
+    #[test]
+    fn test_simd_spearman_correlation_batch_values_in_range() {
+        let x = array![3.0_f64, 1.0, 4.0, 1.0, 5.0, 9.0, 2.0, 6.0];
+        use scirs2_core::ndarray::Array2;
+        let n_cols = 10;
+        let ys =
+            Array2::from_shape_fn((8, n_cols), |(i, j)| ((i + j * 3) as f64).cos() * 5.0 + 2.0);
+        let rhos = simd_spearman_correlation_batch(&x.view(), &ys.view()).expect("should succeed");
+        for &r in rhos.iter() {
+            assert!(
+                r >= -1.0 - 1e-12 && r <= 1.0 + 1e-12,
+                "rho={r} outside [-1,1]"
+            );
+        }
+    }
+
+    #[test]
+    fn test_simd_spearman_correlation_batch_rejects_empty_x() {
+        use scirs2_core::ndarray::{Array1, Array2};
+        let x: Array1<f64> = Array1::zeros(0);
+        let ys: Array2<f64> = Array2::zeros((0, 2));
+        assert!(simd_spearman_correlation_batch(&x.view(), &ys.view()).is_err());
+    }
+
+    #[test]
+    fn test_simd_spearman_correlation_batch_rejects_size_mismatch() {
+        let x = array![1.0_f64, 2.0, 3.0];
+        use scirs2_core::ndarray::Array2;
+        let ys = Array2::from_shape_fn((5, 2), |(i, j)| (i + j) as f64); // 5 rows ≠ 3
+        assert!(simd_spearman_correlation_batch(&x.view(), &ys.view()).is_err());
     }
 }

@@ -22,7 +22,7 @@ use std::fmt::Debug;
 /// use scirs2_neural::optimizers::{RMSprop, Optimizer};
 ///
 /// // Create a simple RMSprop optimizer
-/// let mut rmsprop = RMSprop::<f64>::new(0.001).unwrap();
+/// let mut rmsprop = RMSprop::<f64>::new(0.001).expect("operation should succeed");
 ///
 /// // or with custom decay rate and epsilon
 /// let mut rmsprop_custom = RMSprop::new_with_config(0.001, 0.9, 1e-8, 0.0);

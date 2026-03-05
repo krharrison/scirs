@@ -292,33 +292,162 @@ impl NeuralNetwork {
         }
     }
 
-    /// Compute network gradients
+    /// Derivative of the activation function evaluated at pre-activation value `x`.
+    fn activation_derivative(x: f64, activation: ActivationFunction) -> f64 {
+        match activation {
+            ActivationFunction::ReLU => {
+                if x > 0.0 {
+                    1.0
+                } else {
+                    0.0
+                }
+            }
+            ActivationFunction::Sigmoid => {
+                let s = 1.0 / (1.0 + (-x).exp());
+                s * (1.0 - s)
+            }
+            ActivationFunction::Tanh => {
+                let t = x.tanh();
+                1.0 - t * t
+            }
+            ActivationFunction::Swish => {
+                let s = 1.0 / (1.0 + (-x).exp());
+                s + x * s * (1.0 - s)
+            }
+            ActivationFunction::Gelu => {
+                let c = 0.7978845608028654;
+                let t = (c * x).tanh();
+                0.5 * (1.0 + t) + 0.5 * x * c * (1.0 - t * t)
+            }
+        }
+    }
+
+    /// Compute network gradients via backpropagation.
+    ///
+    /// Uses cached pre-activation outputs to compute dL/dW and dL/db
+    /// for each layer, where L = 0.5 * ||output - target||^2.
     pub fn compute_gradients(
         &self,
         input: &[f64],
         target: &[f64],
         cache: &ForwardCache,
     ) -> NetworkGradients {
-        let mut weight_gradients = Vec::new();
-        let mut bias_gradients = Vec::new();
+        let num_layers = self.layers.len();
+        let mut weight_gradients: Vec<Vec<Vec<f64>>> = Vec::with_capacity(num_layers);
+        let mut bias_gradients: Vec<Vec<f64>> = Vec::with_capacity(num_layers);
 
-        // Simplified gradient computation (actual implementation would be more complex)
-        for (layer_idx, layer) in self.layers.iter().enumerate() {
-            let mut layer_weight_grads = Vec::new();
-            let mut layer_bias_grads = Vec::new();
-
-            for (neuron_idx, neuron_weights) in layer.weights.iter().enumerate() {
-                let mut neuron_grads = vec![0.0; neuron_weights.len()];
-                // Simplified gradient calculation
-                for grad in &mut neuron_grads {
-                    *grad = 0.001; // Placeholder
+        // Collect the input to each layer during the forward pass.
+        let mut layer_inputs: Vec<Vec<f64>> = Vec::with_capacity(num_layers);
+        {
+            let mut current = input.to_vec();
+            for (l, layer) in self.layers.iter().enumerate() {
+                layer_inputs.push(current.clone());
+                let mut output = vec![0.0; layer.biases.len()];
+                for (j, neuron_w) in layer.weights.iter().enumerate() {
+                    let mut s = layer.biases[j];
+                    for (k, &iv) in current.iter().enumerate() {
+                        if k < neuron_w.len() {
+                            s += neuron_w[k] * iv;
+                        }
+                    }
+                    output[j] = Self::apply_activation(s, layer.activation);
                 }
-                layer_weight_grads.push(neuron_grads);
-                layer_bias_grads.push(0.001); // Placeholder
+                if l < self.layer_norms.len() {
+                    output = self.layer_norms[l].normalize(&output);
+                }
+                current = output;
+            }
+        }
+
+        // Compute output from cache
+        let last_output = if !cache.layer_outputs.is_empty() {
+            let pre_act = &cache.layer_outputs[num_layers - 1];
+            let act = self.layers[num_layers - 1].activation;
+            pre_act
+                .iter()
+                .map(|&z| Self::apply_activation(z, act))
+                .collect::<Vec<_>>()
+        } else {
+            self.forward(input)
+        };
+
+        let output_pre_act = if num_layers <= cache.layer_outputs.len() {
+            cache.layer_outputs[num_layers - 1].clone()
+        } else {
+            last_output.clone()
+        };
+
+        let out_activation = self.layers[num_layers - 1].activation;
+        let output_size = self.layers[num_layers - 1].biases.len();
+        let mut delta = vec![0.0; output_size];
+        for i in 0..output_size {
+            let z = if i < output_pre_act.len() {
+                output_pre_act[i]
+            } else {
+                0.0
+            };
+            let o = if i < last_output.len() {
+                last_output[i]
+            } else {
+                0.0
+            };
+            let t = if i < target.len() { target[i] } else { 0.0 };
+            delta[i] = (o - t) * Self::activation_derivative(z, out_activation);
+        }
+
+        // Pre-allocate gradient storage
+        for layer in &self.layers {
+            let n_out = layer.biases.len();
+            let mut wg = Vec::with_capacity(n_out);
+            for neuron_w in &layer.weights {
+                wg.push(vec![0.0; neuron_w.len()]);
+            }
+            weight_gradients.push(wg);
+            bias_gradients.push(vec![0.0; n_out]);
+        }
+
+        // Backpropagate through layers in reverse
+        for l in (0..num_layers).rev() {
+            let layer = &self.layers[l];
+            let layer_in = &layer_inputs[l];
+
+            for j in 0..layer.biases.len() {
+                if j < delta.len() {
+                    bias_gradients[l][j] = delta[j];
+                    for k in 0..layer.weights[j].len() {
+                        let inp_val = if k < layer_in.len() { layer_in[k] } else { 0.0 };
+                        weight_gradients[l][j][k] = delta[j] * inp_val;
+                    }
+                }
             }
 
-            weight_gradients.push(layer_weight_grads);
-            bias_gradients.push(layer_bias_grads);
+            if l > 0 {
+                let prev_layer = &self.layers[l - 1];
+                let prev_pre_act = if l - 1 < cache.layer_outputs.len() {
+                    &cache.layer_outputs[l - 1]
+                } else {
+                    &layer_inputs[l]
+                };
+                let prev_activation = prev_layer.activation;
+                let prev_size = prev_layer.biases.len();
+
+                let mut new_delta = vec![0.0; prev_size];
+                for k in 0..prev_size {
+                    let mut sum = 0.0;
+                    for j in 0..layer.biases.len() {
+                        if j < delta.len() && k < layer.weights[j].len() {
+                            sum += delta[j] * layer.weights[j][k];
+                        }
+                    }
+                    let z = if k < prev_pre_act.len() {
+                        prev_pre_act[k]
+                    } else {
+                        0.0
+                    };
+                    new_delta[k] = sum * Self::activation_derivative(z, prev_activation);
+                }
+                delta = new_delta;
+            }
         }
 
         NetworkGradients {

@@ -26,7 +26,7 @@ use scirs2_optim::optimizers as optim_optimizers;
 /// let mut params = vec![Array::from_vec(vec![1.0, 2.0, 3.0]).into_dyn()];
 /// let grads = vec![Array::from_vec(vec![0.1, 0.2, 0.3]).into_dyn()];
 /// // Update parameters
-/// adam.update(&mut params, &grads).unwrap();
+/// adam.update(&mut params, &grads).expect("operation should succeed");
 pub struct Adam<F: Float + Debug + NumAssign> {
     /// Inner Adam optimizer from scirs2-optim
     inner: optim, optimizers: Adam<F>,

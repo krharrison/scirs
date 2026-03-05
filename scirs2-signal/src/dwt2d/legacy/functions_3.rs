@@ -79,7 +79,7 @@ use super::functions::simd_calculate_energy;
 /// }
 ///
 /// // Perform 3-level 2D DWT
-/// let coeffs = wavedec2(&data, Wavelet::Haar, 3, None).unwrap();
+/// let coeffs = wavedec2(&data, Wavelet::Haar, 3, None).expect("operation should succeed");
 ///
 /// // Check the number of decomposition levels
 /// assert_eq!(coeffs.len(), 3);
@@ -106,7 +106,7 @@ use super::functions::simd_calculate_energy;
 /// }
 ///
 /// // Decompose with Daubechies 4 wavelet
-/// let coeffs = wavedec2(&data, Wavelet::DB(4), 2, None).unwrap();
+/// let coeffs = wavedec2(&data, Wavelet::DB(4), 2, None).expect("operation should succeed");
 /// assert_eq!(coeffs.len(), 2);
 /// ```
 #[allow(dead_code)]
@@ -204,10 +204,10 @@ where
 /// }
 ///
 /// // Decompose
-/// let coeffs = wavedec2(&data, Wavelet::Haar, 3, None).unwrap();
+/// let coeffs = wavedec2(&data, Wavelet::Haar, 3, None).expect("operation should succeed");
 ///
 /// // Reconstruct
-/// let reconstructed = waverec2(&coeffs, Wavelet::Haar, None).unwrap();
+/// let reconstructed = waverec2(&coeffs, Wavelet::Haar, None).expect("operation should succeed");
 ///
 /// // Check that reconstruction has the correct shape
 /// assert_eq!(reconstructed.shape(), data.shape());
@@ -229,7 +229,7 @@ where
 /// }
 ///
 /// // Multi-level decomposition
-/// let mut coeffs = wavedec2(&data, Wavelet::DB(4), 2, None).unwrap();
+/// let mut coeffs = wavedec2(&data, Wavelet::DB(4), 2, None).expect("operation should succeed");
 ///
 /// // Threshold small detail coefficients to achieve compression
 /// let threshold = 0.5;
@@ -247,7 +247,7 @@ where
 /// }
 ///
 /// // Reconstruct from thresholded coefficients
-/// let compressed = waverec2(&coeffs, Wavelet::DB(4), None).unwrap();
+/// let compressed = waverec2(&coeffs, Wavelet::DB(4), None).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn waverec2(
@@ -299,13 +299,13 @@ pub fn waverec2(
 /// }
 ///
 /// // Decompose with wavelet transform
-/// let mut decomposition = dwt2d_decompose(&data, Wavelet::DB(4), None).unwrap();
+/// let mut decomposition = dwt2d_decompose(&data, Wavelet::DB(4), None).expect("operation should succeed");
 ///
 /// // Apply hard thresholding to detail coefficients
 /// threshold_dwt2d(&mut decomposition, 1.0, ThresholdMethod::Hard);
 ///
 /// // Reconstruct the denoised image
-/// let denoised = dwt2d_reconstruct(&decomposition, Wavelet::DB(4), None).unwrap();
+/// let denoised = dwt2d_reconstruct(&decomposition, Wavelet::DB(4), None).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn threshold_dwt2d(
@@ -365,14 +365,14 @@ pub fn threshold_dwt2d(
 /// }
 ///
 /// // Multi-level decomposition (3 levels)
-/// let mut coeffs = wavedec2(&data, Wavelet::Haar, 3, None).unwrap();
+/// let mut coeffs = wavedec2(&data, Wavelet::Haar, 3, None).expect("operation should succeed");
 ///
 /// // Apply different thresholds for each level (higher thresholds for finer details)
 /// let thresholds = vec![5.0, 10.0, 15.0];
 /// threshold_wavedec2(&mut coeffs, &thresholds, ThresholdMethod::Soft);
 ///
 /// // Reconstruct from thresholded coefficients
-/// let result = waverec2(&coeffs, Wavelet::Haar, None).unwrap();
+/// let result = waverec2(&coeffs, Wavelet::Haar, None).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn threshold_wavedec2(
@@ -437,7 +437,7 @@ pub(super) fn apply_threshold(x: f64, threshold: f64, method: ThresholdMethod) -
 /// }
 ///
 /// // Decompose the image
-/// let decomposition = dwt2d_decompose(&data, Wavelet::Haar, None).unwrap();
+/// let decomposition = dwt2d_decompose(&data, Wavelet::Haar, None).expect("operation should succeed");
 ///
 /// // Calculate energy, including approximation coefficients
 /// let (total_energy, energy_by_subband) = calculate_energy(&decomposition, true);

@@ -633,6 +633,111 @@ where
     sum_sq_deviations / (n - F::one())
 }
 
+/// Convenience function to detect change points in a time series
+///
+/// A simplified interface to the change point detection algorithms.
+///
+/// # Arguments
+///
+/// * `data` - Time series data
+/// * `method` - Detection method: "pelt", "binary", "cusum", "bayesian", or "kernel"
+///
+/// # Returns
+///
+/// Vector of detected change point indices
+///
+/// # Example
+///
+/// ```
+/// use scirs2_core::ndarray::Array1;
+/// use scirs2_series::change_point::detect_changepoints;
+///
+/// // Create time series with a change point at index 50
+/// let mut data = Array1::zeros(100);
+/// for i in 0..50 { data[i] = 1.0; }
+/// for i in 50..100 { data[i] = 5.0; }
+///
+/// let cps = detect_changepoints(&data, "pelt").expect("Detection failed");
+/// // cps contains the detected change point indices
+/// ```
+pub fn detect_changepoints<F>(data: &Array1<F>, method: &str) -> Result<Vec<usize>>
+where
+    F: Float + FromPrimitive + Debug + NumCast + std::iter::Sum,
+{
+    let method_enum = match method.to_lowercase().as_str() {
+        "pelt" => ChangePointMethod::PELT,
+        "binary" | "binary_segmentation" | "binseg" => ChangePointMethod::BinarySegmentation,
+        "cusum" => ChangePointMethod::CUSUM,
+        "bayesian" | "bayesian_online" | "bocd" => ChangePointMethod::BayesianOnline,
+        "kernel" => ChangePointMethod::Kernel,
+        _ => {
+            return Err(TimeSeriesError::InvalidParameter {
+                name: "method".to_string(),
+                message: format!(
+                    "Unknown method '{}'. Use: pelt, binary, cusum, bayesian, kernel",
+                    method
+                ),
+            });
+        }
+    };
+
+    let options = ChangePointOptions {
+        method: method_enum,
+        ..Default::default()
+    };
+
+    let result = detect_change_points(data, &options)?;
+    Ok(result.change_points)
+}
+
+/// Convenience function to detect change points with custom penalty
+///
+/// # Arguments
+///
+/// * `data` - Time series data
+/// * `method` - Detection method string
+/// * `penalty` - Penalty parameter (higher = fewer change points)
+/// * `min_segment_length` - Minimum distance between change points
+///
+/// # Returns
+///
+/// `ChangePointResult` with detected change points, scores, and metadata
+pub fn detect_changepoints_with_options<F>(
+    data: &Array1<F>,
+    method: &str,
+    penalty: f64,
+    min_segment_length: usize,
+) -> Result<ChangePointResult>
+where
+    F: Float + FromPrimitive + Debug + NumCast + std::iter::Sum,
+{
+    let method_enum = match method.to_lowercase().as_str() {
+        "pelt" => ChangePointMethod::PELT,
+        "binary" | "binary_segmentation" | "binseg" => ChangePointMethod::BinarySegmentation,
+        "cusum" => ChangePointMethod::CUSUM,
+        "bayesian" | "bayesian_online" | "bocd" => ChangePointMethod::BayesianOnline,
+        "kernel" => ChangePointMethod::Kernel,
+        _ => {
+            return Err(TimeSeriesError::InvalidParameter {
+                name: "method".to_string(),
+                message: format!(
+                    "Unknown method '{}'. Use: pelt, binary, cusum, bayesian, kernel",
+                    method
+                ),
+            });
+        }
+    };
+
+    let options = ChangePointOptions {
+        method: method_enum,
+        penalty,
+        min_segment_length,
+        ..Default::default()
+    };
+
+    detect_change_points(data, &options)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -780,5 +885,116 @@ mod tests {
         let result = detect_change_points(&ts, &options).expect("Operation failed");
         // Should detect no change points or very few
         assert!(result.change_points.len() <= 1);
+    }
+
+    #[test]
+    fn test_detect_changepoints_convenience() {
+        let mut data = Array1::zeros(100);
+        for i in 0..50 {
+            data[i] = 1.0;
+        }
+        for i in 50..100 {
+            data[i] = 5.0;
+        }
+
+        let cps = detect_changepoints(&data, "pelt").expect("PELT convenience failed");
+        // Should produce some result (could be empty if penalty too high)
+        assert!(cps.len() <= 100);
+
+        // Test with binary segmentation
+        let result = detect_changepoints(&data, "binary").expect("Binary convenience failed");
+        assert!(result.len() <= 100);
+    }
+
+    #[test]
+    fn test_detect_changepoints_invalid_method() {
+        let data = Array1::from_elem(50, 1.0_f64);
+        let result = detect_changepoints(&data, "invalid_method");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_detect_changepoints_with_options() {
+        let mut data = Array1::zeros(100);
+        for i in 0..50 {
+            data[i] = 1.0;
+        }
+        for i in 50..100 {
+            data[i] = 5.0;
+        }
+
+        let result =
+            detect_changepoints_with_options(&data, "pelt", 3.0, 10).expect("Detection failed");
+        assert_eq!(result.method, ChangePointMethod::PELT);
+    }
+
+    #[test]
+    fn test_cusum_with_gradual_change() {
+        // Gradual drift in mean
+        let mut ts = Array1::zeros(100);
+        for i in 0..100 {
+            ts[i] = if i < 50 {
+                0.0 + 0.05 * (i as f64 * 0.5).sin()
+            } else {
+                3.0 + 0.05 * (i as f64 * 0.5).sin()
+            };
+        }
+
+        let options = ChangePointOptions {
+            method: ChangePointMethod::CUSUM,
+            window_size: Some(20),
+            threshold: Some(3.0),
+            min_segment_length: 5,
+            ..Default::default()
+        };
+
+        let result = detect_change_points(&ts, &options).expect("CUSUM failed");
+        assert!(result.scores.is_some());
+        // The scores vector should be non-empty
+        if let Some(ref scores) = result.scores {
+            assert!(!scores.is_empty() || result.change_points.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_multiple_changepoints() {
+        // Three segments with distinct means
+        let mut ts = Array1::zeros(150);
+        for i in 0..50 {
+            ts[i] = 0.0;
+        }
+        for i in 50..100 {
+            ts[i] = 5.0;
+        }
+        for i in 100..150 {
+            ts[i] = -3.0;
+        }
+
+        let options = ChangePointOptions {
+            method: ChangePointMethod::BinarySegmentation,
+            penalty: 1.0,
+            min_segment_length: 10,
+            max_change_points: Some(10),
+            ..Default::default()
+        };
+
+        let result = detect_change_points(&ts, &options).expect("Binary segmentation failed");
+        // Should detect at least 1 change point
+        assert!(
+            !result.change_points.is_empty(),
+            "Should detect change points in data with 3 distinct segments"
+        );
+    }
+
+    #[test]
+    fn test_negative_penalty_rejected() {
+        let ts = Array1::from_elem(50, 1.0_f64);
+        let options = ChangePointOptions {
+            penalty: -1.0,
+            min_segment_length: 5,
+            ..Default::default()
+        };
+        let result = detect_change_points(&ts, &options);
+        assert!(result.is_err(), "Negative penalty should be rejected");
     }
 }

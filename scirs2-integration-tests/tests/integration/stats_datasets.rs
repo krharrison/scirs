@@ -1,7 +1,7 @@
 // Integration tests for scirs2-stats + scirs2-datasets
 // Tests statistical data analysis workflows, dataset loading, and statistical testing
 
-use ndarray::{Array1, Array2};
+use scirs2_core::ndarray::{Array1, Array2};
 use proptest::prelude::*;
 use scirs2_stats::*;
 use scirs2_datasets::*;

@@ -1,39 +1,59 @@
 # SciRS2 - Python Bindings
 
-**SciRS2**: Type-safe scientific computing in Rust with Python bindings - Specialized for complex statistical analysis with exceptional performance for higher-order statistics.
+**SciRS2**: High-performance scientific computing in Rust with Python bindings. A comprehensive, type-safe alternative to SciPy with exceptional performance for statistical analysis, linear algebra, FFT, signal processing, clustering, and more.
 
 [![PyPI](https://img.shields.io/pypi/v/scirs2)](https://pypi.org/project/scirs2/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Python](https://img.shields.io/pypi/pyversions/scirs2)](https://pypi.org/project/scirs2/)
+[![Version](https://img.shields.io/badge/version-0.3.0-green)]()
 
 ## Overview
 
-SciRS2-Python provides Python bindings for the SciRS2 scientific computing ecosystem, offering:
+`scirs2-python` provides Python bindings for the entire SciRS2 scientific computing ecosystem using [PyO3](https://pyo3.rs/) and [Maturin](https://github.com/PyO3/maturin). It leverages `scirs2-numpy` — a SciRS2-maintained fork of `rust-numpy` with native ndarray 0.17 support — for zero-copy NumPy array interoperability.
 
-- **Exceptional Complex Statistics**: Up to **410x faster** than SciPy for skewness, kurtosis, and higher-order moments on small datasets
-- **Type Safety**: Rust's compile-time guarantees prevent many runtime errors
-- **SciPy-Compatible APIs**: Familiar interface for Python scientists
-- **Zero-Copy Integration**: Efficient NumPy array interoperability
-- **Pure Rust Linear Algebra**: OxiBLAS-powered BLAS/LAPACK operations (no system dependencies)
-- **OxiFFT Integration**: Pure Rust high-performance FFT with FFTW-compatible algorithms
-- **Hybrid Approach**: Use alongside NumPy/SciPy for optimal performance
+### Key Characteristics
 
-**Important**: SciRS2 is a **specialized tool** for type-safe complex statistical analysis, not a general-purpose NumPy/SciPy replacement. See [Performance Guide](#performance) for when to use scirs2 vs NumPy.
+- **Exceptional Statistics Performance**: Up to 410x faster than SciPy for higher-order moments (skewness, kurtosis) on small/medium datasets
+- **Pure Rust Stack**: OxiBLAS for linear algebra, OxiFFT for transforms — no system OpenBLAS or FFTW required
+- **Zero-Copy NumPy Interop**: Direct memory sharing between Rust and NumPy arrays via `scirs2-numpy`
+- **SciPy-Compatible API**: Familiar naming conventions for Python scientists migrating from SciPy
+- **Maturin Build System**: Single `pip install scirs2` — no C/Fortran compiler needed
+- **Type Stubs**: `.pyi` files for full IDE autocompletion and type checking
+- **Feature-Gated Modules**: Enable only the SciRS2 crates you need
 
-## Pure Rust Implementation (v0.1.5+)
+## Architecture
 
-**SciRS2 now uses OxiBLAS** - a pure Rust BLAS/LAPACK implementation. No system dependencies required.
-
-| Platform | Backend | Performance Level |
-|----------|---------|-------------------|
-| **macOS** | OxiBLAS (pure Rust) | ✅ Good |
-| **Linux** | OxiBLAS (pure Rust) | ✅ Good |
-| **Windows** | OxiBLAS (pure Rust) | ✅ Good |
-
-### Benefits
-- ✅ **Zero System Dependencies** - No need to install OpenBLAS, MKL, or Accelerate
-- ✅ **Cross-Platform Consistency** - Same behavior on all platforms
-- ✅ **Simple Installation** - Just `pip install scirs2`
+```
+scirs2-python/
+├── src/
+│   ├── lib.rs          - PyO3 module registration
+│   ├── linalg.rs       - Linear algebra (OxiBLAS-powered)
+│   ├── stats.rs        - Statistics and distributions
+│   ├── fft.rs          - FFT (OxiFFT-powered)
+│   ├── cluster.rs      - Clustering algorithms
+│   ├── series.rs       - Time series analysis
+│   ├── signal.rs       - Signal processing
+│   ├── optimize.rs     - Optimization algorithms
+│   ├── spatial.rs      - Spatial algorithms
+│   ├── sparse.rs       - Sparse matrix operations
+│   ├── ndimage.rs      - N-dimensional image processing
+│   ├── graph.rs        - Graph algorithms
+│   ├── metrics.rs      - ML evaluation metrics
+│   ├── io.rs           - File I/O (CSV, HDF5, Parquet, etc.)
+│   ├── datasets.rs     - Dataset loading and generation
+│   ├── transform.rs    - Dimensionality reduction
+│   ├── text.rs         - NLP and text processing
+│   ├── vision.rs       - Computer vision
+│   ├── linalg_ext.rs   - Extended linear algebra (v0.3.0+)
+│   ├── signal_ext.rs   - Extended signal processing (v0.3.0+)
+│   ├── optimize_ext.rs - Extended optimization (v0.3.0+)
+│   └── stats/
+│       └── mcmc_gp.rs  - MCMC and Gaussian process bindings (v0.3.0+)
+├── tests/
+│   └── test_module_structure.py
+├── scirs2.pyi          - Type stubs
+└── pyproject.toml
+```
 
 ## Installation
 
@@ -41,46 +61,51 @@ SciRS2-Python provides Python bindings for the SciRS2 scientific computing ecosy
 pip install scirs2
 ```
 
-For development:
+For development (builds Rust from source):
 ```bash
-pip install scirs2[dev]
+pip install maturin
+git clone https://github.com/cool-japan/scirs
+cd scirs/scirs2-python
+maturin develop --release
 ```
+
+No system BLAS, OpenBLAS, or FFTW installation required — SciRS2 uses pure Rust OxiBLAS and OxiFFT.
 
 ## Quick Start
 
-**SciRS2 excels at statistics** - up to 410x faster than SciPy on complex operations:
+### Statistics (Fastest Module)
+
+SciRS2 delivers exceptional speed for statistical analysis:
 
 ```python
 import numpy as np
 import scirs2
 
-# Generate data
 data = np.random.randn(1000)
 
-# ✅ Use scirs2 for ALL statistics on small-medium data (MUCH FASTER!)
-mean = scirs2.mean_py(data)          # 8x faster than NumPy!
-std = scirs2.std_py(data, 0)         # 14x faster than NumPy!
-skewness = scirs2.skew_py(data)      # 52x faster than SciPy!
-kurtosis = scirs2.kurtosis_py(data)  # 52x faster than SciPy!
+# Basic statistics (5-25x faster than NumPy on small-medium data)
+mean     = scirs2.mean_py(data)           # 8x faster
+std      = scirs2.std_py(data, 0)         # 14x faster
+var      = scirs2.var_py(data, 1)
+median   = scirs2.median_py(data)
+iqr      = scirs2.iqr_py(data)
 
-print(f"Mean: {mean:.4f}, Std: {std:.4f}")
-print(f"Skewness: {skewness:.4f}, Kurtosis: {kurtosis:.4f}")
+# Higher-order moments (50-410x faster than SciPy!)
+skewness = scirs2.skew_py(data)           # 52x faster
+kurtosis = scirs2.kurtosis_py(data)       # 52x faster
 
-# ✅ Linear algebra: competitive with BLAS
-A = np.random.randn(50, 50)
-det = scirs2.det_py(A)               # ~1x vs SciPy (uses Accelerate/OpenBLAS)
-inv = scirs2.inv_py(A)               # ~1x vs SciPy
+# Correlation (17-127x faster)
+x = np.random.randn(100)
+y = np.random.randn(100)
+corr = scirs2.correlation_py(x, y)
+cov  = scirs2.covariance_py(x, y, 1)
 
-# ✅ FFT: fast on small data
-signal = np.random.randn(512)
-rfft = scirs2.rfft_py(signal)        # 3x faster than NumPy!
+# Full descriptive summary
+summary = scirs2.describe_py(data)
+# Returns: {'mean', 'std', 'min', 'max', 'skewness', 'kurtosis', ...}
 ```
 
-## Modules (v0.2.0)
-
-### Linear Algebra (`linalg`)
-
-Linear algebra operations use OxiBLAS (pure Rust). No system BLAS installation required.
+### Linear Algebra
 
 ```python
 import numpy as np
@@ -90,62 +115,32 @@ A = np.array([[4.0, 2.0], [2.0, 3.0]])
 b = np.array([1.0, 2.0])
 
 # Basic operations
-det = scirs2.det_py(A)           # Determinant
-inv = scirs2.inv_py(A)           # Inverse
-trace = scirs2.trace_py(A)       # Trace
+det   = scirs2.det_py(A)
+inv   = scirs2.inv_py(A)
+trace = scirs2.trace_py(A)
 
 # Decompositions
-lu = scirs2.lu_py(A)             # LU: {'L', 'U', 'P'}
-qr = scirs2.qr_py(A)             # QR: {'Q', 'R'}
-svd = scirs2.svd_py(A)           # SVD: {'U', 'S', 'Vt'}
-chol = scirs2.cholesky_py(A)     # Cholesky
+lu   = scirs2.lu_py(A)       # {'L', 'U', 'P'}
+qr   = scirs2.qr_py(A)       # {'Q', 'R'}
+svd  = scirs2.svd_py(A)      # {'U', 'S', 'Vt'}
+chol = scirs2.cholesky_py(A)
 
-# Eigenvalues
-eig = scirs2.eig_py(A)           # {'eigenvalues_real', 'eigenvalues_imag', 'eigenvectors'}
-eigh = scirs2.eigh_py(A)         # For symmetric matrices
+# Eigenvalues/vectors
+eig  = scirs2.eig_py(A)      # {'eigenvalues_real', 'eigenvalues_imag', 'eigenvectors'}
+eigh = scirs2.eigh_py(A)     # For symmetric matrices
 
-# Linear systems
-x = scirs2.solve_py(A, b)        # Solve Ax = b
-lstsq = scirs2.lstsq_py(A, b)    # Least squares
+# Solvers
+x     = scirs2.solve_py(A, b)
+lstsq = scirs2.lstsq_py(A, b)
 
-# Norms
+# Norms and properties
 norm_fro = scirs2.matrix_norm_py(A, "fro")
 norm_vec = scirs2.vector_norm_py(b, 2)
-cond = scirs2.cond_py(A)
-rank = scirs2.matrix_rank_py(A)
+cond     = scirs2.cond_py(A)
+rank     = scirs2.matrix_rank_py(A)
 ```
 
-### Statistics (`stats`)
-
-✅ **Performance Strength**: Average **30x faster** than SciPy! Complex statistics (skewness, kurtosis) are up to **410x faster** on small datasets. Even basic stats (mean, std) are 5-25x faster on small-medium data (<10K elements).
-
-```python
-import numpy as np
-import scirs2
-
-data = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
-
-# Descriptive statistics
-stats = scirs2.describe_py(data)  # Returns dict with all stats
-mean = scirs2.mean_py(data)
-std = scirs2.std_py(data, 0)      # ddof=0 for population
-var = scirs2.var_py(data, 1)      # ddof=1 for sample
-
-# Percentiles
-median = scirs2.median_py(data)
-p75 = scirs2.percentile_py(data, 75.0)
-iqr = scirs2.iqr_py(data)
-
-# Correlation
-x = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
-y = np.array([2.0, 4.0, 6.0, 8.0, 10.0])
-corr = scirs2.correlation_py(x, y)  # Returns 1.0
-cov = scirs2.covariance_py(x, y, 1)
-```
-
-### FFT (`fft`)
-
-FFT operations use OxiFFT backend (Pure Rust, FFTW-compatible algorithms). Performance is **2-5x faster** than NumPy on small data (<2K samples), but NumPy is faster on large data (>32K samples).
+### FFT (OxiFFT Backend)
 
 ```python
 import numpy as np
@@ -153,165 +148,160 @@ import scirs2
 
 data = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
 
-# FFT
-result = scirs2.fft_py(data)      # {'real', 'imag'}
-real, imag = result['real'], result['imag']
+# FFT (2-5x faster than NumPy on small data < 2K samples)
+fft_result = scirs2.fft_py(data)           # {'real', 'imag'}
+real, imag = fft_result['real'], fft_result['imag']
 
-# Inverse FFT
-reconstructed = scirs2.ifft_py(
+ifft_result = scirs2.ifft_py(
     np.array(real), np.array(imag)
 )
 
-# Real FFT (for real-valued signals)
-rfft = scirs2.rfft_py(data)
+rfft  = scirs2.rfft_py(data)
 irfft = scirs2.irfft_py(
-    np.array(rfft['real']),
-    np.array(rfft['imag']),
-    len(data)
+    np.array(rfft['real']), np.array(rfft['imag']), len(data)
 )
 
 # DCT
-dct = scirs2.dct_py(data, 2)      # Type-II DCT
+dct  = scirs2.dct_py(data, 2)             # Type-II DCT
 idct = scirs2.idct_py(np.array(dct), 2)
 
-# Helper functions
-freqs = scirs2.fftfreq_py(len(data), 1.0)
-rfreqs = scirs2.rfftfreq_py(len(data), 1.0)
-shifted = scirs2.fftshift_py(data)
+# Helpers
+freqs    = scirs2.fftfreq_py(len(data), 1.0)
+rfreqs   = scirs2.rfftfreq_py(len(data), 1.0)
+shifted  = scirs2.fftshift_py(data)
 fast_len = scirs2.next_fast_len_py(100, False)
 ```
 
-### Clustering (`cluster`)
+### Clustering
 
 ```python
 import numpy as np
 import scirs2
 
-# Generate sample data
 X = np.vstack([
-    np.random.randn(50, 2) + [0, 0],
-    np.random.randn(50, 2) + [5, 5],
+    np.random.randn(100, 2) + [0, 0],
+    np.random.randn(100, 2) + [5, 5],
 ])
 
-# K-Means clustering
+# K-Means
 kmeans = scirs2.KMeans(n_clusters=2)
 kmeans.fit(X)
-labels = kmeans.labels
-inertia = kmeans.inertia_
+labels   = kmeans.labels
+inertia  = kmeans.inertia_
 
-# Evaluation metrics
+# Cluster quality metrics
 silhouette = scirs2.silhouette_score_py(X, labels)
-davies_bouldin = scirs2.davies_bouldin_score_py(X, labels)
-calinski = scirs2.calinski_harabasz_score_py(X, labels)
+db_score   = scirs2.davies_bouldin_score_py(X, labels)
+ch_score   = scirs2.calinski_harabasz_score_py(X, labels)
 
 # Preprocessing
-X_std = scirs2.standardize_py(X, True)   # Zero mean, unit variance
-X_norm = scirs2.normalize_py(X, "l2")    # L2 normalization
+X_std  = scirs2.standardize_py(X, True)
+X_norm = scirs2.normalize_py(X, "l2")
 ```
 
-### Time Series (`series`)
+### Time Series
 
 ```python
 import numpy as np
 import scirs2
 
-# Create time series
 data = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
-ts = scirs2.PyTimeSeries(data, None)
+ts   = scirs2.PyTimeSeries(data, None)
 
-# Descriptive statistics
-stats = ts.describe()
+# Transformations
+diff1    = scirs2.apply_differencing(ts, 1)
+seasonal = scirs2.apply_seasonal_differencing(ts, 4)
 
-# Differencing
-diff1 = scirs2.apply_differencing(ts, 1)        # First difference
-seasonal = scirs2.apply_seasonal_differencing(ts, 4)  # Seasonal
-
-# ARIMA modeling
-arima = scirs2.PyARIMA(1, 1, 0)  # AR(1), I(1), MA(0)
+# ARIMA modelling
+arima = scirs2.PyARIMA(1, 1, 0)
 arima.fit(ts)
 forecast = arima.forecast(5)
-params = arima.get_params()
 print(arima.summary())
 
-# Box-Cox transformation
-result = scirs2.boxcox_transform(ts, None)  # Auto-select lambda
+# Box-Cox transform
+result      = scirs2.boxcox_transform(ts, None)   # auto lambda
 transformed = result['transformed']
-lambda_val = result['lambda']
-recovered = scirs2.boxcox_inverse(np.array(transformed), lambda_val)
+lambda_val  = result['lambda']
+recovered   = scirs2.boxcox_inverse(np.array(transformed), lambda_val)
 
 # Stationarity test
 adf = scirs2.adf_test(ts, None)
 print(f"ADF statistic: {adf['statistic']}, p-value: {adf['p_value']}")
 
 # STL decomposition
-decomp = scirs2.stl_decomposition(ts, 4)
-trend = decomp['trend']
+decomp   = scirs2.stl_decomposition(ts, 4)
+trend    = decomp['trend']
 seasonal = decomp['seasonal']
 residual = decomp['residual']
 ```
 
-## Performance
+### MCMC and Gaussian Processes (v0.3.0+)
 
-**Benchmark Summary** (macOS Apple Silicon with Accelerate/OxiFFT):
-- **Statistics**: **30.40x average speedup**, 85.3% win rate
-- **FFT**: **2.24x average speedup**, 53.3% win rate
-- **Linear Algebra**: **1.94x slower** (with proper BLAS), competitive on small matrices
-- **Strength**: Complex statistics, small-medium data
+```python
+import numpy as np
+import scirs2
 
-### Where SciRS2 Excels 🏆
+# Gaussian Process regression
+X_train = np.linspace(0, 2 * np.pi, 20).reshape(-1, 1)
+y_train = np.sin(X_train.ravel()) + 0.1 * np.random.randn(20)
 
-| Operation | Data Size | Speedup | Use Case |
-|-----------|-----------|---------|----------|
-| **Skewness** | 100 | **410x** | Distribution shape analysis |
-| **Kurtosis** | 100 | **408x** | Distribution tail analysis |
-| **Skewness** | 1,000 | **52x** | Higher-order moments |
-| **Kurtosis** | 1,000 | **52x** | Higher-order moments |
-| **Pearson correlation** | 100 | **127x** | Small dataset correlation |
-| **Pearson correlation** | 10,000 | **17x** | Medium dataset correlation |
-| **IQR** | 100 | **95x** | Quartile calculations |
-| **Percentile** | 100 | **49x** | Distribution analysis |
-| **Std** | 100 | **25x** | Small data variability |
-| **Mean** | 100 | **11x** | Small data average |
-| **FFT (rfft)** | 128 | **5.2x** | Small signal processing |
-| **FFT (dct)** | 128 | **5.5x** | Small signal processing |
-| **Linear Solve** | 10x10 | **9.4x** | Small linear systems |
+gp = scirs2.GaussianProcessRegressor(kernel='rbf', length_scale=1.0, noise=0.01)
+gp.fit(X_train, y_train)
 
-**Best Use Cases**:
-- Complex statistical analysis on datasets <10,000 elements
-- Higher-order moments (skewness, kurtosis) - up to **410x faster**
-- Correlation analysis - up to **127x faster**
-- Distribution shape analysis
-- Small FFT operations (<2048 samples)
-- Type-safe Rust integration
+X_test = np.linspace(0, 2 * np.pi, 100).reshape(-1, 1)
+mean, std = gp.predict(X_test, return_std=True)
 
-### Where NumPy/SciPy May Win ⚠️
+# MCMC sampling
+sampler = scirs2.MetropolisHastings(log_prob_fn=my_log_prob, step_size=0.1)
+samples = sampler.sample(initial=np.zeros(3), n_samples=10000, burnin=1000)
+```
 
-| Operation | Size | Performance | Notes |
-|-----------|------|-------------|-------|
-| **Linear algebra** (SVD, QR) | Large (200x200+) | 2-4x slower | SciPy LAPACK more optimized |
-| **FFT** operations | Large (32K+) | 1.5-3x slower | NumPy highly optimized for large FFT |
-| **Basic stats** | 100K+ | SIMD: 2-4x slower | NumPy C optimization |
+### Extended Optimization (v0.3.0+)
 
-**Use NumPy/SciPy for**:
-- Large FFT operations (>32K samples)
-- Large matrix decompositions (SVD, QR on 200x200+)
-- Basic statistics on very large datasets (>100K elements)
+```python
+import numpy as np
+import scirs2
 
-**Linear algebra performance**: With proper system BLAS, SciRS2 is within 2x of SciPy. Small matrices (10x10) can be **9x faster**.
+# Gradient-free optimization
+result = scirs2.minimize_nelder_mead(
+    lambda x: (x[0] - 1)**2 + (x[1] + 2)**2,
+    x0=np.array([0.0, 0.0]),
+    tol=1e-8
+)
 
-### Decision Matrix
+# Constrained optimization
+result = scirs2.minimize_slsqp(
+    fun=objective,
+    x0=x0,
+    constraints=[{'type': 'eq', 'fun': equality_constraint}],
+    bounds=[(0, None), (0, None)]
+)
+```
 
-| Your Use Case | Recommended Tool | Reason |
-|---------------|------------------|--------|
-| **Skewness/Kurtosis** | ✅ **scirs2** | 50-410x faster |
-| **Correlation** | ✅ **scirs2** | 17-127x faster |
-| **Basic stats, small data** (<10K) | ✅ **scirs2** | 3-25x faster |
-| **FFT, small data** (<2K) | ✅ **scirs2** | 2-5x faster |
-| **Linear algebra, small** (<50x50) | ✅ **scirs2** | 1-9x faster |
-| **Linear algebra, large** (200x200+) | ⚡ Either | ~2x slower with BLAS |
-| **FFT, large data** (>32K) | ❌ NumPy | 1.5-3x faster |
-| **Basic stats, huge data** (>100K) | ❌ NumPy | SIMD optimized |
-| **Type-safe Rust integration** | ✅ **scirs2** | Native Rust types |
+## Performance Guide
+
+### Where SciRS2 Excels
+
+| Operation | Data Size | Speedup vs SciPy | Notes |
+|-----------|-----------|------------------|-------|
+| Skewness | 100 | **410x** | Higher-order moments |
+| Kurtosis | 100 | **408x** | Higher-order moments |
+| Pearson correlation | 100 | **127x** | Small dataset |
+| IQR | 100 | **95x** | Quartile calculations |
+| Percentile | 100 | **49x** | Distribution analysis |
+| Skewness | 1,000 | **52x** | Medium dataset |
+| Std | 100 | **25x** | Small data variability |
+| Mean | 100 | **11x** | Small data average |
+| FFT (rfft) | 128 | **5.2x** | Small signal |
+| Linear solve | 10x10 | **9.4x** | Small systems |
+
+### Where NumPy/SciPy May Win
+
+| Operation | Size | Notes |
+|-----------|------|-------|
+| Linear algebra (SVD, QR) | 200x200+ | SciPy LAPACK highly optimized |
+| FFT | 32K+ samples | NumPy FFT optimized for large N |
+| Basic stats | 100K+ elements | NumPy C SIMD optimizations |
 
 ### Recommended Hybrid Approach
 
@@ -319,100 +309,98 @@ residual = decomp['residual']
 import numpy as np
 import scirs2
 
-# Generate data
 data = np.random.randn(1000)
 
-# ✅ Use scirs2 for complex stats (MUCH FASTER!)
-skewness = scirs2.skew_py(data)      # 52x faster than SciPy!
-kurtosis = scirs2.kurtosis_py(data)  # 52x faster than SciPy!
+# Use scirs2 for statistics on small-medium data
+skewness = scirs2.skew_py(data)      # 52x faster than SciPy
+kurtosis = scirs2.kurtosis_py(data)  # 52x faster than SciPy
+mean     = scirs2.mean_py(data)      # 8x faster
+std      = scirs2.std_py(data, 0)    # 14x faster
 
-# ✅ Use scirs2 for basic stats on small-medium data
-mean = scirs2.mean_py(data)          # 8x faster on 1K elements
-std = scirs2.std_py(data, 0)         # 14x faster on 1K elements
-
-# ✅ Linear algebra: excellent with BLAS
-matrix = np.random.randn(50, 50)
-det = scirs2.det_py(matrix)          # ~1x (comparable to SciPy)
-inv = scirs2.inv_py(matrix)          # ~1x (comparable to SciPy)
-
-# ✅ FFT: fast on small data
+# Use scirs2 for FFT on small signals
 signal = np.random.randn(512)
-rfft = scirs2.rfft_py(signal)        # 3x faster than NumPy!
+rfft   = scirs2.rfft_py(signal)      # 3x faster than NumPy
 
-# ⚠️ For large FFT, NumPy is faster
+# Fall back to NumPy/SciPy for large transforms
 large_signal = np.random.randn(65536)
-spectrum = np.fft.rfft(large_signal) # NumPy wins on large data
+spectrum     = np.fft.rfft(large_signal)  # NumPy wins here
 ```
 
-**Note**: Benchmarks performed on macOS Apple Silicon with Accelerate framework. Performance may vary on other platforms depending on BLAS installation.
+## Feature Flags
+
+Enable specific SciRS2 crates in `pyproject.toml`:
+
+```toml
+[features]
+default = ["linalg", "stats", "fft", "cluster", "series"]
+linalg      = ["scirs2-linalg"]
+stats       = ["scirs2-stats"]
+fft         = ["scirs2-fft"]
+cluster     = ["scirs2-cluster"]
+series      = ["scirs2-series"]
+signal      = ["scirs2-signal"]
+optimize    = ["scirs2-optimize"]
+spatial     = ["scirs2-spatial"]
+sparse      = ["scirs2-sparse"]
+ndimage     = ["scirs2-ndimage"]
+graph       = ["scirs2-graph"]
+metrics     = ["scirs2-metrics"]
+io          = ["scirs2-io"]
+datasets    = ["scirs2-datasets"]
+transform   = ["scirs2-transform"]
+text        = ["scirs2-text"]
+vision      = ["scirs2-vision"]
+```
 
 ## Type Hints
 
-SciRS2 includes type stubs (`.pyi` files) for better IDE support:
-
 ```python
-# Your IDE will show type hints and autocompletion
 import scirs2
-result = scirs2.det_py(matrix)  # IDE knows this returns float
+
+# IDE provides full autocompletion from .pyi stubs
+result: float    = scirs2.det_py(matrix)
+svd_res: dict    = scirs2.svd_py(matrix)
+fft_res: dict    = scirs2.fft_py(data)
+labels: np.ndarray = scirs2.KMeans(n_clusters=3).fit_predict(X)
 ```
 
-## Development
+## Building from Source
 
-### Building from Source
-
-**Prerequisites** (for optimal linear algebra performance):
-
-**macOS**: No additional dependencies - uses Accelerate framework.
-
-**Linux (Debian/Ubuntu)**:
 ```bash
-sudo apt-get install libopenblas-dev liblapack-dev gfortran
-```
-
-**Linux (RHEL/CentOS/Fedora)**:
-```bash
-sudo dnf install openblas-devel lapack-devel gcc-gfortran
-```
-
-**Build Steps**:
-```bash
-# Install Rust and maturin
+# 1. Install Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# 2. Install maturin
 pip install maturin
 
-# Build (ensure BLAS is installed first!)
+# 3. Build and install in development mode
 cd scirs2-python
 maturin develop --release
 
-# Run tests
+# 4. Run tests
 pip install pytest numpy
 pytest tests/
 ```
 
-**Note**: If you see linker errors about `openblas` or `lapack`, install the system BLAS libraries as shown above.
+## Dependencies
 
-### Project Structure
-
-```
-scirs2-python/
-├── src/           # Rust source with PyO3 bindings
-│   ├── lib.rs     # Module registration
-│   ├── cluster.rs # Clustering bindings
-│   ├── series.rs  # Time series bindings
-│   ├── linalg.rs  # Linear algebra bindings
-│   ├── stats.rs   # Statistics bindings
-│   └── fft.rs     # FFT bindings
-├── tests/         # Python tests
-├── scirs2.pyi     # Type stubs
-└── pyproject.toml
-```
+- [PyO3](https://pyo3.rs/) - Rust/Python FFI
+- [scirs2-numpy](../scirs2-numpy/) - SciRS2 fork of rust-numpy with ndarray 0.17 support
+- [Maturin](https://github.com/PyO3/maturin) - Build system for Python/Rust extensions
+- [OxiBLAS](https://crates.io/crates/oxiblas) - Pure Rust BLAS/LAPACK (no system dependencies)
+- [OxiFFT](https://crates.io/crates/oxifft) - Pure Rust FFT
 
 ## Related Projects
 
-- [SciRS2](https://github.com/cool-japan/scirs) - Core Rust library
+- [SciRS2 Core](https://github.com/cool-japan/scirs) - Rust scientific computing library
+- [scirs2-numpy](../scirs2-numpy/) - NumPy/ndarray 0.17 bridge
 - [NumPy](https://numpy.org/) - Array operations
-- [SciPy](https://scipy.org/) - Scientific Python (API inspiration)
+- [SciPy](https://scipy.org/) - Python scientific computing (API inspiration)
 
 ## License
 
-Licensed under the Apache License 2.0. See LICENSE for details.
+Licensed under the Apache License 2.0. See [LICENSE](../LICENSE) for details.
+
+## Authors
+
+COOLJAPAN OU (Team KitaSan)

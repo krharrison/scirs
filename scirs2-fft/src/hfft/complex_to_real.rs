@@ -46,7 +46,7 @@ use super::utility::try_as_complex;
 /// ];
 ///
 /// // Compute the HFFT
-/// let result = hfft(&x, None, None).unwrap();
+/// let result = hfft(&x, None, None).expect("valid input");
 ///
 /// // The result should be real-valued
 /// assert!(result.len() == 3);

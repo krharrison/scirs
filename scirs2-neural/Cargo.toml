@@ -28,7 +28,11 @@ statrs = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
+[dev-dependencies]
+scirs2-autograd = { workspace = true }
+
 [features]
 default = []
 gpu = ["scirs2-core/gpu"]
 metrics_integration = ["scirs2-metrics/neural_common"]
+legacy_serialization = []

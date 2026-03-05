@@ -232,6 +232,7 @@ pub mod complex;
 pub mod convolution;
 mod decomposition;
 pub mod decomposition_advanced;
+pub mod decomposition_enhanced;
 // Main eigen module
 pub mod eigen;
 pub use self::eigen::{
@@ -254,6 +255,7 @@ pub mod matrix_dynamics;
 pub mod matrix_equations;
 pub mod matrix_factorization;
 pub mod matrix_functions;
+pub mod matrix_functions_extended;
 pub mod matrixfree;
 pub mod mixed_precision;
 mod norm;
@@ -262,6 +264,7 @@ pub mod parallel;
 pub mod parallel_dispatch;
 pub mod perf_opt;
 pub mod preconditioners;
+pub mod procrustes;
 pub mod projection;
 /// Quantization-aware linear algebra operations
 pub mod quantization;
@@ -272,12 +275,14 @@ pub use self::quantization::calibration::{
 };
 pub mod random;
 pub mod random_matrices;
+pub mod randomized;
 // Temporarily disabled due to validation trait dependency issues and API incompatibilities
 // pub mod random_new;
 pub mod circulant_toeplitz;
 mod diagnostics;
 pub mod fft;
 pub mod scalable;
+pub mod schur_enhanced;
 pub mod simd_ops;
 mod solve;
 pub mod solvers;
@@ -286,8 +291,10 @@ pub mod special;
 pub mod specialized;
 pub mod stats;
 pub mod structured;
+pub mod structured_solvers;
 #[cfg(feature = "tensor_contraction")]
 pub mod tensor_contraction;
+pub mod tensor_ops;
 pub mod tensor_train;
 mod validation;
 // Distributed computing support (temporarily disabled - needs extensive API fixes)
@@ -301,6 +308,10 @@ mod validation;
     feature = "metal"
 ))]
 pub mod gpu;
+
+// GPU-accelerated linear algebra (uses scirs2-core GPU backends)
+#[cfg(feature = "gpu")]
+pub mod gpu_linalg;
 
 // Automatic differentiation support
 #[cfg(feature = "autograd")]
@@ -360,6 +371,16 @@ pub use self::decomposition_advanced::{
     jacobi_svd, polar_decomposition as advanced_polar_decomposition, polar_decomposition_newton,
     qr_with_column_pivoting,
 };
+// Enhanced decomposition functions
+pub use self::decomposition_enhanced::{
+    generalized_svd, polar_decomp_halley, polar_decomp_newton_schulz, polar_decomp_svd, GsvdResult,
+    PolarResult,
+};
+// Batch operations
+pub use self::batch::operations::{
+    batch_cholesky, batch_det, batch_frobenius_norm, batch_inverse, batch_matmul_pairwise,
+    batch_solve, batch_solve_matrix, batch_trace, batch_transpose,
+};
 // Backward compatibility versions for basic functions (deprecated)
 pub use self::basic::{det_default, inv_default, matrix_power_default};
 // Backward compatibility versions for iterative solvers (deprecated)
@@ -369,8 +390,8 @@ pub use self::extended_precision::*;
 pub use self::iterative_solvers::*;
 // pub use self::matrix_calculus::*; // Temporarily disabled
 pub use self::matrix_equations::{
-    solve_continuous_riccati, solve_discrete_riccati, solve_generalized_sylvester, solve_stein,
-    solve_sylvester,
+    solve_continuous_lyapunov, solve_continuous_riccati, solve_discrete_lyapunov,
+    solve_discrete_riccati, solve_generalized_sylvester, solve_stein, solve_sylvester,
 };
 pub use self::matrix_factorization::{
     cur_decomposition, interpolative_decomposition, nmf, rank_revealing_qr, utv_decomposition,
@@ -380,6 +401,10 @@ pub use self::matrix_functions::{
     signm, sinhm, sinm, spectral_condition_number, spectral_radius, sqrtm, sqrtm_parallel, tanhm,
     tanm, tikhonov_regularization,
 };
+pub use self::matrix_functions_extended::{
+    logm_iss, matrix_function_condition, pth_root, sign_roberts, sqrt_denman_beavers, sqrt_schur,
+    MatrixPthRootResult, MatrixSignResult, MatrixSqrtResult,
+};
 pub use self::matrixfree::{
     block_diagonal_operator, conjugate_gradient as matrix_free_conjugate_gradient,
     diagonal_operator, gmres as matrix_free_gmres, jacobi_preconditioner,
@@ -387,6 +412,18 @@ pub use self::matrixfree::{
     LinearOperator, MatrixFreeOp,
 };
 pub use self::norm::*;
+pub use self::procrustes::{
+    extended_procrustes, generalized_procrustes, oblique_procrustes, orthogonal_procrustes,
+    procrustes_distance, ExtendedProcrustesResult, GeneralizedProcrustesResult,
+    ObliqueProcrustesResult, OrthogonalProcrustesResult,
+};
+pub use self::randomized::{
+    pca_inverse_transform, pca_transform, randomized_pca, RandomizedConfig, RandomizedPcaResult,
+};
+pub use self::tensor_ops::{
+    cp_als, fold, khatri_rao, n_mode_product, tensor_norm_frobenius, tensor_norm_l1,
+    tensor_norm_max, tucker_hosvd, unfold, CpResult, Tensor, TuckerResult,
+};
 // Main solve functions with workers parameter
 pub use self::solve::{lstsq, solve, solve_multiple, solve_triangular, LstsqResult};
 // Backward compatibility versions (deprecated)
@@ -402,6 +439,10 @@ pub use self::specialized::{
 pub use self::stats::*;
 pub use self::structured::{
     structured_to_operator, CirculantMatrix, HankelMatrix, StructuredMatrix, ToeplitzMatrix,
+};
+pub use self::structured_solvers::{
+    solve_banded as structured_solve_banded, solve_symmetric, solve_symmetric_multiple,
+    solve_toeplitz_levinson, solve_tridiagonal,
 };
 #[cfg(feature = "tensor_contraction")]
 pub use self::tensor_contraction::{batch_matmul, contract, einsum, hosvd};
@@ -428,6 +469,10 @@ pub mod prelude {
     pub use super::batch::attention::{
         batch_flash_attention, batch_multi_head_attention, batch_multi_query_attention,
     };
+    pub use super::batch::operations::{
+        batch_cholesky, batch_det, batch_frobenius_norm, batch_inverse, batch_matmul_pairwise,
+        batch_solve, batch_solve_matrix, batch_trace, batch_transpose,
+    };
     pub use super::broadcast::{
         broadcast_matmul, broadcast_matmul_3d, broadcast_matvec, BroadcastExt,
     };
@@ -449,6 +494,10 @@ pub mod prelude {
     pub use super::decomposition_advanced::{
         jacobi_svd, polar_decomposition as advanced_polar_decomposition,
         polar_decomposition_newton, qr_with_column_pivoting,
+    };
+    pub use super::decomposition_enhanced::{
+        generalized_svd, polar_decomp_halley, polar_decomp_newton_schulz, polar_decomp_svd,
+        GsvdResult, PolarResult,
     };
     pub use super::eigen::{
         advanced_precision_eig, eig, eig_gen, eigh, eigh_gen, eigvals, eigvals_gen, eigvalsh,
@@ -630,6 +679,10 @@ pub mod prelude {
     pub use super::structured::{
         solve_circulant, solve_toeplitz, structured_to_operator, CirculantMatrix, HankelMatrix,
         StructuredMatrix, ToeplitzMatrix,
+    };
+    pub use super::structured_solvers::{
+        solve_banded as structured_solve_banded, solve_symmetric, solve_symmetric_multiple,
+        solve_toeplitz_levinson, solve_tridiagonal,
     };
     #[cfg(feature = "tensor_contraction")]
     pub use super::tensor_contraction::{batch_matmul, contract, einsum, hosvd};

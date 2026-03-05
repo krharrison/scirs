@@ -47,11 +47,11 @@
 //!     let day = i / 3;
 //!     0.001 * (day as f64 * 0.01 + asset as f64).sin() + 0.0005 * ((day as f64 * 0.02).cos() - 1.0)
 //! }).collect();
-//! let returns = Array2::from_shape_vec((252, 3), returns_data).unwrap();
+//! let returns = Array2::from_shape_vec((252, 3), returns_data).expect("should succeed");
 //! let asset_names = vec!["AAPL".to_string(), "GOOGL".to_string(), "MSFT".to_string()];
 //!
 //! // Calculate correlation matrix for optimization
-//! let correlation_matrix = calculate_correlation_matrix(&returns).unwrap();
+//! let correlation_matrix = calculate_correlation_matrix(&returns).expect("should succeed");
 //! ```
 //!
 //! ## 2. Portfolio Optimization
@@ -68,8 +68,8 @@
 //!     let day = i / 3;
 //!     0.001 * (day as f64 * 0.01 + asset as f64).sin() + 0.0005 * ((day as f64 * 0.02).cos() - 1.0)
 //! }).collect();
-//! let returns = Array2::from_shape_vec((252, 3), returns_data).unwrap();
-//! let correlation_matrix = calculate_correlation_matrix(&returns).unwrap();
+//! let returns = Array2::from_shape_vec((252, 3), returns_data).expect("should succeed");
+//! let correlation_matrix = calculate_correlation_matrix(&returns).expect("should succeed");
 //!
 //! // Convert correlation to covariance (simplified example)
 //! let volatilities = array![0.15, 0.18, 0.12]; // Asset volatilities
@@ -81,13 +81,13 @@
 //! }
 //!
 //! // Different optimization approaches
-//! let risk_parity_weights = risk_parity_portfolio(&covariance).unwrap();
-//! let min_var_weights = minimum_variance_portfolio(&covariance).unwrap();
+//! let risk_parity_weights = risk_parity_portfolio(&covariance).expect("should succeed");
+//! let min_var_weights = minimum_variance_portfolio(&covariance).expect("should succeed");
 //!
 //! // Create efficient frontier portfolio
 //! let expected_returns = array![0.10, 0.12, 0.08];
 //! let target_return = 0.10;
-//! let efficient_weights = calculate_efficient_portfolio(&expected_returns, &covariance, target_return).unwrap();
+//! let efficient_weights = calculate_efficient_portfolio(&expected_returns, &covariance, target_return).expect("should succeed");
 //! ```
 //!
 //! ## 3. Portfolio Construction
@@ -101,8 +101,8 @@
 //!     let day = i / 3;
 //!     0.001 * (day as f64 * 0.01 + asset as f64).sin() + 0.0005 * ((day as f64 * 0.02).cos() - 1.0)
 //! }).collect();
-//! let returns = Array2::from_shape_vec((252, 3), returns_data).unwrap();
-//! let correlation_matrix = calculate_correlation_matrix(&returns).unwrap();
+//! let returns = Array2::from_shape_vec((252, 3), returns_data).expect("should succeed");
+//! let correlation_matrix = calculate_correlation_matrix(&returns).expect("should succeed");
 //! let volatilities = array![0.15, 0.18, 0.12];
 //! let mut covariance = correlation_matrix.clone();
 //! for i in 0..3 {
@@ -110,14 +110,14 @@
 //!         covariance[[i, j]] *= volatilities[i] * volatilities[j];
 //!     }
 //! }
-//! let risk_parity_weights = risk_parity_portfolio(&covariance).unwrap();
+//! let risk_parity_weights = risk_parity_portfolio(&covariance).expect("should succeed");
 //! let asset_names = vec!["AAPL".to_string(), "GOOGL".to_string(), "MSFT".to_string()];
 //!
 //! // Create portfolio with optimized weights
-//! let portfolio: Portfolio<f64> = Portfolio::new(risk_parity_weights, asset_names.clone()).unwrap();
+//! let portfolio: Portfolio<f64> = Portfolio::new(risk_parity_weights, asset_names.clone()).expect("should succeed");
 //!
 //! // Or create equal-weight portfolio for comparison
-//! let equal_weight_portfolio: Portfolio<f64> = Portfolio::equal_weight(3, asset_names).unwrap();
+//! let equal_weight_portfolio: Portfolio<f64> = Portfolio::equal_weight(3, asset_names).expect("should succeed");
 //! ```
 //!
 //! ## 4. Performance Analysis
@@ -135,8 +135,8 @@
 //!     let day = i / 3;
 //!     0.001 * (day as f64 * 0.01 + asset as f64).sin() + 0.0005 * ((day as f64 * 0.02).cos() - 1.0)
 //! }).collect();
-//! let returns = Array2::from_shape_vec((252, 3), returns_data).unwrap();
-//! let correlation_matrix = calculate_correlation_matrix(&returns).unwrap();
+//! let returns = Array2::from_shape_vec((252, 3), returns_data).expect("should succeed");
+//! let correlation_matrix = calculate_correlation_matrix(&returns).expect("should succeed");
 //! let volatilities = array![0.15, 0.18, 0.12];
 //! let mut covariance = correlation_matrix.clone();
 //! for i in 0..3 {
@@ -144,12 +144,12 @@
 //!         covariance[[i, j]] *= volatilities[i] * volatilities[j];
 //!     }
 //! }
-//! let risk_parity_weights = risk_parity_portfolio(&covariance).unwrap();
+//! let risk_parity_weights = risk_parity_portfolio(&covariance).expect("should succeed");
 //! let asset_names = vec!["AAPL".to_string(), "GOOGL".to_string(), "MSFT".to_string()];
-//! let portfolio = Portfolio::new(risk_parity_weights, asset_names).unwrap();
+//! let portfolio = Portfolio::new(risk_parity_weights, asset_names).expect("should succeed");
 //!
 //! // Calculate portfolio returns
-//! let portfolio_returns = calculate_portfolio_returns(&returns, portfolio.weights()).unwrap();
+//! let portfolio_returns = calculate_portfolio_returns(&returns, portfolio.weights()).expect("should succeed");
 //!
 //! // Convert returns to prices for drawdown analysis
 //! let mut portfolio_prices = Array1::zeros(portfolio_returns.len() + 1);
@@ -163,7 +163,7 @@
 //! let periods_per_year = 252; // Daily data
 //! let metrics = calculate_portfolio_metrics(
 //!     &portfolio_returns, &portfolio_prices, risk_free_rate, periods_per_year
-//! ).unwrap();
+//! ).expect("should succeed");
 //!
 //! println!("Sharpe Ratio: {:.3}", metrics.sharpe_ratio);
 //! println!("Max Drawdown: {:.2}%", metrics.max_drawdown * 100.0);
@@ -185,8 +185,8 @@
 //!     let day = i / 3;
 //!     0.001 * (day as f64 * 0.01 + asset as f64).sin() + 0.0005 * ((day as f64 * 0.02).cos() - 1.0)
 //! }).collect();
-//! let returns = Array2::from_shape_vec((252, 3), returns_data).unwrap();
-//! let correlation_matrix = calculate_correlation_matrix(&returns).unwrap();
+//! let returns = Array2::from_shape_vec((252, 3), returns_data).expect("should succeed");
+//! let correlation_matrix = calculate_correlation_matrix(&returns).expect("should succeed");
 //! let volatilities = array![0.15, 0.18, 0.12];
 //! let mut covariance = correlation_matrix.clone();
 //! for i in 0..3 {
@@ -194,26 +194,26 @@
 //!         covariance[[i, j]] *= volatilities[i] * volatilities[j];
 //!     }
 //! }
-//! let risk_parity_weights = risk_parity_portfolio(&covariance).unwrap();
+//! let risk_parity_weights = risk_parity_portfolio(&covariance).expect("should succeed");
 //! let asset_names = vec!["AAPL".to_string(), "GOOGL".to_string(), "MSFT".to_string()];
-//! let portfolio = Portfolio::new(risk_parity_weights, asset_names).unwrap();
+//! let portfolio = Portfolio::new(risk_parity_weights, asset_names).expect("should succeed");
 //!
 //! // Parametric VaR for specific dollar amount
 //! let portfolio_value = 1_000_000.0;
 //! let mean_return = 0.0008; // Daily
 //! let return_std = 0.015;   // Daily
-//! let var_dollar = portfolio_var_parametric(portfolio_value, mean_return, return_std, 0.95, 1).unwrap();
+//! let var_dollar = portfolio_var_parametric(portfolio_value, mean_return, return_std, 0.95, 1).expect("should succeed");
 //! println!("1-day 95% VaR: ${:.2}", var_dollar);
 //!
 //! // Component VaR decomposition
-//! let component_vars = calculate_component_var(portfolio.weights(), &returns, 0.95).unwrap();
+//! let component_vars = calculate_component_var(portfolio.weights(), &returns, 0.95).expect("should succeed");
 //! for (i, &comp_var) in component_vars.iter().enumerate() {
 //!     println!("Asset {} Component VaR: {:.4}", i, comp_var);
 //! }
 //!
 //! // Stress testing
 //! let stress_factors = array![1.5, 2.0, 3.0]; // 1.5x, 2x, 3x worst case
-//! let stress_results = stress_test_portfolio(portfolio.weights(), &returns, &stress_factors).unwrap();
+//! let stress_results = stress_test_portfolio(portfolio.weights(), &returns, &stress_factors).expect("should succeed");
 //! ```
 //!
 //! # Optimization Approaches Comparison
@@ -278,10 +278,10 @@
 //!     let day = i / 4;
 //!     0.0008 * (day as f64 * 0.01 + asset as f64).sin() + 0.0003 * ((day as f64 * 0.02).cos() - 1.0)
 //! }).collect();
-//! let returns_data = Array2::from_shape_vec((252, 4), returns_data).unwrap();
+//! let returns_data = Array2::from_shape_vec((252, 4), returns_data).expect("should succeed");
 //!
 //! // Calculate optimization inputs
-//! let correlation_matrix = optimization::calculate_correlation_matrix(&returns_data).unwrap();
+//! let correlation_matrix = optimization::calculate_correlation_matrix(&returns_data).expect("should succeed");
 //! let expected_returns = array![0.08, 0.09, 0.04, 0.06]; // Annual expected returns
 //!
 //! // Build covariance matrix
@@ -295,20 +295,20 @@
 //!
 //! // Compare different allocation strategies
 //! let strategies: [(&str, core::Portfolio<f64>); 3] = [
-//!     ("Equal Weight", core::Portfolio::equal_weight(4, asset_names.clone()).unwrap()),
+//!     ("Equal Weight", core::Portfolio::equal_weight(4, asset_names.clone()).expect("should succeed")),
 //!     ("Risk Parity", core::Portfolio::new(
-//!         optimization::risk_parity_portfolio(&covariance_matrix).unwrap(),
+//!         optimization::risk_parity_portfolio(&covariance_matrix).expect("should succeed"),
 //!         asset_names.clone()
-//!     ).unwrap()),
+//!     ).expect("should succeed")),
 //!     ("Min Variance", core::Portfolio::new(
-//!         optimization::minimum_variance_portfolio(&covariance_matrix).unwrap(),
+//!         optimization::minimum_variance_portfolio(&covariance_matrix).expect("should succeed"),
 //!         asset_names.clone()
-//!     ).unwrap()),
+//!     ).expect("should succeed")),
 //! ];
 //!
 //! // Analyze each strategy
 //! for (name, portfolio) in strategies.iter() {
-//!     let portfolio_returns = core::calculate_portfolio_returns(&returns_data, portfolio.weights()).unwrap();
+//!     let portfolio_returns = core::calculate_portfolio_returns(&returns_data, portfolio.weights()).expect("should succeed");
 //!     
 //!     // Convert to prices for analysis
 //!     let mut prices = Array1::zeros(portfolio_returns.len() + 1);
@@ -317,7 +317,7 @@
 //!         prices[i + 1] = prices[i] * (1.0 + portfolio_returns[i]);
 //!     }
 //!     
-//!     let metrics = metrics::calculate_portfolio_metrics(&portfolio_returns, &prices, 0.025, 252).unwrap();
+//!     let metrics = metrics::calculate_portfolio_metrics(&portfolio_returns, &prices, 0.025, 252).expect("should succeed");
 //!     
 //!     println!("{}: Sharpe {:.3}, MaxDD {:.2}%", name, metrics.sharpe_ratio, metrics.max_drawdown * 100.0);
 //! }

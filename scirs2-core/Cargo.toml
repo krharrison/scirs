@@ -55,11 +55,15 @@ crossbeam-deque = { workspace = true, optional = true }  # Used in parallel sche
 num_cpus = { workspace = true, optional = true }  # CPU count detection
 
 # Compression libraries
-lz4 = { workspace = true, optional = true }   # LZ4 compression
-zstd = { workspace = true, optional = true }  # Zstandard compression
+lz4 = { workspace = true, optional = true }   # LZ4 compression (C-based, feature-gated)
+zstd = { workspace = true, optional = true }  # Zstandard compression (C-based, feature-gated)
 snap = { workspace = true, optional = true }   # Snappy compression
 flate2 = { workspace = true, optional = true }  # DEFLATE compression
 bytemuck = { workspace = true, optional = true }  # Zero-copy type casting
+# Pure Rust compression libraries (COOLJAPAN Pure Rust Policy)
+crc32fast = { workspace = true }  # CRC32 checksum (used in serialization)
+oxiarc-lz4 = { workspace = true, optional = true }  # Pure Rust LZ4 compression
+oxiarc-zstd = { workspace = true, optional = true }  # Pure Rust Zstandard compression
 
 # System monitoring for resource-aware prefetching
 libc = { workspace = true, optional = true }  # System calls for resource monitoring
@@ -130,6 +134,16 @@ gmp-mpfr-sys = { workspace = true, optional = true }  # Low-level GMP/MPFR bindi
 pyo3 = { workspace = true, optional = true }  # Python bindings
 scirs2-numpy = { workspace = true, optional = true }  # NumPy integration for Python (SciRS2 fork with ndarray 0.17)
 
+# Arrow interoperability (v0.3.0) - zero-copy Arrow format support
+arrow = { workspace = true, optional = true }  # Apache Arrow columnar format
+arrow-array = { workspace = true, optional = true }  # Arrow array types
+arrow-buffer = { workspace = true, optional = true }  # Arrow memory buffers
+arrow-cast = { workspace = true, optional = true }  # Arrow type casting
+arrow-data = { workspace = true, optional = true }  # Arrow data structures
+arrow-schema = { workspace = true, optional = true }  # Arrow schema types
+arrow-select = { workspace = true, optional = true }  # Arrow selection operations
+arrow-arith = { workspace = true, optional = true }  # Arrow arithmetic operations
+
 # Embedded systems support (v0.2.0) - no_std compatibility
 libm = { workspace = true, optional = true }  # Math functions for no_std
 fixed = { workspace = true, optional = true }  # Fixed-point arithmetic
@@ -182,6 +196,7 @@ windows-sys = { workspace = true, features = ["Win32_System_SystemInformation", 
 approx = { workspace = true }
 criterion = { workspace = true }
 tempfile = { workspace = true }
+proptest = { workspace = true }
 # Enable auto-initialize for tests only (not for production builds)
 pyo3 = { workspace = true, features = ["macros", "auto-initialize"] }
 
@@ -197,6 +212,7 @@ embedded-arm-rt = ["embedded-arm", "dep:cortex-m-rt"]  # ARM Cortex-M with runti
 embedded-riscv = ["embedded", "dep:riscv"]  # RISC-V support
 embedded-riscv-rt = ["embedded-riscv", "dep:riscv-rt"]  # RISC-V with runtime
 fixed-point = ["embedded", "dep:fixed", "dep:fixed-sqrt", "dep:cordic"]  # Fixed-point arithmetic
+ffi = ["std"]  # C ABI FFI for calling SciRS2 from C, Julia, and other languages (requires std)
 simd = ["wide"]  # SIMD operations (works in no_std with alloc)
 parallel = ["std", "rayon", "crossbeam", "crossbeam-utils", "crossbeam-deque", "num_cpus"]  # Parallel processing with rayon (requires std)
 cache = ["std", "cached"]  # Caching and memoization functionality (requires std)
@@ -212,8 +228,9 @@ wgpu_backend = ["std", "gpu", "dep:wgpu", "dep:pollster"]  # WebGPU-specific GPU
 rocm = ["std", "gpu"]  # ROCm-specific GPU acceleration (AMD) (requires std)
 # CUDA feature is platform-conditional - only works on x86_64 Linux and Windows
 cuda = ["std", "gpu", "dep:cudarc"]  # CUDA-specific GPU acceleration (platform-conditional) (requires std)
-memory_management = ["std", "oxicode", "tempfile", "serialization"]  # Advanced memory management (oxicode for SIMD optimization) (requires std)
-memory_efficient = ["std", "tempfile", "oxicode", "memmap2", "rayon", "serialization"]  # Memory-efficient operations (oxicode for SIMD) (requires std)
+memory_management = ["std", "oxicode", "dep:tempfile", "serialization"]  # Advanced memory management (oxicode for SIMD optimization) (requires std)
+mmap = ["std", "memmap2", "bytemuck", "memory_management", "dep:tempfile"]  # Memory-mapped array wrapper with COW semantics (requires std)
+memory_efficient = ["std", "dep:tempfile", "oxicode", "memmap2", "rayon", "serialization"]  # Memory-efficient operations (oxicode for SIMD) (requires std)
 memory_efficient_all_types = ["memory_efficient", "float32", "float64", "all_ints"]  # Full type support for memory-efficient operations (requires std)
 float32 = []  # Support for f32 in zero-copy operations
 float64 = []  # Support for f64 in zero-copy operations
@@ -225,7 +242,7 @@ all_ints = [] # Support for all integer types in zero-copy operations
 memory_compression = ["memory_efficient", "lz4", "zstd", "snap", "flate2", "bytemuck", "serde", "serde_json", "libc", "num_cpus"]  # Compressed memory-mapped arrays (SIMD-optimized)
 memory_metrics = ["memory_management", "serde", "serde_json"]  # Enhanced memory metrics tracking
 sysinfo = ["dep:sysinfo"]  # System information gathering
-serialization = ["std", "serde", "serde_json", "num-complex/serde"]  # Serialization support (includes Complex<T> serde) (requires std)
+serialization = ["std", "serde", "serde_json", "num-complex/serde", "dep:oxiarc-lz4", "dep:oxiarc-zstd"]  # Serialization support (includes Complex<T> serde, pure-Rust LZ4/Zstd) (requires std)
 array = ["std", "ndarray-rand"]  # Basic ndarray with random support (minimal dependencies) (requires std)
 array_stats = ["std", "array", "ndarray-stats"]  # Statistics operations on arrays (requires std)
 array_io = ["std", "array", "ndarray-npy"]  # Array I/O (save/load .npy files) (requires std)
@@ -245,7 +262,7 @@ instrumentation = ["std", "profiling_advanced", "opentelemetry-semantic-conventi
 random = ["std", "array"]  # Random number generation utilities with ndarray support (requires std)
 types = []  # Type conversion utilities (works in no_std)
 ufuncs = []  # Universal Functions (ufuncs) system (works in no_std)
-testing = ["std", "tempfile", "serde", "serde_json", "quickcheck"]  # Testing framework for production systems (requires std)
+testing = ["std", "dep:tempfile", "serde", "serde_json", "quickcheck"]  # Testing framework for production systems (requires std)
 benchmarking = ["std", "testing", "serde", "serde_json"]  # Comprehensive benchmarking system (requires std)
 linalg = ["std", "array", "oxiblas-ndarray", "oxiblas-blas", "oxiblas-lapack"]  # Linear algebra with OxiBLAS (pure Rust) with Complex support (v0.1.2+) (requires std)
 # NOTE: OpenBLAS/Netlib/Accelerate features removed - using pure Rust OxiBLAS for all platforms
@@ -270,6 +287,7 @@ crypto = []  # Cryptographic features (placeholder) (may work in no_std)
 compression = ["std", "flate2"]  # Compression support (requires std)
 database = ["std"]  # Database integration features (requires std)
 cloud = ["std"]  # Cloud storage integration (S3, GCS, Azure) (requires std)
+arrow = ["std", "dep:arrow", "dep:arrow-array", "dep:arrow-buffer", "dep:arrow-cast", "dep:arrow-data", "dep:arrow-schema", "dep:arrow-select", "dep:arrow-arith", "memmap2"]  # Arrow columnar format interoperability for zero-copy data exchange (requires std)
 jit = ["std", "cranelift-jit", "cranelift-module", "cranelift-frontend"]  # Just-in-time compilation with LLVM (requires std)
 ml_pipeline = ["std"]  # ML pipeline integration and real-time processing (requires std)
 production = ["std", "observability", "versioning", "leak_detection", "data_validation"]  # All production features (requires std)

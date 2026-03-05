@@ -16,7 +16,7 @@ use std::marker::PhantomData;
 ///
 /// # Examples
 ///
-/// ```rust,ignore
+/// ```rust
 /// use scirs2_neural::utils::datasets::Dataset;
 /// use scirs2_core::ndarray::Array2;
 ///
@@ -24,7 +24,7 @@ use std::marker::PhantomData;
 /// let features = Array2::<f64>::zeros((100, 10));
 /// let labels = Array2::<f64>::zeros((100, 3));
 ///
-/// let dataset = Dataset::new(features, labels);
+/// let dataset = Dataset::new(features, labels).expect("failed to create dataset");
 /// assert_eq!(dataset.len(), 100);
 /// ```
 #[derive(Debug, Clone)]
@@ -269,20 +269,19 @@ impl<'a, F: Float + Debug + NumAssign> Iterator for BatchIterator<'a, F> {
 ///
 /// # Examples
 ///
-/// ```rust,ignore
+/// ```rust
 /// use scirs2_neural::utils::datasets::{Dataset, DataLoader};
 /// use scirs2_core::ndarray::Array2;
-/// use scirs2_core::random::rng;
 ///
 /// let features = Array2::<f64>::zeros((100, 10));
 /// let labels = Array2::<f64>::zeros((100, 3));
-/// let dataset = Dataset::new(features, labels).expect("Operation failed");
+/// let dataset = Dataset::new(features, labels).expect("failed to create dataset");
 ///
 /// let mut loader = DataLoader::new(dataset, 16, true, true);
 ///
-/// for epoch in 0..10 {
+/// for epoch in 0..2 {
 ///     for batch_result in loader.iter() {
-///         let (x, y) = batch_result.unwrap();
+///         let (x, y) = batch_result.expect("batch failed");
 ///         // Process batch
 ///     }
 ///     loader.on_epoch_end(); // Shuffle for next epoch

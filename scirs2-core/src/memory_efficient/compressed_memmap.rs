@@ -861,7 +861,7 @@ impl<A: Clone + Copy + 'static + Send + Sync> CompressedMemMappedArray<A> {
     #[cfg(not(feature = "parallel"))]
     fn process_blocks_internal<F, R>(
         &self,
-        f: F,
+        mut f: F,
         _parallel: bool,
         custom_block_size: Option<usize>,
     ) -> CoreResult<Vec<R>>
@@ -873,20 +873,15 @@ impl<A: Clone + Copy + 'static + Send + Sync> CompressedMemMappedArray<A> {
         let num_elements = self.metadata.num_elements;
         let num_blocks = num_elements.div_ceil(block_size);
 
-        // Serial processing
-        (0..num_blocks)
-            .map(|blockidx| {
-                // Calculate the range of elements for this block
-                let start = blockidx * block_size;
-                let end = (start + block_size).min(num_elements);
-
-                // Load the elements for this block
-                let elements = self.load_elements(start, end)?;
-
-                // Apply the function to the block
-                Ok(f(&elements, blockidx))
-            })
-            .collect::<Result<Vec<R>, CoreError>>()
+        // Serial processing — f is FnMut so it requires mutable access per call
+        let mut results = Vec::with_capacity(num_blocks);
+        for blockidx in 0..num_blocks {
+            let start = blockidx * block_size;
+            let end = (start + block_size).min(num_elements);
+            let elements = self.load_elements(start, end)?;
+            results.push(f(&elements, blockidx));
+        }
+        Ok(results)
     }
 
     /// Internal implementation of block processing (parallel version).

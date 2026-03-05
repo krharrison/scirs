@@ -5,27 +5,38 @@ use crate::error::{SparseError, SparseResult};
 use scirs2_core::numeric::{Float, NumAssign, SparseElement};
 use std::iter::Sum;
 
-// Re-export the functions from the original linalg.rs
-// For now, we'll implement these functions here. In a real migration,
-// we would move the implementations from linalg.rs to here.
-
-// I'll implement stubs for the functions that need to be moved.
-// The actual implementations should be copied from linalg.rs
-
-/// Solve a sparse linear system Ax = b
+/// Solve a sparse linear system Ax = b using Gaussian elimination with
+/// partial pivoting on the dense representation.
+///
+/// For small-to-medium systems this is reliable. Large systems should
+/// prefer iterative solvers (CG, GMRES, BiCGSTAB) from the
+/// `iterative` sub-module.
 #[allow(dead_code)]
 pub fn spsolve<F>(a: &CsrMatrix<F>, b: &[F]) -> SparseResult<Vec<F>>
 where
     F: Float + NumAssign + Sum + SparseElement + 'static + std::fmt::Debug,
 {
-    // This implementation should be moved from linalg.rs
-    // For now, I'll forward to sparse_direct_solve
-    // For now, use a simple Gaussian elimination approach
+    if a.rows() != a.cols() {
+        return Err(SparseError::ValueError(format!(
+            "Matrix must be square, got {}x{}",
+            a.rows(),
+            a.cols()
+        )));
+    }
+    if a.rows() != b.len() {
+        return Err(SparseError::DimensionMismatch {
+            expected: a.rows(),
+            found: b.len(),
+        });
+    }
     let a_dense = a.to_dense();
     gaussian_elimination(&a_dense, b)
 }
 
-/// Solve a sparse linear system using direct methods
+/// Solve a sparse linear system using direct methods.
+///
+/// Accepts hints for symmetry and positive-definiteness (currently both
+/// paths fall through to Gaussian elimination with partial pivoting).
 #[allow(dead_code)]
 pub fn sparse_direct_solve<F>(
     a: &CsrMatrix<F>,
@@ -36,25 +47,7 @@ pub fn sparse_direct_solve<F>(
 where
     F: Float + NumAssign + Sum + SparseElement + 'static + std::fmt::Debug,
 {
-    if a.rows() != b.len() {
-        return Err(SparseError::DimensionMismatch {
-            expected: a.rows(),
-            found: b.len(),
-        });
-    }
-
-    if a.rows() != a.cols() {
-        return Err(SparseError::ValueError(format!(
-            "Matrix must be square, got {}x{}",
-            a.rows(),
-            a.cols()
-        )));
-    }
-
-    // For this stub implementation, we'll use Gaussian elimination
-    // The real implementation should use optimized sparse solvers
-    let a_dense = a.to_dense();
-    gaussian_elimination(&a_dense, b)
+    spsolve(a, b)
 }
 
 /// Solve a least squares problem
@@ -82,7 +75,11 @@ where
     spsolve(&ata, &atb)
 }
 
-/// Compute matrix norm
+/// Compute matrix norm using the sparse CSR structure directly.
+///
+///  - `"1"`   : 1-norm (maximum absolute column sum)
+///  - `"inf"` : infinity-norm (maximum absolute row sum)
+///  - `"fro"` : Frobenius norm (sqrt of sum of squared entries)
 #[allow(dead_code)]
 pub fn norm<F>(a: &CsrMatrix<F>, ord: &str) -> SparseResult<F>
 where
@@ -90,33 +87,28 @@ where
 {
     match ord {
         "1" => {
-            // 1-norm: maximum column sum
-            let mut max_sum = F::sparse_zero();
-            for j in 0..a.cols() {
-                let mut col_sum = F::sparse_zero();
-                for i in 0..a.rows() {
-                    let val = a.get(i, j);
-                    if val != F::sparse_zero() {
-                        col_sum += val.abs();
-                    }
-                }
-                if col_sum > max_sum {
-                    max_sum = col_sum;
+            // 1-norm: single pass over non-zeros to accumulate column sums
+            let mut col_sums = vec![F::sparse_zero(); a.cols()];
+            for i in 0..a.rows() {
+                let range = a.row_range(i);
+                let row_indices = &a.indices[range.clone()];
+                let row_data = &a.data[range];
+                for (idx, &col) in row_indices.iter().enumerate() {
+                    col_sums[col] += row_data[idx].abs();
                 }
             }
+            let max_sum = col_sums
+                .into_iter()
+                .fold(F::sparse_zero(), |mx, v| if v > mx { v } else { mx });
             Ok(max_sum)
         }
         "inf" => {
-            // Infinity norm: maximum row sum
+            // Infinity norm: single pass over rows
             let mut max_sum = F::sparse_zero();
             for i in 0..a.rows() {
-                let mut row_sum = F::sparse_zero();
-                for j in 0..a.cols() {
-                    let val = a.get(i, j);
-                    if val != F::sparse_zero() {
-                        row_sum += val.abs();
-                    }
-                }
+                let range = a.row_range(i);
+                let row_data = &a.data[range];
+                let row_sum: F = row_data.iter().map(|v| v.abs()).sum();
                 if row_sum > max_sum {
                     max_sum = row_sum;
                 }
@@ -124,7 +116,6 @@ where
             Ok(max_sum)
         }
         "fro" => {
-            // Frobenius norm: sqrt(sum of squares)
             let sum_squares: F = a.data.iter().map(|v| *v * *v).sum();
             Ok(sum_squares.sqrt())
         }
@@ -132,35 +123,73 @@ where
     }
 }
 
-/// Matrix multiplication
+/// Sparse matrix multiplication C = A * B using CSR row-by-row accumulation.
+///
+/// For each row i of A, scatters `a[i,k] * B[k,:]` into a workspace.
+/// Operates in O(nnz(A) * avg_nnz_per_row(B)) time.
 #[allow(dead_code)]
 pub fn matmul<F>(a: &CsrMatrix<F>, b: &CsrMatrix<F>) -> SparseResult<CsrMatrix<F>>
 where
     F: Float + NumAssign + Sum + SparseElement + 'static + std::fmt::Debug,
 {
-    // Matrix multiplication - use a simple implementation
+    if a.cols() != b.rows() {
+        return Err(SparseError::DimensionMismatch {
+            expected: a.cols(),
+            found: b.rows(),
+        });
+    }
+
+    let nrows = a.rows();
+    let ncols = b.cols();
     let mut result_rows = Vec::new();
     let mut result_cols = Vec::new();
     let mut result_data = Vec::new();
 
-    for i in 0..a.rows() {
-        for j in 0..b.cols() {
-            let mut sum = F::sparse_zero();
-            for k in 0..a.cols() {
-                sum += a.get(i, k) * b.get(k, j);
+    let mut workspace = vec![F::sparse_zero(); ncols];
+    let mut marker = vec![false; ncols];
+
+    for i in 0..nrows {
+        let a_range = a.row_range(i);
+        let a_indices = &a.indices[a_range.clone()];
+        let a_data_row = &a.data[a_range];
+        let mut touched_cols: Vec<usize> = Vec::new();
+
+        for (idx, &k) in a_indices.iter().enumerate() {
+            let a_ik = a_data_row[idx];
+            if a_ik == F::sparse_zero() {
+                continue;
             }
-            if sum != F::sparse_zero() {
+            let b_range = b.row_range(k);
+            let b_indices = &b.indices[b_range.clone()];
+            let b_data_row = &b.data[b_range];
+            for (bidx, &j) in b_indices.iter().enumerate() {
+                workspace[j] += a_ik * b_data_row[bidx];
+                if !marker[j] {
+                    marker[j] = true;
+                    touched_cols.push(j);
+                }
+            }
+        }
+
+        touched_cols.sort_unstable();
+        for &j in &touched_cols {
+            let val = workspace[j];
+            if val != F::sparse_zero() {
                 result_rows.push(i);
                 result_cols.push(j);
-                result_data.push(sum);
+                result_data.push(val);
             }
+            workspace[j] = F::sparse_zero();
+            marker[j] = false;
         }
     }
 
-    CsrMatrix::new(result_data, result_rows, result_cols, (a.rows(), b.cols()))
+    CsrMatrix::new(result_data, result_rows, result_cols, (nrows, ncols))
 }
 
-/// Matrix addition
+/// Sparse matrix addition using a merge of the two CSR row structures.
+///
+/// Runs in O(nnz(A) + nnz(B)) time without converting to dense form.
 #[allow(dead_code)]
 pub fn add<F>(a: &CsrMatrix<F>, b: &CsrMatrix<F>) -> SparseResult<CsrMatrix<F>>
 where
@@ -173,36 +202,76 @@ where
         });
     }
 
-    // Simple implementation using dense matrices
-    let a_dense = a.to_dense();
-    let b_dense = b.to_dense();
-
-    let mut result_dense = vec![vec![F::sparse_zero(); a.cols()]; a.rows()];
-    for i in 0..a.rows() {
-        for j in 0..a.cols() {
-            result_dense[i][j] = a_dense[i][j] + b_dense[i][j];
-        }
-    }
-
-    // Convert back to CSR
+    let (nrows, ncols) = a.shape();
     let mut rows = Vec::new();
     let mut cols = Vec::new();
     let mut data = Vec::new();
 
-    for (i, row) in result_dense.iter().enumerate().take(a.rows()) {
-        for (j, &val) in row.iter().enumerate().take(a.cols()) {
+    for i in 0..nrows {
+        let a_range = a.row_range(i);
+        let b_range = b.row_range(i);
+        let a_cols = &a.indices[a_range.clone()];
+        let a_data = &a.data[a_range];
+        let b_cols = &b.indices[b_range.clone()];
+        let b_data = &b.data[b_range];
+
+        let mut ai = 0usize;
+        let mut bi = 0usize;
+        while ai < a_cols.len() && bi < b_cols.len() {
+            if a_cols[ai] < b_cols[bi] {
+                let val = a_data[ai];
+                if val != F::sparse_zero() {
+                    rows.push(i);
+                    cols.push(a_cols[ai]);
+                    data.push(val);
+                }
+                ai += 1;
+            } else if a_cols[ai] > b_cols[bi] {
+                let val = b_data[bi];
+                if val != F::sparse_zero() {
+                    rows.push(i);
+                    cols.push(b_cols[bi]);
+                    data.push(val);
+                }
+                bi += 1;
+            } else {
+                let val = a_data[ai] + b_data[bi];
+                if val != F::sparse_zero() {
+                    rows.push(i);
+                    cols.push(a_cols[ai]);
+                    data.push(val);
+                }
+                ai += 1;
+                bi += 1;
+            }
+        }
+        while ai < a_cols.len() {
+            let val = a_data[ai];
             if val != F::sparse_zero() {
                 rows.push(i);
-                cols.push(j);
+                cols.push(a_cols[ai]);
                 data.push(val);
             }
+            ai += 1;
+        }
+        while bi < b_cols.len() {
+            let val = b_data[bi];
+            if val != F::sparse_zero() {
+                rows.push(i);
+                cols.push(b_cols[bi]);
+                data.push(val);
+            }
+            bi += 1;
         }
     }
 
-    CsrMatrix::new(data, rows, cols, a.shape())
+    CsrMatrix::new(data, rows, cols, (nrows, ncols))
 }
 
-/// Element-wise multiplication (Hadamard product)
+/// Element-wise multiplication (Hadamard product) using sorted CSR row merge.
+///
+/// Only produces non-zeros where both A and B have non-zeros in the same
+/// position, so runs in O(nnz(A) + nnz(B)) time.
 #[allow(dead_code)]
 pub fn multiply<F>(a: &CsrMatrix<F>, b: &CsrMatrix<F>) -> SparseResult<CsrMatrix<F>>
 where
@@ -215,19 +284,35 @@ where
         });
     }
 
+    let (nrows, _ncols) = a.shape();
     let mut rows = Vec::new();
     let mut cols = Vec::new();
     let mut data = Vec::new();
 
-    // Only multiply where both matrices have non-zero entries
-    for i in 0..a.rows() {
-        for j in 0..a.cols() {
-            let a_val = a.get(i, j);
-            let b_val = b.get(i, j);
-            if a_val != F::sparse_zero() && b_val != F::sparse_zero() {
-                rows.push(i);
-                cols.push(j);
-                data.push(a_val * b_val);
+    for i in 0..nrows {
+        let a_range = a.row_range(i);
+        let b_range = b.row_range(i);
+        let a_cols = &a.indices[a_range.clone()];
+        let a_data = &a.data[a_range];
+        let b_cols = &b.indices[b_range.clone()];
+        let b_data = &b.data[b_range];
+
+        let mut ai = 0usize;
+        let mut bi = 0usize;
+        while ai < a_cols.len() && bi < b_cols.len() {
+            if a_cols[ai] < b_cols[bi] {
+                ai += 1;
+            } else if a_cols[ai] > b_cols[bi] {
+                bi += 1;
+            } else {
+                let val = a_data[ai] * b_data[bi];
+                if val != F::sparse_zero() {
+                    rows.push(i);
+                    cols.push(a_cols[ai]);
+                    data.push(val);
+                }
+                ai += 1;
+                bi += 1;
             }
         }
     }

@@ -52,16 +52,16 @@
 //!
 //! // Fit different models
 //! let mut garch = garch::GarchModel::garch_11();
-//! let garch_result = garch.fit(&returns).unwrap();
+//! let garch_result = garch.fit(&returns).expect("should succeed");
 //!
 //! let mut egarch = egarch::EgarchModel::egarch_11();  
-//! let egarch_result = egarch.fit(&returns).unwrap();
+//! let egarch_result = egarch.fit(&returns).expect("should succeed");
 //!
 //! let mut gjr_garch = gjr_garch::GjrGarchModel::new();
-//! let gjr_result = gjr_garch.fit(&returns).unwrap();
+//! let gjr_result = gjr_garch.fit(&returns).expect("should succeed");
 //!
 //! let mut aparch = aparch::AparchModel::new();
-//! let aparch_result = aparch.fit(&returns).unwrap();
+//! let aparch_result = aparch.fit(&returns).expect("should succeed");
 //!
 //! // Compare information criteria for model selection
 //! println!("GARCH AIC: {}", garch_result.aic);

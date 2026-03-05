@@ -621,14 +621,9 @@ where
         ));
     }
 
-    let metric = match metric {
+    let metric_enum = match metric {
         "cityblock" => DistanceMetric::CityBlock,
-        "chessboard" => {
-            return Err(NdimageError::InvalidInput(format!(
-                "Metric must be one of 'cityblock' or 'chessboard', got '{}'",
-                metric
-            )))
-        }
+        "chessboard" => DistanceMetric::Chessboard,
         _ => {
             return Err(NdimageError::InvalidInput(format!(
                 "Metric must be one of 'cityblock' or 'chessboard', got '{}'",
@@ -686,7 +681,7 @@ where
                 let bg_idx_vec: Vec<_> = bg_idx.slice().to_vec();
                 if !input[bg_idx_vec.as_slice()] {
                     // Calculate the distance based on the metric
-                    let dist = match metric {
+                    let dist = match metric_enum {
                         DistanceMetric::CityBlock => {
                             // Manhattan distance
                             let mut sum = 0;
@@ -704,7 +699,7 @@ where
                             }
                             max_diff
                         }
-                        _ => unreachable!(),
+                        _ => 0, // Euclidean not applicable here
                     };
 
                     if dist < min_dist {
@@ -794,12 +789,7 @@ where
     let metric = match metric {
         "euclidean" => DistanceMetric::Euclidean,
         "cityblock" => DistanceMetric::CityBlock,
-        "chessboard" => {
-            return Err(NdimageError::InvalidInput(format!(
-                "Metric must be one of 'euclidean', 'cityblock', or 'chessboard', got '{}'",
-                metric
-            )))
-        }
+        "chessboard" => DistanceMetric::Chessboard,
         _ => {
             return Err(NdimageError::InvalidInput(format!(
                 "Metric must be one of 'euclidean', 'cityblock', or 'chessboard', got '{}'",
@@ -928,6 +918,312 @@ where
     Ok((_distances, _indices))
 }
 
+/// Efficient 2D Euclidean distance transform using Meijster's algorithm
+///
+/// Implements the exact Euclidean distance transform from:
+/// Meijster, A., Roerdink, J.B.T.M., Hesselink, W.H. (2000)
+/// "A general algorithm for computing distance transforms in linear time"
+///
+/// Complexity: O(n) where n is the number of pixels.
+///
+/// # Arguments
+///
+/// * `input` - 2D binary array (true = foreground)
+///
+/// # Returns
+///
+/// * `Result<Array2<f64>>` - Distance transform (f64 distances)
+pub fn distance_transform_edt_2d(
+    input: &scirs2_core::ndarray::Array2<bool>,
+) -> NdimageResult<scirs2_core::ndarray::Array2<f64>> {
+    use scirs2_core::ndarray::Array2;
+
+    let rows = input.nrows();
+    let cols = input.ncols();
+
+    if rows == 0 || cols == 0 {
+        return Ok(Array2::zeros((rows, cols)));
+    }
+
+    let inf = (rows + cols) as f64;
+
+    // Phase 1: compute 1D distance transform along columns
+    let mut g = Array2::<f64>::zeros((rows, cols));
+
+    for c in 0..cols {
+        // Forward scan
+        if input[[0, c]] {
+            g[[0, c]] = inf;
+        }
+        for r in 1..rows {
+            if input[[r, c]] {
+                g[[r, c]] = g[[r - 1, c]] + 1.0;
+            }
+        }
+        // Backward scan
+        for r in (0..rows.saturating_sub(1)).rev() {
+            if g[[r + 1, c]] < g[[r, c]] {
+                g[[r, c]] = g[[r + 1, c]] + 1.0;
+            }
+        }
+    }
+
+    // Phase 2: compute Meijster's 2D EDT using squared distances then sqrt
+    // For each row, compute the lower envelope of parabolas along columns
+    let mut result = Array2::<f64>::zeros((rows, cols));
+
+    // Scratch space for the row processing
+    let mut s = vec![0i64; cols]; // locations of parabolas in lower envelope
+    let mut t = vec![0.0f64; cols + 1]; // boundaries between parabolas
+
+    for r in 0..rows {
+        // Build lower envelope of parabolas f(x) = g[r,x]^2 + (x-q)^2
+        let mut q = 0i64; // number of parabolas in envelope - 1
+        s[0] = 0;
+        t[0] = f64::NEG_INFINITY;
+        t[1] = f64::INFINITY;
+
+        for u in 1..cols {
+            let gu = g[[r, u]];
+            let gu_sq = gu * gu;
+
+            loop {
+                let v = s[q as usize] as usize;
+                let gv = g[[r, v]];
+                let gv_sq = gv * gv;
+
+                // Intersection point of parabolas at v and u
+                let denom = 2.0 * (u as f64 - v as f64);
+                let sep = if denom.abs() < 1e-15 {
+                    f64::INFINITY
+                } else {
+                    ((u as f64 * u as f64 + gu_sq) - (v as f64 * v as f64 + gv_sq)) / denom
+                };
+
+                if sep > t[q as usize] {
+                    // Add new parabola
+                    q += 1;
+                    s[q as usize] = u as i64;
+                    t[q as usize] = sep;
+                    t[q as usize + 1] = f64::INFINITY;
+                    break;
+                }
+                // Remove last parabola
+                q -= 1;
+                if q < 0 {
+                    q = 0;
+                    s[0] = u as i64;
+                    t[0] = f64::NEG_INFINITY;
+                    t[1] = f64::INFINITY;
+                    break;
+                }
+            }
+        }
+
+        // Scan output
+        q = 0;
+        for u in 0..cols {
+            while t[q as usize + 1] < u as f64 {
+                q += 1;
+            }
+            let v = s[q as usize] as usize;
+            let gv = g[[r, v]];
+            let dx = u as f64 - v as f64;
+            result[[r, u]] = (dx * dx + gv * gv).sqrt();
+        }
+    }
+
+    Ok(result)
+}
+
+/// Efficient 2D Manhattan (city-block) distance transform
+///
+/// Uses two-pass algorithm: forward and backward scans.
+/// Complexity: O(n) where n is the number of pixels.
+///
+/// # Arguments
+///
+/// * `input` - 2D binary array (true = foreground)
+///
+/// # Returns
+///
+/// * `Result<Array2<i32>>` - Manhattan distance transform
+pub fn distance_transform_cityblock_2d(
+    input: &scirs2_core::ndarray::Array2<bool>,
+) -> NdimageResult<scirs2_core::ndarray::Array2<i32>> {
+    use scirs2_core::ndarray::Array2;
+
+    let rows = input.nrows();
+    let cols = input.ncols();
+
+    if rows == 0 || cols == 0 {
+        return Ok(Array2::zeros((rows, cols)));
+    }
+
+    let inf = (rows + cols) as i32;
+    let mut dist = Array2::<i32>::zeros((rows, cols));
+
+    // Initialize: background = 0, foreground = infinity
+    for r in 0..rows {
+        for c in 0..cols {
+            if input[[r, c]] {
+                dist[[r, c]] = inf;
+            }
+        }
+    }
+
+    // Forward pass (top-left to bottom-right)
+    for r in 0..rows {
+        for c in 0..cols {
+            if r > 0 {
+                let above = dist[[r - 1, c]].saturating_add(1);
+                if above < dist[[r, c]] {
+                    dist[[r, c]] = above;
+                }
+            }
+            if c > 0 {
+                let left = dist[[r, c - 1]].saturating_add(1);
+                if left < dist[[r, c]] {
+                    dist[[r, c]] = left;
+                }
+            }
+        }
+    }
+
+    // Backward pass (bottom-right to top-left)
+    for r in (0..rows).rev() {
+        for c in (0..cols).rev() {
+            if r + 1 < rows {
+                let below = dist[[r + 1, c]].saturating_add(1);
+                if below < dist[[r, c]] {
+                    dist[[r, c]] = below;
+                }
+            }
+            if c + 1 < cols {
+                let right = dist[[r, c + 1]].saturating_add(1);
+                if right < dist[[r, c]] {
+                    dist[[r, c]] = right;
+                }
+            }
+        }
+    }
+
+    Ok(dist)
+}
+
+/// Efficient 2D Chessboard distance transform
+///
+/// Uses two-pass algorithm: forward and backward scans.
+/// Complexity: O(n) where n is the number of pixels.
+///
+/// # Arguments
+///
+/// * `input` - 2D binary array (true = foreground)
+///
+/// # Returns
+///
+/// * `Result<Array2<i32>>` - Chessboard distance transform
+pub fn distance_transform_chessboard_2d(
+    input: &scirs2_core::ndarray::Array2<bool>,
+) -> NdimageResult<scirs2_core::ndarray::Array2<i32>> {
+    use scirs2_core::ndarray::Array2;
+
+    let rows = input.nrows();
+    let cols = input.ncols();
+
+    if rows == 0 || cols == 0 {
+        return Ok(Array2::zeros((rows, cols)));
+    }
+
+    let inf = (rows + cols) as i32;
+    let mut dist = Array2::<i32>::zeros((rows, cols));
+
+    // Initialize
+    for r in 0..rows {
+        for c in 0..cols {
+            if input[[r, c]] {
+                dist[[r, c]] = inf;
+            }
+        }
+    }
+
+    // Forward pass (check upper-left quadrant of 8-neighbors)
+    for r in 0..rows {
+        for c in 0..cols {
+            if dist[[r, c]] == 0 {
+                continue;
+            }
+            // up
+            if r > 0 {
+                let d = dist[[r - 1, c]].saturating_add(1);
+                if d < dist[[r, c]] {
+                    dist[[r, c]] = d;
+                }
+            }
+            // left
+            if c > 0 {
+                let d = dist[[r, c - 1]].saturating_add(1);
+                if d < dist[[r, c]] {
+                    dist[[r, c]] = d;
+                }
+            }
+            // upper-left diagonal
+            if r > 0 && c > 0 {
+                let d = dist[[r - 1, c - 1]].saturating_add(1);
+                if d < dist[[r, c]] {
+                    dist[[r, c]] = d;
+                }
+            }
+            // upper-right diagonal
+            if r > 0 && c + 1 < cols {
+                let d = dist[[r - 1, c + 1]].saturating_add(1);
+                if d < dist[[r, c]] {
+                    dist[[r, c]] = d;
+                }
+            }
+        }
+    }
+
+    // Backward pass (check lower-right quadrant of 8-neighbors)
+    for r in (0..rows).rev() {
+        for c in (0..cols).rev() {
+            if dist[[r, c]] == 0 {
+                continue;
+            }
+            // down
+            if r + 1 < rows {
+                let d = dist[[r + 1, c]].saturating_add(1);
+                if d < dist[[r, c]] {
+                    dist[[r, c]] = d;
+                }
+            }
+            // right
+            if c + 1 < cols {
+                let d = dist[[r, c + 1]].saturating_add(1);
+                if d < dist[[r, c]] {
+                    dist[[r, c]] = d;
+                }
+            }
+            // lower-right diagonal
+            if r + 1 < rows && c + 1 < cols {
+                let d = dist[[r + 1, c + 1]].saturating_add(1);
+                if d < dist[[r, c]] {
+                    dist[[r, c]] = d;
+                }
+            }
+            // lower-left diagonal
+            if r + 1 < rows && c > 0 {
+                let d = dist[[r + 1, c - 1]].saturating_add(1);
+                if d < dist[[r, c]] {
+                    dist[[r, c]] = d;
+                }
+            }
+        }
+    }
+
+    Ok(dist)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1050,7 +1346,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Test failure - InvalidInput: Metric must be one of 'euclidean', 'cityblock', or 'chessboard', got 'chessboard' at line 1087"]
     fn test_distance_transform_bf() {
         // Create a simple binary array
         let input = array![
@@ -1111,5 +1406,178 @@ mod tests {
         assert_abs_diff_eq!(chessboard[[0, 2]], 1.0, epsilon = 1e-10);
         assert_abs_diff_eq!(chessboard[[0, 3]], 2.0, epsilon = 1e-10);
         assert_abs_diff_eq!(chessboard[[0, 4]], 3.0, epsilon = 1e-10);
+    }
+
+    // ---- Tests for new 2D optimized distance transforms ----
+
+    #[test]
+    fn test_edt_2d_basic() {
+        let input = array![
+            [false, true, true, true, true],
+            [false, false, true, true, true],
+            [false, true, true, true, true],
+            [false, true, true, true, false],
+            [false, true, true, false, false]
+        ];
+
+        let result = distance_transform_edt_2d(&input).expect("edt_2d should succeed");
+
+        // Background pixels should have distance 0
+        assert_abs_diff_eq!(result[[0, 0]], 0.0, epsilon = 1e-10);
+        assert_abs_diff_eq!(result[[1, 0]], 0.0, epsilon = 1e-10);
+        assert_abs_diff_eq!(result[[1, 1]], 0.0, epsilon = 1e-10);
+
+        // Adjacent foreground pixel should have distance 1
+        assert_abs_diff_eq!(result[[0, 1]], 1.0, epsilon = 1e-10);
+
+        // Diagonal from background
+        assert_abs_diff_eq!(result[[0, 2]], std::f64::consts::SQRT_2, epsilon = 0.05);
+
+        // Farther pixels should have increasing distance
+        assert!(result[[0, 3]] > result[[0, 2]]);
+        assert!(result[[0, 4]] > result[[0, 3]]);
+    }
+
+    #[test]
+    fn test_edt_2d_all_background() {
+        let input = scirs2_core::ndarray::Array2::from_elem((4, 4), false);
+        let result = distance_transform_edt_2d(&input).expect("all background should succeed");
+        for &v in result.iter() {
+            assert_abs_diff_eq!(v, 0.0, epsilon = 1e-10);
+        }
+    }
+
+    #[test]
+    fn test_edt_2d_all_foreground() {
+        // All foreground with no background should give large distances
+        let input = scirs2_core::ndarray::Array2::from_elem((3, 3), true);
+        let result = distance_transform_edt_2d(&input).expect("all foreground should succeed");
+        // With no background pixels, all distances should be large
+        for &v in result.iter() {
+            assert!(v > 0.0);
+        }
+    }
+
+    #[test]
+    fn test_edt_2d_single_background() {
+        // Single background pixel in center
+        let mut input = scirs2_core::ndarray::Array2::from_elem((5, 5), true);
+        input[[2, 2]] = false;
+        let result = distance_transform_edt_2d(&input).expect("single background should succeed");
+        assert_abs_diff_eq!(result[[2, 2]], 0.0, epsilon = 1e-10);
+        assert_abs_diff_eq!(result[[2, 3]], 1.0, epsilon = 1e-10);
+        assert_abs_diff_eq!(result[[1, 1]], std::f64::consts::SQRT_2, epsilon = 0.05);
+        assert_abs_diff_eq!(
+            result[[0, 0]],
+            2.0 * std::f64::consts::SQRT_2,
+            epsilon = 0.05
+        );
+    }
+
+    #[test]
+    fn test_edt_2d_empty() {
+        let input = scirs2_core::ndarray::Array2::<bool>::from_elem((0, 0), false);
+        let result = distance_transform_edt_2d(&input).expect("empty should succeed");
+        assert_eq!(result.len(), 0);
+    }
+
+    #[test]
+    fn test_cityblock_2d_basic() {
+        let input = array![
+            [false, true, true, true, true],
+            [false, false, true, true, true],
+            [false, true, true, true, true],
+            [false, true, true, true, false],
+            [false, true, true, false, false]
+        ];
+
+        let result = distance_transform_cityblock_2d(&input).expect("cityblock_2d should succeed");
+
+        assert_eq!(result[[0, 0]], 0);
+        assert_eq!(result[[0, 1]], 1);
+        assert_eq!(result[[0, 2]], 2);
+        assert_eq!(result[[0, 3]], 3);
+        assert_eq!(result[[1, 2]], 1);
+        assert_eq!(result[[1, 3]], 2);
+    }
+
+    #[test]
+    fn test_cityblock_2d_all_background() {
+        let input = scirs2_core::ndarray::Array2::from_elem((3, 3), false);
+        let result =
+            distance_transform_cityblock_2d(&input).expect("all bg cityblock should succeed");
+        for &v in result.iter() {
+            assert_eq!(v, 0);
+        }
+    }
+
+    #[test]
+    fn test_cityblock_2d_center_background() {
+        let mut input = scirs2_core::ndarray::Array2::from_elem((5, 5), true);
+        input[[2, 2]] = false;
+        let result =
+            distance_transform_cityblock_2d(&input).expect("center bg cityblock should succeed");
+        assert_eq!(result[[2, 2]], 0);
+        assert_eq!(result[[2, 1]], 1);
+        assert_eq!(result[[2, 3]], 1);
+        assert_eq!(result[[1, 2]], 1);
+        assert_eq!(result[[3, 2]], 1);
+        assert_eq!(result[[1, 1]], 2);
+        assert_eq!(result[[0, 0]], 4);
+    }
+
+    #[test]
+    fn test_chessboard_2d_basic() {
+        let input = array![
+            [false, true, true, true, true],
+            [false, false, true, true, true],
+            [false, true, true, true, true],
+            [false, true, true, true, false],
+            [false, true, true, false, false]
+        ];
+
+        let result =
+            distance_transform_chessboard_2d(&input).expect("chessboard_2d should succeed");
+
+        assert_eq!(result[[0, 0]], 0);
+        assert_eq!(result[[0, 1]], 1);
+        // Chessboard distance: diagonal costs 1
+        assert_eq!(result[[0, 2]], 1); // diagonal from (1,1) which is background
+    }
+
+    #[test]
+    fn test_chessboard_2d_center_background() {
+        let mut input = scirs2_core::ndarray::Array2::from_elem((5, 5), true);
+        input[[2, 2]] = false;
+        let result =
+            distance_transform_chessboard_2d(&input).expect("center bg chessboard should succeed");
+        assert_eq!(result[[2, 2]], 0);
+        assert_eq!(result[[2, 1]], 1);
+        assert_eq!(result[[1, 1]], 1); // diagonal = 1 for chessboard
+        assert_eq!(result[[0, 0]], 2); // 2 diagonal steps
+    }
+
+    #[test]
+    fn test_chessboard_2d_vs_cityblock() {
+        // Chessboard distance should always be <= cityblock distance
+        let mut input = scirs2_core::ndarray::Array2::from_elem((7, 7), true);
+        input[[3, 3]] = false;
+        let cb = distance_transform_cityblock_2d(&input).expect("cityblock should succeed");
+        let chess = distance_transform_chessboard_2d(&input).expect("chessboard should succeed");
+
+        for r in 0..7 {
+            for c in 0..7 {
+                assert!(
+                    chess[[r, c]] <= cb[[r, c]],
+                    "chessboard({},{}) = {} > cityblock({},{}) = {}",
+                    r,
+                    c,
+                    chess[[r, c]],
+                    r,
+                    c,
+                    cb[[r, c]]
+                );
+            }
+        }
     }
 }

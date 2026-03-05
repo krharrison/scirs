@@ -11,6 +11,15 @@ use std::ops::{Add, Div, Mul, Sub};
 use crate::error::{SparseError, SparseResult};
 use crate::sparray::{SparseArray, SparseSum};
 
+/// Insert a value into an `Array1` at position `idx`, shifting subsequent
+/// elements to the right.  ndarray's `Array1` does not provide an insert
+/// method, so we convert to `Vec`, insert, and convert back.
+fn array1_insert<T: Clone + Default>(arr: &Array1<T>, idx: usize, value: T) -> Array1<T> {
+    let mut v = arr.to_vec();
+    v.insert(idx, value);
+    Array1::from_vec(v)
+}
+
 /// CSR Array format - Compressed Sparse Row matrix representation
 ///
 /// The CSR (Compressed Sparse Row) format is one of the most popular sparse matrix formats,
@@ -462,11 +471,6 @@ where
     }
 
     fn add(&self, other: &dyn SparseArray<T>) -> SparseResult<Box<dyn SparseArray<T>>> {
-        // Placeholder implementation - a full implementation would handle direct
-        // sparse matrix addition more efficiently
-        let self_array = self.to_array();
-        let other_array = other.to_array();
-
         if self.shape() != other.shape() {
             return Err(SparseError::DimensionMismatch {
                 expected: self.shape().0,
@@ -474,9 +478,87 @@ where
             });
         }
 
+        // Fast path: if `other` is also a CsrArray with sorted indices,
+        // perform a sorted row merge in O(nnz(A) + nnz(B)) time.
+        if let Some(other_csr) = other.as_any().downcast_ref::<CsrArray<T>>() {
+            if self.has_sorted_indices && other_csr.has_sorted_indices {
+                let (nrows, _) = self.shape();
+                let mut data = Vec::new();
+                let mut indices = Vec::new();
+                let mut indptr = vec![0usize];
+
+                for row in 0..nrows {
+                    let a_start = self.indptr[row];
+                    let a_end = self.indptr[row + 1];
+                    let b_start = other_csr.indptr[row];
+                    let b_end = other_csr.indptr[row + 1];
+
+                    let a_cols = &self.indices.as_slice().unwrap_or(&[])[a_start..a_end];
+                    let a_data = &self.data.as_slice().unwrap_or(&[])[a_start..a_end];
+                    let b_cols = &other_csr.indices.as_slice().unwrap_or(&[])[b_start..b_end];
+                    let b_data = &other_csr.data.as_slice().unwrap_or(&[])[b_start..b_end];
+
+                    let mut ai = 0;
+                    let mut bi = 0;
+                    while ai < a_cols.len() && bi < b_cols.len() {
+                        if a_cols[ai] < b_cols[bi] {
+                            let val = a_data[ai];
+                            if val != T::sparse_zero() {
+                                data.push(val);
+                                indices.push(a_cols[ai]);
+                            }
+                            ai += 1;
+                        } else if a_cols[ai] > b_cols[bi] {
+                            let val = b_data[bi];
+                            if val != T::sparse_zero() {
+                                data.push(val);
+                                indices.push(b_cols[bi]);
+                            }
+                            bi += 1;
+                        } else {
+                            let val = a_data[ai] + b_data[bi];
+                            if val != T::sparse_zero() {
+                                data.push(val);
+                                indices.push(a_cols[ai]);
+                            }
+                            ai += 1;
+                            bi += 1;
+                        }
+                    }
+                    while ai < a_cols.len() {
+                        let val = a_data[ai];
+                        if val != T::sparse_zero() {
+                            data.push(val);
+                            indices.push(a_cols[ai]);
+                        }
+                        ai += 1;
+                    }
+                    while bi < b_cols.len() {
+                        let val = b_data[bi];
+                        if val != T::sparse_zero() {
+                            data.push(val);
+                            indices.push(b_cols[bi]);
+                        }
+                        bi += 1;
+                    }
+                    indptr.push(data.len());
+                }
+
+                return CsrArray::new(
+                    Array1::from_vec(data),
+                    Array1::from_vec(indices),
+                    Array1::from_vec(indptr),
+                    self.shape(),
+                )
+                .map(|array| Box::new(array) as Box<dyn SparseArray<T>>);
+            }
+        }
+
+        // Fallback: dense conversion
+        let self_array = self.to_array();
+        let other_array = other.to_array();
         let result = &self_array + &other_array;
 
-        // Convert back to CSR
         let (rows, cols) = self.shape();
         let mut data = Vec::new();
         let mut indices = Vec::new();
@@ -624,8 +706,6 @@ where
     }
 
     fn dot(&self, other: &dyn SparseArray<T>) -> SparseResult<Box<dyn SparseArray<T>>> {
-        // Matrix multiplication
-        // This is a placeholder; a full implementation would be optimized for sparse arrays
         let (m, n) = self.shape();
         let (p, q) = other.shape();
 
@@ -636,8 +716,66 @@ where
             });
         }
 
-        let mut result = Array2::zeros((m, q));
+        // Fast path: if `other` is also a CsrArray, use scatter-gather
+        // row-by-row multiplication in O(nnz(A) * avg_nnz_per_row(B)) time.
+        if let Some(other_csr) = other.as_any().downcast_ref::<CsrArray<T>>() {
+            let mut data = Vec::new();
+            let mut col_indices = Vec::new();
+            let mut indptr = vec![0usize];
+
+            let mut workspace = vec![T::sparse_zero(); q];
+            let mut marker = vec![false; q];
+
+            for i in 0..m {
+                let a_start = self.indptr[i];
+                let a_end = self.indptr[i + 1];
+                let mut touched: Vec<usize> = Vec::new();
+
+                for a_idx in a_start..a_end {
+                    let k = self.indices[a_idx];
+                    let a_ik = self.data[a_idx];
+                    if a_ik == T::sparse_zero() {
+                        continue;
+                    }
+                    let b_start = other_csr.indptr[k];
+                    let b_end = other_csr.indptr[k + 1];
+                    for b_idx in b_start..b_end {
+                        let j = other_csr.indices[b_idx];
+                        workspace[j] = workspace[j] + a_ik * other_csr.data[b_idx];
+                        if !marker[j] {
+                            marker[j] = true;
+                            touched.push(j);
+                        }
+                    }
+                }
+
+                touched.sort_unstable();
+                for &j in &touched {
+                    let val = workspace[j];
+                    if val != T::sparse_zero() {
+                        data.push(val);
+                        col_indices.push(j);
+                    }
+                    workspace[j] = T::sparse_zero();
+                    marker[j] = false;
+                }
+                indptr.push(data.len());
+            }
+
+            return CsrArray::new(
+                Array1::from_vec(data),
+                Array1::from_vec(col_indices),
+                Array1::from_vec(indptr),
+                (m, q),
+            )
+            .map(|array| Box::new(array) as Box<dyn SparseArray<T>>);
+        }
+
+        // Fallback: use dense `other` matrix
         let other_array = other.to_array();
+        let mut data = Vec::new();
+        let mut col_indices = Vec::new();
+        let mut indptr = vec![0];
 
         for row in 0..m {
             let start = self.indptr[row];
@@ -650,22 +788,8 @@ where
                     sum = sum + self.data[idx] * other_array[[col, j]];
                 }
                 if sum != T::sparse_zero() {
-                    result[[row, j]] = sum;
-                }
-            }
-        }
-
-        // Convert result back to CSR
-        let mut data = Vec::new();
-        let mut indices = Vec::new();
-        let mut indptr = vec![0];
-
-        for row in 0..m {
-            for col in 0..q {
-                let val = result[[row, col]];
-                if val != T::sparse_zero() {
-                    data.push(val);
-                    indices.push(col);
+                    data.push(sum);
+                    col_indices.push(j);
                 }
             }
             indptr.push(data.len());
@@ -673,7 +797,7 @@ where
 
         CsrArray::new(
             Array1::from_vec(data),
-            Array1::from_vec(indices),
+            Array1::from_vec(col_indices),
             Array1::from_vec(indptr),
             (m, q),
         )
@@ -764,8 +888,6 @@ where
     }
 
     fn set(&mut self, i: usize, j: usize, value: T) -> SparseResult<()> {
-        // Setting elements in CSR format is non-trivial
-        // This is a placeholder implementation that doesn't actually modify the structure
         if i >= self.shape.0 || j >= self.shape.1 {
             return Err(SparseError::IndexOutOfBounds {
                 index: (i, j),
@@ -779,25 +901,42 @@ where
         // Try to find existing element
         for idx in start..end {
             if self.indices[idx] == j {
-                // Update value
                 self.data[idx] = value;
                 return Ok(());
             }
-            // If indices are sorted, we can insert at the right position
             if self.has_sorted_indices && self.indices[idx] > j {
-                // Insert here - this would require restructuring indices and data
-                // Not implemented in this placeholder
-                return Err(SparseError::NotImplemented(
-                    "Inserting new elements in CSR format".to_string(),
-                ));
+                // Insert at position `idx` to maintain sorted order
+                self.data = array1_insert(&self.data, idx, value);
+                self.indices = array1_insert(&self.indices, idx, j);
+                // Increment indptr for all subsequent rows
+                for row_ptr in self.indptr.iter_mut().skip(i + 1) {
+                    *row_ptr += 1;
+                }
+                return Ok(());
             }
         }
 
-        // Element not found, would need to insert
-        // This would require restructuring indices and data
-        Err(SparseError::NotImplemented(
-            "Inserting new elements in CSR format".to_string(),
-        ))
+        // Element not found - insert at end of this row's range
+        self.data = array1_insert(&self.data, end, value);
+        self.indices = array1_insert(&self.indices, end, j);
+        // Increment indptr for all subsequent rows
+        for row_ptr in self.indptr.iter_mut().skip(i + 1) {
+            *row_ptr += 1;
+        }
+        // If we inserted at the end, indices may no longer be sorted
+        // (only if there are elements after this row that come before j).
+        // Re-check sorted state for this row.
+        if self.has_sorted_indices {
+            let new_end = self.indptr[i + 1];
+            let new_start = self.indptr[i];
+            for k in new_start..new_end.saturating_sub(1) {
+                if self.indices[k] > self.indices[k + 1] {
+                    self.has_sorted_indices = false;
+                    break;
+                }
+            }
+        }
+        Ok(())
     }
 
     fn eliminate_zeros(&mut self) {

@@ -92,7 +92,7 @@ impl SimdBfgsState {
             .simd_ops
             .sub(&self.gradient.view(), &self.prev_gradient.view());
 
-        // Compute ρ = 1 / (s^T y)
+        // Compute rho = 1 / (s^T y)
         let s_dot_y = self.simd_ops.dot_product(&s.view(), &y.view());
 
         if s_dot_y.abs() < 1e-14 {
@@ -103,7 +103,7 @@ impl SimdBfgsState {
         let rho = 1.0 / s_dot_y;
 
         // BFGS update using SIMD operations where possible
-        // H_{k+1} = (I - ρ s y^T) H_k (I - ρ y s^T) + ρ s s^T
+        // H_{k+1} = (I - rho s y^T) H_k (I - rho y s^T) + rho s s^T
 
         // For efficiency, we'll use the Sherman-Morrison-Woodbury formula
         // This requires matrix operations that are not easily SIMD-vectorized,
@@ -116,8 +116,6 @@ impl SimdBfgsState {
         let ythhy = self.simd_ops.dot_product(&y.view(), &hy.view());
 
         // Update H_{k+1} = H_k - (H_k y y^T H_k) / (y^T H_k y) + (s s^T) / (s^T y)
-        //                   + rho^2 (y^T H_k y) (s s^T)
-
         for i in 0..n {
             for j in 0..n {
                 let hess_update = -hy[i] * hy[j] / ythhy + rho * s[i] * s[j];
@@ -162,15 +160,24 @@ impl SimdBfgsState {
     }
 }
 
-/// SIMD-accelerated BFGS minimization
+/// SIMD-accelerated BFGS minimization.
+///
+/// # Parameters
+/// - `fun`: The objective function to minimize.
+/// - `grad`: An optional user-provided gradient function. When `None`, finite differences
+///   are used to approximate the gradient, keeping existing behavior 100% intact.
+/// - `x0`: Initial guess.
+/// - `options`: Optional SIMD BFGS options.
 #[allow(dead_code)]
-pub fn minimize_simd_bfgs<F>(
+pub fn minimize_simd_bfgs<F, G>(
     mut fun: F,
+    grad: Option<G>,
     x0: Array1<f64>,
     options: Option<SimdBfgsOptions>,
 ) -> Result<OptimizeResult<f64>, OptimizeError>
 where
     F: FnMut(&ArrayView1<f64>) -> f64 + Clone,
+    G: Fn(&ArrayView1<f64>) -> Array1<f64>,
 {
     let options = options.unwrap_or_default();
     let n = x0.len();
@@ -185,7 +192,7 @@ where
 
     if !use_simd {
         // Fall back to regular BFGS for small problems or when SIMD is not available
-        return crate::unconstrained::bfgs::minimize_bfgs(fun, x0, &options.base_options);
+        return crate::unconstrained::bfgs::minimize_bfgs(fun, grad, x0, &options.base_options);
     }
 
     let mut state = SimdBfgsState::new(&x0, options.simd_config);
@@ -194,8 +201,12 @@ where
     state.function_value = fun(&state.position.view());
     state.nfev += 1;
 
-    // Compute initial gradient using finite differences
-    state.gradient = compute_gradient_finite_diff(&mut fun, &state.position, &mut state.nfev);
+    // Compute initial gradient using user-provided gradient or finite differences
+    state.gradient = if let Some(ref grad_fn) = grad {
+        grad_fn(&state.position.view())
+    } else {
+        compute_gradient_finite_diff(&mut fun, &state.position, &mut state.nfev)
+    };
     state.njev += 1;
 
     let mut prev_f = state.function_value;
@@ -284,8 +295,12 @@ where
         state.function_value = fun(&state.position.view());
         state.nfev += 1;
 
-        // Compute new gradient
-        state.gradient = compute_gradient_finite_diff(&mut fun, &state.position, &mut state.nfev);
+        // Compute new gradient using user-provided gradient or finite differences
+        state.gradient = if let Some(ref grad_fn) = grad {
+            grad_fn(&state.position.view())
+        } else {
+            compute_gradient_finite_diff(&mut fun, &state.position, &mut state.nfev)
+        };
         state.njev += 1;
 
         // Update Hessian approximation (only if we took a step)
@@ -372,7 +387,9 @@ fn apply_bounds(x: &mut Array1<f64>, bounds: &Bounds) {
     }
 }
 
-/// Convenience function for SIMD BFGS with default options
+/// Convenience function for SIMD BFGS with default options and no user-provided gradient.
+///
+/// Gradients are computed using forward finite differences.
 #[allow(dead_code)]
 pub fn minimize_simd_bfgs_default<F>(
     fun: F,
@@ -381,7 +398,7 @@ pub fn minimize_simd_bfgs_default<F>(
 where
     F: FnMut(&ArrayView1<f64>) -> f64 + Clone,
 {
-    minimize_simd_bfgs(fun, x0, None)
+    minimize_simd_bfgs(fun, None::<fn(&ArrayView1<f64>) -> Array1<f64>>, x0, None)
 }
 
 #[cfg(test)]
@@ -406,7 +423,13 @@ mod tests {
             ..Default::default()
         };
 
-        let result = minimize_simd_bfgs(fun, x0, Some(options)).expect("Operation failed");
+        let result = minimize_simd_bfgs(
+            fun,
+            None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+            x0,
+            Some(options),
+        )
+        .expect("Operation failed");
 
         assert!(result.success);
         for &xi in result.x.iter() {
@@ -440,7 +463,13 @@ mod tests {
             ..Default::default()
         };
 
-        let result = minimize_simd_bfgs(rosenbrock, x0, Some(options)).expect("Operation failed");
+        let result = minimize_simd_bfgs(
+            rosenbrock,
+            None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+            x0,
+            Some(options),
+        )
+        .expect("Operation failed");
 
         // Rosenbrock function minimum is at (1, 1, 1, 1)
         for &xi in result.x.iter() {
@@ -467,7 +496,13 @@ mod tests {
             ..Default::default()
         };
 
-        let result = minimize_simd_bfgs(fun, x0, Some(options)).expect("Operation failed");
+        let result = minimize_simd_bfgs(
+            fun,
+            None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+            x0,
+            Some(options),
+        )
+        .expect("Operation failed");
 
         // Should find minimum at bounds: (0, 0)
         assert!(result.x[0] >= 0.0 && result.x[0] <= 1.0);
@@ -494,7 +529,12 @@ mod tests {
 
         let fun = |x: &ArrayView1<f64>| x[0].powi(2);
         let x0 = array![1.0];
-        let result = minimize_simd_bfgs(fun, x0, Some(options));
+        let result = minimize_simd_bfgs(
+            fun,
+            None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+            x0,
+            Some(options),
+        );
         assert!(result.is_ok());
     }
 
@@ -510,9 +550,41 @@ mod tests {
             ..Default::default()
         };
 
-        let result = minimize_simd_bfgs(fun, x0, Some(options)).expect("Operation failed");
+        let result = minimize_simd_bfgs(
+            fun,
+            None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+            x0,
+            Some(options),
+        )
+        .expect("Operation failed");
         assert!(result.success);
         assert_abs_diff_eq!(result.x[0], 0.0, epsilon = 1e-6);
         assert_abs_diff_eq!(result.x[1], 0.0, epsilon = 1e-6);
+    }
+
+    #[test]
+    fn test_simd_bfgs_with_analytic_gradient() {
+        // Simple quadratic: f(x) = sum(xi^2), analytic gradient: g(x) = 2*x
+        let fun = |x: &ArrayView1<f64>| x.iter().map(|&xi| xi.powi(2)).sum::<f64>();
+        let grad_fn = |x: &ArrayView1<f64>| x.mapv(|xi| 2.0 * xi);
+
+        let x0 = array![1.0, 2.0, 3.0, 4.0];
+        let options = SimdBfgsOptions {
+            base_options: Options {
+                max_iter: 100,
+                gtol: 1e-8,
+                ..Default::default()
+            },
+            force_simd: true,
+            ..Default::default()
+        };
+
+        let result =
+            minimize_simd_bfgs(fun, Some(grad_fn), x0, Some(options)).expect("Operation failed");
+
+        assert!(result.success);
+        for &xi in result.x.iter() {
+            assert_abs_diff_eq!(xi, 0.0, epsilon = 1e-6);
+        }
     }
 }

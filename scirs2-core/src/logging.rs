@@ -62,6 +62,9 @@ pub mod progress;
 /// Smart rate limiting for high-frequency log events
 pub mod rate_limiting;
 
+/// Integration bridge with the `log` crate facade, timing macros, and memory tracking
+pub mod bridge;
+
 /// Log level enumeration
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LogLevel {

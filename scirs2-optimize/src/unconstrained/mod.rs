@@ -3,7 +3,7 @@
 //! This module provides various algorithms for unconstrained minimization problems.
 
 use crate::error::OptimizeError;
-use scirs2_core::ndarray::{Array1, ArrayView1};
+use scirs2_core::ndarray::{Array1, Array2, ArrayView1};
 use std::fmt;
 
 // Sub-modules
@@ -44,7 +44,7 @@ pub use advanced_line_search::{
     advanced_line_search, create_non_monotone_state, AdvancedLineSearchOptions,
     InterpolationStrategy, LineSearchMethod, LineSearchResult, LineSearchStats,
 };
-pub use bfgs::minimize_bfgs;
+pub use bfgs::{minimize_bfgs, minimize_bfgs_no_grad};
 pub use callback_diagnostics::{
     minimize_with_diagnostics, optimize_with_diagnostics, CallbackInfo, CallbackResult,
     DiagnosticOptimizer, OptimizationCallback,
@@ -89,7 +89,10 @@ pub use subspace_methods::{
 pub use truncated_newton::{
     minimize_truncated_newton, minimize_trust_region_newton, Preconditioner, TruncatedNewtonOptions,
 };
-pub use trust_region::{minimize_trust_exact, minimize_trust_krylov, minimize_trust_ncg};
+pub use trust_region::{
+    cauchy_point, dogleg_step, minimize_trust_exact, minimize_trust_krylov, minimize_trust_ncg,
+    solve_trust_subproblem, trust_region_minimize, TrustRegionConfig, TrustRegionResult,
+};
 
 /// Optimization methods for unconstrained minimization.
 #[derive(Debug, Clone, Copy)]
@@ -122,6 +125,8 @@ pub enum Method {
     TruncatedNewton,
     /// Trust-region Newton method with truncated CG
     TrustRegionNewton,
+    /// Trust-region dogleg method (Cauchy point + dogleg step)
+    TrustRegionDogleg,
 }
 
 /// Bounds for optimization variables
@@ -188,6 +193,7 @@ impl fmt::Display for Method {
             Method::TrustExact => write!(f, "Trust-Exact"),
             Method::TruncatedNewton => write!(f, "Truncated Newton"),
             Method::TrustRegionNewton => write!(f, "Trust-Region Newton"),
+            Method::TrustRegionDogleg => write!(f, "Trust-Region Dogleg"),
         }
     }
 }
@@ -318,18 +324,39 @@ where
     match method {
         Method::NelderMead => nelder_mead::minimize_nelder_mead(fun, x0, options),
         Method::Powell => powell::minimize_powell(fun, x0, options),
-        Method::CG => conjugate_gradient::minimize_conjugate_gradient(fun, x0, options),
-        Method::BFGS => bfgs::minimize_bfgs(fun, x0, options),
+        Method::CG => conjugate_gradient::minimize_conjugate_gradient(
+            fun,
+            None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+            x0,
+            options,
+        ),
+        Method::BFGS => bfgs::minimize_bfgs(
+            fun,
+            None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+            x0,
+            options,
+        ),
         Method::SR1 => quasi_newton::minimize_sr1(fun, x0, options),
         Method::DFP => quasi_newton::minimize_dfp(fun, x0, options),
-        Method::LBFGS => lbfgs::minimize_lbfgs(fun, x0, options),
-        Method::LBFGSB => lbfgs::minimize_lbfgsb(fun, x0, options),
+        Method::LBFGS => lbfgs::minimize_lbfgs(
+            fun,
+            None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+            x0,
+            options,
+        ),
+        Method::LBFGSB => lbfgs::minimize_lbfgsb(
+            fun,
+            None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+            x0,
+            options,
+        ),
         Method::NewtonCG => newton::minimize_newton_cg(fun, x0, options),
         Method::TrustNCG => trust_region::minimize_trust_ncg(fun, x0, options),
         Method::TrustKrylov => trust_region::minimize_trust_krylov(fun, x0, options),
         Method::TrustExact => trust_region::minimize_trust_exact(fun, x0, options),
         Method::TruncatedNewton => truncated_newton_wrapper(fun, x0, options),
         Method::TrustRegionNewton => trust_region_newton_wrapper(fun, x0, options),
+        Method::TrustRegionDogleg => trust_region_dogleg_wrapper(fun, x0, options),
     }
 }
 
@@ -414,6 +441,51 @@ where
         jacobian: result.jacobian,
         hessian: result.hessian,
         success: result.success,
+        message: result.message,
+    })
+}
+
+/// Wrapper function for trust-region dogleg method
+#[allow(dead_code)]
+fn trust_region_dogleg_wrapper<F, S>(
+    mut fun: F,
+    x0: Array1<f64>,
+    options: &Options,
+) -> Result<OptimizeResult<S>, OptimizeError>
+where
+    F: FnMut(&ArrayView1<f64>) -> S + Clone,
+    S: Into<f64> + Clone + From<f64>,
+{
+    let mut fun_f64 = move |x: &ArrayView1<f64>| fun(x).into();
+
+    let config = TrustRegionConfig {
+        initial_radius: options.trust_radius.unwrap_or(1.0),
+        max_radius: options.max_trust_radius.unwrap_or(100.0),
+        max_iter: options.max_iter,
+        tolerance: options.gtol,
+        ftol: options.ftol,
+        eps: options.eps,
+        min_radius: options.min_trust_radius.unwrap_or(1e-14),
+        ..Default::default()
+    };
+
+    let result = trust_region::trust_region_minimize(
+        &mut fun_f64,
+        None::<fn(&ArrayView1<f64>) -> Array1<f64>>,
+        None::<fn(&ArrayView1<f64>) -> Array2<f64>>,
+        x0,
+        Some(config),
+    )?;
+
+    Ok(OptimizeResult {
+        x: result.x,
+        fun: S::from(result.f_val),
+        nit: result.n_iter,
+        func_evals: result.n_fev,
+        nfev: result.n_fev,
+        jacobian: None,
+        hessian: None,
+        success: result.converged,
         message: result.message,
     })
 }

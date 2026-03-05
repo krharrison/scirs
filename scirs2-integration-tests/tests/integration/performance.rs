@@ -1,7 +1,7 @@
 // Performance integration tests for SciRS2 v0.2.0
 // Tests end-to-end pipeline performance, memory efficiency, and GPU/CPU handoff
 
-use ndarray::{Array1, Array2};
+use scirs2_core::ndarray::{Array1, Array2};
 use crate::integration::common::*;
 use crate::integration::fixtures::TestDatasets;
 use std::time::Instant;

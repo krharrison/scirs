@@ -320,11 +320,14 @@ impl StatsBridge {
     where
         F: Fn(&[f64]) -> f64 + Send + Sync,
     {
-        let pool = ThreadLocalRngPool::new(seed);
+        let _pool = ThreadLocalRngPool::new(seed);
 
+        // Each bootstrap iteration uses a unique seed derived from base seed + iteration index.
+        // Using the same seed for every iteration would generate identical resamples, producing
+        // degenerate confidence intervals.
         let bootstrap_stats: Vec<f64> = (0..n_bootstrap)
-            .map(|_| {
-                let mut rng = seeded_rng(seed);
+            .map(|iter_idx| {
+                let mut rng = seeded_rng(seed.wrapping_add(iter_idx as u64));
                 use crate::random::slice_ops::ScientificSliceRandom;
                 let bootstrap_sample =
                     data.scientific_sample_with_replacement(&mut rng, data.len());
@@ -878,7 +881,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Flaky statistical test - bootstrap confidence intervals can be sensitive
     fn test_stats_bridge_bootstrap_ci() {
         let data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0];
 

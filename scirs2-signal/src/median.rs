@@ -22,7 +22,7 @@ use scirs2_core::ndarray::s;
 //
 // // Apply median filter with window size 3
 // let config = MedianConfig::default();
-// let filtered = median_filter_1d(&signal, 3, &config).unwrap();
+// let filtered = median_filter_1d(&signal, 3, &config).expect("operation should succeed");
 // // The outliers (5.0 and 0.0) will be replaced with median values
 // ```
 
@@ -101,7 +101,7 @@ impl Default for MedianConfig {
 ///
 /// let signal = Array1::from_vec(vec![1.0, 1.2, 5.0, 1.1, 1.3, 0.0, 1.2]);
 /// let config = MedianConfig::default();
-/// let filtered = median_filter_1d(&signal, 3, &config).unwrap();
+/// let filtered = median_filter_1d(&signal, 3, &config).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn median_filter_1d(
@@ -324,7 +324,7 @@ fn adaptive_median_filter_1d(
 ///     if i == 2 && j == 2 { 100.0 } else { 1.0 }  // Center pixel is an outlier
 /// });
 /// let config = MedianConfig::default();
-/// let filtered = median_filter_2d(&image, 3, &config).unwrap();
+/// let filtered = median_filter_2d(&image, 3, &config).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn median_filter_2d(

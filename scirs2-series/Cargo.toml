@@ -62,6 +62,8 @@ wasm = ["dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:js-sys", "dep:web-s
 python = ["scirs2-core/python"]
 # R integration for R ecosystem compatibility
 r = []
+# SIMD-accelerated time series operations
+simd = ["scirs2-core/simd"]
 
 [[bench]]
 name = "comprehensive_benchmarks"

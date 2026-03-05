@@ -94,4 +94,4 @@ scirs2-core/auditlogs/
 scirs2-stats/performancebaselines/*.json
 scirs2-cluster/model.json
 scirs2-text/*.w2v
-scirs2-python/.hypothesis/
+**/.hypothesis/

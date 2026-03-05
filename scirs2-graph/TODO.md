@@ -1,98 +1,124 @@
-# SciRS2 Graph - Production TODO (v0.1.5)
+# scirs2-graph TODO
 
-This Stable Release features comprehensive platform testing and final preparation for stable release. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), the module is production-ready with comprehensive graph functionality and ecosystem consistency.
+## Status: v0.3.0 Released (February 26, 2026)
 
-## Production Status
+## v0.3.0 Completed
 
-### ✅ Core Features (Complete)
-- **Graph Data Structures**: All major graph types implemented and tested
-  - Undirected/Directed graphs with efficient storage
-  - Multi-graphs with parallel edges support
-  - Bipartite graphs with specialized operations
-  - Hypergraphs for complex relationships
-  - Temporal graphs with time-based operations
-  - Attributed graphs with rich metadata support
+### Community Detection
+- Louvain method (modularity optimization)
+- Girvan-Newman algorithm (edge betweenness)
+- Label propagation
+- Infomap algorithm
+- Fluid communities
+- Hierarchical clustering
 
-- **Essential Algorithms**: All core graph algorithms implemented
-  - **Traversal**: BFS, DFS, bidirectional search, priority-first search
-  - **Shortest Paths**: Dijkstra, A*, Floyd-Warshall, k-shortest paths
-  - **Connectivity**: Connected/strongly connected components, articulation points, bridges
-  - **Spanning Trees**: Kruskal and Prim algorithms
-  - **Flow Algorithms**: Ford-Fulkerson, Dinic, push-relabel, minimum cut
-  - **Matching**: Bipartite matching, maximum cardinality, stable marriage
-  - **Centrality**: Degree, betweenness, closeness, eigenvector, Katz, PageRank, HITS
+### Graph Neural Networks
+- Graph Convolutional Network (GCN)
+- Graph Attention Network (GAT)
+- GraphSAGE (inductive representation learning)
+- Graph Isomorphism Network (GIN)
+- Message-passing framework
 
-- **Advanced Analytics**: Production-ready analysis capabilities
-  - **Community Detection**: Modularity optimization, Louvain, label propagation, Infomap, fluid communities
-  - **Graph Properties**: Diameter, radius, density, clustering coefficient
-  - **Spectral Methods**: Laplacian computation, spectral clustering, algebraic connectivity
-  - **Isomorphism**: VF2 algorithm with subgraph matching
-  - **Motif Finding**: Triangle, clique, star pattern detection
+### Graph Embeddings
+- Node2Vec random walk embeddings
+- DeepWalk
+- Spectral embeddings
+- Diffusion-based embeddings
 
-- **Performance & Scale**: Optimized for production workloads
-  - Multi-threaded algorithms with Rayon integration
-  - Cache-friendly data structures
-  - Streaming graph processing for large datasets
-  - Memory-efficient operations with lazy evaluation
-  - SIMD acceleration where applicable
+### Graph Isomorphism
+- VF2 algorithm for graph/subgraph isomorphism
+- Subgraph matching with label/attribute constraints
 
-- **I/O & Interoperability**: Comprehensive format support
-  - GraphML, GML, DOT (Graphviz), JSON formats
-  - Edge list and adjacency list formats
-  - Matrix Market format for sparse representations
-  - Robust error handling and validation
+### Spectral Graph Theory
+- Graph Laplacian and normalized Laplacian
+- Spectral clustering (including algebraic connectivity)
+- Graph Fourier transform
+- Graph wavelets
+- Graph filtering in spectral domain
 
-## Pre-1.0 Completion Tasks
+### Network Flow
+- Ford-Fulkerson, Dinic's algorithm, push-relabel
+- Minimum-cost flow
+- Maximum matching extensions
 
-### 🔄 Documentation Enhancement (In Progress)
-- [ ] Performance benchmarks vs NetworkX/igraph
-- [ ] Algorithm complexity documentation
-- [ ] Extended usage examples for common workflows
-- [ ] Migration guide from NetworkX
+### Graph Visualization
+- SVG output with customizable layouts
+- DOT format for Graphviz
+- Force-directed, circular, hierarchical layout algorithms
 
-### 🔄 API Stability Review (In Progress)  
-- [ ] Final API review for breaking changes
-- [ ] Stabilize public interface signatures
-- [ ] Deprecation warnings for any API changes planned for 1.0
+### Heterogeneous and Knowledge Graphs
+- Heterogeneous graph representation
+- Knowledge graph modeling with entity/relation types
+- Type-aware traversal and queries
 
-### 📋 Final Testing & Validation
-- [ ] Large graph stress testing (>1M nodes)
-- [ ] Cross-platform build verification
-- [ ] Memory usage profiling and optimization
-- [ ] Numerical accuracy validation against reference implementations
+### Temporal Graphs
+- TemporalGraph data structure
+- Snapshot queries at specific timestamps
+- Temporal path finding
+- Dynamic graph algorithms
 
-## Post-1.0 Roadmap (Future)
+### Hypergraphs
+- Hypergraph representation
+- Hypergraph algorithms (hyperedge connectivity, centrality)
 
-### Advanced Features (1.x series)
-- **Graph Embeddings**: Enhanced Node2Vec/DeepWalk implementations
-- **Graph Neural Networks**: Message-passing framework integration
-- **GPU Acceleration**: CUDA kernels for core algorithms
-- **Distributed Processing**: Large-scale graph processing across multiple machines
+### Social Network Analysis
+- Influence propagation models (independent cascade, linear threshold)
+- Role detection
+- Reciprocity metrics
 
-### Domain-Specific Extensions (1.x series)
-- **Social Network Analysis**: Influence metrics, role detection
-- **Biological Networks**: Pathway analysis, gene regulatory networks
-- **Infrastructure Networks**: Resilience analysis, cascading failure modeling
-- **Knowledge Graphs**: Entity-relationship modeling with reasoning
+### Additional Graph Algorithms
+- Domination problems (dominating sets, independent sets)
+- Planarity testing (LR-planarity)
+- Algebraic graph theory (characteristic polynomial, graph spectrum)
+- Graph reliability and robustness analysis (percolation, connectivity)
+- Network sampling algorithms (snowball, forest-fire, random walk sampling)
 
-### Visualization & Interactive Tools (1.x series)
-- **Layout Algorithms**: Enhanced force-directed, hierarchical layouts
-- **Rendering Systems**: SVG export, interactive visualizations
-- **Large Graph Visualization**: Techniques for massive graph exploration
+### Scale and Performance
+- CSR representation for cache-efficient traversal
+- Rayon parallel processing for core algorithms
+- Memory profiling tooling
+- Streaming graph processing for large datasets
 
-## Notes for Contributors
+## v0.4.0 Roadmap
 
-- **Code Quality**: All code must pass clippy lints and maintain >95% test coverage
-- **Performance**: New algorithms should include benchmarks and complexity analysis
-- **Documentation**: All public APIs require comprehensive documentation with examples
-- **Testing**: Unit tests, integration tests, and property-based tests are mandatory
-- **Compatibility**: Maintain SciPy/NetworkX API compatibility where possible
+### Temporal Graph Neural Networks
+- Temporal GNNs for dynamic graph learning
+- Time-aware node embeddings
+- Continuous-time dynamic graph models (JODIE, TGN)
 
-## Implementation Status Summary
+### Graph Transformers
+- Graph Transformer layers with positional encodings
+- Expressive power beyond WL-1 test
+- Long-range graph dependencies
 
-**Total Features Implemented**: ~90% of core graph processing functionality
-**Test Coverage**: 269 unit tests + comprehensive integration tests  
-**Performance**: Optimized with parallel processing and efficient data structures
-**Production Readiness**: ✅ Ready for production use in scientific computing applications
+### Large-Scale Graph Partitioning
+- Balanced k-way partitioning for distributed processing (target: 10B+ edges)
+- METIS-style multilevel partitioning
+- Streaming partitioning for dynamic graphs
+- Distributed graph storage (partitioned adjacency lists)
 
-This module provides a comprehensive, high-performance graph processing library suitable for scientific computing, machine learning, and data analysis applications.
+### GPU-Accelerated Graph Algorithms
+- GPU BFS and SSSP (single-source shortest paths)
+- GPU PageRank and betweenness centrality
+- GPU sparse matrix operations for spectral methods
+
+### Advanced GNN Architectures
+- Graph Transformers (Graphormer, GPS)
+- Equivariant GNNs (E(n)-GNN) for molecular applications
+- Heterogeneous GNNs for knowledge graph completion
+
+### Graph Self-Supervised Learning
+- Contrastive graph learning (GraphCL, SimGRACE)
+- Graph masked autoencoders (GraphMAE)
+- Pre-training strategies for downstream tasks
+
+### Hypergraph Neural Networks
+- Hypergraph convolution layers
+- Hypergraph attention mechanisms
+- Hyperedge prediction
+
+## Known Issues
+
+- VF2 subgraph isomorphism may be slow for dense graphs with many automorphisms
+- Louvain community detection is non-deterministic; seed control recommended for reproducibility
+- Some spectral methods require the `parallel` feature for acceptable performance on graphs larger than 100K nodes

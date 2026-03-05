@@ -33,10 +33,10 @@ use scirs2_core::ndarray::s;
 //
 // // Compute bispectrum
 // let nfft = 256;
-// let (bispec, f1_axis, f2_axis) = bispectrum(&signal, nfft, Some("hann"), None, fs).unwrap();
+// let (bispec, f1_axis, f2_axis) = bispectrum(&signal, nfft, Some("hann"), None, fs).expect("operation should succeed");
 //
 // // Compute bicoherence (normalized bispectrum)
-// let (bicoh_) = bicoherence(&signal, nfft, Some("hann"), None, fs).unwrap();
+// let (bicoh_) = bicoherence(&signal, nfft, Some("hann"), None, fs).expect("operation should succeed");
 //
 // // Look for peaks in bicoherence to detect phase coupling
 // // Strong peaks at (f1, f2) indicate quadratic phase coupling between f1, f2, and f1+f2
@@ -137,7 +137,7 @@ impl Default for HigherOrderConfig {
 /// use scirs2_signal::higher_order::bispectrum;
 ///
 /// let signal = Array1::from_vec(vec![1.0, 2.0, 1.0, 0.0, -1.0, -2.0, -1.0, 0.0]);
-/// let (bis, f1, f2) = bispectrum(&signal, 16, Some("hann"), None, 1.0).unwrap();
+/// let (bis, f1, f2) = bispectrum(&signal, 16, Some("hann"), None, 1.0).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn bispectrum(
@@ -188,7 +188,7 @@ pub fn bispectrum(
 /// use scirs2_signal::higher_order::bicoherence;
 ///
 /// let signal = Array1::from_vec(vec![1.0, 2.0, 1.0, 0.0, -1.0, -2.0, -1.0, 0.0]);
-/// let (bic, (f1, f2)) = bicoherence(&signal, 16, Some("hann"), None, 1.0).unwrap();
+/// let (bic, (f1, f2)) = bicoherence(&signal, 16, Some("hann"), None, 1.0).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn bicoherence(

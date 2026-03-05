@@ -10,8 +10,10 @@ pub mod async_execution;
 pub mod auto_tuning;
 pub mod backends;
 pub mod benchmarks;
+mod cpu_ops;
 pub mod heterogeneous;
 pub mod kernels;
+pub mod memory_management;
 pub mod tensor_cores;
 
 /// GPU backend type
@@ -836,12 +838,7 @@ impl GpuContext {
 
     /// Global sum reduction
     pub fn sum_all<T: GpuDataType>(&self, buffer: &GpuBuffer<T>) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation using CPU fallback
-        let data = buffer.to_vec();
-        let sum: T = unsafe { std::mem::zeroed() }; // Placeholder
-        let result = self.create_buffer::<T>(1);
-        let _ = result.copy_from_host(&[sum]);
-        Ok(result)
+        self.sum_all_cpu_fallback(buffer)
     }
 
     /// Global mean reduction
@@ -849,22 +846,17 @@ impl GpuContext {
         &self,
         buffer: &GpuBuffer<T>,
     ) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        self.sum_all(buffer)
+        self.mean_all_cpu_fallback(buffer)
     }
 
     /// Global max reduction
     pub fn max_all<T: GpuDataType>(&self, buffer: &GpuBuffer<T>) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        let result = self.create_buffer::<T>(1);
-        Ok(result)
+        self.max_all_cpu_fallback(buffer)
     }
 
     /// Global min reduction
     pub fn min_all<T: GpuDataType>(&self, buffer: &GpuBuffer<T>) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        let result = self.create_buffer::<T>(1);
-        Ok(result)
+        self.min_all_cpu_fallback(buffer)
     }
 
     /// Sum reduction along an axis
@@ -874,18 +866,7 @@ impl GpuContext {
         shape: &[usize],
         axis: usize,
     ) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        let mut output_shape = shape.to_vec();
-        if axis >= output_shape.len() {
-            return Err(GpuError::InvalidParameter(format!(
-                "Axis {} out of bounds for shape {:?}",
-                axis, shape
-            )));
-        }
-        output_shape[axis] = 1;
-        let output_size: usize = output_shape.iter().product();
-        let result = self.create_buffer::<T>(output_size);
-        Ok(result)
+        self.sum_axis_cpu_fallback(buffer, shape, axis)
     }
 
     /// Mean reduction along an axis
@@ -895,8 +876,7 @@ impl GpuContext {
         shape: &[usize],
         axis: usize,
     ) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        self.sum_axis(buffer, shape, axis)
+        self.mean_axis_cpu_fallback(buffer, shape, axis)
     }
 
     /// Max reduction along an axis
@@ -906,18 +886,7 @@ impl GpuContext {
         shape: &[usize],
         axis: usize,
     ) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        let mut output_shape = shape.to_vec();
-        if axis >= output_shape.len() {
-            return Err(GpuError::InvalidParameter(format!(
-                "Axis {} out of bounds for shape {:?}",
-                axis, shape
-            )));
-        }
-        output_shape[axis] = 1;
-        let output_size: usize = output_shape.iter().product();
-        let result = self.create_buffer::<T>(output_size);
-        Ok(result)
+        self.max_axis_cpu_fallback(buffer, shape, axis)
     }
 
     /// Min reduction along an axis
@@ -927,18 +896,7 @@ impl GpuContext {
         shape: &[usize],
         axis: usize,
     ) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        let mut output_shape = shape.to_vec();
-        if axis >= output_shape.len() {
-            return Err(GpuError::InvalidParameter(format!(
-                "Axis {} out of bounds for shape {:?}",
-                axis, shape
-            )));
-        }
-        output_shape[axis] = 1;
-        let output_size: usize = output_shape.iter().product();
-        let result = self.create_buffer::<T>(output_size);
-        Ok(result)
+        self.min_axis_cpu_fallback(buffer, shape, axis)
     }
 
     /// Broadcast a buffer to a different shape
@@ -948,17 +906,7 @@ impl GpuContext {
         from_shape: &[usize],
         to_shape: &[usize],
     ) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        let output_size: usize = to_shape.iter().product();
-        let result = self.create_buffer::<T>(output_size);
-
-        // For now, just copy the data if sizes match, otherwise create zeros
-        if buffer.len() == output_size {
-            let data = buffer.to_vec();
-            let _ = result.copy_from_host(&data);
-        }
-
-        Ok(result)
+        self.broadcast_cpu_fallback(buffer, from_shape, to_shape)
     }
 
     /// Scale a buffer by a scalar value
@@ -967,11 +915,7 @@ impl GpuContext {
         buffer: &GpuBuffer<T>,
         scalar: T,
     ) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        let result = self.create_buffer::<T>(buffer.len());
-        let data = buffer.to_vec();
-        let _ = result.copy_from_host(&data);
-        Ok(result)
+        self.scale_cpu_fallback(buffer, scalar)
     }
 
     /// General matrix multiplication: C = A @ B
@@ -983,10 +927,7 @@ impl GpuContext {
         k: usize,
         n: usize,
     ) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        // Output size is m x n
-        let result = self.create_buffer::<T>(m * n);
-        Ok(result)
+        self.gemm_cpu_fallback(a, b, m, k, n)
     }
 
     /// GEMM with transposed B: C = A @ B^T
@@ -998,10 +939,7 @@ impl GpuContext {
         k: usize,
         n: usize,
     ) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        // Output size is m x n
-        let result = self.create_buffer::<T>(m * n);
-        Ok(result)
+        self.gemm_transpose_b_cpu_fallback(a, b, m, k, n)
     }
 
     /// GEMM with transposed A: C = A^T @ B
@@ -1013,19 +951,12 @@ impl GpuContext {
         k: usize,
         n: usize,
     ) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        // Output size is m x n
-        let result = self.create_buffer::<T>(m * n);
-        Ok(result)
+        self.gemm_transpose_a_cpu_fallback(a, b, m, k, n)
     }
 
     /// ReLU activation forward pass
     pub fn relu<T: GpuDataType>(&self, input: &GpuBuffer<T>) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        let result = self.create_buffer::<T>(input.len());
-        let data = input.to_vec();
-        let _ = result.copy_from_host(&data);
-        Ok(result)
+        self.relu_cpu_fallback(input)
     }
 
     /// ReLU backward pass
@@ -1034,20 +965,12 @@ impl GpuContext {
         grad_output: &GpuBuffer<T>,
         input: &GpuBuffer<T>,
     ) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        let result = self.create_buffer::<T>(grad_output.len());
-        let data = grad_output.to_vec();
-        let _ = result.copy_from_host(&data);
-        Ok(result)
+        self.relu_backward_cpu_fallback(grad_output, input)
     }
 
     /// Sigmoid activation forward pass
     pub fn sigmoid<T: GpuDataType>(&self, input: &GpuBuffer<T>) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        let result = self.create_buffer::<T>(input.len());
-        let data = input.to_vec();
-        let _ = result.copy_from_host(&data);
-        Ok(result)
+        self.sigmoid_cpu_fallback(input)
     }
 
     /// Sigmoid backward pass
@@ -1056,20 +979,12 @@ impl GpuContext {
         grad_output: &GpuBuffer<T>,
         input: &GpuBuffer<T>,
     ) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        let result = self.create_buffer::<T>(grad_output.len());
-        let data = grad_output.to_vec();
-        let _ = result.copy_from_host(&data);
-        Ok(result)
+        self.sigmoid_backward_cpu_fallback(grad_output, input)
     }
 
     /// Tanh activation forward pass
     pub fn tanh<T: GpuDataType>(&self, input: &GpuBuffer<T>) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        let result = self.create_buffer::<T>(input.len());
-        let data = input.to_vec();
-        let _ = result.copy_from_host(&data);
-        Ok(result)
+        self.tanh_cpu_fallback(input)
     }
 
     /// Tanh backward pass
@@ -1078,20 +993,12 @@ impl GpuContext {
         grad_output: &GpuBuffer<T>,
         input: &GpuBuffer<T>,
     ) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        let result = self.create_buffer::<T>(grad_output.len());
-        let data = grad_output.to_vec();
-        let _ = result.copy_from_host(&data);
-        Ok(result)
+        self.tanh_backward_cpu_fallback(grad_output, input)
     }
 
     /// GELU activation forward pass
     pub fn gelu<T: GpuDataType>(&self, input: &GpuBuffer<T>) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        let result = self.create_buffer::<T>(input.len());
-        let data = input.to_vec();
-        let _ = result.copy_from_host(&data);
-        Ok(result)
+        self.gelu_cpu_fallback(input)
     }
 
     /// GELU backward pass
@@ -1100,11 +1007,7 @@ impl GpuContext {
         grad_output: &GpuBuffer<T>,
         input: &GpuBuffer<T>,
     ) -> Result<GpuBuffer<T>, GpuError> {
-        // Stub implementation
-        let result = self.create_buffer::<T>(grad_output.len());
-        let data = grad_output.to_vec();
-        let _ = result.copy_from_host(&data);
-        Ok(result)
+        self.gelu_backward_cpu_fallback(grad_output, input)
     }
 }
 

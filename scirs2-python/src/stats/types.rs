@@ -4,25 +4,24 @@
 
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use scirs2_stats::{ContinuousDistribution, DiscreteDistribution};
-use scirs2_stats::distributions::normal::Normal as RustNormal;
-use scirs2_stats::distributions::binomial::Binomial as RustBinomial;
-use scirs2_stats::distributions::poisson::Poisson as RustPoisson;
-use scirs2_stats::distributions::exponential::Exponential as RustExponential;
-use scirs2_stats::distributions::uniform::Uniform as RustUniform;
 use scirs2_stats::distributions::beta::Beta as RustBeta;
-use scirs2_stats::distributions::gamma::Gamma as RustGamma;
-use scirs2_stats::distributions::chi_square::ChiSquare as RustChiSquare;
-use scirs2_stats::distributions::student_t::StudentT as RustStudentT;
+use scirs2_stats::distributions::binomial::Binomial as RustBinomial;
 use scirs2_stats::distributions::cauchy::Cauchy as RustCauchy;
+use scirs2_stats::distributions::chi_square::ChiSquare as RustChiSquare;
+use scirs2_stats::distributions::exponential::Exponential as RustExponential;
 use scirs2_stats::distributions::f::F as RustF;
-use scirs2_stats::distributions::lognormal::Lognormal as RustLognormal;
-use scirs2_stats::distributions::weibull::Weibull as RustWeibull;
+use scirs2_stats::distributions::gamma::Gamma as RustGamma;
+use scirs2_stats::distributions::geometric::Geometric as RustGeometric;
 use scirs2_stats::distributions::laplace::Laplace as RustLaplace;
 use scirs2_stats::distributions::logistic::Logistic as RustLogistic;
+use scirs2_stats::distributions::lognormal::Lognormal as RustLognormal;
+use scirs2_stats::distributions::normal::Normal as RustNormal;
 use scirs2_stats::distributions::pareto::Pareto as RustPareto;
-use scirs2_stats::distributions::geometric::Geometric as RustGeometric;
-
+use scirs2_stats::distributions::poisson::Poisson as RustPoisson;
+use scirs2_stats::distributions::student_t::StudentT as RustStudentT;
+use scirs2_stats::distributions::uniform::Uniform as RustUniform;
+use scirs2_stats::distributions::weibull::Weibull as RustWeibull;
+use scirs2_stats::{ContinuousDistribution, DiscreteDistribution};
 
 /// Chi-square distribution
 #[pyclass(name = "chi2")]
@@ -40,10 +39,9 @@ impl PyChiSquare {
     #[new]
     #[pyo3(signature = (df, loc = 0.0, scale = 1.0))]
     fn new(df: f64, loc: f64, scale: f64) -> PyResult<Self> {
-        let dist = RustChiSquare::new(df, loc, scale)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("Chi-square distribution creation failed: {}", e),
-            ))?;
+        let dist = RustChiSquare::new(df, loc, scale).map_err(|e| {
+            PyRuntimeError::new_err(format!("Chi-square distribution creation failed: {}", e))
+        })?;
         Ok(PyChiSquare { dist })
     }
     /// Probability density function
@@ -83,10 +81,9 @@ impl PyBinomial {
     /// - p: Probability of success
     #[new]
     fn new(n: usize, p: f64) -> PyResult<Self> {
-        let dist = RustBinomial::new(n, p)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("Binomial distribution creation failed: {}", e),
-            ))?;
+        let dist = RustBinomial::new(n, p).map_err(|e| {
+            PyRuntimeError::new_err(format!("Binomial distribution creation failed: {}", e))
+        })?;
         Ok(PyBinomial { dist })
     }
     /// Probability mass function
@@ -125,10 +122,9 @@ impl PyGeometric {
     /// - p: Success probability, 0 < p <= 1
     #[new]
     fn new(p: f64) -> PyResult<Self> {
-        let dist = RustGeometric::new(p)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("Geometric distribution creation failed: {}", e),
-            ))?;
+        let dist = RustGeometric::new(p).map_err(|e| {
+            PyRuntimeError::new_err(format!("Geometric distribution creation failed: {}", e))
+        })?;
         Ok(PyGeometric { dist })
     }
     /// Probability mass function
@@ -170,10 +166,9 @@ impl PyLognormal {
     #[new]
     #[pyo3(signature = (mu = 0.0, sigma = 1.0, loc = 0.0))]
     fn new(mu: f64, sigma: f64, loc: f64) -> PyResult<Self> {
-        let dist = RustLognormal::new(mu, sigma, loc)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("Lognormal distribution creation failed: {}", e),
-            ))?;
+        let dist = RustLognormal::new(mu, sigma, loc).map_err(|e| {
+            PyRuntimeError::new_err(format!("Lognormal distribution creation failed: {}", e))
+        })?;
         Ok(PyLognormal { dist })
     }
     /// Probability density function
@@ -215,10 +210,9 @@ impl PyWeibull {
     #[new]
     #[pyo3(signature = (shape, scale = 1.0, loc = 0.0))]
     fn new(shape: f64, scale: f64, loc: f64) -> PyResult<Self> {
-        let dist = RustWeibull::new(shape, scale, loc)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("Weibull distribution creation failed: {}", e),
-            ))?;
+        let dist = RustWeibull::new(shape, scale, loc).map_err(|e| {
+            PyRuntimeError::new_err(format!("Weibull distribution creation failed: {}", e))
+        })?;
         Ok(PyWeibull { dist })
     }
     /// Probability density function
@@ -260,10 +254,9 @@ impl PyGamma {
     #[new]
     #[pyo3(signature = (shape, scale = 1.0, loc = 0.0))]
     fn new(shape: f64, scale: f64, loc: f64) -> PyResult<Self> {
-        let dist = RustGamma::new(shape, scale, loc)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("Gamma distribution creation failed: {}", e),
-            ))?;
+        let dist = RustGamma::new(shape, scale, loc).map_err(|e| {
+            PyRuntimeError::new_err(format!("Gamma distribution creation failed: {}", e))
+        })?;
         Ok(PyGamma { dist })
     }
     /// Probability density function
@@ -304,10 +297,9 @@ impl PyLogistic {
     #[new]
     #[pyo3(signature = (loc = 0.0, scale = 1.0))]
     fn new(loc: f64, scale: f64) -> PyResult<Self> {
-        let dist = RustLogistic::new(loc, scale)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("Logistic distribution creation failed: {}", e),
-            ))?;
+        let dist = RustLogistic::new(loc, scale).map_err(|e| {
+            PyRuntimeError::new_err(format!("Logistic distribution creation failed: {}", e))
+        })?;
         Ok(PyLogistic { dist })
     }
     /// Probability density function
@@ -346,10 +338,9 @@ impl PyPoisson {
     /// - mu: Expected number of events (lambda parameter)
     #[new]
     fn new(mu: f64) -> PyResult<Self> {
-        let dist = RustPoisson::new(mu, 0.0)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("Poisson distribution creation failed: {}", e),
-            ))?;
+        let dist = RustPoisson::new(mu, 0.0).map_err(|e| {
+            PyRuntimeError::new_err(format!("Poisson distribution creation failed: {}", e))
+        })?;
         Ok(PyPoisson { dist })
     }
     /// Probability mass function
@@ -391,10 +382,9 @@ impl PyStudentT {
     #[new]
     #[pyo3(signature = (df, loc = 0.0, scale = 1.0))]
     fn new(df: f64, loc: f64, scale: f64) -> PyResult<Self> {
-        let dist = RustStudentT::new(df, loc, scale)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("Student's t distribution creation failed: {}", e),
-            ))?;
+        let dist = RustStudentT::new(df, loc, scale).map_err(|e| {
+            PyRuntimeError::new_err(format!("Student's t distribution creation failed: {}", e))
+        })?;
         Ok(PyStudentT { dist })
     }
     /// Probability density function
@@ -436,10 +426,9 @@ impl PyPareto {
     #[new]
     #[pyo3(signature = (shape, scale = 1.0, loc = 0.0))]
     fn new(shape: f64, scale: f64, loc: f64) -> PyResult<Self> {
-        let dist = RustPareto::new(shape, scale, loc)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("Pareto distribution creation failed: {}", e),
-            ))?;
+        let dist = RustPareto::new(shape, scale, loc).map_err(|e| {
+            PyRuntimeError::new_err(format!("Pareto distribution creation failed: {}", e))
+        })?;
         Ok(PyPareto { dist })
     }
     /// Probability density function
@@ -480,10 +469,9 @@ impl PyExponential {
     #[pyo3(signature = (scale = 1.0))]
     fn new(scale: f64) -> PyResult<Self> {
         let rate = 1.0 / scale;
-        let dist = RustExponential::new(rate, 0.0)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("Exponential distribution creation failed: {}", e),
-            ))?;
+        let dist = RustExponential::new(rate, 0.0).map_err(|e| {
+            PyRuntimeError::new_err(format!("Exponential distribution creation failed: {}", e))
+        })?;
         Ok(PyExponential { dist })
     }
     /// Probability density function
@@ -526,10 +514,9 @@ impl PyBeta {
     #[new]
     #[pyo3(signature = (alpha, beta, loc = 0.0, scale = 1.0))]
     fn new(alpha: f64, beta: f64, loc: f64, scale: f64) -> PyResult<Self> {
-        let dist = RustBeta::new(alpha, beta, loc, scale)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("Beta distribution creation failed: {}", e),
-            ))?;
+        let dist = RustBeta::new(alpha, beta, loc, scale).map_err(|e| {
+            PyRuntimeError::new_err(format!("Beta distribution creation failed: {}", e))
+        })?;
         Ok(PyBeta { dist })
     }
     /// Probability density function
@@ -570,10 +557,9 @@ impl PyNormal {
     #[new]
     #[pyo3(signature = (loc = 0.0, scale = 1.0))]
     fn new(loc: f64, scale: f64) -> PyResult<Self> {
-        let dist = RustNormal::new(loc, scale)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("Normal distribution creation failed: {}", e),
-            ))?;
+        let dist = RustNormal::new(loc, scale).map_err(|e| {
+            PyRuntimeError::new_err(format!("Normal distribution creation failed: {}", e))
+        })?;
         Ok(PyNormal { dist })
     }
     /// Probability density function
@@ -614,10 +600,9 @@ impl PyLaplace {
     #[new]
     #[pyo3(signature = (loc = 0.0, scale = 1.0))]
     fn new(loc: f64, scale: f64) -> PyResult<Self> {
-        let dist = RustLaplace::new(loc, scale)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("Laplace distribution creation failed: {}", e),
-            ))?;
+        let dist = RustLaplace::new(loc, scale).map_err(|e| {
+            PyRuntimeError::new_err(format!("Laplace distribution creation failed: {}", e))
+        })?;
         Ok(PyLaplace { dist })
     }
     /// Probability density function
@@ -658,10 +643,9 @@ impl PyCauchy {
     #[new]
     #[pyo3(signature = (loc = 0.0, scale = 1.0))]
     fn new(loc: f64, scale: f64) -> PyResult<Self> {
-        let dist = RustCauchy::new(loc, scale)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("Cauchy distribution creation failed: {}", e),
-            ))?;
+        let dist = RustCauchy::new(loc, scale).map_err(|e| {
+            PyRuntimeError::new_err(format!("Cauchy distribution creation failed: {}", e))
+        })?;
         Ok(PyCauchy { dist })
     }
     /// Probability density function
@@ -704,10 +688,9 @@ impl PyF {
     #[new]
     #[pyo3(signature = (dfn, dfd, loc = 0.0, scale = 1.0))]
     fn new(dfn: f64, dfd: f64, loc: f64, scale: f64) -> PyResult<Self> {
-        let dist = RustF::new(dfn, dfd, loc, scale)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("F distribution creation failed: {}", e),
-            ))?;
+        let dist = RustF::new(dfn, dfd, loc, scale).map_err(|e| {
+            PyRuntimeError::new_err(format!("F distribution creation failed: {}", e))
+        })?;
         Ok(PyF { dist })
     }
     /// Probability density function
@@ -742,10 +725,9 @@ impl PyUniform {
     #[new]
     #[pyo3(signature = (loc = 0.0, scale = 1.0))]
     fn new(loc: f64, scale: f64) -> PyResult<Self> {
-        let dist = RustUniform::new(loc, loc + scale)
-            .map_err(|e| PyRuntimeError::new_err(
-                format!("Uniform distribution creation failed: {}", e),
-            ))?;
+        let dist = RustUniform::new(loc, loc + scale).map_err(|e| {
+            PyRuntimeError::new_err(format!("Uniform distribution creation failed: {}", e))
+        })?;
         Ok(PyUniform { dist })
     }
     /// Probability density function

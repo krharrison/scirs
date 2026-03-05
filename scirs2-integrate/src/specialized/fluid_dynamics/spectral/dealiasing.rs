@@ -413,7 +413,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // FIXME: Dealiasing needs test failing
     fn test_needs_dealiasing() {
         let nx = 16;
         let ny = 16;
@@ -450,7 +449,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // FIXME: Recommend strategy test failing
     fn test_recommend_strategy() {
         // Low Reynolds number should recommend None
         let strategy1 = DealiasingOperations::recommend_strategy((64, 64), 50.0, 0.95);

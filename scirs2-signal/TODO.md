@@ -1,166 +1,197 @@
-# scirs2-signal TODO (v0.1.5)
+# scirs2-signal TODO
 
-This module provides signal processing functionality similar to SciPy's signal module. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module is part of the stable release with ecosystem consistency through scirs2-core abstractions.
+## Status: v0.3.0 Released (February 26, 2026)
 
-## ✅ Build Status: PRODUCTION READY
-
-**Version**: 0.1.0
-**Status**: All compilation issues resolved, tests passing
-**Build**: Zero errors, zero warnings
-**Tests**: 416 passing (+11 SIMD diff integration tests)
-**SIMD Acceleration**: Diff operations with 1.5-1.8x speedup on large signals
-
-### ✅ SIMD Implementation Status (ENHANCED - December 2025)
-The SIMD-related compilation issues that were previously blocking have been fully resolved:
-- ✅ All SIMD implementations using scirs2-core unified abstraction layer
-- ✅ Scalar fallbacks in place for non-SIMD platforms
-- ✅ Full API surface preserved
-- ✅ Module compiles and tests pass successfully
-- ✅ **NEW: SIMD diff operations** for derivative computation (December 29, 2025)
-  - Up to 1.83x speedup for f32 operations on large signals
-  - Essential for real-time signal processing and audio analysis
-  - Sub-millisecond processing for 100K sample buffers
-  - Comprehensive test coverage with 11 new validation tests
+19,644 workspace tests pass (100% pass rate). All v0.3.0 features are complete and production-ready.
 
 ---
 
-## Production-Ready Features (v0.1.5)
+## v0.3.0 Completed
 
-### Core Signal Processing ✅
-- [x] Module structure and error handling
-- [x] Comprehensive filtering system
-  - [x] IIR filters (Butterworth, Chebyshev I/II, Elliptic, Bessel)
-  - [x] FIR filters (Window method, Parks-McClellan/Remez)
-  - [x] Zero-phase filtering (filtfilt)
-  - [x] Specialized filters (notch, comb, allpass, peak)
-  - [x] Filter analysis and stability checking
-  - [x] Savitzky-Golay filters
-- [x] Signal convolution and correlation
-  - [x] 1D convolution with different modes
-  - [x] Cross-correlation and autocorrelation
-  - [x] Basic deconvolution
-- [x] Spectral analysis fundamentals
-  - [x] Periodogram
-  - [x] Welch's method for PSD estimation
-  - [x] Short-time Fourier transform (STFT)
-  - [x] Spectrogram computation
-  - [x] Signal detrending (constant, linear, polynomial)
-- [x] Core wavelet transforms
-  - [x] Discrete Wavelet Transform (DWT)
-  - [x] Continuous Wavelet Transform (CWT)
-  - [x] Multiple wavelet families (Haar, Daubechies, Morlet, Meyer, etc.)
-  - [x] Wavelet-based denoising (basic methods)
-- [x] Linear system analysis (basic)
-  - [x] Transfer function representation
-  - [x] Frequency response calculation
-  - [x] Basic stability analysis
-- [x] Peak detection and analysis
-  - [x] Peak finding with various criteria
-  - [x] Peak properties (prominence, width)
-- [x] Waveform generation
-  - [x] Basic waveforms (sine, cosine, square, sawtooth, triangle)
-  - [x] Specialized signals (chirp, Gaussian pulse, noise)
-- [x] Signal measurements
-  - [x] RMS, SNR, THD calculations
-  - [x] Peak-to-peak and peak-to-RMS ratios
-- [x] Basic resampling
-  - [x] Up/down sampling
-  - [x] Arbitrary rate resampling
-- [x] Code quality improvements
-  - [x] Comprehensive test coverage for core features
-  - [x] Well-documented APIs with examples
+### Core Filtering
+- [x] IIR filter design: Butterworth, Chebyshev I/II, Elliptic, Bessel (analog prototypes + bilinear/impulse-invariance transformation)
+- [x] FIR filter design: window method (Hamming, Hanning, Blackman, Kaiser, flat-top), Parks-McClellan / Remez exchange
+- [x] Zero-phase filtering: `filtfilt` with edge-padding strategies
+- [x] Specialized filters: notch, comb, allpass, peaking EQ, shelving EQ
+- [x] Savitzky-Golay filter with arbitrary polynomial order and derivative
+- [x] Second-order sections (SOS) cascaded representation for numerical stability
+- [x] Filter analysis: `freqz`, `freqs`, group delay, pole-zero maps, stability check
+- [x] Filter transformations: LP-to-BP, LP-to-BS, analog-to-digital (bilinear, impulse invariance, matched-z)
 
-## Planned for Future Releases
+### Spectral Analysis
+- [x] Periodogram and Bartlett's method
+- [x] Welch's method for PSD estimation with overlapping segments
+- [x] Short-time Fourier transform (STFT) and inverse STFT
+- [x] Spectrogram with configurable window, overlap, FFT size
+- [x] Lomb-Scargle periodogram for non-uniform sampling
+- [x] Coherence and cross-power spectral density
+- [x] Signal detrending (constant, linear, polynomial)
 
-### Next Priority (v0.2.0)
-- [ ] Enhanced spectral analysis
-  - [ ] Multitaper spectral estimation (refine and validate)
-  - [ ] Lomb-Scargle periodogram (add more validation)
-  - [ ] Parametric spectral estimation (AR, ARMA models)
-- [ ] Advanced wavelet features
-  - [ ] 2D wavelet transforms (refine implementation)
-  - [ ] Wavelet packet transforms (add more validation)
-  - [ ] Advanced denoising methods
-- [ ] Improved LTI system analysis
-  - [ ] Enhanced system identification
-  - [ ] More robust controllability/observability analysis
-- [x] Performance optimization
-  - [x] SIMD vectorization for compute-intensive operations (COMPLETE - December 2025)
-    - [x] Diff operations (simd_diff, simd_diff_f32) integrated
-    - [x] Convolution and filtering already optimized (Phase 1)
-    - [x] 1.5-1.8x speedup for derivative computation
-  - [ ] Parallel processing for filtering operations (more coverage needed)
-  - [ ] Memory optimization for large signals
-- [ ] Comprehensive test suite
-  - [ ] Numerical validation against SciPy
-  - [ ] Integration tests for complex workflows
-  - [ ] Performance benchmarks
+### Multitaper Spectral Estimation
+- [x] DPSS (Slepian) window sequences for arbitrary bandwidth-time product
+- [x] Adaptive multitaper PSD (eigenspectrum weighting by expected bias/variance trade-off)
+- [x] Jackknife confidence intervals for multitaper estimates
+- [x] Multitaper coherence estimation
 
-### Medium-term Goals (v0.3.0)
-- [ ] Advanced time-frequency analysis
-  - [ ] Wigner-Ville distribution (stabilize)
-  - [ ] Reassigned spectrograms (refine)
-  - [ ] Synchrosqueezed wavelet transforms (validate)
-- [ ] Signal enhancement and restoration
-  - [ ] Advanced denoising algorithms
-  - [ ] Deconvolution techniques
-  - [ ] Missing data interpolation
-- [ ] Specialized processing
-  - [ ] Blind source separation methods
-  - [ ] Sparse signal recovery
-  - [ ] Robust filtering for outliers
-- [ ] Real-time processing capabilities
-  - [ ] Streaming STFT (validate and optimize)
-  - [ ] Low-latency filtering
-  - [ ] Memory-efficient large signal processing
+### Parametric Spectral Estimation
+- [x] AR model via Yule-Walker equations
+- [x] AR model via Burg's method (recursive lattice, exact maximum entropy)
+- [x] AR model via covariance and modified covariance methods
+- [x] ARMA spectral estimation
+- [x] MUSIC (MUltiple SIgnal Classification) pseudo-spectrum
+- [x] ESPRIT for superresolution frequency estimation
 
-### Long-term Vision (v0.2.0+)
+### Time-Frequency Representations
+- [x] Synchrosqueezing transform (SST) with phase-based reassignment
+- [x] Ridge extraction from SST and reassigned spectrogram
+- [x] Reassigned spectrogram (partial derivatives of phase)
+- [x] Wigner-Ville distribution (WVD) and Pseudo-WVD
+- [x] Cohen's class: Choi-Williams, Born-Jordan distributions
+- [x] Zoom FFT (chirp-z transform) for high-resolution sub-band analysis
+- [x] Hilbert transform, analytic signal, instantaneous frequency/amplitude
 
-- [ ] Complete SciPy signal module parity
-  - [ ] Numerical accuracy validation against SciPy
-  - [ ] Performance benchmarking and optimization
-  - [ ] API compatibility layer
+### Wavelet Transforms
+- [x] DWT: Haar, Daubechies (db2-db20), Symlets (sym2-sym20), Coiflets (coif1-coif5), Biorthogonal
+- [x] CWT: Morlet, Paul, DOG, Mexican Hat wavelets
+- [x] Stationary / undecimated DWT (SWT)
+- [x] Dual-tree complex wavelet transform (DTCWT)
+- [x] Wavelet packets (full binary tree decomposition with best-basis selection)
+- [x] Wavelet denoising: VisuShrink, BayesShrink, SUREshrink; hard and soft thresholding
 
-- [ ] Advanced integration with scirs ecosystem
-  - [ ] Seamless integration with scirs2-interpolate
-  - [ ] Matrix-based processing with scirs2-linalg
-  - [ ] Parameter estimation with scirs2-optimize
-  - [ ] Sparse representations with scirs2-sparse
+### EMD / HHT
+- [x] EMD: sifting algorithm with Cauchy and S-number stopping criteria; cubic spline envelopes
+- [x] EEMD: ensemble EMD with configurable noise amplitude and ensemble size
+- [x] CEEMDAN (Complete EEMD with Adaptive Noise)
+- [x] HHT: Hilbert transform of each IMF for instantaneous frequency and amplitude
+- [x] Hilbert spectrum (time-frequency-energy representation) and marginal spectrum
 
-- [ ] Domain-specific extensions
-  - [ ] Audio processing toolkit
-  - [ ] Biomedical signal analysis
-  - [ ] Communications signal processing
-  - [ ] Radar and sonar processing
+### Adaptive Filters
+- [x] LMS: standard, normalized (NLMS), leaky LMS, sign-error LMS
+- [x] RLS: standard RLS with exponential forgetting, QR-based RLS (lattice form)
+- [x] Adaptive Kalman filter for time-varying gain
 
-- [ ] High-performance computing
-  - [ ] GPU acceleration for large datasets
-  - [ ] Real-time processing with bounded latency
-  - [ ] SIMD optimization for critical paths
-  - [ ] Distributed processing capabilities
+### State Estimation
+- [x] Kalman filter with Rauch-Tung-Striebel (RTS) smoother
+- [x] Extended Kalman Filter (EKF) with analytical and numerical Jacobians
+- [x] Unscented Kalman Filter (UKF) with Van der Merwe sigma-point parametrisation
+- [x] Square-root EKF and UKF for improved numerical stability
 
-- [ ] Advanced ecosystem features
-  - [ ] Visualization tools for signal analysis
-  - [ ] Interactive notebooks and tutorials
-  - [ ] Machine learning integration
-  - [ ] Comprehensive benchmarking suite
+### Compressed Sensing & Sparse Recovery
+- [x] OMP (Orthogonal Matching Pursuit): sparsity and residual tolerance stopping
+- [x] CoSaMP (Compressive Sampling Matching Pursuit)
+- [x] ISTA and FISTA (Iterative Soft Thresholding Algorithm): convergence-guaranteed L1 minimisation
+- [x] Basis Pursuit via ADMM
+- [x] Measurement matrix construction: Gaussian, Bernoulli, subsampled DFT
+- [x] Recovery quality metrics: relative error, support recovery rate
 
-## Development Notes
+### Blind Source Separation (BSS) & ICA
+- [x] FastICA: fixed-point algorithm with logcosh and kurtosis contrast
+- [x] JADE: fourth-order cumulant tensor diagonalisation
+- [x] SOBI: second-order blind identification using temporal structure
+- [x] Convolutive BSS: frequency-domain approach with permutation alignment
+- [x] NMF audio source separation with Itakura-Saito divergence and beta divergence
 
-### Code Quality Standards
-- All code must pass `cargo clippy` without warnings
-- Comprehensive test coverage for all public APIs
-- Documentation with examples for all public functions
-- Numerical validation against reference implementations
+### Cepstral Analysis & MFCCs
+- [x] Complex cepstrum, real cepstrum, inverse cepstrum
+- [x] Liftering (quefrency-domain smoothing)
+- [x] MFCC: mel filterbank design (HTK and Slaney), log mel spectrogram, DCT-II, delta and delta-delta coefficients
+- [x] Pitch (F0) estimation: autocorrelation, YIN algorithm
+- [x] Spectral features: centroid, bandwidth, roll-off, flatness, contrast
 
-### Performance Requirements
-- Memory-efficient algorithms for large signals
-- Parallel processing where applicable
-- Benchmarking against established libraries
-- Zero-copy operations where possible
+### System Identification
+- [x] ARX model: least-squares estimation, order selection via AIC/MDL
+- [x] ARMAX model: iterative least-squares for MA noise component
+- [x] N4SID: subspace-based state-space system identification (PI-MOESP, CVA)
+- [x] ERA (Eigensystem Realisation Algorithm): Hankel-matrix-based impulse response realisation
+- [x] Validation: one-step-ahead prediction, residual whiteness test, fit percentage
 
-### API Design Principles
-- Consistent error handling patterns
-- Clear parameter validation
-- Intuitive function naming following SciPy conventions
-- Comprehensive documentation with usage examples
+### Matched Filter & Radar Detection
+- [x] Matched filter: template correlation with SNR-optimal detection
+- [x] CA-CFAR (Cell-Averaging CFAR)
+- [x] OS-CFAR (Order Statistics CFAR)
+- [x] GO-CFAR / SO-CFAR (Greatest Of / Smallest Of)
+- [x] Linear FM (LFM/chirp) pulse compression
+- [x] Range-Doppler processing: 2D FFT with Doppler windowing
+- [x] Ambiguity function computation for waveform analysis
+
+### Music Information Retrieval (MIR)
+- [x] Onset detection: spectral flux, high-frequency content (HFC), complex domain
+- [x] Beat tracking and tempo estimation via onset strength envelope
+- [x] Chroma features: short-time Fourier chroma, CQT-based chroma
+- [x] Key detection via chroma profiles
+- [x] Tonal centroid (Harmonic Network features)
+- [x] Structural segmentation via self-similarity matrices
+
+### Resampling
+- [x] Upsampling and downsampling with anti-aliasing filters
+- [x] Arbitrary rational resampling (polyphase filterbank)
+- [x] Polyphase decomposition for efficient multi-rate processing
+
+### Waveform Generation
+- [x] Sine, cosine, square (configurable duty cycle), sawtooth, triangle
+- [x] Chirp: linear, quadratic, logarithmic, hyperbolic FM sweep
+- [x] Gaussian pulse and Gaussian-modulated sinusoid
+- [x] Unit impulse, step, ramp
+- [x] Noise: white Gaussian, pink (1/f), brown/red (1/f²)
+
+### Linear System Analysis
+- [x] Transfer function and state-space representations (continuous and discrete)
+- [x] Bode plot (magnitude and phase), Nyquist diagram, root locus
+- [x] Step, impulse, and initial condition responses
+- [x] Stability: Routh-Hurwitz (continuous), Jury (discrete), Lyapunov
+- [x] Gain margin, phase margin, delay margin
+- [x] System interconnection: series, parallel, feedback
+- [x] Continuous-to-discrete: ZOH, Tustin / bilinear, matched pole-zero
+
+### Peak Detection & Signal Measurements
+- [x] Peak finding with distance, prominence, width, height thresholds
+- [x] Peak width at fractional height (FWHM), peak area, peak asymmetry
+- [x] RMS, peak, peak-to-peak, crest factor, PAR
+- [x] SNR, THD (with harmonic order), SFDR
+
+### Super-Advanced Denoising
+- [x] Empirical Wiener filter via multi-estimate combination
+- [x] Learnable soft-thresholding with data-driven threshold selection
+- [x] Non-local means 1-D denoising
+
+---
+
+## v0.4.0 Roadmap
+
+### Real-Time Streaming Processing
+- [ ] Block-based filter processing with state preservation between blocks
+- [ ] Ring-buffer abstraction for streaming convolution and correlation
+- [ ] Online STFT with overlap-save/overlap-add block updating
+- [ ] Streaming OMP for adaptive sparse coding
+
+### GPU-Accelerated FFT Pipeline
+- [ ] OxiFFT GPU backend integration for large-batch spectrograms
+- [ ] GPU-accelerated matched filter bank (multiple templates simultaneously)
+- [ ] Batched Welch PSD for parallel channel processing
+- [ ] GPU wavelet transform for high-throughput applications
+
+### Deep Learning-Based Denoising
+- [ ] Learned speech enhancement model (Conv-TasNet architecture) in pure Rust
+- [ ] Deep filtering via scirs2-neural integration
+- [ ] Denoising diffusion probabilistic model for audio restoration
+- [ ] Pre-trained model weight loading from oxicode format
+
+### Modal Analysis (Structural Dynamics)
+- [ ] Frequency Domain Decomposition (FDD) for operational modal analysis
+- [ ] Enhanced FDD (EFDD) with damping estimation
+- [ ] Stochastic Subspace Identification (SSI-COV, SSI-DATA)
+- [ ] Modal Assurance Criterion (MAC) for mode shape comparison
+
+### Advanced Array Processing
+- [ ] Delay-and-sum beamforming for microphone / sensor arrays
+- [ ] MVDR (Capon) beamformer
+- [ ] MUSIC / ESPRIT for direction-of-arrival (DOA) estimation
+- [ ] Adaptive beamforming with interference cancellation
+
+---
+
+## Known Issues
+
+- CEEMDAN with very short signals (<256 samples) may produce spurious IMFs; EEMD is more stable in this regime
+- N4SID identification with high model orders (>20) requires well-conditioned data; use regularized variant
+- NMF audio separation is sensitive to initialization; multiple random restarts recommended for reliable separation

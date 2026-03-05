@@ -1,72 +1,68 @@
 [package]
 name = "scirs2-python"
-version = "0.2.0"
-authors = ["COOLJAPAN OU (Team KitaSan) <contact@cooljapan.tech>"]
-edition = "2021"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
 rust-version = "1.70"
 description = "Python bindings for SciRS2 - A comprehensive scientific computing library in Rust (SciPy alternative)"
-license = "Apache-2.0"
-repository = "https://github.com/cool-japan/scirs"
+license.workspace = true
+repository.workspace = true
 homepage = "https://github.com/cool-japan/scirs"
 documentation = "https://docs.rs/scirs2-python"
 readme = "README.md"
 keywords = ["scientific", "python", "numpy", "scipy", "machine-learning"]
 categories = ["science", "mathematics", "algorithms"]
 
-# Standalone crate (not part of main workspace for v0.1.0)
-[workspace]
-
-[workspace.package]
-version = "0.2.0"
-edition = "2021"
-authors = ["COOLJAPAN OU (Team KitaSan) <contact@cooljapan.tech>"]
-license = "Apache-2.0"
-repository = "https://github.com/cool-japan/scirs"
-
 [lib]
 name = "scirs2"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-# Core SciRS2 dependencies with Python feature (path-based for standalone build)
+# Core SciRS2 dependencies with Python feature (workspace-based)
 # Note: Features are also controlled via scirs2-python's feature flags for proper propagation
-scirs2-core = { path = "../scirs2-core", default-features = false, features = ["python", "array", "serialization"] }
-scirs2-cluster = { path = "../scirs2-cluster", features = ["python"] }
-scirs2-series = { path = "../scirs2-series", features = ["python"] }
-scirs2-linalg = { path = "../scirs2-linalg", features = ["python"] }
-scirs2-stats = { path = "../scirs2-stats", features = ["python"] }
-scirs2-fft = { path = "../scirs2-fft", features = ["python", "oxifft"] }
-scirs2-optimize = { path = "../scirs2-optimize", features = ["python"] }
-scirs2-special = { path = "../scirs2-special" }
-scirs2-integrate = { path = "../scirs2-integrate" }
-scirs2-interpolate = { path = "../scirs2-interpolate" }
-scirs2-signal = { path = "../scirs2-signal" }
-scirs2-spatial = { path = "../scirs2-spatial" }
-scirs2-sparse = { path = "../scirs2-sparse" }
-scirs2-ndimage = { path = "../scirs2-ndimage" }
-scirs2-graph = { path = "../scirs2-graph" }
-scirs2-metrics = { path = "../scirs2-metrics" }
-scirs2-io = { path = "../scirs2-io" }
-scirs2-datasets = { path = "../scirs2-datasets", default-features = false }
-scirs2-transform = { path = "../scirs2-transform" }
-scirs2-text = { path = "../scirs2-text" }
-scirs2-vision = { path = "../scirs2-vision" }
-scirs2-autograd = { path = "../scirs2-autograd" }
-scirs2-neural = { path = "../scirs2-neural" }
+scirs2-core = { workspace = true, features = ["python", "array", "serialization"] }
+scirs2-cluster = { workspace = true, features = ["python"] }
+scirs2-series = { workspace = true, features = ["python"] }
+scirs2-linalg = { workspace = true, features = ["python"] }
+scirs2-stats = { workspace = true, features = ["python"] }
+scirs2-fft = { workspace = true, features = ["python", "oxifft"] }
+scirs2-optimize = { workspace = true, features = ["python"] }
+scirs2-special = { workspace = true }
+scirs2-integrate = { workspace = true }
+scirs2-interpolate = { workspace = true }
+scirs2-signal = { workspace = true }
+scirs2-spatial = { workspace = true }
+scirs2-sparse = { workspace = true }
+scirs2-ndimage = { workspace = true }
+scirs2-graph = { workspace = true }
+scirs2-metrics = { workspace = true }
+scirs2-io = { workspace = true }
+scirs2-datasets = { workspace = true, default-features = false }
+scirs2-transform = { workspace = true }
+scirs2-text = { workspace = true }
+scirs2-vision = { workspace = true }
+scirs2-autograd = { workspace = true }
+scirs2-neural = { workspace = true }
 
 # Python bindings
-pyo3 = { version = "0.27.1", features = ["extension-module"] }
-scirs2-numpy = { path = "../scirs2-numpy" }  # SciRS2 fork with ndarray 0.17 support
-pyo3-asyncio = { version = "0.24", features = ["tokio-runtime"] }  # Async Python support
+pyo3 = { workspace = true }
+scirs2-numpy = { workspace = true }
+pyo3-async-runtimes = { workspace = true }  # Async Python support (successor to pyo3-asyncio)
 
 # Async runtime
-tokio = { version = "1.42", features = ["rt-multi-thread", "macros", "time"] }
+tokio = { workspace = true }
+
+# Parallelism (used for batch APIs)
+rayon.workspace = true
+
+# N-dimensional arrays (used for batch linalg helpers)
+ndarray = { workspace = true }
 
 # Error handling
-thiserror = "2.0.16"
+thiserror.workspace = true
 
 # Image processing (needed for vision module)
-image = "0.25"
+image.workspace = true
 
 [features]
 default = ["cluster", "series", "linalg", "stats", "fft", "optimize", "special", "integrate", "interpolate", "signal", "spatial", "sparse", "ndimage", "graph", "metrics", "io", "datasets", "transform", "text", "vision", "autograd", "neural", "oxifft", "random"]

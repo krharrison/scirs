@@ -20,7 +20,7 @@ use std::fmt::Debug;
 ///
 /// let swish = Swish::new(1.0);
 /// let input = Array::from_vec(vec![1.0, -1.0, 2.0, -2.0]).into_dyn();
-/// let output = swish.forward(&input).unwrap();
+/// let output = swish.forward(&input).expect("operation should succeed");
 /// ```
 #[derive(Debug, Clone, Copy)]
 pub struct Swish {

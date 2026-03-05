@@ -298,8 +298,8 @@ pub mod real_planner;
 pub use real_planner::{ComplexToReal, RealFftPlanner, RealToComplex};
 
 // Re-export basic functions
-pub use dct::{dct, dct2, dctn, idct, idct2, idctn, DCTType};
-pub use dst::{dst, dst2, dstn, idst, idst2, idstn, DSTType};
+pub use dct::{dct, dct2, dct2_fft, dctn, idct, idct2, idct2_fft, idctn, DCTType};
+pub use dst::{dst, dst2, dst2_fft, dstn, idst, idst2, idst2_fft, idstn, DSTType};
 pub use fft::{fft, fft2, fftn, ifft, ifft2, ifftn};
 pub use fht::{fht, fht_sample_points, fhtoffset, ifht};
 pub use hfft::{hfft, hfft2, hfftn, ihfft, ihfft2, ihfftn};
@@ -463,9 +463,49 @@ pub use window_extended::{
     WindowProperties,
 };
 
+// Hilbert Transform and analytic signal utilities
+pub mod hilbert;
+pub use hilbert::{
+    analytic_signal, envelope, instantaneous_frequency, instantaneous_frequency_central,
+    instantaneous_phase, instantaneous_phase_unwrapped,
+};
+
 // Chirp Z-Transform
 pub mod czt;
 pub use czt::{czt, czt_points, zoom_fft, CZT};
+
+// Enhanced CZT (Chirp Z-Transform) with spiral contours, inverse CZT, and convolution
+pub mod czt_enhanced;
+pub use czt_enhanced::{adaptive_zoom_fft, czt_convolve, iczt, EnhancedCZT, SpiralContour};
+
+// Enhanced Fractional Fourier Transform with OMK decomposition and eigenvector method
+pub mod frft_enhanced;
+pub use frft_enhanced::{
+    frft_eigenvector, frft_multi_angle, frft_omk, frft_omk_complex, optimal_frft_angle,
+    wvd_projection,
+};
+
+// Enhanced STFT with inverse, Griffin-Lim, reassigned spectrogram, synchrosqueezing
+pub mod stft_enhanced;
+pub use stft_enhanced::{
+    dolph_chebyshev_window, dpss_window, griffin_lim, istft, reassigned_spectrogram,
+    spectral_coherence, synchrosqueezing,
+};
+
+// Enhanced DCT/DST with FFT-based fast implementations, MDCT streaming, quantized DCT
+pub mod dct_dst_enhanced;
+pub use dct_dst_enhanced::{
+    batch_dct2 as fast_batch_dct2, dequantized_idct, fast_dct1, fast_dct2, fast_dct3, fast_dct4,
+    fast_dst1, fast_dst2, fast_dst3, fast_dst4, imdct_stream, mdct_stream, quantized_dct,
+};
+
+// Enhanced Hilbert Transform with EMD, HHT, and spectral analysis
+pub mod hilbert_enhanced;
+pub use hilbert_enhanced::{
+    analytic_signal_padded, degree_of_stationarity, eemd, emd, hht, hilbert_spectrum,
+    hilbert_transform, instantaneous_energy, marginal_spectrum, mean_frequency, teager_energy,
+    teager_esa, EMDConfig, EMDResult, EnvelopeMethod, HHTResult, HilbertSpectrum,
+};
 
 // Automatic padding strategies
 pub mod padding;

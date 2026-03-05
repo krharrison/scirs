@@ -42,7 +42,20 @@ pub enum WasmError {
 
 impl From<WasmError> for JsValue {
     fn from(err: WasmError) -> Self {
-        JsValue::from_str(&err.to_string())
+        // On wasm32 targets, create a proper JS string error.
+        // On native targets (used for testing), JsValue::from_str() panics
+        // because the JS runtime is unavailable. Use JsValue::NULL as a
+        // safe placeholder so error-path tests can verify Result::is_err()
+        // without triggering SIGABRT.
+        #[cfg(target_arch = "wasm32")]
+        {
+            JsValue::from_str(&err.to_string())
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let _ = err;
+            JsValue::NULL
+        }
     }
 }
 

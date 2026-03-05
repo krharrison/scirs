@@ -66,7 +66,7 @@ use std::f64::consts::PI;
 ///     Some(true),
 ///     Some(true),
 ///     None,
-/// ).unwrap();
+/// ).expect("valid input");
 ///
 /// // Check dimensions
 /// assert_eq!(f.len(), zxx.shape()[0]);
@@ -303,7 +303,7 @@ where
 ///     Some(true),
 ///     Some("density"),
 ///     Some("psd"),
-/// ).unwrap();
+/// ).expect("valid input");
 ///
 /// // Check dimensions
 /// assert_eq!(f.len(), sxx.shape()[0]);
@@ -448,7 +448,7 @@ where
 ///     Some(128),
 ///     Some(64),
 ///     Some(80.0),
-/// ).unwrap();
+/// ).expect("valid input");
 ///
 /// // Values should be normalized to [0, 1]
 /// for row in sxx_norm.axis_iter(scirs2_core::ndarray::Axis(0)) {

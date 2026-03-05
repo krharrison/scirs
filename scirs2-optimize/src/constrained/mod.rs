@@ -54,6 +54,7 @@ pub mod augmented_lagrangian;
 pub mod cobyla;
 pub mod interior_point;
 pub mod slsqp;
+pub mod sqp;
 pub mod trust_constr;
 
 // Re-export main functions
@@ -67,6 +68,7 @@ pub use interior_point::{
     InteriorPointResult,
 };
 pub use slsqp::minimize_slsqp;
+pub use sqp::{minimize_sqp, SqpOptions, SqpResult};
 pub use trust_constr::{
     minimize_trust_constr, minimize_trust_constr_with_derivatives, GradientFn, HessianFn,
     HessianUpdate,
@@ -95,6 +97,9 @@ pub enum Method {
 
     /// Augmented Lagrangian method
     AugmentedLagrangian,
+
+    /// Sequential Quadratic Programming
+    SQP,
 }
 
 impl fmt::Display for Method {
@@ -105,6 +110,7 @@ impl fmt::Display for Method {
             Method::COBYLA => write!(f, "COBYLA"),
             Method::InteriorPoint => write!(f, "interior-point"),
             Method::AugmentedLagrangian => write!(f, "augmented-lagrangian"),
+            Method::SQP => write!(f, "SQP"),
         }
     }
 }
@@ -313,5 +319,6 @@ where
                     .to_string(),
             ))
         }
+        Method::SQP => sqp::minimize_sqp_compat(func, x0, constraints, &options),
     }
 }

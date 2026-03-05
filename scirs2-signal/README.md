@@ -1,377 +1,363 @@
-# SciRS2 Signal
+# scirs2-signal
 
 [![crates.io](https://img.shields.io/crates/v/scirs2-signal.svg)](https://crates.io/crates/scirs2-signal)
-[[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)]](../LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-signal)](https://docs.rs/scirs2-signal)
 
-Production-ready signal processing module for the SciRS2 scientific computing library (v0.1.5). Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module provides core signal processing tools including filtering, convolution, spectral analysis, and wavelet transforms with ecosystem consistency through scirs2-core abstractions.
+**Production-ready signal processing for Rust** — part of the [SciRS2](https://github.com/cool-japan/scirs) scientific computing ecosystem.
 
-## 🚨 Current Status: SIMD Optimization Disabling (Active Development)
+`scirs2-signal` provides a comprehensive signal processing toolkit modelled after SciPy's `signal` module while going considerably further in v0.3.0: matched filtering, CFAR detection, Kalman/EKF/UKF state estimation, MFCC and cepstral analysis, EMD/HHT, compressed sensing (OMP/ISTA), blind source separation (ICA, NMF audio), system identification (ARX, N4SID), radar processing, and music information retrieval.
 
-**Notice**: This module is currently undergoing SIMD optimization disabling to achieve full compilation. 
+---
 
-- **Current State**: ~1000 compilation errors due to missing SIMD implementations
-- **Active Fix**: Implementing scalar fallbacks for all SIMD functions
-- **Estimated Completion**: 5-7 hours
-- **Performance Impact**: Temporary 2-5x slowdown for compute-intensive operations
-- **Future**: SIMD optimizations will be re-enabled once implementations are complete
+## Overview
 
-**For Developers**: See `TODO.md` and `PROGRESS.md` for detailed status and `TODO.md` for current tasks.
+Signal processing tasks range from basic filtering and spectral analysis through advanced topics such as sparse recovery, time-frequency representations, source separation, and system identification. `scirs2-signal` covers the full spectrum in a unified, type-safe Rust API with no C or Fortran dependencies.
 
-## Core Features (Production-Ready)
+---
 
-- **Signal Generation**: Essential waveform generation functions
-- **Digital Filtering**: Comprehensive IIR and FIR filter design and application
-- **Convolution & Correlation**: Efficient signal convolution and correlation operations
-- **Spectral Analysis**: Fundamental frequency domain analysis (FFT, PSD, spectrograms)
-- **Wavelet Transforms**: Core wavelet analysis (DWT, CWT) with multiple families
-- **Peak Detection**: Robust algorithms for finding and analyzing peaks
-- **Signal Measurements**: Standard signal quality metrics (RMS, SNR, THD)
-- **Basic Resampling**: Up/down sampling and rate conversion
+## Feature List (v0.3.0)
 
-## Installation
+### Filter Design & Application
+- **IIR filters**: Butterworth, Chebyshev I/II, Elliptic, Bessel — analog prototype design and digital transformation
+- **FIR filters**: window method (Hamming, Hanning, Blackman, Kaiser, flat-top), Parks-McClellan / Remez exchange algorithm
+- **Zero-phase filtering**: `filtfilt` (forward-backward) with edge-padding
+- **Specialized filters**: notch, comb, allpass, peaking EQ, shelving EQ
+- **Savitzky-Golay filter**: polynomial smoothing with arbitrary derivative order
+- **Filter analysis**: frequency response (`freqz`, `freqs`), group delay, stability (pole-zero analysis), impulse and step response
+- **Filter transformations**: lowpass-to-bandpass, lowpass-to-highstop, analog-to-digital (bilinear transform, impulse invariance, matched-z)
+- **Second-order sections (SOS)**: numerically stable cascaded biquad representation
 
-Add the following to your `Cargo.toml`:
+### Convolution & Correlation
+- 1-D convolution with `full`, `same`, `valid` modes and `direct`, `fft`, `auto` methods
+- Cross-correlation and autocorrelation
+- Basic deconvolution (Wiener)
+- FFT-based fast convolution via OxiFFT
+
+### Spectral Analysis
+- Periodogram (rectangular window)
+- Welch's method for power spectral density (PSD) estimation
+- Bartlett's method
+- Short-time Fourier transform (STFT) and inverse STFT
+- Spectrogram with configurable window, overlap, and FFT size
+- Lomb-Scargle periodogram for unevenly sampled data
+- **Multitaper spectral estimation** (DPSS / Slepian sequences): minimises spectral leakage; adaptive weighting
+- **Parametric spectral estimation**:
+  - AR model (Yule-Walker, Burg, Covariance, Modified Covariance)
+  - ARMA model spectral estimation
+  - MUSIC (MUltiple SIgnal Classification) for superresolution frequency estimation
+  - ESPRIT (Estimation of Signal Parameters via Rotational Invariance Techniques)
+- Coherence and cross-power spectral density
+- Signal detrending (constant, linear, polynomial)
+
+### Time-Frequency Representations
+- **Synchrosqueezing transform (SST)**: time-frequency reassignment for sharp IF ridges; ridge extraction
+- **Reassigned spectrogram**: locally improved time-frequency localisation via phase derivatives
+- **Wigner-Ville distribution (WVD)** and Pseudo-WVD (PWVD)
+- Cohen's class of time-frequency distributions (Choi-Williams, Born-Jordan)
+- Zoom FFT (chirp-z transform) for high-resolution analysis in a sub-band
+- Hilbert transform and analytic signal, instantaneous frequency and amplitude
+
+### Wavelet Transforms
+- Discrete Wavelet Transform (DWT): Haar, Daubechies (2–20), Symlets, Coiflets, Biorthogonal
+- Continuous Wavelet Transform (CWT): Morlet, Paul, DOG, Mexican Hat
+- Stationary / undecimated DWT (SWT) for shift-invariant decomposition
+- Dual-tree complex wavelet transform (DTCWT)
+- Wavelet packets (full binary tree decomposition)
+- **Wavelet denoising**: VisuShrink, BayesShrink, SUREshrink threshold selection; hard and soft thresholding
+
+### Empirical Mode Decomposition & HHT
+- **EMD (Empirical Mode Decomposition)**: intrinsic mode function (IMF) extraction via sifting algorithm; stopping criterion (Cauchy, fixed iterations, S-number)
+- **EEMD** (Ensemble EMD) for mode mixing reduction
+- **CEEMDAN** (Complete EEMD with Adaptive Noise)
+- **Hilbert-Huang Transform (HHT)**: instantaneous frequency and amplitude of each IMF
+- **HHT spectrum** (Hilbert spectrum) for time-frequency-energy representation
+
+### Adaptive Filters
+- **LMS (Least Mean Squares)**: normalized LMS (NLMS), leaky LMS, sign-error LMS
+- **RLS (Recursive Least Squares)**: standard RLS, QR-decomposition RLS (lattice form)
+- **Kalman adaptive filter**: state-space formulation for tracking non-stationary signals
+- Applications: echo cancellation, noise cancellation, channel equalization, system identification
+
+### State Estimation (Kalman Family)
+- **Kalman filter** and Rauch-Tung-Striebel (RTS) smoother
+- **Extended Kalman Filter (EKF)**: linearisation via Jacobians (analytical or numerical)
+- **Unscented Kalman Filter (UKF)**: sigma-point propagation (Van der Merwe parametrisation)
+- Square-root formulations of EKF and UKF for numerical stability
+
+### Compressed Sensing & Sparse Recovery
+- **OMP (Orthogonal Matching Pursuit)**: greedy sparse recovery with sparsity or residual stopping
+- **Basis Pursuit / LASSO**: L1-minimisation via ADMM and ISTA/FISTA
+- **ISTA / FISTA** (Iterative Soft Thresholding): convergence-guaranteed sparse recovery
+- **CoSaMP** (Compressive Sampling Matching Pursuit)
+- Measurement matrix construction: Gaussian, Bernoulli, subsampled DFT
+- Signal recovery from compressive measurements with noise
+
+### Independent Component Analysis (ICA) & Blind Source Separation (BSS)
+- **FastICA**: fixed-point algorithm with logcosh and kurtosis contrast functions
+- **JADE (Joint Approximate Diagonalisation of Eigenmatrices)**: fourth-order cumulant-based ICA
+- **SOBI (Second Order Blind Identification)**: based on non-stationarity and temporal structure
+- **Convolutive BSS**: frequency-domain approach for reverberant mixtures
+- **NMF audio source separation**: non-negative matrix factorisation with Itakura-Saito divergence (for magnitude spectrograms)
+
+### Cepstral Analysis & MFCCs
+- Complex and real cepstrum computation and inverse cepstrum
+- Liftering (quefrency-domain windowing)
+- **MFCC (Mel-Frequency Cepstral Coefficients)**:
+  - Mel filterbank design (HTK and Slaney parametrisations)
+  - Log mel spectrogram
+  - DCT for coefficient extraction
+  - Delta and delta-delta (velocity and acceleration) coefficients
+- Pitch (F0) estimation: autocorrelation, AMDF, YIN algorithm
+- Spectral flatness, spectral roll-off, spectral centroid
+
+### System Identification
+- **ARX** (Autoregressive with Exogenous input): least-squares estimation, order selection
+- **ARMAX**: iterative least-squares for MA noise modelling
+- **N4SID** (Numerical Algorithms for Subspace State Space System Identification): subspace-based state-space identification
+- **Eigensystem Realisation Algorithm (ERA)**: impulse-response-based realisation
+- Transfer function and state-space model estimation
+- Validation: residual analysis, one-step-ahead prediction, cross-validation
+
+### Matched Filter & Detection
+- **Matched filter**: correlate received signal with known template; SNR-optimal detection
+- **CFAR (Constant False Alarm Rate)** detector:
+  - Cell-Averaging CFAR (CA-CFAR)
+  - Order Statistics CFAR (OS-CFAR)
+  - Greatest Of / Smallest Of CFAR (GO/SO-CFAR)
+- **Pulse compression**: linear frequency modulation (LFM/chirp), polyphase codes (Frank, P4)
+- Radar range-Doppler processing (2D FFT with Doppler windowing)
+
+### Resampling
+- Upsampling, downsampling, and arbitrary rational resampling
+- Polyphase filterbank-based efficient resampling
+- Anti-aliasing filter design for downsampling
+- Asynchronous sample rate conversion (ASRC)
+
+### Waveform Generation
+- Sine, cosine, square (duty-cycle configurable), sawtooth, triangle waveforms
+- Chirp (linear, quadratic, logarithmic, hyperbolic frequency sweep)
+- Gaussian pulse and Gaussian modulated sinusoid
+- Unit impulse, step, ramp
+- Noise: white, pink (1/f), brown (1/f²)
+
+### Linear System Analysis
+- Transfer function and state-space representation
+- Frequency response (`bode`, `freqz`), pole-zero maps, root locus
+- Step response, impulse response, initial condition response
+- Stability analysis: Routh-Hurwitz, Nyquist criterion, gain/phase margins
+- System interconnection: series, parallel, feedback loops
+- Continuous-to-discrete conversion (ZOH, Tustin/bilinear, matched pole-zero)
+
+### Peak Detection & Signal Measurements
+- Peak finding with prominence, width, height, and distance constraints
+- Peak properties: FWHM, area, asymmetry
+- RMS, peak, peak-to-peak, crest factor, PAR
+- SNR (signal-to-noise ratio), THD (total harmonic distortion), SFDR (spurious-free dynamic range)
+- EVM (error vector magnitude)
+
+### Music Information Retrieval (MIR)
+- Beat tracking and tempo estimation (onset-strength-based)
+- Chroma features (PCP, CQT-based chroma)
+- Tonal centroid (Harmonic Network) and key detection
+- Onset detection (spectral flux, HFC, complex domain)
+- Structural segmentation via self-similarity matrices
+
+### Radar Signal Processing
+- Linear and non-linear frequency-modulated chirp waveforms
+- Pulse Doppler processing: coherent integration, range-Doppler maps
+- CFAR detection in range-Doppler domain
+- Sidelobe suppression (weighting windows in range and Doppler)
+- Ambiguity function computation
+
+### Super-Advanced Denoising
+- Deep-learning-inspired shrinkage functions (learnable threshold parameters)
+- Empirical Wiener filter from multiple signal estimates
+- Non-local means denoising adapted for 1-D signals
+
+---
+
+## Quick Start
 
 ```toml
 [dependencies]
-scirs2-signal = "0.1.5"
-scirs2-core = "0.1.5"
-ndarray = "0.16.1"
+scirs2-signal = "0.3.0"
 ```
 
-> **Note**: This is **Stable Release** (stable). The API is stable and production-ready with minimal changes expected before 1.0.
-
-Basic usage examples:
+### Butterworth Low-Pass Filter
 
 ```rust
-use scirs2_signal::{waveforms, filter, convolve, spectral, peak};
-use scirs2_core::error::CoreResult;
-use ndarray::{Array1, array};
+use scirs2_signal::filter::{butter, lfilter, filtfilt};
+use scirs2_core::ndarray::Array1;
 use std::f64::consts::PI;
 
-// Signal generation
-fn waveform_example() -> CoreResult<()> {
-    // Create time array
-    let t = Array1::linspace(0.0, 1.0, 1000); // 1000 points from 0 to 1 second
-    let freq = 5.0; // 5 Hz
-    
-    // Generate basic waveforms
-    let sine = t.mapv(|x| (2.0 * PI * freq * x).sin());
-    let square = waveforms::square(&t, freq, 0.0, 1.0, 0.5)?;
-    let chirp = waveforms::chirp(&t, 1.0, 1.0, 10.0)?;
-    
-    println!("Generated sine, square, and chirp signals");
-    
-    Ok(())
-}
+let fs = 1000.0_f64;
+let n_samples = 1000_usize;
+let t = Array1::linspace(0.0, 1.0, n_samples);
 
-// Filtering example
-fn filter_example() -> CoreResult<()> {
-    // Create a noisy signal
-    let t = Array1::linspace(0.0, 1.0, 1000);
-    let signal = t.mapv(|x| (2.0 * PI * 5.0 * x).sin()); // 5 Hz sine wave
-    
-    // Add some noise (simplified)
-    let noisy_signal = signal.mapv(|x| x + 0.1 * rand::random::<f64>());
-    
-    // Design a low-pass Butterworth filter
-    let fs = 1000.0; // Sample rate: 1000 Hz
-    let cutoff = 10.0; // Cutoff frequency: 10 Hz
-    let order = 4; // Filter order
-    let (b, a) = filter::butter(order, &[cutoff / (fs / 2.0)], "lowpass", None, None)?;
-    
-    // Apply the filter (zero-phase)
-    let filtered = filter::filtfilt(&b, &a, &noisy_signal)?;
-    
-    println!("Applied Butterworth low-pass filter");
-    
-    Ok(())
-}
+// 5 Hz + 150 Hz mixed signal
+let signal = t.mapv(|x| (2.0 * PI * 5.0 * x).sin() + 0.3 * (2.0 * PI * 150.0 * x).sin());
 
-// Convolution example
-fn convolution_example() -> CoreResult<()> {
-    // Create a signal
-    let signal = array![1.0, 2.0, 3.0, 4.0, 5.0];
-    
-    // Create a kernel
-    let kernel = array![0.1, 0.2, 0.4, 0.2, 0.1];
-    
-    // Perform convolution
-    let result = convolve::convolve(&signal, &kernel, "same")?;
-    
-    println!("Convolution result: {:?}", result);
-    
-    Ok(())
-}
+// Design 4th-order Butterworth low-pass at 20 Hz
+let (b, a) = butter(4, &[20.0 / (fs / 2.0)], "low").unwrap();
 
-// Spectral analysis example
-fn spectral_example() -> CoreResult<()> {
-    // Create a signal with multiple frequency components
-    let fs = 1000.0; // Sample rate: 1000 Hz
-    let t = Array1::linspace(0.0, 1.0, 1000);
-    
-    // Create signal with 5 Hz and 20 Hz components
-    let signal = t.mapv(|x| {
-        (2.0 * PI * 5.0 * x).sin() + 0.5 * (2.0 * PI * 20.0 * x).sin()
-    });
-    
-    // Compute the power spectral density using Welch's method
-    let (f, psd) = spectral::welch(&signal, None, None, None, None, Some(fs))?;
-    
-    // Find peaks in the PSD
-    let peaks = peak::find_peaks(&psd, None, None, None, None)?;
-    
-    println!("Found {} peaks in the power spectrum", peaks.len());
-    for (i, &idx) in peaks.iter().enumerate() {
-        if idx < f.len() && idx < psd.len() {
-            println!("Peak {}: frequency = {:.1} Hz, power = {:.2}", 
-                     i+1, f[idx], psd[idx]);
-        }
-    }
-    
-    Ok(())
-}
+// Zero-phase filtering
+let filtered = filtfilt(&b, &a, &signal.view()).unwrap();
+println!("Filtered {} samples", filtered.len());
+```
 
-// Resampling example (basic)
-fn resampling_example() -> CoreResult<()> {
-    // Create a signal
-    let t = Array1::linspace(0.0, 1.0, 1000);
-    let signal = t.mapv(|x| (2.0 * std::f64::consts::PI * 5.0 * x).sin());
-    
-    // Basic resampling (Note: Advanced resampling in future releases)
-    // let resampled = resample::resample(&signal, 1000, 2000)?;
-    
-    println!("Original signal: {} points", signal.len());
-    
-    Ok(())
+### STFT and Spectrogram
+
+```rust
+use scirs2_signal::spectral::{stft, spectrogram};
+use scirs2_core::ndarray::Array1;
+
+let fs = 8000.0_f64;
+let signal: Array1<f64> = /* ... your audio signal ... */ Array1::zeros(8000);
+
+let (freqs, times, stft_matrix) = stft(&signal.view(), fs, 256, 128, "hann").unwrap();
+println!("STFT shape: {} freqs x {} frames", freqs.len(), times.len());
+
+let spec = spectrogram(&signal.view(), fs, 512, 256, "hamming").unwrap();
+```
+
+### MFCC Extraction
+
+```rust
+use scirs2_signal::cepstrum::mfcc;
+
+// 1 second of 16 kHz audio
+let audio: Vec<f64> = vec![0.0_f64; 16000];
+
+let features = mfcc(&audio, 16000.0, 13, Some(512), Some(40), None).unwrap();
+// features: shape [n_frames x 13]
+println!("MFCC frames: {}", features.nrows());
+```
+
+### OMP Sparse Recovery
+
+```rust
+use scirs2_signal::compressed_sensing::omp;
+use scirs2_core::ndarray::{Array1, Array2};
+
+// y = Phi * x_sparse + noise
+let (x_recovered, support) = omp(&phi.view(), &y.view(), 10, None).unwrap();
+println!("Recovered {} non-zero coefficients", support.len());
+```
+
+### Kalman Filter Tracking
+
+```rust
+use scirs2_signal::kalman::{KalmanFilter, KalmanConfig};
+use scirs2_core::ndarray::{array, Array1, Array2};
+
+// Constant-velocity 1D model
+let config = KalmanConfig {
+    state_dim: 2,
+    obs_dim: 1,
+    transition: array![[1.0, 1.0], [0.0, 1.0]],
+    observation: array![[1.0, 0.0]],
+    process_noise: Array2::eye(2) * 0.01,
+    observation_noise: Array2::eye(1) * 1.0,
+    initial_state: Array1::zeros(2),
+    initial_covariance: Array2::eye(2),
+};
+
+let mut kf = KalmanFilter::new(config);
+
+for obs in &measurements {
+    let (state, cov) = kf.update(&array![*obs]).unwrap();
+    println!("Position estimate: {:.3}", state[0]);
 }
 ```
 
-## Components
-
-### Waveforms
-
-Functions for generating signal waveforms:
+### Matched Filter Detection
 
 ```rust
-use scirs2_signal::waveforms::{
-    time_array,             // Create a time array
-    sine,                   // Sine wave
-    cosine,                 // Cosine wave
-    square,                 // Square wave
-    sawtooth,               // Sawtooth wave
-    triangle,               // Triangle wave
-    chirp,                  // Frequency sweep (chirp)
-    sweep_poly,             // Polynomial frequency sweep
-    noise,                  // Noise generator
-    impulse,                // Impulse signal
-    step,                   // Step signal
-    gaussian,               // Gaussian pulse
-    gabor,                  // Gabor wavelet
-};
+use scirs2_signal::radar::{matched_filter, ca_cfar};
+
+let detected = matched_filter(&received.view(), &template.view()).unwrap();
+
+// CA-CFAR detection
+let detections = ca_cfar(&detected.view(), 16, 4, 1e-4).unwrap();
+println!("Detected {} targets", detections.iter().filter(|&&d| d).count());
 ```
 
-### Digital Filtering
-
-Comprehensive filtering capabilities:
+### Granger / AR Spectral Estimation
 
 ```rust
-use scirs2_signal::filter::{
-    // IIR Filter Design
-    butter,                 // Butterworth filter design
-    cheby1,                 // Chebyshev Type I filter design
-    cheby2,                 // Chebyshev Type II filter design
-    ellip,                  // Elliptic filter design
-    bessel,                 // Bessel filter design
-    
-    // FIR Filter Design
-    firwin,                 // Window-based FIR design
-    remez,                  // Parks-McClellan optimal FIR design
-    
-    // Filter Application
-    lfilter,                // Apply filter to data
-    filtfilt,               // Zero-phase filtering
-    
-    // Specialized Filters
-    notch_filter,           // Notch filter design
-    comb_filter,            // Comb filter design
-    allpass_filter,         // Allpass filter design
-    
-    // Filter Analysis
-    analyze_filter,         // Analyze filter properties
-    check_filter_stability, // Check filter stability
-};
-use scirs2_signal::savgol::savgol_filter; // Savitzky-Golay filter
+use scirs2_signal::parametric_spectral::{burg_ar, ar_spectrum};
+
+let signal: Vec<f64> = /* ... */ vec![0.0_f64; 1024];
+
+// Fit AR(16) via Burg's method
+let (ar_coeffs, variance) = burg_ar(&signal, 16).unwrap();
+
+// Evaluate spectrum at 1024 frequency bins
+let (freqs, psd) = ar_spectrum(&ar_coeffs, variance, 1.0, 1024).unwrap();
 ```
 
-### Convolution
+---
 
-Functions for signal convolution:
+## API Overview
 
-```rust
-use scirs2_signal::convolve::{
-    convolve,               // 1D convolution
-    convolve2d,             // 2D convolution
-    fftconvolve,            // FFT-based convolution
-    correlate,              // 1D correlation
-    correlate2d,            // 2D correlation
-};
-```
+| Module | Description |
+|---|---|
+| `filter` | IIR/FIR design, filtfilt, SOS, notch, comb, Savitzky-Golay |
+| `filter::iir` | Butterworth, Chebyshev, Elliptic, Bessel prototypes |
+| `filter::application` | `lfilter`, `filtfilt`, `sosfilt`, `sosfiltfilt` |
+| `spectral` | Periodogram, Welch, STFT, spectrogram, Lomb-Scargle |
+| `spectral_estimation` | Multitaper (DPSS), parametric AR/ARMA, MUSIC, ESPRIT |
+| `parametric_spectral` | AR via Yule-Walker, Burg, covariance; ARMA |
+| `reassigned` | Reassigned spectrogram, synchrosqueezing transform |
+| `wigner_ville` | Wigner-Ville and Pseudo-WVD, Cohen's class |
+| `synchrosqueezing` | SST, ridge extraction, inverse SST |
+| `zoom_fft` | Chirp-z transform and zoom FFT sub-band analysis |
+| `wavelet` | DWT, CWT, SWT, DTCWT, packets, wavelet denoising |
+| `wavelet_denoise` | VisuShrink, BayesShrink, SUREshrink |
+| `cepstrum` | Complex/real cepstrum, MFCC, mel filterbank, pitch estimation |
+| `kalman` | KF, EKF, UKF, RTS smoother |
+| `adaptive_filter` | LMS, NLMS, RLS, lattice RLS |
+| `compressed_sensing` | OMP, CoSaMP, ISTA/FISTA, basis pursuit |
+| `compressive_sensing` | Measurement matrix construction, recovery diagnostics |
+| `sparse_recovery` | Unified sparse recovery interface |
+| `bss` | FastICA, JADE, SOBI, convolutive BSS, NMF audio |
+| `source_separation` | High-level source separation API |
+| `sysid_enhanced` | ARX, ARMAX, N4SID, ERA, validation |
+| `hht` | EMD, EEMD, CEEMDAN, HHT spectrum |
+| `multitaper_mod` | Multitaper PSD and coherence |
+| `radar` | Matched filter, CA/OS/GO/SO-CFAR, pulse compression, ambiguity function |
+| `mir` | Beat tracking, chroma, onset detection, key detection |
+| `multiscale` | Multiscale signal decomposition utilities |
+| `lti` | Transfer function, state-space, Bode, root locus |
+| `waveforms` | Sine, chirp, Gaussian pulse, noise waveforms |
+| `peak` | Peak detection, prominence, width, FWHM |
+| `convolve` | 1-D convolution and correlation with mode control |
+| `resampling` | Upsampling, downsampling, polyphase rational resampling |
+| `denoise_super_advanced` | Advanced multi-method denoising pipeline |
+| `spectral_scipy_validation_v2` | SciPy-compatible spectral output validation |
 
-### Spectral Analysis
+---
 
-Fundamental frequency domain analysis:
+## Feature Flags
 
-```rust
-use scirs2_signal::spectral::{
-    periodogram,            // Periodogram power spectral density estimate
-    welch,                  // Welch's method for PSD estimation
-    spectrogram,            // Time-frequency representation
-};
-use scirs2_signal::stft::ShortTimeFft; // Short-time Fourier transform class
+| Flag | Description |
+|---|---|
+| `parallel` | Rayon parallel computation |
+| `simd` | SIMD-accelerated operations via `scirs2-core` |
+| `serde` | Serialization support |
 
-// Note: For direct FFT operations, use scirs2-fft crate
-use scirs2_fft::fft::{
-    fft,                    // Fast Fourier Transform
-    ifft,                   // Inverse FFT
-    rfft,                   // Real FFT
-    irfft,                  // Inverse real FFT
-};
-```
+Default features: none (pure Rust, no C/Fortran dependencies).
 
-### Peak Detection
+---
 
-Functions for finding peaks in signals:
+## Links
 
-```rust
-use scirs2_signal::peak::{
-    find_peaks,             // Find peaks in data
-    find_peaks_cwt,         // Find peaks using continuous wavelet transform
-    peak_prominences,       // Calculate peak prominences
-    peak_widths,            // Calculate peak widths
-};
-```
-
-### Resampling
-
-Basic resampling operations:
-
-```rust
-use scirs2_signal::resample::{
-    resample,               // Resample signal to new sampling rate
-    // Note: Advanced resampling features are planned for future releases
-};
-```
-
-### Signal Measurements
-
-Standard signal quality metrics:
-
-```rust
-use scirs2_signal::measurements::{
-    rms,                    // Root mean square
-    snr,                    // Signal-to-noise ratio
-    thd,                    // Total harmonic distortion
-    peak_to_peak,           // Peak-to-peak measurement
-    peak_to_rms,            // Peak-to-RMS ratio
-};
-```
-
-### Wavelet Transforms
-
-Core wavelet analysis with proven algorithms:
-
-```rust
-use scirs2_signal::{
-    dwt::{Wavelet, dwt_decompose, dwt_reconstruct, wavedec, waverec},
-    wavelets::{cwt, morlet, ricker},
-    denoise::{denoise_wavelet, ThresholdMethod, ThresholdSelect},
-};
-
-// Supported wavelet families (stable)
-let wavelets = [
-    Wavelet::Haar,          // Haar wavelet
-    Wavelet::DB(4),         // Daubechies wavelet (4 vanishing moments)
-    Wavelet::Sym(4),        // Symlet wavelet (4 vanishing moments)
-    Wavelet::Coif(3),       // Coiflet wavelet (3 vanishing moments)
-    Wavelet::Meyer,         // Meyer wavelet
-];
-
-// Discrete Wavelet Transform (DWT)
-let signal = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
-let (approx, detail) = dwt_decompose(&signal, Wavelet::DB(4), None)?;
-let reconstructed = dwt_reconstruct(&approx, &detail, Wavelet::DB(4))?;
-
-// Multi-level decomposition
-let coeffs = wavedec(&signal, Wavelet::DB(4), 3)?; // 3 levels
-let reconstructed = waverec(&coeffs, Wavelet::DB(4))?;
-
-// Continuous Wavelet Transform (CWT)
-let scales = vec![1.0, 2.0, 4.0, 8.0, 16.0];
-let cwt_result = cwt(&signal, morlet, &scales)?;
-
-// Wavelet denoising
-let denoised = denoise_wavelet(
-    &noisy_signal,
-    Wavelet::DB(4),
-    3,                      // Decomposition levels
-    ThresholdMethod::Soft,  // Soft thresholding
-    ThresholdSelect::Universal, // Universal threshold
-    None,
-)?;
-```
-
-## Integration with Other SciRS2 Modules
-
-Seamless integration with the SciRS2 ecosystem:
-
-```rust
-use scirs2_signal::spectral;
-use scirs2_fft::fft;
-use scirs2_core::error::CoreResult;
-use ndarray::Array1;
-
-// Combined usage with scirs2-fft
-let data: Array1<f64> = array![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
-
-// Direct FFT computation
-let fft_result = fft::fft(&data)?;
-
-// Power spectral density estimation
-let (freq, psd) = spectral::welch(&data, None, None, None, None, Some(1000.0))?;
-
-// Filter design and application
-let (b, a) = filter::butter(4, &[0.1], "lowpass", None, None)?;
-let filtered = filter::filtfilt(&b, &a, &data)?;
-```
-
-## Development Status
-
-**Current Release**: 0.1.0
-
-### Production-Ready Features ✅
-- Digital filtering (IIR/FIR design and application)
-- Basic spectral analysis (periodogram, Welch's method, STFT)
-- Core wavelet transforms (DWT, CWT)
-- Signal convolution and correlation
-- Peak detection and signal measurements
-- Waveform generation and basic resampling
-
-### Experimental Features ⚠️
-- Advanced time-frequency analysis
-- 2D wavelet transforms
-- Advanced denoising and restoration
-- Real-time processing capabilities
-
-*Note: Experimental features may have API changes or require additional validation.*
-
-## Contributing
-
-See the [CONTRIBUTING.md](../CONTRIBUTING.md) file for contribution guidelines.
+- [SciRS2 project](https://github.com/cool-japan/scirs)
+- [docs.rs](https://docs.rs/scirs2-signal)
+- [crates.io](https://crates.io/crates/scirs2-signal)
+- [TODO.md](./TODO.md)
 
 ## License
 
-This project is Licensed under the Apache License 2.0. See LICENSE for details.
-
-You can choose to use either license. See the [LICENSE](../LICENSE) file for details.
+Apache License 2.0. See [LICENSE](../LICENSE) for details.

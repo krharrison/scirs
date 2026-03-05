@@ -1,319 +1,316 @@
 # SciRS2 Vision
 
 [![crates.io](https://img.shields.io/crates/v/scirs2-vision.svg)](https://crates.io/crates/scirs2-vision)
-[[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)]](../LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-vision)](https://docs.rs/scirs2-vision)
 
-Computer vision module for SciRS2, providing comprehensive functionality for image processing, feature detection, segmentation, and color transformations.
+**scirs2-vision** is the computer vision crate for the [SciRS2](https://github.com/cool-japan/scirs) scientific computing library. It provides comprehensive tools for feature detection, image segmentation, geometric transformations, stereo vision, 3D reconstruction, object detection, video processing, and camera calibration with APIs familiar to users of OpenCV and scikit-image.
 
-⚠️ **SciRS2 POLICY Migration**: This module is currently being updated to follow the [SciRS2 POLICY](../SCIRS2_POLICY.md) - migration from direct `rand::` usage to scirs2-core abstractions is in progress.
+## What scirs2-vision Provides
 
-## Production Status (0.1.0)
+Use scirs2-vision when you need to:
 
-**✅ PRODUCTION READY** - stable release with SciRS2 POLICY implementation:
-- **217 unit tests** passing with zero warnings
-- **Comprehensive API** covering all major computer vision operations
-- **Working examples** demonstrating real-world usage
-- **Performance optimized** with parallel processing support
-- **SciPy-compatible design** for familiar scientific computing workflows
-- **Ecosystem Consistency**: Migrating to scirs2-core abstractions for consistent APIs
+- Detect and match features in images (Harris corners, SIFT, ORB, FAST, HOG)
+- Segment images with watershed, SLIC superpixels, instance segmentation, or panoptic segmentation
+- Estimate camera pose (PnP), calibrate cameras, or work with stereo depth
+- Process video frames: optical flow, video stabilization, frame extraction
+- Build a 3D reconstruction pipeline (ICP, RANSAC-based registration)
+- Perform object detection and face detection
+- Apply style transfer or image quality enhancement
 
-## Overview
+## Features (v0.3.0)
 
-The `scirs2-vision` module provides a complete computer vision library for scientific computing applications. This production-ready module includes implementations of state-of-the-art algorithms for feature detection, image processing, segmentation, and geometric transformations.
-
-## Comprehensive Feature Set
-
-### 🎯 Feature Detection and Description
-- **Edge Detection**: Sobel, Canny, Prewitt, Laplacian operators with sub-pixel accuracy
+### Feature Detection and Description
+- **Edge Detection**: Sobel, Canny, Prewitt, Laplacian, Laplacian of Gaussian (LoG)
 - **Corner Detection**: Harris corners, Shi-Tomasi (Good Features to Track), FAST corners
-- **Blob Detection**: DoG (Difference of Gaussians), LoG (Laplacian of Gaussian), MSER regions
-- **Feature Descriptors**: ORB descriptors, BRIEF descriptors, HOG (Histogram of Oriented Gradients)
+- **Blob Detection**: Difference of Gaussians (DoG), LoG, MSER (Maximally Stable Extremal Regions)
+- **Keypoint Descriptors**: SIFT (Scale-Invariant Feature Transform), ORB, BRIEF, HOG (Histogram of Oriented Gradients)
 - **Feature Matching**: RANSAC-based robust matching, homography estimation
-- **Geometric Detection**: Hough Circle Transform, Hough Line Transform
-- **Advanced Features**: Sub-pixel corner refinement, non-maximum suppression
+- **Hough Transforms**: Hough circle transform, Hough line transform
+- **Sub-pixel refinement**: Corner refinement to sub-pixel accuracy
 
-### 🖼️ Image Enhancement and Preprocessing
+### Image Segmentation
+- **Thresholding**: Binary, Otsu's automatic, adaptive (mean/Gaussian)
+- **Region-Based**: SLIC superpixels, watershed algorithm, region growing
+- **Instance Segmentation**: Mask generation, per-instance labeling
+- **Panoptic Segmentation**: Combined semantic and instance segmentation
+- **Interactive Segmentation**: GrabCut-style foreground/background separation
+- **Advanced**: Mean shift clustering, connected component analysis
+
+### Camera and 3D Vision
+- **Camera Calibration**: Intrinsic parameter estimation, lens distortion correction
+- **Camera Models**: Pinhole, fisheye, and generic camera models
+- **Stereo Depth Estimation**: Disparity map computation, depth from stereo pairs
+- **PnP Pose Estimation**: Perspective-n-Point solver for 6-DOF pose from 2D-3D correspondences
+- **SLAM Foundations**: Feature tracking, map point management, loop closure detection
+
+### Point Cloud Processing
+- **ICP (Iterative Closest Point)**: Point cloud registration and alignment
+- **RANSAC Registration**: Robust point cloud alignment with outlier rejection
+- **Point Cloud I/O**: Load/save PLY, XYZ formats
+- **3D Reconstruction Pipeline**: Multi-view stereo foundations
+
+### Video Processing
+- **Frame Extraction**: Extract frames from video streams
+- **Dense Optical Flow**: Farneback algorithm, Lucas-Kanade dense flow
+- **Video Stabilization**: Feature-based and mesh-based stabilization
+- **Motion Detection**: Frame differencing, background subtraction
+
+### Object Detection
+- **Detection Framework**: Bounding box prediction, Non-Maximum Suppression (NMS)
+- **Sliding Window**: Multi-scale sliding window detector
+- **HOG+SVM Pedestrian Detection**: Classical HOG-based detection pipeline
+
+### Face Detection
+- **Viola-Jones Foundation**: Haar cascade evaluation
+- **Face Detection Pipeline**: Multi-scale face candidate generation
+
+### Image Enhancement and Preprocessing
 - **Noise Reduction**: Non-local means denoising, bilateral filtering, guided filtering
-- **Enhancement**: Histogram equalization, CLAHE, gamma correction (auto/adaptive)
-- **Filtering**: Gaussian blur, median filtering, unsharp masking
-- **Contrast Enhancement**: Brightness/contrast normalization, Retinex algorithms
-- **Quality Analysis**: Image quality assessment metrics
+- **Enhancement**: Histogram equalization, CLAHE, gamma correction
+- **Filtering**: Gaussian blur, median, unsharp masking
+- **Super-Resolution**: Single-image super-resolution algorithms
 
-### 🎨 Color and Texture Analysis
-- **Color Space Conversions**: RGB ↔ HSV, RGB ↔ LAB with proper gamma correction
-- **Color Processing**: Channel splitting/merging, weighted grayscale conversion
-- **Color Quantization**: K-means, median cut, octree quantization algorithms
-- **Texture Analysis**: Gray-level co-occurrence matrix (GLCM), Local binary patterns (LBP)
-- **Advanced Texture**: Gabor filters, Tamura texture features
+### Color Processing
+- **Color Space Conversions**: RGB to/from HSV, LAB, YCbCr, grayscale
+- **Channel Operations**: Splitting, merging, per-channel processing
+- **Color Quantization**: K-means, median cut, octree quantization
+- **Color Normalization**: Histogram matching, color transfer
 
-### ✂️ Image Segmentation
-- **Thresholding**: Binary, Otsu's automatic, adaptive (mean/Gaussian) methods
-- **Region Segmentation**: SLIC superpixels, watershed algorithm, region growing
-- **Advanced Segmentation**: Mean shift clustering, connected component analysis
-- **Interactive Segmentation**: Multi-level thresholding, texture-based segmentation
+### Geometric Transformations
+- **Affine**: Translation, rotation, scaling, shearing with multiple interpolation modes
+- **Perspective**: Homography-based warping with robust estimation
+- **Non-Rigid**: Thin-plate spline deformation, elastic transformations
+- **Interpolation Methods**: Bilinear, bicubic, Lanczos, edge-preserving
 
-### 🔄 Geometric Transformations
-- **Affine Transformations**: Translation, rotation, scaling, shearing with multiple interpolation methods
-- **Perspective Transformations**: Homography-based warping with robust estimation
-- **Non-rigid Transformations**: Thin-plate spline deformation, elastic transformations
-- **Interpolation**: Bilinear, bicubic, Lanczos, edge-preserving interpolation methods
-- **Image Registration**: Feature-based and intensity-based alignment
+### Image Registration
+- **Feature-Based Registration**: Using detected keypoints and RANSAC
+- **Intensity-Based Registration**: Normalized cross-correlation, mutual information
+- **Supported Transforms**: Rigid, similarity, affine, homography
 
-### 🧮 Morphological Operations
-- **Basic Operations**: Erosion, dilation with customizable structuring elements
-- **Advanced Operations**: Opening, closing, morphological gradient
-- **Specialized Operations**: Top-hat, black-hat transforms for feature enhancement
+### Morphological Operations
+- Erosion, dilation with customizable structuring elements
+- Opening, closing, morphological gradient
+- Top-hat, black-hat transforms
 
-## Examples
+### Style Transfer
+- Neural style transfer interface
+- Artistic stylization using statistical feature matching
+
+### Image Quality
+- PSNR (Peak Signal-to-Noise Ratio)
+- SSIM (Structural Similarity Index)
+- Blind image quality assessment
+
+### Texture Analysis
+- Gray-level co-occurrence matrix (GLCM)
+- Local binary patterns (LBP)
+- Gabor filters
+- Tamura texture features
+
+### Medical Imaging
+- DICOM-compatible array handling
+- Frangi vesselness filter
+- Bone enhancement filters
+- Basic segmentation for medical images
+
+## Installation
+
+```toml
+[dependencies]
+scirs2-vision = "0.3.0"
+```
+
+For parallel processing:
+
+```toml
+[dependencies]
+scirs2-vision = { version = "0.3.0", features = ["parallel"] }
+```
+
+## Quick Start
 
 ### Feature Detection
 
 ```rust
-use scirs2_vision::{
-    sobel_edges, harris_corners, image_to_array, array_to_image
-};
-use scirs2_vision::{prewitt_edges, laplacian_edges, laplacian_of_gaussian};
-use scirs2_vision::feature::{canny_simple, fast_corners, shi_tomasi_corners};
-use scirs2_vision::gaussian_blur;
+use scirs2_vision::{harris_corners, sobel_edges, image_to_array};
+use scirs2_vision::feature::{canny_simple, fast_corners};
+use image::open;
 
-// Load an image and convert to array
-let img = image::open("input.jpg")?;
-let img_array = image_to_array(&img)?;
+fn feature_example() -> Result<(), Box<dyn std::error::Error>> {
+    let img = open("photo.jpg")?;
+    let arr = image_to_array(&img)?;
 
-// Preprocess with Gaussian blur
-let blurred = gaussian_blur(&img, 1.0)?;
+    // Harris corners
+    let corners = harris_corners(&img, 3, 0.04, 0.01)?;
+    println!("Harris corners: {}", corners.len());
 
-// Detect edges using Sobel (available in public API)
-let sobel = sobel_edges(&img, 0.1)?;
+    // FAST corners (faster, less accurate)
+    let fast = fast_corners(&arr, 9, 0.05)?;
+    println!("FAST corners: {}", fast.len());
 
-// Detect edges using Canny
-let canny_result = canny_simple(&img_array, 1.0)?;
+    // Canny edge detection
+    let edges = canny_simple(&arr, 1.0)?;
+    println!("Edge map computed");
 
-// Detect edges using Prewitt (available in public API)
-let prewitt_result = prewitt_edges(&img, 0.1)?;
-
-// Detect edges using Laplacian (available in public API)
-let laplacian_result = laplacian_edges(&img, 0.05, true)?;
-
-// Detect edges using Laplacian of Gaussian (available in public API)
-let log_result = laplacian_of_gaussian(&img, 1.0, 0.05)?;
-
-// Detect corners using Harris (available in public API)
-let corners = harris_corners(&img, 3, 0.04, 0.01)?;
-
-// Detect corners using FAST
-let fast_corners = fast_corners(&img_array, 9, 0.05)?;
-
-// Detect corners using Shi-Tomasi
-let shi_tomasi = shi_tomasi_corners(&img_array, 100, 0.01, 10.0)?;
+    Ok(())
+}
 ```
 
-### Color Transformations
+### Stereo Depth Estimation
 
 ```rust
-use scirs2_vision::{rgb_to_hsv, rgb_to_lab, split_channels, image_to_array};
+use scirs2_vision::stereo::{compute_disparity, stereo_rectify};
+use scirs2_core::error::CoreResult;
 
-// Load an image and convert to array
-let img = image::open("input.jpg")?;
-let img_array = image_to_array(&img)?;
+fn stereo_example() -> CoreResult<()> {
+    // let left = image_to_array(&open("left.jpg")?)?;
+    // let right = image_to_array(&open("right.jpg")?)?;
 
-// Convert to HSV
-let hsv = rgb_to_hsv(&img_array)?;
+    // Compute disparity map
+    // let disparity = compute_disparity(&left, &right, 64, 11)?;
 
-// Convert to LAB
-let lab = rgb_to_lab(&img_array)?;
+    // Convert disparity to depth (requires calibrated baseline and focal length)
+    // let depth = disparity_to_depth(&disparity, focal_length, baseline)?;
 
-// Split into channels
-let (r_channel, g_channel, b_channel) = split_channels(&img_array)?;
+    Ok(())
+}
+```
+
+### Camera Pose Estimation (PnP)
+
+```rust
+use scirs2_vision::pose::solve_pnp;
+use scirs2_core::error::CoreResult;
+
+fn pose_example() -> CoreResult<()> {
+    // 3D world points and corresponding 2D image points
+    // let world_points: Vec<[f64; 3]> = vec![...];
+    // let image_points: Vec<[f64; 2]> = vec![...];
+    // let camera_matrix = ...;
+
+    // Solve for rotation and translation
+    // let (rvec, tvec) = solve_pnp(&world_points, &image_points, &camera_matrix, None)?;
+    // println!("Rotation: {:?}", rvec);
+    // println!("Translation: {:?}", tvec);
+
+    Ok(())
+}
+```
+
+### ICP Point Cloud Registration
+
+```rust
+use scirs2_vision::point_cloud::icp_registration;
+use scirs2_core::error::CoreResult;
+
+fn icp_example() -> CoreResult<()> {
+    // let source: Vec<[f64; 3]> = vec![...];  // source point cloud
+    // let target: Vec<[f64; 3]> = vec![...];  // target point cloud
+
+    // Align source to target
+    // let result = icp_registration(&source, &target, 50, 1e-6)?;
+    // println!("ICP converged: {}", result.converged);
+    // println!("Final RMSE: {:.4}", result.rmse);
+    // println!("Transform:\n{:?}", result.transform);
+
+    Ok(())
+}
+```
+
+### Dense Optical Flow
+
+```rust
+use scirs2_vision::optical_flow_dense::farneback_flow;
+use scirs2_vision::image_to_array;
+use image::open;
+use scirs2_core::error::CoreResult;
+
+fn flow_example() -> CoreResult<()> {
+    // let frame1 = image_to_array(&open("frame001.jpg")?)?;
+    // let frame2 = image_to_array(&open("frame002.jpg")?)?;
+
+    // Compute dense optical flow
+    // let (flow_x, flow_y) = farneback_flow(&frame1, &frame2, None)?;
+    // println!("Flow computed: {:?}", flow_x.shape());
+
+    Ok(())
+}
+```
+
+### Instance Segmentation
+
+```rust
+use scirs2_vision::instance_segmentation::{InstanceSegmenter, InstanceSegConfig};
+use scirs2_vision::image_to_array;
+use image::open;
+use scirs2_core::error::CoreResult;
+
+fn instance_seg_example() -> CoreResult<()> {
+    // let img = image_to_array(&open("scene.jpg")?)?;
+    // let config = InstanceSegConfig::default();
+    // let segmenter = InstanceSegmenter::new(config)?;
+    // let instances = segmenter.segment(&img)?;
+    // println!("Found {} instances", instances.len());
+    // for inst in &instances {
+    //     println!("  Class: {}, Score: {:.3}", inst.class_id, inst.score);
+    // }
+    Ok(())
+}
 ```
 
 ### Image Segmentation
 
 ```rust
 use scirs2_vision::{
-    threshold_binary, otsu_threshold, adaptive_threshold, connected_components,
+    otsu_threshold, adaptive_threshold, connected_components,
     image_to_array, AdaptiveMethod,
 };
+use image::open;
 
-// Load an image and convert to array
-let img = image::open("input.jpg")?;
-let img_array = image_to_array(&img)?;
+fn segmentation_example() -> Result<(), Box<dyn std::error::Error>> {
+    let img = open("image.png")?;
+    let arr = image_to_array(&img)?;
 
-// Apply Otsu's thresholding
-let (binary, threshold) = otsu_threshold(&img_array)?;
+    // Otsu's automatic threshold
+    let (binary, threshold) = otsu_threshold(&arr)?;
+    println!("Otsu threshold: {}", threshold);
 
-// Apply adaptive thresholding
-let adaptive = adaptive_threshold(&img_array, 11, 0.02, AdaptiveMethod::Gaussian)?;
+    // Adaptive thresholding for uneven illumination
+    let adaptive = adaptive_threshold(&arr, 11, 0.02, AdaptiveMethod::Gaussian)?;
 
-// Perform connected component labeling
-let (labeled, num_components) = connected_components(&binary)?;
+    // Connected components labeling
+    let (labeled, count) = connected_components(&binary)?;
+    println!("Found {} objects", count);
+
+    Ok(())
+}
 ```
 
-### Morphological Operations
+## Feature Flags
 
-```rust
-use scirs2_vision::{
-    erode, dilate, opening, closing, morphological_gradient, 
-    image_to_array, StructuringElement,
-};
+| Flag | Description |
+|------|-------------|
+| `parallel` | Enable Rayon-based multi-threaded processing |
 
-// Load an image and convert to array
-let img = image::open("input.jpg")?;
-let img_array = image_to_array(&img)?;
+## Performance
 
-// Define a structuring element
-let se = StructuringElement::Ellipse(5, 5);
-
-// Apply opening (erosion followed by dilation)
-let opened = opening(&img_array, se)?;
-
-// Calculate morphological gradient
-let gradient = morphological_gradient(&img_array, se)?;
-```
-
-### Blob and Region Detection
-
-```rust
-use scirs2_vision::{log_blob_detect, image_to_array, LogBlobConfig};
-use scirs2_vision::feature::{
-    dog_detect, DogConfig,
-    mser_detect, MserConfig,
-    hough_circles, HoughCircleConfig
-};
-
-// Load an image and convert to array
-let img = image::open("input.jpg")?;
-let img_array = image_to_array(&img)?;
-
-// Detect blobs using Difference of Gaussians
-let dog_config = DogConfig::default();
-let dog_blobs = dog_detect(&img_array, dog_config)?;
-
-// Detect blobs using Laplacian of Gaussian (available in public API)
-let log_config = LogBlobConfig::default();
-let log_blobs = log_blob_detect(&img_array, log_config)?;
-
-// Detect stable regions using MSER
-let mser_config = MserConfig::default();
-let mser_regions = mser_detect(&img_array, mser_config)?;
-
-// Detect circles using Hough Transform
-let hough_config = HoughCircleConfig::default();
-let circles = hough_circles(&img_array, hough_config)?;
-```
-
-## Installation
-
-Add `scirs2-vision` to your dependencies in `Cargo.toml`:
-
-```toml
-[dependencies]
-scirs2-vision = "0.1.5"
-```
-
-To enable optimizations through the core module, add feature flags:
-
-```toml
-[dependencies]
-scirs2-vision = { version = "0.1.5", features = ["parallel"] }
-```
+- Parallel processing via Rayon for CPU-intensive operations
+- SIMD-accelerated convolution kernels for filtering
+- Memory-efficient streaming for video and large image sequences
+- Benchmarked against OpenCV and scikit-image reference implementations
 
 ## Documentation
 
-For detailed documentation, examples, and API reference, please refer to the [API documentation](https://docs.rs/scirs2-vision) and the examples directory.
-
-## Performance and Production Characteristics
-
-### 🚀 High Performance
-- **Parallel Processing**: Multi-threaded implementations using Rayon for CPU-intensive operations
-- **Memory Efficient**: Optimized algorithms that minimize memory allocation and copying
-- **SIMD Ready**: Foundation for SIMD acceleration in performance-critical paths
-- **Benchmarked**: Algorithms tested against reference implementations for accuracy and speed
-
-### 🔧 Production Features
-- **Robust Error Handling**: Comprehensive error types with detailed diagnostic information
-- **Parameter Validation**: Input validation for all algorithms with clear error messages
-- **Thread Safety**: All algorithms are thread-safe and can be used in concurrent applications
-- **SciPy Compatibility**: API design follows SciPy conventions for familiar usage patterns
-
-### 📊 Quality Assurance
-- **217 Unit Tests**: Comprehensive test coverage for all implemented functionality
-- **Zero Warnings**: Clean code following Rust best practices and Clippy recommendations
-- **Working Examples**: All documentation examples are tested and verified to work
-- **Continuous Integration**: Automated testing ensures reliability across different environments
-
-## Testing
-
-The module includes a comprehensive test suite to ensure functionality works as expected:
-
-```bash
-# Run all tests (217 tests passing)
-cargo test
-
-# Run tests with output to see detailed results
-cargo test -- --nocapture
-
-# Run specific test module
-cargo test preprocessing
-
-# Run specific test
-cargo test test_grayscale_conversion
-```
+Full API reference: [docs.rs/scirs2-vision](https://docs.rs/scirs2-vision)
 
 ## Dependencies
 
-- `scirs2-core`: Core functionality for SciRS2
-- `scirs2-ndimage`: N-dimensional image processing
-- `ndarray`: N-dimensional array manipulation
-- `image`: Basic image processing in Rust
-- `num-traits` and `num-complex`: Numerical type traits
+- `scirs2-core`: Core SciRS2 abstractions (error handling, array types, random)
+- `scirs2-ndimage`: N-dimensional image processing primitives
+- `image`: Rust image loading and format support
+- `num-traits`, `num-complex`: Numerical type traits
 
 ## License
 
-This project is Licensed under the Apache License 2.0. See LICENSE for details.
-
-You can choose to use either license. See the [LICENSE](../LICENSE) file for details.
-## Production Readiness
-
-This **0.1.0** release represents a mature, production-ready computer vision library suitable for:
-
-### 🏭 Production Applications
-- **Scientific Computing**: Research applications requiring reliable computer vision algorithms
-- **Image Processing Pipelines**: Batch processing of scientific imagery with parallel processing
-- **Computer Vision Research**: Foundation for building advanced vision applications
-- **Educational Use**: Teaching computer vision concepts with real, working implementations
-
-### 🔬 Validated Algorithms
-All implemented algorithms have been validated against reference implementations and tested with:
-- **Numerical Accuracy**: Results compared against established libraries like OpenCV and SciPy
-- **Edge Cases**: Comprehensive testing of boundary conditions and error scenarios
-- **Performance**: Benchmarked for reasonable performance characteristics
-- **Memory Safety**: Rust's guarantees ensure memory safety without runtime overhead
-
-### 🎯 API Stability
-The public API is considered stable for **Stable Release** (stable), meaning:
-- **Production Ready**: API is stable with minimal changes expected before 1.0
-- **Consistent Interface**: Function signatures and behavior will remain consistent
-- **Backward Compatibility**: New features will be added without breaking existing code
-- **Clear Documentation**: All public functions are documented with examples
-- **Zero Warnings**: Full clippy compliance and code quality assurance
-- **Semantic Versioning**: Version numbers follow semantic versioning principles
-
-## Future Development
-
-Post-RC development will focus on:
-- **Performance Optimization**: SIMD acceleration and GPU support
-- **Advanced Algorithms**: Deep learning integration and advanced computer vision techniques
-- **Domain-Specific Features**: Medical imaging, remote sensing, and specialized applications
-- **Extended Format Support**: Additional image formats and metadata handling
-
-## Contributing
-
-Contributions are welcome! Please see the project's [CONTRIBUTING.md](../CONTRIBUTING.md) file for guidelines.
-
-For the post-alpha roadmap, we're particularly interested in:
-- Performance optimizations and benchmarking
-- Additional computer vision algorithms
-- Domain-specific applications and use cases
-- Integration with machine learning frameworks
+Licensed under the Apache License 2.0. See [LICENSE](../LICENSE) for details.

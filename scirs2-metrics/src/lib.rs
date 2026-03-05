@@ -50,12 +50,12 @@
 //! // Classification accuracy
 //! let y_true = array![0, 1, 2, 0, 1, 2];
 //! let y_pred = array![0, 2, 1, 0, 0, 2];
-//! let acc = accuracy_score(&y_true, &y_pred).unwrap();
+//! let acc = accuracy_score(&y_true, &y_pred).expect("should succeed");
 //!
 //! // Regression MSE
 //! let y_true_reg = array![3.0, -0.5, 2.0, 7.0];
 //! let y_pred_reg = array![2.5, 0.0, 2.0, 8.0];
-//! let mse = mean_squared_error(&y_true_reg, &y_pred_reg).unwrap();
+//! let mse = mean_squared_error(&y_true_reg, &y_pred_reg).expect("should succeed");
 //! ```
 //!
 //! ## 🔒 Version: 0.1.5 (January 15, 2026)
@@ -71,9 +71,9 @@
 //! let y_true = array![0, 1, 2, 0, 1, 2];
 //! let y_pred = array![0, 2, 1, 0, 0, 2];
 //!
-//! let accuracy = accuracy_score(&y_true, &y_pred).unwrap();
-//! let precision = precision_score(&y_true, &y_pred, 1).unwrap();
-//! let f1 = f1_score(&y_true, &y_pred, 1).unwrap();
+//! let accuracy = accuracy_score(&y_true, &y_pred).expect("should succeed");
+//! let precision = precision_score(&y_true, &y_pred, 1).expect("should succeed");
+//! let f1 = f1_score(&y_true, &y_pred, 1).expect("should succeed");
 //! ```
 //!
 //!
@@ -93,8 +93,8 @@
 //! let y_true = array![3.0, -0.5, 2.0, 7.0];
 //! let y_pred = array![2.5, 0.0, 2.0, 8.0];
 //!
-//! let mse: f64 = mean_squared_error(&y_true, &y_pred).unwrap();
-//! let r2: f64 = r2_score(&y_true, &y_pred).unwrap();
+//! let mse: f64 = mean_squared_error(&y_true, &y_pred).expect("should succeed");
+//! let r2: f64 = r2_score(&y_true, &y_pred).expect("should succeed");
 //! ```
 //!
 //! # Clustering Metrics
@@ -113,11 +113,11 @@
 //!     5.0, 6.0,
 //!     5.2, 5.8,
 //!     5.5, 6.2,
-//! ]).unwrap();
+//! ]).expect("should succeed");
 //!
 //! let labels = array![0, 0, 0, 1, 1, 1];
 //!
-//! let score = silhouette_score(&X, &labels, "euclidean").unwrap();
+//! let score = silhouette_score(&X, &labels, "euclidean").expect("should succeed");
 //! ```
 //!
 //! # Ranking Metrics
@@ -146,15 +146,15 @@
 //! ];
 //!
 //! // Basic ranking metrics
-//! let mrr = mean_reciprocal_rank(&y_true, &y_score).unwrap();
-//! let ndcg = ndcg_score(&y_true, &y_score, Some(5)).unwrap();
-//! let map = mean_average_precision(&y_true, &y_score, None).unwrap();
-//! let precision = precision_at_k(&y_true, &y_score, 3).unwrap();
-//! let recall = recall_at_k(&y_true, &y_score, 3).unwrap();
+//! let mrr = mean_reciprocal_rank(&y_true, &y_score).expect("should succeed");
+//! let ndcg = ndcg_score(&y_true, &y_score, Some(5)).expect("should succeed");
+//! let map = mean_average_precision(&y_true, &y_score, None).expect("should succeed");
+//! let precision = precision_at_k(&y_true, &y_score, 3).expect("should succeed");
+//! let recall = recall_at_k(&y_true, &y_score, 3).expect("should succeed");
 //!
 //! // Advanced metrics
-//! let map_k = map_at_k(&y_true, &y_score, 3).unwrap();
-//! let ctr = click_through_rate(&y_true, &y_score, 3).unwrap();
+//! let map_k = map_at_k(&y_true, &y_score, 3).expect("should succeed");
+//! let ctr = click_through_rate(&y_true, &y_score, 3).expect("should succeed");
 //! ```
 //!
 //! ## Rank Correlation Metrics
@@ -170,8 +170,8 @@
 //! let ranking_b = array![1.5, 2.5, 3.0, 3.5, 5.0];
 //!
 //! // Measure rank correlation
-//! let tau = kendalls_tau(&ranking_a, &ranking_b).unwrap();
-//! let rho = spearmans_rho(&ranking_a, &ranking_b).unwrap();
+//! let tau = kendalls_tau(&ranking_a, &ranking_b).expect("should succeed");
+//! let rho = spearmans_rho(&ranking_a, &ranking_b).expect("should succeed");
 //! ```
 //!
 //! ## Label Ranking Metrics
@@ -189,23 +189,23 @@
 //!     1.0, 0.0, 1.0, 0.0, 0.0,  // Sample 1: labels 0 and 2 are relevant
 //!     0.0, 0.0, 1.0, 1.0, 0.0,  // Sample 2: labels 2 and 3 are relevant
 //!     0.0, 1.0, 1.0, 0.0, 1.0,  // Sample 3: labels 1, 2, and 4 are relevant
-//! ]).unwrap();
+//! ]).expect("should succeed");
 //!
 //! // Predicted scores for each label
 //! let y_score = Array2::from_shape_vec((3, 5), vec![
 //!     0.9, 0.2, 0.8, 0.3, 0.1,  // Scores for sample 1
 //!     0.2, 0.3, 0.9, 0.7, 0.1,  // Scores for sample 2
 //!     0.1, 0.9, 0.8, 0.2, 0.7,  // Scores for sample 3
-//! ]).unwrap();
+//! ]).expect("should succeed");
 //!
 //! // Coverage error measures how far we need to go down the list to cover all true labels
-//! let coverage = coverage_error_multiple(&y_true, &y_score).unwrap();
+//! let coverage = coverage_error_multiple(&y_true, &y_score).expect("should succeed");
 //!
 //! // Label ranking loss counts incorrectly ordered label pairs
-//! let loss = label_ranking_loss(&y_true, &y_score).unwrap();
+//! let loss = label_ranking_loss(&y_true, &y_score).expect("should succeed");
 //!
 //! // Label ranking average precision measures precision at each relevant position
-//! let precision = label_ranking_average_precision_score(&y_true, &y_score).unwrap();
+//! let precision = label_ranking_average_precision_score(&y_true, &y_score).expect("should succeed");
 //! ```
 //!
 //! # Anomaly Detection Metrics
@@ -229,19 +229,19 @@
 //! let y_score = array![0.1, 0.2, 0.9, 0.7, 0.8, 0.3, 0.6, 0.95, 0.2, 0.1];
 //!
 //! // Detection accuracy
-//! let accuracy = detection_accuracy(&y_true, &y_pred).unwrap();
+//! let accuracy = detection_accuracy(&y_true, &y_pred).expect("should succeed");
 //!
 //! // False alarm rate (Type I error)
-//! let far = false_alarm_rate(&y_true, &y_pred).unwrap();
+//! let far = false_alarm_rate(&y_true, &y_pred).expect("should succeed");
 //!
 //! // Miss detection rate (Type II error)
-//! let mdr = miss_detection_rate(&y_true, &y_pred).unwrap();
+//! let mdr = miss_detection_rate(&y_true, &y_pred).expect("should succeed");
 //!
 //! // AUC for anomaly detection
-//! let auc = anomaly_auc_score(&y_true, &y_score).unwrap();
+//! let auc = anomaly_auc_score(&y_true, &y_score).expect("should succeed");
 //!
 //! // Average precision score
-//! let ap = anomaly_average_precision_score(&y_true, &y_score).unwrap();
+//! let ap = anomaly_average_precision_score(&y_true, &y_score).expect("should succeed");
 //! ```
 //!
 //! ## Distribution Metrics
@@ -257,20 +257,20 @@
 //! let q = array![0.3, 0.4, 0.3];
 //!
 //! // Compute KL divergence
-//! let kl = kl_divergence(&p, &q).unwrap();
+//! let kl = kl_divergence(&p, &q).expect("should succeed");
 //!
 //! // Jensen-Shannon divergence
-//! let js = js_divergence(&p, &q).unwrap();
+//! let js = js_divergence(&p, &q).expect("should succeed");
 //!
 //! // Wasserstein distance (1D)
 //! let samples_p = array![1.0, 2.0, 3.0, 4.0, 5.0];
 //! let samples_q = array![1.5, 2.5, 3.5, 4.5, 5.5];
-//! let w_dist = wasserstein_distance(&samples_p, &samples_q).unwrap();
+//! let w_dist = wasserstein_distance(&samples_p, &samples_q).expect("should succeed");
 //!
 //! // Maximum Mean Discrepancy (MMD)
 //! let x = array![1.0, 2.0, 3.0, 4.0, 5.0];
 //! let y = array![1.2, 2.1, 3.0, 4.1, 5.2];
-//! let mmd = maximum_mean_discrepancy(&x, &y, None).unwrap();
+//! let mmd = maximum_mean_discrepancy(&x, &y, None).expect("should succeed");
 //! ```
 //!
 //! # Fairness and Bias Metrics
@@ -298,21 +298,21 @@
 //!
 //! // Compute demographic parity difference
 //! // A value of 0 indicates perfect demographic parity
-//! let dp_diff = demographic_parity_difference(&y_pred, &protected_group).unwrap();
+//! let dp_diff = demographic_parity_difference(&y_pred, &protected_group).expect("should succeed");
 //!
 //! // Compute equalized odds difference
 //! // A value of 0 indicates that the false positive and true positive rates are
 //! // the same for both groups
-//! let eod_diff = equalized_odds_difference(&y_true, &y_pred, &protected_group).unwrap();
+//! let eod_diff = equalized_odds_difference(&y_true, &y_pred, &protected_group).expect("should succeed");
 //!
 //! // Compute equal opportunity difference
 //! // A value of 0 indicates equal true positive rates across groups
-//! let eo_diff = equal_opportunity_difference(&y_true, &y_pred, &protected_group).unwrap();
+//! let eo_diff = equal_opportunity_difference(&y_true, &y_pred, &protected_group).expect("should succeed");
 //!
 //! // Calculate disparate impact
 //! // A value of 1.0 indicates perfect fairness; less than 0.8 or greater than 1.25
 //! // is often considered problematic
-//! let di = disparate_impact(&y_pred, &protected_group).unwrap();
+//! let di = disparate_impact(&y_pred, &protected_group).expect("should succeed");
 //!
 //! // Comprehensive bias detection
 //! // Create a dataset with multiple demographic attributes
@@ -326,7 +326,7 @@
 //!     42.0, 0.0, 1.0,
 //!     33.0, 1.0, 0.0,
 //!     50.0, 1.0, 2.0,
-//! ]).unwrap();
+//! ]).expect("should succeed");
 //!
 //! let ground_truth = array![0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0];
 //! let predictions = array![0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0];
@@ -343,7 +343,7 @@
 //!         let y_p_array = scirs2_core::ndarray::Array::from_vec(y_p.to_vec());
 //!         accuracy_score(&y_t_array, &y_p_array).unwrap_or(0.0)
 //!     }
-//! ).unwrap();
+//! ).expect("should succeed");
 //!
 //! // Analyze performance for intersectional groups
 //! let protected_attrs = Array2::from_shape_vec((8, 2), vec![
@@ -356,7 +356,7 @@
 //!     0.0, 1.0,
 //!     1.0, 0.0,
 //!     1.0, 1.0,
-//! ]).unwrap();
+//! ]).expect("should succeed");
 //!
 //! let attr_names = vec!["gender".to_string(), "income".to_string()];
 //!
@@ -366,7 +366,7 @@
 //!     &predictions,
 //!     &protected_attrs,
 //!     &attr_names
-//! ).unwrap();
+//! ).expect("should succeed");
 //!
 //! // Evaluate model performance across different demographic subgroups
 //! let performance_metrics = subgroup_performance(
@@ -380,7 +380,7 @@
 //!         let y_p_array = scirs2_core::ndarray::Array::from_vec(y_p.to_vec());
 //!         accuracy_score(&y_t_array, &y_p_array).unwrap_or(0.0)
 //!     }
-//! ).unwrap();
+//! ).expect("should succeed");
 //! ```
 //!
 //! # Model Evaluation Utilities
@@ -391,10 +391,10 @@
 //! use scirs2_core::ndarray::{Array, Ix1};
 //! use scirs2_metrics::evaluation::train_test_split;
 //!
-//! let x = Array::<f64, Ix1>::linspace(0., 9., 10).into_shape_with_order(Ix1(10)).unwrap();
+//! let x = Array::<f64, Ix1>::linspace(0., 9., 10).into_shape_with_order(Ix1(10)).expect("should succeed");
 //! let y = &x * 2.;
 //!
-//! let (train_arrays, test_arrays) = train_test_split(&[&x, &y], 0.3, Some(42)).unwrap();
+//! let (train_arrays, test_arrays) = train_test_split(&[&x, &y], 0.3, Some(42)).expect("should succeed");
 //! ```
 //!
 //! # Optimization and Performance
@@ -464,14 +464,14 @@
 //! let stable = StableMetrics::<f64>::default();
 //! let p = vec![0.5, 0.5, 0.0];
 //! let q = vec![0.25, 0.25, 0.5];
-//! let kl = stable.kl_divergence(&p, &q).unwrap();
-//! let js = stable.js_divergence(&p, &q).unwrap();
+//! let kl = stable.kl_divergence(&p, &q).expect("should succeed");
+//! let js = stable.js_divergence(&p, &q).expect("should succeed");
 //!
 //! // Compute additional stable metrics
 //! let data = vec![1.0, 2.0, 3.0, 4.0, 5.0];
-//! let mean = stable.stable_mean(&data).unwrap();
-//! let variance = stable.stable_variance(&data, 1).unwrap(); // Sample variance
-//! let std_dev = stable.stable_std(&data, 1).unwrap(); // Sample standard deviation
+//! let mean = stable.stable_mean(&data).expect("should succeed");
+//! let variance = stable.stable_variance(&data, 1).expect("should succeed"); // Sample variance
+//! let std_dev = stable.stable_std(&data, 1).expect("should succeed"); // Sample standard deviation
 //! ```
 //!
 //! # Visualization
@@ -496,7 +496,7 @@
 //! let y_true = array![0, 1, 2, 0, 1, 2];
 //! let y_pred = array![0, 2, 1, 0, 0, 2];
 //!
-//! let (cm, classes) = confusion_matrix(&y_true, &y_pred, None).unwrap();
+//! let (cm, classes) = confusion_matrix(&y_true, &y_pred, None).expect("should succeed");
 //! let labels = vec!["Class 0".to_string(), "Class 1".to_string(), "Class 2".to_string()];
 //!
 //! // Convert to f64 for visualization
@@ -504,14 +504,14 @@
 //! let cm_viz = confusion_matrix_visualization(cm_f64, Some(labels), false);
 //!
 //! // Get data and metadata for visualization
-//! let viz_data = cm_viz.prepare_data().unwrap();
+//! let viz_data = cm_viz.prepare_data().expect("should succeed");
 //! let viz_metadata = cm_viz.get_metadata();
 //!
 //! // Example: ROC curve visualization
 //! let y_true_binary = array![0, 1, 1, 0, 1, 0];
 //! let y_score = array![0.1, 0.8, 0.7, 0.2, 0.9, 0.3];
 //!
-//! let (fpr, tpr, thresholds) = roc_curve(&y_true_binary, &y_score).unwrap();
+//! let (fpr, tpr, thresholds) = roc_curve(&y_true_binary, &y_score).expect("should succeed");
 //! let auc = 0.83; // Example AUC value
 //!
 //! let roc_viz = roc_curve_visualization(fpr.to_vec(), tpr.to_vec(), Some(thresholds.to_vec()), Some(auc));
@@ -521,13 +521,13 @@
 //!     fpr.to_vec(), tpr.to_vec(), Some(thresholds.to_vec()), Some(auc));
 //!
 //! // Example: Precision-Recall curve visualization
-//! let (precision, recall, pr_thresholds) = precision_recall_curve(&y_true_binary, &y_score).unwrap();
+//! let (precision, recall, pr_thresholds) = precision_recall_curve(&y_true_binary, &y_score).expect("should succeed");
 //! let ap = 0.75; // Example average precision
 //!
 //! let pr_viz = precision_recall_visualization(precision.to_vec(), recall.to_vec(), Some(pr_thresholds.to_vec()), Some(ap));
 //!
 //! // Example: Calibration curve visualization
-//! let (prob_true, prob_pred, counts) = calibration_curve(&y_true_binary, &y_score, Some(5)).unwrap();
+//! let (prob_true, prob_pred, counts) = calibration_curve(&y_true_binary, &y_score, Some(5)).expect("should succeed");
 //!
 //! let cal_viz = calibration_visualization(prob_true.to_vec(), prob_pred.to_vec(), 5, "uniform".to_string());
 //!
@@ -548,7 +548,7 @@
 //!     vec![0.75, 0.77, 0.79], // 200 samples
 //! ];
 //!
-//! let lc_viz = learning_curve_visualization(train_sizes, train_scores, val_scores, "Accuracy").unwrap();
+//! let lc_viz = learning_curve_visualization(train_sizes, train_scores, val_scores, "Accuracy").expect("should succeed");
 //! ```
 //!
 //! ## Interactive Visualizations
@@ -569,7 +569,7 @@
 //! let y_score = array![0.1, 0.2, 0.4, 0.6, 0.5, 0.7, 0.8, 0.9];
 //!
 //! // Compute ROC curve
-//! let (fpr, tpr, thresholds) = roc_curve(&y_true, &y_score).unwrap();
+//! let (fpr, tpr, thresholds) = roc_curve(&y_true, &y_score).expect("should succeed");
 //!
 //! // Interactive ROC curve with threshold adjustment
 //! let interactive_options = InteractiveOptions {
@@ -591,7 +591,7 @@
 //! );
 //!
 //! // Note: In a real application, you would save this to an HTML file with:
-//! // let viz_data = viz.prepare_data().unwrap();
+//! // let viz_data = viz.prepare_data().expect("should succeed");
 //! // let viz_metadata = viz.get_metadata();
 //! // let backend = default_interactive_backend();
 //! // backend.save_interactive_roc(&viz_data, &viz_metadata, &Default::default(), "interactive_roc.html");
@@ -665,11 +665,11 @@
 //! let comparison = compare_collections(&collection1, &collection2, Some(0.01));
 //!
 //! // Save collection to a file (in-memory example)
-//! // collection1.save("metrics_v1.json", SerializationFormat::Json).unwrap();
-//! // collection2.save("metrics_v2.json", SerializationFormat::Json).unwrap();
+//! // collection1.save("metrics_v1.json", SerializationFormat::Json).expect("should succeed");
+//! // collection2.save("metrics_v2.json", SerializationFormat::Json).expect("should succeed");
 //!
 //! // Load collection from a file (in-memory example)
-//! // let loaded = MetricCollection::load("metrics_v1.json", SerializationFormat::Json).unwrap();
+//! // let loaded = MetricCollection::load("metrics_v1.json", SerializationFormat::Json).expect("should succeed");
 //! ```
 
 #![allow(
@@ -684,6 +684,7 @@
 
 pub mod anomaly;
 pub mod bayesian;
+pub mod calibration;
 pub mod classification;
 pub mod clustering;
 pub mod custom;
@@ -694,6 +695,7 @@ pub mod error;
 pub mod evaluation;
 pub mod explainability;
 pub mod fairness;
+pub mod information_retrieval;
 pub mod information_theory;
 
 // Integration modules with conditional compilation
@@ -702,9 +704,11 @@ pub mod integration;
 
 pub mod optimization;
 pub mod ranking;
+pub mod recommendation;
 pub mod regression;
 pub mod selection;
 pub mod serialization;
 pub mod sklearn_compat;
 pub mod streaming;
+pub mod text_metrics;
 pub mod visualization;

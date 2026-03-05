@@ -43,20 +43,20 @@
 //!     0.0, 1.0,
 //!     1.0, 1.0,
 //!     0.5, 0.5,
-//! ]).unwrap();
+//! ]).expect("doc example: should succeed");
 //!
 //! // Build a KD-tree
-//! let kdtree = KdTree::new(points).unwrap();
+//! let kdtree = KdTree::new(points).expect("doc example: should succeed");
 //!
 //! // Find the nearest neighbor to point (0.6, 0.6)
 //! let query = vec![0.6, 0.6];
-//! let (idx, distance) = kdtree.nearest_neighbor(&query).unwrap();
+//! let (idx, distance) = kdtree.nearest_neighbor(&query).expect("doc example: should succeed");
 //!
 //! // Find the 3 nearest neighbors
-//! let neighbors = kdtree.k_nearest_neighbors(&query, 3).unwrap();
+//! let neighbors = kdtree.k_nearest_neighbors(&query, 3).expect("doc example: should succeed");
 //!
 //! // Find all points within radius 0.5
-//! let points_in_radius = kdtree.points_within_radius(&query, 0.5).unwrap();
+//! let points_in_radius = kdtree.points_within_radius(&query, 0.5).expect("doc example: should succeed");
 //! ```
 
 pub mod balltree;

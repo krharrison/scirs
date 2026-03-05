@@ -1,4 +1,11 @@
 //! STL (Seasonal-Trend decomposition using LOESS) and MSTL implementation
+//!
+//! This is a proper implementation following Cleveland et al. (1990):
+//! "STL: A Seasonal-Trend Decomposition Procedure Based on Loess"
+//!
+//! The algorithm decomposes a time series Y into three components:
+//! Y_t = T_t + S_t + R_t
+//! where T_t is the trend, S_t is the seasonal component, and R_t is the residual.
 
 use scirs2_core::ndarray::Array1;
 use scirs2_core::numeric::{Float, FromPrimitive};
@@ -6,6 +13,7 @@ use std::fmt::Debug;
 
 use super::common::DecompositionResult;
 use crate::error::{Result, TimeSeriesError};
+use crate::loess::{loess_smooth, LoessConfig};
 
 /// Options for STL decomposition
 #[derive(Debug, Clone)]
@@ -80,7 +88,8 @@ pub struct MultiSeasonalDecompositionResult<F> {
 /// Performs STL (Seasonal and Trend decomposition using LOESS) on a time series
 ///
 /// STL decomposition uses locally weighted regression (LOESS) to extract trend
-/// and seasonal components.
+/// and seasonal components. This implementation follows the original algorithm
+/// by Cleveland et al. (1990).
 ///
 /// # Arguments
 ///
@@ -123,167 +132,167 @@ where
     }
 
     // Validate options
-    if options.trend_window.is_multiple_of(2) {
+    if options.trend_window % 2 == 0 {
         return Err(TimeSeriesError::InvalidParameter {
             name: "trend_window".to_string(),
             message: "Trend window size must be odd".to_string(),
         });
     }
-    if options.seasonal_window.is_multiple_of(2) {
+    if options.seasonal_window % 2 == 0 {
         return Err(TimeSeriesError::InvalidParameter {
             name: "seasonal_window".to_string(),
             message: "Seasonal window size must be odd".to_string(),
         });
     }
 
-    // Working arrays
     let n = ts.len();
     let mut seasonal = Array1::zeros(n);
     let mut trend = Array1::zeros(n);
     let mut weights = Array1::from_elem(n, F::one());
     let original = ts.clone();
 
+    // LOESS configs for seasonal and trend smoothing
+    let seasonal_loess = LoessConfig {
+        span: options.seasonal_window as f64,
+        degree: 1,
+        robustness_iters: 0,
+    };
+
+    let trend_loess = LoessConfig {
+        span: options.trend_window as f64,
+        degree: 1,
+        robustness_iters: 0,
+    };
+
+    // Low-pass filter config (applied to the seasonal component)
+    // Uses 3-pass moving average of lengths period, period, 3
+    let low_pass_loess = LoessConfig {
+        span: (period as f64).max(3.0),
+        degree: 1,
+        robustness_iters: 0,
+    };
+
     // STL Outer Loop
-    for _ in 0..options.n_outer {
+    for _outer in 0..options.n_outer {
         // STL Inner Loop
-        for _ in 0..options.n_inner {
-            // 1. Detrend
+        for _inner in 0..options.n_inner {
+            // Step 1: Detrending
             let detrended = if trend.iter().all(|&x| x == F::zero()) {
-                // First iteration, trend is zero
                 original.clone()
             } else {
-                // Subsequent iterations, remove trend
-                original.clone() - &trend
+                &original - &trend
             };
 
-            // 2. Cycle-subseries Smoothing for Seasonal Component
+            // Step 2: Cycle-subseries smoothing
             let mut cycle_subseries = vec![Vec::new(); period];
             let mut smoothed_seasonal = Array1::zeros(n);
 
-            // Group by seasonal position
+            // Group data by seasonal position
             for i in 0..n {
-                cycle_subseries[i % period].push((i, detrended[i]));
+                cycle_subseries[i % period].push((i, detrended[i], weights[i]));
             }
 
-            // Process each subseries
+            // Apply LOESS to each subseries
             for subseries in cycle_subseries.iter() {
-                if subseries.is_empty() {
+                if subseries.len() < 3 {
+                    // Too few points for LOESS, use weighted average
+                    let mut sum_w = F::zero();
+                    let mut sum_wy = F::zero();
+                    for &(_, val, w) in subseries {
+                        sum_w = sum_w + w;
+                        sum_wy = sum_wy + w * val;
+                    }
+                    let avg = if sum_w > F::zero() {
+                        sum_wy / sum_w
+                    } else {
+                        F::zero()
+                    };
+                    for &(idx, _, _) in subseries {
+                        smoothed_seasonal[idx] = avg;
+                    }
                     continue;
                 }
 
-                // Extract subseries values
-                let mut indices = Vec::with_capacity(subseries.len());
-                let mut values = Vec::with_capacity(subseries.len());
-                let mut subseries_weights = Vec::with_capacity(subseries.len());
+                let values: Vec<F> = subseries.iter().map(|&(_, v, _)| v).collect();
+                let sub_weights: Vec<F> = subseries.iter().map(|&(_, _, w)| w).collect();
+                let indices: Vec<usize> = subseries.iter().map(|&(i, _, _)| i).collect();
 
-                for &(idx, val) in subseries {
-                    indices.push(idx);
-                    values.push(val);
-                    subseries_weights.push(weights[idx]);
-                }
+                let y_arr = Array1::from_vec(values);
+                let w_arr = Array1::from_vec(sub_weights);
 
-                // Convert to ndarray
-                let indices_array = Array1::from_vec(indices);
-                let values_array = Array1::from_vec(values);
-                let weights_array = Array1::from_vec(subseries_weights);
-
-                // Calculate locally weighted smoothed value for each index
-                // (In production code, replace with actual LOESS implementation)
-                // Simplified for this example:
-                let mut smoothed_values = Array1::zeros(indices_array.len());
-                // ... smoothing algorithm would go here ...
-
-                // For now, just use a simple moving average as a placeholder
-                for i in 0..indices_array.len() {
-                    let mut count = 0;
-                    let mut sum = F::zero();
-                    let window = options.seasonal_window / 2;
-
-                    for j in 0..indices_array.len() {
-                        if i >= window
-                            && i < indices_array.len() - window
-                            && j >= i - window
-                            && j <= i + window
-                        {
-                            sum = sum + values_array[j] * weights_array[j];
-                            count += 1;
+                match loess_smooth(&y_arr, &seasonal_loess, Some(&w_arr)) {
+                    Ok(smoothed) => {
+                        for (k, &idx) in indices.iter().enumerate() {
+                            smoothed_seasonal[idx] = smoothed[k];
                         }
                     }
-
-                    if count > 0 {
-                        smoothed_values[i] = sum / F::from_usize(count).expect("Operation failed");
-                    } else {
-                        smoothed_values[i] = values_array[i];
+                    Err(_) => {
+                        // Fallback: use original values
+                        for &(idx, val, _) in subseries {
+                            smoothed_seasonal[idx] = val;
+                        }
                     }
-                }
-
-                // Assign smoothed values back to the seasonal component
-                for (idx, val) in indices_array.iter().zip(smoothed_values.iter()) {
-                    smoothed_seasonal[*idx] = *val;
                 }
             }
 
-            // 3. Low-Pass Filter of Seasonal
-            // (Actual implementation would use a proper low-pass filter)
-            // This is a simplified placeholder
-            let filtered_seasonal = smoothed_seasonal.clone();
-            // ... filtering would go here ...
-
-            // 4. Deseasonalize
-            let deseasonalized = original.clone() - &filtered_seasonal;
-
-            // 5. Trend Smoothing
-            // (In production code, replace with actual LOESS implementation)
-            // Simplified for this example:
-            let mut new_trend = Array1::zeros(n);
-            // ... smoothing algorithm would go here ...
-
-            // For now, use simple moving average as placeholder
-            for i in 0..n {
-                let mut count = 0;
-                let mut sum = F::zero();
-                let window = options.trend_window / 2;
-
-                for j in 0..n {
-                    if i >= window && i < n - window && j >= i - window && j <= i + window {
-                        sum = sum + deseasonalized[j] * weights[j];
-                        count += 1;
+            // Step 3: Low-pass filter on the raw seasonal component
+            // Cleveland et al. use a 3-pass moving average (period, period, 3) followed by LOESS
+            let filtered_seasonal =
+                match apply_low_pass_filter(&smoothed_seasonal, period, &low_pass_loess) {
+                    Ok(filtered) => {
+                        // Subtract the low-pass filtered version from the raw seasonal
+                        &smoothed_seasonal - &filtered
                     }
-                }
+                    Err(_) => {
+                        // Fallback: center the seasonal to sum to approximately zero
+                        let mean = smoothed_seasonal.iter().fold(F::zero(), |acc, &x| acc + x)
+                            / F::from(n).unwrap_or(F::one());
+                        smoothed_seasonal.mapv(|x| x - mean)
+                    }
+                };
 
-                if count > 0 {
-                    new_trend[i] = sum / F::from_usize(count).expect("Operation failed");
-                } else {
-                    new_trend[i] = deseasonalized[i];
-                }
-            }
+            // Step 4: Deseasonalize
+            let deseasonalized = &original - &filtered_seasonal;
 
-            // 6. Update components
+            // Step 5: Trend smoothing using LOESS
+            let new_trend = match loess_smooth(&deseasonalized, &trend_loess, Some(&weights)) {
+                Ok(t) => t,
+                Err(_) => {
+                    // Fallback: simple weighted moving average
+                    weighted_moving_average(&deseasonalized, &weights, options.trend_window)?
+                }
+            };
+
+            // Step 6: Update components
             trend = new_trend;
             seasonal = filtered_seasonal;
         }
 
-        // Update robustness weights (if using robust method)
+        // Update robustness weights (bisquare weights on residuals)
         if options.robust {
-            // Calculate residuals
-            let residual = original.clone() - &trend - &seasonal;
-
-            // Calculate robust weights
-            // (In production code, implement proper bisquare weights)
-            // Simplified for this example:
+            let residual = &original - &trend - &seasonal;
             let abs_residuals = residual.mapv(|x| x.abs());
-            let max_residual = abs_residuals.fold(F::zero(), |a, &b| if a > b { a } else { b });
 
-            if max_residual > F::zero() {
+            // Compute median absolute residual
+            let mut sorted_abs: Vec<F> = abs_residuals.to_vec();
+            sorted_abs.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+
+            let median_abs = if n % 2 == 0 {
+                (sorted_abs[n / 2 - 1] + sorted_abs[n / 2]) / F::from(2.0).unwrap_or(F::one())
+            } else {
+                sorted_abs[n / 2]
+            };
+
+            let h = F::from(6.0).unwrap_or(F::one()) * median_abs;
+
+            if h > F::zero() {
                 for i in 0..n {
-                    let r = abs_residuals[i] / max_residual;
-                    if r < F::from_f64(0.5).expect("Operation failed") {
-                        weights[i] = F::one();
-                    } else if r < F::one() {
-                        let tmp = F::one() - r * r;
-                        weights[i] = tmp * tmp;
-                    } else {
+                    let u = abs_residuals[i] / h;
+                    if u >= F::one() {
                         weights[i] = F::zero();
+                    } else {
+                        let one_minus_u2 = F::one() - u * u;
+                        weights[i] = one_minus_u2 * one_minus_u2; // Bisquare
                     }
                 }
             }
@@ -291,15 +300,122 @@ where
     }
 
     // Calculate final residual
-    let residual = original.clone() - &trend - &seasonal;
+    let residual = &original - &trend - &seasonal;
 
-    // Return result
     Ok(DecompositionResult {
         trend,
         seasonal,
         residual,
         original,
     })
+}
+
+/// Apply the STL low-pass filter: 3-pass moving average (period, period, 3) then LOESS
+fn apply_low_pass_filter<F>(
+    data: &Array1<F>,
+    period: usize,
+    loess_config: &LoessConfig,
+) -> Result<Array1<F>>
+where
+    F: Float + FromPrimitive + Debug,
+{
+    let n = data.len();
+    if n < period + 2 {
+        return Err(TimeSeriesError::InsufficientData {
+            message: "Insufficient data for low-pass filter".to_string(),
+            required: period + 2,
+            actual: n,
+        });
+    }
+
+    // First pass: moving average of length period
+    let ma1 = moving_average_centered(data, period)?;
+
+    // Second pass: moving average of length period
+    let ma2 = if ma1.len() >= period {
+        moving_average_centered(&ma1, period)?
+    } else {
+        ma1.clone()
+    };
+
+    // Third pass: moving average of length 3
+    let ma3 = if ma2.len() >= 3 {
+        moving_average_centered(&ma2, 3)?
+    } else {
+        ma2.clone()
+    };
+
+    // Apply LOESS to the result
+    if ma3.len() >= 3 {
+        loess_smooth(&ma3, loess_config, None)
+    } else {
+        Ok(ma3)
+    }
+}
+
+/// Centered moving average preserving array length
+fn moving_average_centered<F>(data: &Array1<F>, window: usize) -> Result<Array1<F>>
+where
+    F: Float + FromPrimitive + Debug,
+{
+    let n = data.len();
+    if n < window {
+        return Ok(data.clone());
+    }
+
+    let half = window / 2;
+    let mut result = Array1::zeros(n);
+
+    for i in 0..n {
+        let start = if i >= half { i - half } else { 0 };
+        let end = (i + half + 1).min(n);
+        let actual_window = end - start;
+
+        let mut sum = F::zero();
+        for j in start..end {
+            sum = sum + data[j];
+        }
+        result[i] = sum
+            / F::from(actual_window).ok_or_else(|| {
+                TimeSeriesError::NumericalInstability("Conversion failed".to_string())
+            })?;
+    }
+
+    Ok(result)
+}
+
+/// Weighted moving average preserving array length
+fn weighted_moving_average<F>(
+    data: &Array1<F>,
+    weights: &Array1<F>,
+    window: usize,
+) -> Result<Array1<F>>
+where
+    F: Float + FromPrimitive + Debug,
+{
+    let n = data.len();
+    let half = window / 2;
+    let mut result = Array1::zeros(n);
+
+    for i in 0..n {
+        let start = if i >= half { i - half } else { 0 };
+        let end = (i + half + 1).min(n);
+
+        let mut sum_w = F::zero();
+        let mut sum_wy = F::zero();
+        for j in start..end {
+            sum_w = sum_w + weights[j];
+            sum_wy = sum_wy + weights[j] * data[j];
+        }
+
+        result[i] = if sum_w > F::zero() {
+            sum_wy / sum_w
+        } else {
+            data[i]
+        };
+    }
+
+    Ok(result)
 }
 
 /// Performs Multiple STL decomposition on a time series with multiple seasonal components

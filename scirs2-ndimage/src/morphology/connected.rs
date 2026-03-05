@@ -576,10 +576,255 @@ where
     Ok(output)
 }
 
+/// 2D bounding box for a labeled region
+///
+/// Represents the bounding rectangle of a labeled object in a 2D image.
+/// All coordinates use the convention: `min` is inclusive, `max` is exclusive.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BoundingBox2D {
+    /// Label value of this object
+    pub label: usize,
+    /// Minimum row (inclusive)
+    pub min_row: usize,
+    /// Maximum row (exclusive)
+    pub max_row: usize,
+    /// Minimum column (inclusive)
+    pub min_col: usize,
+    /// Maximum column (exclusive)
+    pub max_col: usize,
+}
+
+impl BoundingBox2D {
+    /// Width of the bounding box in pixels
+    pub fn width(&self) -> usize {
+        self.max_col - self.min_col
+    }
+
+    /// Height of the bounding box in pixels
+    pub fn height(&self) -> usize {
+        self.max_row - self.min_row
+    }
+
+    /// Area of the bounding box in pixels
+    pub fn area(&self) -> usize {
+        self.width() * self.height()
+    }
+}
+
+/// Optimized 2D connected component labeling using two-pass algorithm with union-find
+///
+/// This is a specialized 2D version of `label()` that avoids dynamic dimension
+/// conversions and runs significantly faster on 2D images.
+///
+/// # Arguments
+///
+/// * `input` - Input 2D binary array
+/// * `connectivity` - Connectivity type (default: Face = 4-connectivity)
+///
+/// # Returns
+///
+/// * `Result<(Array2<usize>, usize)>` - Labeled array and number of features
+///
+/// # Example
+///
+/// ```
+/// use scirs2_core::ndarray::array;
+/// use scirs2_ndimage::morphology::label_2d;
+///
+/// let input = array![
+///     [true, true, false, false],
+///     [true, true, false, false],
+///     [false, false, true, true],
+///     [false, false, true, true],
+/// ];
+///
+/// let (labeled, num_features) = label_2d(&input, None).expect("label_2d should succeed");
+/// assert_eq!(num_features, 2);
+/// ```
+pub fn label_2d(
+    input: &scirs2_core::ndarray::Array2<bool>,
+    connectivity: Option<Connectivity>,
+) -> NdimageResult<(scirs2_core::ndarray::Array2<usize>, usize)> {
+    use scirs2_core::ndarray::Array2;
+
+    let conn = connectivity.unwrap_or(Connectivity::Face);
+    let rows = input.nrows();
+    let cols = input.ncols();
+
+    if rows == 0 || cols == 0 {
+        return Ok((Array2::zeros((rows, cols)), 0));
+    }
+
+    let total = rows * cols;
+    let mut uf = UnionFind::new(total);
+
+    // Determine offsets: for 2D, Face = 4-connectivity, Full/FaceEdge = 8-connectivity
+    let use_diag = matches!(conn, Connectivity::Full | Connectivity::FaceEdge);
+
+    // First pass: scan left-to-right, top-to-bottom, checking already-visited neighbors
+    for r in 0..rows {
+        for c in 0..cols {
+            if !input[[r, c]] {
+                continue;
+            }
+
+            let idx = r * cols + c;
+
+            // Check neighbor above
+            if r > 0 && input[[r - 1, c]] {
+                uf.union(idx, (r - 1) * cols + c);
+            }
+
+            // Check neighbor to the left
+            if c > 0 && input[[r, c - 1]] {
+                uf.union(idx, r * cols + (c - 1));
+            }
+
+            if use_diag {
+                // Check upper-left diagonal
+                if r > 0 && c > 0 && input[[r - 1, c - 1]] {
+                    uf.union(idx, (r - 1) * cols + (c - 1));
+                }
+                // Check upper-right diagonal
+                if r > 0 && c + 1 < cols && input[[r - 1, c + 1]] {
+                    uf.union(idx, (r - 1) * cols + (c + 1));
+                }
+            }
+        }
+    }
+
+    // Second pass: build label mapping (only for foreground pixels)
+    let mut root_to_label: HashMap<usize, usize> = HashMap::new();
+    let mut next_label = 1usize;
+    let mut output = Array2::zeros((rows, cols));
+
+    for r in 0..rows {
+        for c in 0..cols {
+            if !input[[r, c]] {
+                continue;
+            }
+            let idx = r * cols + c;
+            let root = uf.find(idx);
+            let lbl = match root_to_label.get(&root) {
+                Some(&l) => l,
+                None => {
+                    let l = next_label;
+                    root_to_label.insert(root, l);
+                    next_label += 1;
+                    l
+                }
+            };
+            output[[r, c]] = lbl;
+        }
+    }
+
+    let num_labels = next_label - 1;
+    Ok((output, num_labels))
+}
+
+/// Find objects (bounding boxes) in a 2D labeled image
+///
+/// Returns a `BoundingBox2D` for each unique non-zero label in the input.
+/// The bounding boxes are sorted by label value.
+///
+/// # Arguments
+///
+/// * `labeled` - 2D labeled array where 0 = background
+///
+/// # Returns
+///
+/// * `Result<Vec<BoundingBox2D>>` - Bounding boxes sorted by label
+///
+/// # Example
+///
+/// ```
+/// use scirs2_core::ndarray::array;
+/// use scirs2_ndimage::morphology::{label_2d, find_objects_2d};
+///
+/// let input = array![
+///     [true, true, false, false],
+///     [true, true, false, false],
+///     [false, false, true, true],
+///     [false, false, true, true],
+/// ];
+///
+/// let (labeled, _) = label_2d(&input, None).expect("label_2d should succeed");
+/// let objects = find_objects_2d(&labeled).expect("find_objects_2d should succeed");
+/// assert_eq!(objects.len(), 2);
+/// ```
+pub fn find_objects_2d(
+    labeled: &scirs2_core::ndarray::Array2<usize>,
+) -> NdimageResult<Vec<BoundingBox2D>> {
+    let rows = labeled.nrows();
+    let cols = labeled.ncols();
+
+    if rows == 0 || cols == 0 {
+        return Ok(Vec::new());
+    }
+
+    // Collect bounding boxes in a single pass
+    let mut bbox_map: HashMap<usize, (usize, usize, usize, usize)> = HashMap::new();
+
+    for r in 0..rows {
+        for c in 0..cols {
+            let lbl = labeled[[r, c]];
+            if lbl == 0 {
+                continue;
+            }
+            let entry = bbox_map.entry(lbl).or_insert((r, r, c, c));
+            if r < entry.0 {
+                entry.0 = r;
+            }
+            if r > entry.1 {
+                entry.1 = r;
+            }
+            if c < entry.2 {
+                entry.2 = c;
+            }
+            if c > entry.3 {
+                entry.3 = c;
+            }
+        }
+    }
+
+    let mut result: Vec<BoundingBox2D> = bbox_map
+        .into_iter()
+        .map(|(lbl, (min_r, max_r, min_c, max_c))| BoundingBox2D {
+            label: lbl,
+            min_row: min_r,
+            max_row: max_r + 1, // exclusive
+            min_col: min_c,
+            max_col: max_c + 1, // exclusive
+        })
+        .collect();
+
+    result.sort_by_key(|b| b.label);
+    Ok(result)
+}
+
+/// Count pixels per label in a labeled image
+///
+/// # Arguments
+///
+/// * `labeled` - Labeled array
+///
+/// # Returns
+///
+/// * HashMap mapping label -> pixel count (excludes background label 0)
+pub fn count_labels_2d(labeled: &scirs2_core::ndarray::Array2<usize>) -> HashMap<usize, usize> {
+    let mut counts: HashMap<usize, usize> = HashMap::new();
+    for &lbl in labeled.iter() {
+        if lbl > 0 {
+            *counts.entry(lbl).or_insert(0) += 1;
+        }
+    }
+    counts
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use scirs2_core::ndarray::Array2;
+    use scirs2_core::ndarray::{array, Array2};
 
     #[test]
     fn test_label() {
@@ -600,5 +845,159 @@ mod tests {
         let input = Array2::from_elem((3, 3), true);
         let result = remove_small_objects(&input, 1, None).expect("Operation failed");
         assert_eq!(result.shape(), input.shape());
+    }
+
+    #[test]
+    fn test_label_2d_two_components() {
+        let input = array![
+            [true, true, false, false],
+            [true, true, false, false],
+            [false, false, true, true],
+            [false, false, true, true],
+        ];
+        let (labeled, num) = label_2d(&input, None).expect("label_2d should succeed");
+        assert_eq!(num, 2);
+        // Top-left block should have one label, bottom-right another
+        let l1 = labeled[[0, 0]];
+        let l2 = labeled[[2, 2]];
+        assert_ne!(l1, 0);
+        assert_ne!(l2, 0);
+        assert_ne!(l1, l2);
+        // All pixels in block 1 should share a label
+        assert_eq!(labeled[[0, 0]], labeled[[0, 1]]);
+        assert_eq!(labeled[[0, 0]], labeled[[1, 0]]);
+        assert_eq!(labeled[[0, 0]], labeled[[1, 1]]);
+    }
+
+    #[test]
+    fn test_label_2d_single_component_8conn() {
+        // With 8-connectivity, diagonal neighbors merge components
+        let input = array![
+            [true, false, false],
+            [false, true, false],
+            [false, false, true],
+        ];
+        let (labeled, num) =
+            label_2d(&input, Some(Connectivity::Full)).expect("label_2d 8-conn should succeed");
+        assert_eq!(num, 1);
+        assert_eq!(labeled[[0, 0]], labeled[[1, 1]]);
+        assert_eq!(labeled[[1, 1]], labeled[[2, 2]]);
+    }
+
+    #[test]
+    fn test_label_2d_multiple_components_4conn() {
+        // With 4-connectivity, diagonal pixels are separate
+        let input = array![
+            [true, false, false],
+            [false, true, false],
+            [false, false, true],
+        ];
+        let (labeled, num) =
+            label_2d(&input, Some(Connectivity::Face)).expect("label_2d 4-conn should succeed");
+        assert_eq!(num, 3);
+        // Each diagonal pixel should be a different component
+        let l0 = labeled[[0, 0]];
+        let l1 = labeled[[1, 1]];
+        let l2 = labeled[[2, 2]];
+        assert_ne!(l0, l1);
+        assert_ne!(l1, l2);
+        assert_ne!(l0, l2);
+    }
+
+    #[test]
+    fn test_label_2d_empty() {
+        let input = Array2::from_elem((3, 3), false);
+        let (labeled, num) = label_2d(&input, None).expect("empty should succeed");
+        assert_eq!(num, 0);
+        for &v in labeled.iter() {
+            assert_eq!(v, 0);
+        }
+    }
+
+    #[test]
+    fn test_label_2d_all_foreground() {
+        let input = Array2::from_elem((4, 4), true);
+        let (labeled, num) = label_2d(&input, None).expect("all-foreground should succeed");
+        assert_eq!(num, 1);
+        let expected_label = labeled[[0, 0]];
+        for &v in labeled.iter() {
+            assert_eq!(v, expected_label);
+        }
+    }
+
+    #[test]
+    fn test_find_objects_2d_basic() {
+        let input = array![
+            [true, true, false, false],
+            [true, true, false, false],
+            [false, false, true, true],
+            [false, false, true, true],
+        ];
+        let (labeled, _) = label_2d(&input, None).expect("label_2d should succeed");
+        let objects = find_objects_2d(&labeled).expect("find_objects_2d should succeed");
+        assert_eq!(objects.len(), 2);
+
+        // First object (label 1) should be in top-left
+        let obj1 = &objects[0];
+        assert_eq!(obj1.min_row, 0);
+        assert_eq!(obj1.max_row, 2);
+        assert_eq!(obj1.min_col, 0);
+        assert_eq!(obj1.max_col, 2);
+        assert_eq!(obj1.width(), 2);
+        assert_eq!(obj1.height(), 2);
+
+        // Second object (label 2) should be in bottom-right
+        let obj2 = &objects[1];
+        assert_eq!(obj2.min_row, 2);
+        assert_eq!(obj2.max_row, 4);
+        assert_eq!(obj2.min_col, 2);
+        assert_eq!(obj2.max_col, 4);
+    }
+
+    #[test]
+    fn test_find_objects_2d_no_objects() {
+        let labeled = Array2::<usize>::zeros((5, 5));
+        let objects = find_objects_2d(&labeled).expect("no objects should succeed");
+        assert!(objects.is_empty());
+    }
+
+    #[test]
+    fn test_find_objects_2d_single_pixel() {
+        let mut labeled = Array2::<usize>::zeros((5, 5));
+        labeled[[2, 3]] = 1;
+        let objects = find_objects_2d(&labeled).expect("single pixel should succeed");
+        assert_eq!(objects.len(), 1);
+        assert_eq!(objects[0].min_row, 2);
+        assert_eq!(objects[0].max_row, 3);
+        assert_eq!(objects[0].min_col, 3);
+        assert_eq!(objects[0].max_col, 4);
+        assert_eq!(objects[0].area(), 1);
+    }
+
+    #[test]
+    fn test_count_labels_2d() {
+        let labeled = array![[0, 1, 1, 0], [0, 1, 0, 2], [3, 0, 0, 2], [3, 3, 0, 0],];
+        let counts = count_labels_2d(&labeled);
+        assert_eq!(counts.get(&1), Some(&3));
+        assert_eq!(counts.get(&2), Some(&2));
+        assert_eq!(counts.get(&3), Some(&3));
+        assert_eq!(counts.get(&0), None); // background not counted
+    }
+
+    #[test]
+    fn test_label_2d_l_shape() {
+        // Test an L-shaped region that requires union-find path compression
+        let input = array![
+            [true, false, false],
+            [true, false, false],
+            [true, true, true],
+        ];
+        let (labeled, num) = label_2d(&input, None).expect("L-shape should succeed");
+        assert_eq!(num, 1);
+        let expected = labeled[[0, 0]];
+        assert_eq!(labeled[[1, 0]], expected);
+        assert_eq!(labeled[[2, 0]], expected);
+        assert_eq!(labeled[[2, 1]], expected);
+        assert_eq!(labeled[[2, 2]], expected);
     }
 }

@@ -54,7 +54,7 @@ use crate::npyffi;
 /// # Python::attach(|py| {
 /// #   let array = PyArray1::<f64>::zeros(py, 42, false);
 /// #   entry_point(py, array.as_untyped())
-/// # }).unwrap();
+/// # }).expect("Python session succeeds");
 /// ```
 #[repr(transparent)]
 pub struct PyUntypedArray(PyAny);

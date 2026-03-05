@@ -70,6 +70,7 @@ uuid = { workspace = true, features = ["v4", "serde"] }
 urlencoding = { workspace = true }
 crossbeam-channel = { workspace = true }
 cron = { workspace = true }
+miniz_oxide = { workspace = true }  # Pure Rust DEFLATE (for MATLAB compression)
 snap = { workspace = true }  # Pure Rust Snappy
 brotli = { workspace = true }  # Pure Rust Brotli (Dropbox implementation)
 # Database drivers

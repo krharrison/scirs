@@ -226,15 +226,16 @@ fn compute_stft(
         None,               // padded
     )?;
 
-    // Extract the result
-    let (_f, t, zxx) = stft_result;
-    let n_frames = zxx.len();
-    let n_bins = n_fft / 2 + 1; // Only positive frequencies
+    // Extract the result.  stft returns (freqs, times, zxx) where
+    // zxx is frequency-major: zxx[freq_bin][time_frame].
+    let (_f, _t, zxx) = stft_result;
+    let n_bins = zxx.len();            // number of frequency bins
+    let n_frames = if n_bins > 0 { zxx[0].len() } else { 0 };
 
     let mut stft = Array2::zeros((n_bins, n_frames));
-    for j in 0..n_frames {
-        for i in 0..zxx[j].len().min(n_bins) {
-            stft[[i, j]] = zxx[j][i];
+    for i in 0..n_bins {
+        for j in 0..zxx[i].len().min(n_frames) {
+            stft[[i, j]] = zxx[i][j];
         }
     }
 

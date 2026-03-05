@@ -32,7 +32,7 @@ use scirs2_core::ndarray::{Array1, Array2};
 ///
 /// // Compute 4 DPSS tapers of length 64 with time-bandwidth product of 4
 /// let result = dpss(64, 4.0, 4, true).expect("Operation failed");
-/// let (tapers, eigenvalues) = (result.0, result.1.unwrap());
+/// let (tapers, eigenvalues) = (result.0, result.1.expect("operation should succeed"));
 ///
 /// // Check number of tapers
 /// assert_eq!(tapers.shape()[0], 4);

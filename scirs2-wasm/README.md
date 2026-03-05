@@ -1,16 +1,31 @@
 # SciRS2-WASM: Scientific Computing in WebAssembly
 
-High-performance scientific computing library for JavaScript and TypeScript, powered by Rust and WebAssembly.
+High-performance scientific computing for JavaScript and TypeScript environments, powered by Rust compiled to WebAssembly. Part of the [SciRS2](https://github.com/cool-japan/scirs) ecosystem.
+
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](../LICENSE)
+[![Version](https://img.shields.io/badge/version-0.3.0-green)]()
+
+## Overview
+
+`scirs2-wasm` brings the full power of SciRS2's scientific computing capabilities to the browser and Node.js through WebAssembly. It exposes a `wasm-bindgen`-based interface with TypeScript type definitions, SIMD-accelerated operations (where supported by the runtime), and utilities for linear algebra, signal processing, statistics, machine learning, and streaming data processing.
 
 ## Features
 
-- **Pure Rust**: 100% safe Rust code compiled to WASM
-- **High Performance**: Near-native performance in the browser
-- **SIMD Support**: Optional WASM SIMD acceleration (wasm32-simd128)
-- **TypeScript Support**: Full TypeScript type definitions
-- **Zero Dependencies**: No external JavaScript dependencies
-- **Memory Efficient**: Optimized for browser memory constraints
-- **Async Operations**: Non-blocking computations
+- **Pure Rust**: 100% safe Rust code compiled to `wasm32-unknown-unknown`
+- **wasm-bindgen Interface**: Direct JS/TS interop without glue code overhead
+- **TypeScript Definitions**: Full type definitions in `ts-src/scirs2.ts` for strong IDE support
+- **SIMD Acceleration**: Optional `wasm32-simd128` acceleration for vectorized operations
+- **WasmMatrix Type**: First-class 2D matrix type for linear algebra in JS/TS
+- **Async Operations**: Non-blocking computations with JavaScript Promises
+- **WebWorker Support**: Offload heavy computations to worker threads
+- **Streaming Processing**: Process large datasets incrementally without exhausting memory
+- **Signal Processing**: FFT, filtering, spectrogram generation
+- **Linear Algebra**: Matrix operations, SVD, eigenvalue decomposition
+- **Statistics**: Descriptive statistics, distributions, hypothesis tests, regression
+- **ML Utilities**: Forward pass helpers, activation functions, loss computation
+- **Advanced Stats**: Time series primitives, regression diagnostics
+- **Memory Efficient**: Optimized allocations for browser memory constraints
+- **Zero JS Dependencies**: No external JavaScript runtime dependencies required
 
 ## Installation
 
@@ -40,46 +55,17 @@ pnpm add scirs2-wasm
 import init, * as scirs2 from 'scirs2-wasm';
 
 async function main() {
-  // Initialize the WASM module
   await init();
 
-  // Create arrays
   const a = new scirs2.WasmArray([1, 2, 3, 4]);
   const b = new scirs2.WasmArray([5, 6, 7, 8]);
 
-  // Perform operations
-  const sum = scirs2.add(a, b);
-  const mean_a = scirs2.mean(a);
-  const std_a = scirs2.std(a);
+  const sum  = scirs2.add(a, b);
+  const mean = scirs2.mean(a);
+  const std  = scirs2.std(a);
 
   console.log('Sum:', sum.to_array());
-  console.log('Mean:', mean_a);
-  console.log('Std:', std_a);
-}
-
-main();
-```
-
-### Node.js
-
-```javascript
-const scirs2 = require('scirs2-wasm');
-
-async function main() {
-  // WASM module is auto-initialized in Node.js
-
-  // Create a 2D array (matrix)
-  const matrix = scirs2.WasmArray.from_shape(
-    [2, 2],
-    [1, 2, 3, 4]
-  );
-
-  // Linear algebra operations
-  const det = scirs2.det(matrix);
-  const trace = scirs2.trace(matrix);
-
-  console.log('Determinant:', det);
-  console.log('Trace:', trace);
+  console.log('Mean:', mean, 'Std:', std);
 }
 
 main();
@@ -93,13 +79,36 @@ import init, * as scirs2 from 'scirs2-wasm';
 async function main(): Promise<void> {
   await init();
 
-  // Type-safe array operations
-  const arr: scirs2.WasmArray = scirs2.WasmArray.linspace(0, 10, 100);
+  // WasmMatrix for 2D linear algebra
+  const mat: scirs2.WasmMatrix = scirs2.WasmMatrix.from_rows([
+    [1.0, 2.0, 3.0],
+    [4.0, 5.0, 6.0],
+    [7.0, 8.0, 9.0],
+  ]);
 
-  const mean: number = scirs2.mean(arr);
-  const std: number = scirs2.std(arr);
+  const svd = scirs2.svd(mat);
+  console.log('Singular values:', svd.s.to_array());
 
-  console.log(`Mean: ${mean}, Std: ${std}`);
+  // Check SIMD availability
+  console.log('SIMD support:', scirs2.has_simd_support());
+}
+
+main();
+```
+
+### Node.js
+
+```javascript
+const scirs2 = require('scirs2-wasm');
+
+async function main() {
+  const matrix = scirs2.WasmArray.from_shape([2, 2], [1, 2, 3, 4]);
+
+  const det   = scirs2.det(matrix);
+  const trace = scirs2.trace(matrix);
+
+  console.log('Determinant:', det);
+  console.log('Trace:', trace);
 }
 
 main();
@@ -110,165 +119,150 @@ main();
 ### Array Creation
 
 ```javascript
-// From JavaScript array
-const arr = new scirs2.WasmArray([1, 2, 3, 4]);
-
-// From typed array
-const typed = new Float64Array([1, 2, 3, 4]);
-const arr2 = new scirs2.WasmArray(typed);
-
-// With specific shape (2D matrix)
-const matrix = scirs2.WasmArray.from_shape([2, 2], [1, 2, 3, 4]);
-
-// Special arrays
-const zeros = scirs2.WasmArray.zeros([3, 3]);
-const ones = scirs2.WasmArray.ones([5]);
-const full = scirs2.WasmArray.full([2, 3], 7.0);
-
-// Range arrays
-const linspace = scirs2.WasmArray.linspace(0, 1, 50);  // [0, 0.02, 0.04, ..., 1]
-const arange = scirs2.WasmArray.arange(0, 10, 0.5);    // [0, 0.5, 1, ..., 9.5]
+const arr      = new scirs2.WasmArray([1, 2, 3, 4]);
+const typed    = new scirs2.WasmArray(new Float64Array([1, 2, 3, 4]));
+const matrix   = scirs2.WasmArray.from_shape([2, 2], [1, 2, 3, 4]);
+const zeros    = scirs2.WasmArray.zeros([3, 3]);
+const ones     = scirs2.WasmArray.ones([5]);
+const linspace = scirs2.WasmArray.linspace(0, 1, 50);
+const arange   = scirs2.WasmArray.arange(0, 10, 0.5);
 ```
 
-### Array Operations
+### Linear Algebra (WasmMatrix)
 
 ```javascript
-const a = new scirs2.WasmArray([1, 2, 3]);
-const b = new scirs2.WasmArray([4, 5, 6]);
+const A = scirs2.WasmMatrix.from_rows([[1,2],[3,4]]);
+const B = scirs2.WasmMatrix.from_rows([[5,6],[7,8]]);
 
-// Element-wise operations
-const sum = scirs2.add(a, b);        // [5, 7, 9]
-const diff = scirs2.subtract(a, b);  // [-3, -3, -3]
-const prod = scirs2.multiply(a, b);  // [4, 10, 18]
-const quot = scirs2.divide(a, b);    // [0.25, 0.4, 0.5]
-
-// Dot product and matrix operations
-const dot = scirs2.dot(a, b);        // 32
-const matrix_a = scirs2.WasmArray.from_shape([2, 2], [1, 2, 3, 4]);
-const matrix_b = scirs2.WasmArray.from_shape([2, 2], [5, 6, 7, 8]);
-const matmul = scirs2.dot(matrix_a, matrix_b);
-
-// Reductions
-const total = scirs2.sum(a);    // 6
-const average = scirs2.mean(a); // 2
-const minimum = scirs2.min(a);  // 1
-const maximum = scirs2.max(a);  // 3
+const C         = scirs2.matmul(A, B);          // Matrix multiply
+const inv       = scirs2.inv(A);                // Inverse
+const det       = scirs2.det(A);                // Determinant
+const trace     = scirs2.trace(A);              // Trace
+const svd_res   = scirs2.svd(A);                // SVD: {U, s, Vt}
+const eig_res   = scirs2.eig(A);                // Eigenvalues/vectors
+const norm      = scirs2.norm_frobenius(A);     // Frobenius norm
+const rank      = scirs2.matrix_rank(A);        // Rank
+const x         = scirs2.solve(A, b_vec);       // Ax = b
+const transpose = A.transpose();
 ```
 
-### Statistical Functions
+### Signal Processing
 
 ```javascript
-const data = new scirs2.WasmArray([1, 2, 3, 4, 5]);
+const signal = new scirs2.WasmArray([/* samples */]);
 
-// Descriptive statistics
-const mean = scirs2.mean(data);           // 3
-const std = scirs2.std(data);             // ~1.41
-const variance = scirs2.variance(data);   // ~2
-const median = scirs2.median(data);       // 3
+// FFT
+const spectrum      = scirs2.fft(signal);
+const power         = scirs2.periodogram(signal, 1024);
+const spectrogram   = scirs2.spectrogram(signal, { nperseg: 256, noverlap: 128 });
 
-// Percentiles
-const p25 = scirs2.percentile(data, 25);  // 2
-const p75 = scirs2.percentile(data, 75);  // 4
+// Filtering
+const filtered_lp   = scirs2.lowpass_filter(signal, 0.2);
+const filtered_bp   = scirs2.bandpass_filter(signal, 0.1, 0.4);
+const filtered_hp   = scirs2.highpass_filter(signal, 0.3);
+
+// Convolution
+const kernel        = new scirs2.WasmArray([0.25, 0.5, 0.25]);
+const convolved     = scirs2.convolve(signal, kernel);
+```
+
+### Statistics
+
+```javascript
+const data = new scirs2.WasmArray([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
+// Descriptive
+const mean     = scirs2.mean(data);
+const std      = scirs2.std(data);
+const variance = scirs2.variance(data);
+const median   = scirs2.median(data);
+const p25      = scirs2.percentile(data, 25);
+const p75      = scirs2.percentile(data, 75);
+const skew     = scirs2.skewness(data);
+const kurt     = scirs2.kurtosis(data);
 
 // Correlation
-const x = new scirs2.WasmArray([1, 2, 3, 4, 5]);
-const y = new scirs2.WasmArray([2, 4, 6, 8, 10]);
-const corr = scirs2.corrcoef(x, y);  // 1.0 (perfect correlation)
+const x    = new scirs2.WasmArray([1, 2, 3, 4, 5]);
+const y    = new scirs2.WasmArray([2, 4, 6, 8, 10]);
+const corr = scirs2.corrcoef(x, y);
 
-// Cumulative operations
-const cumsum = scirs2.cumsum(data);   // [1, 3, 6, 10, 15]
-const cumprod = scirs2.cumprod(data); // [1, 2, 6, 24, 120]
+// Advanced: regression diagnostics
+const reg_result = scirs2.linear_regression(x, y);
+console.log('Slope:', reg_result.slope, 'R2:', reg_result.r2);
 ```
 
-### Linear Algebra
+### ML Utilities
 
 ```javascript
-const matrix = scirs2.WasmArray.from_shape([3, 3], [
-  1, 2, 3,
-  0, 1, 4,
-  5, 6, 0
-]);
+// Activation functions
+const relu    = scirs2.relu(data);
+const sigmoid = scirs2.sigmoid(data);
+const softmax = scirs2.softmax(data);
+const tanh    = scirs2.tanh_activation(data);
 
-// Matrix properties
-const det = scirs2.det(matrix);           // Determinant
-const trace = scirs2.trace(matrix);       // Sum of diagonal
-const rank = scirs2.rank(matrix);         // Matrix rank
-const norm = scirs2.norm_frobenius(matrix); // Frobenius norm
+// Loss functions
+const mse_loss  = scirs2.mse_loss(predictions, targets);
+const ce_loss   = scirs2.cross_entropy_loss(logits, labels);
 
-// Matrix operations
-const inv = scirs2.inv(matrix);           // Matrix inverse
-const transpose = matrix.transpose();     // Matrix transpose
-
-// Solve linear system Ax = b
-const A = scirs2.WasmArray.from_shape([2, 2], [3, 1, 1, 2]);
-const b = new scirs2.WasmArray([9, 8]);
-const x = scirs2.solve(A, b);  // Solution: x = [2, 3]
+// Normalization
+const normalized    = scirs2.layer_norm(data);
+const batch_normed  = scirs2.batch_norm(data, mean_vec, var_vec);
 ```
 
-### Random Number Generation
+### Streaming Data Processing
 
 ```javascript
-// Uniform random [0, 1)
-const uniform = scirs2.random_uniform([100]);
+// Process large datasets in chunks
+const processor = new scirs2.StreamingProcessor({ window_size: 1024 });
 
-// Normal distribution (mean=0, std=1)
-const normal = scirs2.random_normal([1000], 0, 1);
+for (const chunk of dataSource) {
+  processor.push(chunk);
+  const current_stats = processor.current_stats();
+  console.log('Running mean:', current_stats.mean);
+}
 
-// Random integers [0, 10)
-const integers = scirs2.random_integers([50], 0, 10);
-
-// Exponential distribution (lambda=1.5)
-const exponential = scirs2.random_exponential([100], 1.5);
+const final_result = processor.finalize();
 ```
 
-### Performance Monitoring
+### WebWorker Support
 
 ```javascript
-// Time operations
-const timer = new scirs2.PerformanceTimer('Matrix multiplication');
-
-const a = scirs2.WasmArray.from_shape([1000, 1000], /* data */);
-const b = scirs2.WasmArray.from_shape([1000, 1000], /* data */);
-const result = scirs2.dot(a, b);
-
-timer.log_elapsed();  // Logs: "Matrix multiplication: 45.123ms"
-
-// Check capabilities
-const caps = scirs2.capabilities();
-console.log('SIMD support:', caps.simd);
-console.log('Available features:', caps.features);
+// In main thread
+const worker = new Worker('scirs2-worker.js');
+worker.postMessage({ op: 'fft', data: signal_data });
+worker.onmessage = (e) => console.log('FFT result:', e.data.result);
 ```
 
 ## Building from Source
 
 ### Prerequisites
 
-- Rust 1.70+ with `wasm32-unknown-unknown` target
-- wasm-pack
+- Rust 1.75+ with `wasm32-unknown-unknown` target
+- `wasm-pack` 0.12+
 - Node.js 18+
 
 ### Build Steps
 
 ```bash
-# Install Rust target
+# Install Rust WASM target
 rustup target add wasm32-unknown-unknown
 
 # Install wasm-pack
 curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
-# Build for bundlers (webpack, rollup, etc.)
+# Build for bundlers (webpack, rollup, Vite)
 npm run build
 
-# Build for web (ES modules)
+# Build for web (plain ES modules, no bundler needed)
 npm run build:web
 
-# Build for Node.js
+# Build for Node.js (CommonJS)
 npm run build:nodejs
 
-# Build with SIMD support
+# Build with SIMD acceleration
 npm run build:simd
 
-# Optimize with wasm-opt
+# Optimize binary with wasm-opt
 npm run optimize
 ```
 
@@ -283,68 +277,96 @@ npm run test:chrome
 
 # Run tests in Node.js
 npm run test:node
+
+# Run Rust unit tests (non-WASM)
+cargo test --lib
 ```
 
 ## Performance
 
-SciRS2-WASM provides near-native performance for scientific computing tasks:
+SciRS2-WASM delivers near-native performance for scientific workloads:
 
-- **Array operations**: 80-95% of native performance
-- **Matrix multiplication**: Up to 90% with SIMD
-- **Statistical functions**: 85-95% of native
-- **Random number generation**: 70-85% (limited by WASM RNG)
+| Operation | Performance vs Native | Notes |
+|-----------|----------------------|-------|
+| Array arithmetic | 80-95% | Scalar fallback without SIMD |
+| Matrix multiply | Up to 90% | With `wasm32-simd128` |
+| Statistical functions | 85-95% | Parallel not available in WASM |
+| FFT | 75-90% | Depends on transform size |
+| Random number generation | 70-85% | WASM RNG overhead |
 
 ### SIMD Acceleration
 
-For maximum performance, build with SIMD support:
+Build with `--features simd` for `wasm32-simd128` vectorization:
 
 ```bash
-npm run build:simd
+RUSTFLAGS="-C target-feature=+simd128" wasm-pack build --release
 ```
 
-Note: SIMD requires browser support for wasm-simd128 feature.
+SIMD is supported in Chrome 91+, Firefox 89+, Safari 16.4+, Edge 91+, and Node.js 20+.
 
 ## Browser Compatibility
 
-- Chrome 91+ (with SIMD: 91+)
-- Firefox 89+ (with SIMD: 89+)
-- Safari 16.4+ (with SIMD: limited)
-- Edge 91+ (with SIMD: 91+)
-- Node.js 18+ (with SIMD: 20+)
+| Browser | Baseline | With SIMD |
+|---------|----------|-----------|
+| Chrome  | 91+      | 91+       |
+| Firefox | 89+      | 89+       |
+| Safari  | 16.4+    | Limited   |
+| Edge    | 91+      | 91+       |
+| Node.js | 18+      | 20+       |
+
+## TypeScript Type Definitions
+
+Full TypeScript definitions are provided in `ts-src/scirs2.ts`. The `WasmMatrix` and `WasmArray` types are strongly typed for ergonomic IDE support:
+
+```typescript
+import type { WasmMatrix, WasmArray, SvdResult, EigResult } from 'scirs2-wasm';
+
+function process(m: WasmMatrix): SvdResult {
+  return scirs2.svd(m);
+}
+```
 
 ## Memory Management
 
-WASM has a linear memory model. Best practices:
+WASM uses a linear memory model. Best practices:
 
-1. **Reuse arrays** when possible to avoid allocations
-2. **Process in chunks** for large datasets
-3. **Monitor memory** usage with browser DevTools
-4. **Dispose arrays** explicitly if needed (future feature)
+1. **Reuse arrays** when possible to reduce allocation overhead
+2. **Process in chunks** for datasets larger than a few hundred MB
+3. **Monitor memory** with browser DevTools Performance panel
+4. **Dispose large temporaries** explicitly when done
 
-## Examples
+## Module Architecture
 
-See the `examples/` directory for complete examples:
+```
+scirs2-wasm/
+├── src/
+│   ├── lib.rs           - WASM entry point, init, version
+│   ├── array.rs         - WasmArray type and array operations
+│   ├── linalg.rs        - WasmMatrix, decompositions, solvers
+│   ├── stats.rs         - Descriptive stats, distributions, tests
+│   ├── fft.rs           - FFT, spectrogram, periodogram
+│   ├── signal.rs        - Filters, convolution, denoising
+│   ├── optimize.rs      - Optimization algorithms
+│   ├── integrate.rs     - Numerical integration
+│   ├── interpolate.rs   - Interpolation methods
+│   ├── random.rs        - RNG and distributions
+│   ├── utils.rs         - Performance timer, capabilities
+│   └── error.rs         - WASM-friendly error types
+├── ts-src/
+│   └── scirs2.ts        - TypeScript definitions
+└── Cargo.toml
+```
 
-- `basic-arrays.html` - Array creation and manipulation
-- `statistics.html` - Statistical analysis
-- `linear-algebra.html` - Matrix operations
-- `performance.html` - Performance benchmarking
-- `node-example.js` - Node.js usage
+## Related Projects
 
-## Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
+- [SciRS2](https://github.com/cool-japan/scirs) - Core Rust library
+- [scirs2-python](../scirs2-python/) - Python/PyO3 bindings
+- [wasm-bindgen](https://github.com/rustwasm/wasm-bindgen) - WASM-JS interop framework
 
 ## License
 
-Apache-2.0
+Licensed under the Apache License 2.0. See [LICENSE](../LICENSE) for details.
 
 ## Authors
 
 COOLJAPAN OU (Team KitaSan)
-
-## Acknowledgments
-
-- Built with [wasm-bindgen](https://github.com/rustwasm/wasm-bindgen)
-- Powered by [ndarray](https://github.com/rust-ndarray/ndarray)
-- Part of the [SciRS2](https://github.com/cool-japan/scirs) ecosystem

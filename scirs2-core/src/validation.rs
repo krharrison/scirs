@@ -1502,6 +1502,9 @@ pub mod custom {
     }
 }
 
+/// Array validation: finiteness, sign, symmetry, orthogonality, positive-definiteness, stochasticity
+pub mod array_checks;
+
 // Production-level validation with comprehensive security and performance features
 pub mod production;
 

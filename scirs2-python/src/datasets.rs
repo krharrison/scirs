@@ -16,17 +16,16 @@ use scirs2_core::ndarray::{Array1, Array2};
 
 // Direct imports from scirs2-datasets
 use scirs2_datasets::{
-    // Toy datasets
-    toy::{load_iris, load_boston, load_diabetes, load_breast_cancer, load_digits},
+    // Manifold datasets
+    generators::manifold::{make_s_curve, make_swiss_roll},
     // Generators
     generators::{
-        make_classification, make_regression, make_blobs,
-        make_moons, make_circles, make_spirals,
+        make_blobs, make_circles, make_classification, make_moons, make_regression, make_spirals,
     },
-    // Manifold datasets
-    generators::manifold::{make_swiss_roll, make_s_curve},
+    // Toy datasets
+    toy::{load_boston, load_breast_cancer, load_diabetes, load_digits, load_iris},
     // Utilities
-    utils::{train_test_split, k_fold_split, min_max_scale, normalize},
+    utils::{k_fold_split, min_max_scale, normalize, train_test_split},
     // Dataset structure
     Dataset,
 };
@@ -71,8 +70,8 @@ fn dataset_to_pydict(py: Python, dataset: Dataset) -> PyResult<Py<PyAny>> {
 /// Load Iris dataset
 #[pyfunction]
 fn load_iris_py(py: Python) -> PyResult<Py<PyAny>> {
-    let dataset = load_iris()
-        .map_err(|e| PyRuntimeError::new_err(format!("Failed to load iris: {}", e)))?;
+    let dataset =
+        load_iris().map_err(|e| PyRuntimeError::new_err(format!("Failed to load iris: {}", e)))?;
     dataset_to_pydict(py, dataset)
 }
 
@@ -331,10 +330,7 @@ fn min_max_scale_py(
 
 /// Normalize array (L2 norm per row)
 #[pyfunction]
-fn normalize_py(
-    py: Python,
-    data: &Bound<'_, PyArray2<f64>>,
-) -> PyResult<Py<PyArray2<f64>>> {
+fn normalize_py(py: Python, data: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<PyArray2<f64>>> {
     let binding = data.readonly();
     let mut arr = binding.as_array().to_owned();
 

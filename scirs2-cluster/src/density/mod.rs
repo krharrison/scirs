@@ -286,8 +286,8 @@ pub fn optics<F: Float + FromPrimitive + Debug + PartialOrd>(
 
     // Convert max_eps to f64 for use with default extraction
     let default_eps = match max_eps {
-        Some(_eps) => _eps.to_f64().expect("Operation failed") / 10.0, // Use smaller epsilon by default
-        None => 0.5, // Default _eps if none provided
+        Some(_eps) => _eps.to_f64().unwrap_or(0.5) / 10.0,
+        None => 0.5,
     };
 
     Ok(optics::extract_dbscan_clustering(&result, default_eps))

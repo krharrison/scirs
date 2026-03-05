@@ -7,7 +7,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict};
 use scirs2_numpy::{PyArray1, PyArrayMethods};
 use scirs2_stats::tests::ttest::{ttest_1samp, ttest_ind, Alternative};
-use scirs2_stats::{pearsonr, covariance_simd};
+use scirs2_stats::{covariance_simd, pearsonr};
 
 /// Compute descriptive statistics - uses optimized implementations
 /// Returns dict with mean, std, var, min, max, median, count
@@ -89,19 +89,15 @@ pub fn describe_py(py: Python, data: &Bound<'_, PyArray1<f64>>) -> PyResult<Py<P
     let mut vec: Vec<f64> = arr.iter().cloned().collect();
     let median_val = if n % 2 == 1 {
         let mid = n / 2;
-        let (_, val, _) = vec
-            .select_nth_unstable_by(
-                mid,
-                |a, b| { a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal) },
-            );
+        let (_, val, _) = vec.select_nth_unstable_by(mid, |a, b| {
+            a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
+        });
         *val
     } else {
         let mid = n / 2;
-        let (lower, val_at_mid, _) = vec
-            .select_nth_unstable_by(
-                mid,
-                |a, b| { a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal) },
-            );
+        let (lower, val_at_mid, _) = vec.select_nth_unstable_by(mid, |a, b| {
+            a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
+        });
         let val_mid = *val_at_mid;
         let val_mid_minus_1 = lower
             .iter()
@@ -159,7 +155,9 @@ pub fn std_py(data: &Bound<'_, PyArray1<f64>>, ddof: usize) -> PyResult<f64> {
         return Err(PyRuntimeError::new_err("Empty array provided"));
     }
     if n <= ddof {
-        return Err(PyRuntimeError::new_err("Not enough data points for given ddof"));
+        return Err(PyRuntimeError::new_err(
+            "Not enough data points for given ddof",
+        ));
     }
     let slice = arr.as_slice().expect("Operation failed");
     let mut sum0 = 0.0f64;
@@ -218,7 +216,9 @@ pub fn var_py(data: &Bound<'_, PyArray1<f64>>, ddof: usize) -> PyResult<f64> {
         return Err(PyRuntimeError::new_err("Empty array provided"));
     }
     if n <= ddof {
-        return Err(PyRuntimeError::new_err("Not enough data points for given ddof"));
+        return Err(PyRuntimeError::new_err(
+            "Not enough data points for given ddof",
+        ));
     }
     let slice = arr.as_slice().expect("Operation failed");
     let mut sum0 = 0.0f64;
@@ -276,7 +276,9 @@ pub fn percentile_py(data: &Bound<'_, PyArray1<f64>>, q: f64) -> PyResult<f64> {
         return Err(PyRuntimeError::new_err("Empty array provided"));
     }
     if !(0.0..=100.0).contains(&q) {
-        return Err(PyRuntimeError::new_err("Percentile must be between 0 and 100"));
+        return Err(PyRuntimeError::new_err(
+            "Percentile must be between 0 and 100",
+        ));
     }
     let mut vec: Vec<f64> = arr.iter().cloned().collect();
     let q_norm = q / 100.0;
@@ -285,18 +287,14 @@ pub fn percentile_py(data: &Bound<'_, PyArray1<f64>>, q: f64) -> PyResult<f64> {
     let fraction = virtual_index - i as f64;
     if fraction == 0.0 || i >= n - 1 {
         let idx = i.min(n - 1);
-        let (_, val, _) = vec
-            .select_nth_unstable_by(
-                idx,
-                |a, b| { a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal) },
-            );
+        let (_, val, _) = vec.select_nth_unstable_by(idx, |a, b| {
+            a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
+        });
         Ok(*val)
     } else {
-        let (lower, val_i1, _) = vec
-            .select_nth_unstable_by(
-                i + 1,
-                |a, b| { a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal) },
-            );
+        let (lower, val_i1, _) = vec.select_nth_unstable_by(i + 1, |a, b| {
+            a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
+        });
         let val_upper = *val_i1;
         let val_lower = lower
             .iter()
@@ -308,10 +306,7 @@ pub fn percentile_py(data: &Bound<'_, PyArray1<f64>>, q: f64) -> PyResult<f64> {
 }
 /// Calculate correlation coefficient
 #[pyfunction]
-pub fn correlation_py(
-    x: &Bound<'_, PyArray1<f64>>,
-    y: &Bound<'_, PyArray1<f64>>,
-) -> PyResult<f64> {
+pub fn correlation_py(x: &Bound<'_, PyArray1<f64>>, y: &Bound<'_, PyArray1<f64>>) -> PyResult<f64> {
     let x_binding = x.readonly();
     let x_arr = x_binding.as_array();
     let y_binding = y.readonly();
@@ -347,19 +342,15 @@ pub fn median_py(data: &Bound<'_, PyArray1<f64>>) -> PyResult<f64> {
     let mut vec: Vec<f64> = arr.iter().cloned().collect();
     if n % 2 == 1 {
         let mid = n / 2;
-        let (_, median_val, _) = vec
-            .select_nth_unstable_by(
-                mid,
-                |a, b| { a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal) },
-            );
+        let (_, median_val, _) = vec.select_nth_unstable_by(mid, |a, b| {
+            a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
+        });
         Ok(*median_val)
     } else {
         let mid = n / 2;
-        let (lower, val_at_mid, _) = vec
-            .select_nth_unstable_by(
-                mid,
-                |a, b| { a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal) },
-            );
+        let (lower, val_at_mid, _) = vec.select_nth_unstable_by(mid, |a, b| {
+            a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
+        });
         let val_mid = *val_at_mid;
         let val_mid_minus_1 = lower
             .iter()
@@ -385,18 +376,14 @@ pub fn iqr_py(data: &Bound<'_, PyArray1<f64>>) -> PyResult<f64> {
         let fraction = virtual_index - i as f64;
         if fraction == 0.0 || i >= n - 1 {
             let idx = i.min(n - 1);
-            let (_, val, _) = vec
-                .select_nth_unstable_by(
-                    idx,
-                    |a, b| { a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal) },
-                );
+            let (_, val, _) = vec.select_nth_unstable_by(idx, |a, b| {
+                a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
+            });
             *val
         } else {
-            let (lower, val_i1, _) = vec
-                .select_nth_unstable_by(
-                    i + 1,
-                    |a, b| { a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal) },
-                );
+            let (lower, val_i1, _) = vec.select_nth_unstable_by(i + 1, |a, b| {
+                a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
+            });
             let val_upper = *val_i1;
             let val_lower = lower
                 .iter()
@@ -434,14 +421,10 @@ pub fn ttest_1samp_py(
         "less" => Alternative::Less,
         "greater" => Alternative::Greater,
         _ => {
-            return Err(
-                PyRuntimeError::new_err(
-                    format!(
-                        "Invalid alternative: {}. Use 'two-sided', 'less', or 'greater'",
-                        alternative
-                    ),
-                ),
-            );
+            return Err(PyRuntimeError::new_err(format!(
+                "Invalid alternative: {}. Use 'two-sided', 'less', or 'greater'",
+                alternative
+            )));
         }
     };
     let result = ttest_1samp(&arr.view(), popmean, alt, "omit")
@@ -479,14 +462,10 @@ pub fn ttest_ind_py(
         "less" => Alternative::Less,
         "greater" => Alternative::Greater,
         _ => {
-            return Err(
-                PyRuntimeError::new_err(
-                    format!(
-                        "Invalid alternative: {}. Use 'two-sided', 'less', or 'greater'",
-                        alternative
-                    ),
-                ),
-            );
+            return Err(PyRuntimeError::new_err(format!(
+                "Invalid alternative: {}. Use 'two-sided', 'less', or 'greater'",
+                alternative
+            )));
         }
     };
     let result = ttest_ind(&a_arr.view(), &b_arr.view(), equal_var, alt, "omit")

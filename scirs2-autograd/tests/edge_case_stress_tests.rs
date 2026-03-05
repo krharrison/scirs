@@ -20,7 +20,7 @@ use scirs2_autograd::parallel::{
     ThreadPoolConfig,
 };
 use scirs2_autograd::tensor_ops as T;
-use scirs2_autograd::visualization::{GraphVisualizer, OutputFormat, VisualizationConfig};
+use scirs2_autograd::visualization::{OutputFormat, VisualizationConfig};
 use scirs2_core::ndarray::{Array, IxDyn};
 use std::f32;
 
@@ -52,14 +52,14 @@ fn test_visualization_extreme_graphs() {
         // Test visualization config with limits
         let config = VisualizationConfig {
             format: OutputFormat::Text,
-            showshapes: true,
+            show_shapes: true,
             show_operations: true,
             show_gradients: false,
             max_nodes: Some(50), // Limit to prevent excessive output
             show_values: false,
         };
 
-        let _visualizer = GraphVisualizer::<f32>::with_config(config);
+        let _ = config;
 
         // Verify the deep graph still evaluates correctly
         let result = current.eval(ctx).expect("Test: operation failed");

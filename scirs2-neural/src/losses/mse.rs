@@ -22,9 +22,9 @@ use std::fmt::Debug;
 /// let predictions = arr1(&[1.0, 2.0, 3.0]).into_dyn();
 /// let targets = arr1(&[1.5, 1.8, 2.5]).into_dyn();
 /// // Forward pass to calculate loss
-/// let loss = mse.forward(&predictions, &targets).unwrap();
+/// let loss = mse.forward(&predictions, &targets).expect("operation should succeed");
 /// // Backward pass to calculate gradients
-/// let gradients = mse.backward(&predictions, &targets).unwrap();
+/// let gradients = mse.backward(&predictions, &targets).expect("operation should succeed");
 /// ```
 #[derive(Debug, Clone, Copy)]
 pub struct MeanSquaredError;

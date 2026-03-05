@@ -12,6 +12,8 @@
 pub mod enhanced;
 /// Extended MATLAB v7.3+ format support with additional data types
 pub mod v73_enhanced;
+/// Extended MATLAB v5 write support (cell arrays, struct arrays, sparse, compression, integer types)
+pub mod write_extended;
 /// Internal MAT file writing implementation
 mod write_impl;
 

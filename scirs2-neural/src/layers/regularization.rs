@@ -18,7 +18,7 @@ use std::sync::{Arc, RwLock};
 ///
 /// # Examples
 ///
-/// ```rust,ignore
+/// ```rust
 /// use scirs2_neural::layers::{ActivityRegularization, Layer};
 /// use scirs2_core::ndarray::Array2;
 ///
@@ -269,7 +269,7 @@ impl<F: Float + Debug + ScalarOperand + Send + Sync + 'static + NumAssign> Layer
 ///
 /// # Examples
 ///
-/// ```rust,ignore
+/// ```rust
 /// use scirs2_neural::layers::{L1ActivityRegularization, Layer};
 /// use scirs2_core::ndarray::Array2;
 ///
@@ -359,7 +359,7 @@ impl<F: Float + Debug + ScalarOperand + Send + Sync + 'static + NumAssign> Layer
 ///
 /// # Examples
 ///
-/// ```rust,ignore
+/// ```rust
 /// use scirs2_neural::layers::{L2ActivityRegularization, Layer};
 /// use scirs2_core::ndarray::Array2;
 ///

@@ -62,13 +62,13 @@ use std::fmt::Debug;
 ///     None,      // k = 2*nw-1 = 7
 ///     None,      // nfft = signal length
 ///     Some(true), // one-sided spectrum
-/// ).unwrap();
+/// ).expect("operation should succeed");
 ///
 /// // Coherence should be high near 10 Hz
 /// let f10_idx = freqs.iter().enumerate()
-///     .min_by(|(_, a), (_, b)| ((*a) - 10.0).abs().partial_cmp(&((*b) - 10.0).abs()).unwrap())
+///     .min_by(|(_, a), (_, b)| ((*a) - 10.0).abs().partial_cmp(&((*b) - 10.0).abs()).expect("operation should succeed"))
 ///     .map(|(idx_)| idx)
-///     .unwrap();
+///     .expect("operation should succeed");
 /// assert!(coh[f10_idx] >= 0.0); // Coherence should be non-negative
 /// ```
 #[allow(clippy::too_many_arguments)]
@@ -267,10 +267,10 @@ where
 ///
 /// // Create a lowpass filter
 /// let cutoff = 80.0; // Hz
-/// let (b, a) = butter(4, cutoff / (fs / 2.0), "lowpass").unwrap();
+/// let (b, a) = butter(4, cutoff / (fs / 2.0), "lowpass").expect("operation should succeed");
 ///
 /// // Apply multitaper filtfilt
-/// let filtered = multitaper_filtfilt(&b, &a, &signal, Some(4.0), None, None).unwrap();
+/// let filtered = multitaper_filtfilt(&b, &a, &signal, Some(4.0), None, None).expect("operation should succeed");
 ///
 /// // The higher frequency component should be attenuated
 /// ```

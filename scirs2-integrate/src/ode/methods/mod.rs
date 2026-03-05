@@ -8,7 +8,9 @@ mod implicit;
 mod local_extrapolation;
 mod lsoda;
 pub mod radau_mass;
+pub mod rosenbrock;
 mod simd_explicit;
+pub mod symplectic;
 
 /// Re-exports
 pub use adaptive::{dop853_method, rk23_method, rk45_method};

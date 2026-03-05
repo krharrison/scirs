@@ -1,183 +1,145 @@
-# scirs2-fft TODO
+# scirs2-fft Development TODO
 
-This module provides Fast Fourier Transform functionality similar to SciPy's fft module.
+## v0.3.0 — COMPLETED
 
-## 🎯 **PRODUCTION STATUS: 0.1.0 (Stable Release)**
+### Sparse FFT Algorithms
+- Sublinear sparse FFT (O(k log n) for k-sparse signals, randomized hashing)
+- Compressed sensing-based sparse FFT (LASSO-style recovery)
+- Iterative sparse FFT (robust to noise via ISTA/FISTA)
+- Frequency pruning variant
+- Spectral flatness-based sparse FFT
+- Prony method for damped sinusoid recovery
+- MUSIC algorithm (Multiple Signal Classification) for super-resolution
+- Batch sparse FFT with parallel CPU execution
 
-**✅ ALL DEVELOPMENT COMPLETE - PRODUCTION READY**
+### Chirp-Z Transform (CZT)
+- CZT on arbitrary contours in the z-plane
+- Zoom FFT as a special case of CZT
+- Bluestein's algorithm for prime-length FFT
 
-This Stable Release features comprehensive platform testing and final preparation for stable release. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), all major features, optimizations, GPU enhancements, and quality improvements have been implemented and tested with ecosystem consistency.
+### Fractional Fourier Transform (FrFT)
+- Ozaktas-Arikan algorithm (decomposition into chirp multiply-FFT steps)
+- Candan sampling-based algorithm
+- Complex signal FrFT (`frft_complex`)
+- Batch FrFT for multiple rotation angles
 
----
+### Number-Theoretic Transform (NTT)
+- NTT over arbitrary NTT-friendly primes
+- Inverse NTT
+- Negacyclic NTT (used in lattice cryptography)
+- Polynomial multiplication via NTT
 
-## 📊 **Implementation Summary**
+### Lomb-Scargle Periodogram
+- Fast Lomb-Scargle (extirpolation + FFT, O(n log n + N log N))
+- Generalized Lomb-Scargle with floating mean
+- FAP (false alarm probability) estimation
 
-### ✅ **Core FFT Functionality (100% Complete)**
-- [x] FFT and inverse FFT (1D, 2D, and N-dimensional)
-- [x] Real FFT and inverse Real FFT (optimized for real input)
-- [x] Discrete Cosine Transform (DCT) types I-VIII
-- [x] Discrete Sine Transform (DST) types I-VIII
-- [x] Helper functions (fftshift, ifftshift, fftfreq, rfftfreq)
-- [x] Window functions (comprehensive catalog matching SciPy)
-- [x] Integration with ndarray for multi-dimensional arrays
+### Mixed-Radix FFT
+- Arbitrary composite-length FFT (Cooley-Tukey + Rader + Bluestein)
+- Mixed-radix 2D and N-dimensional FFT
+- Split-radix FFT for 2^n lengths
 
-### ✅ **Advanced FFT Features (100% Complete)**
-- [x] Fractional Fourier Transform (3 algorithm variants)
-- [x] Fast Hankel Transform (FHT)
-- [x] Non-uniform FFT (NUFFT)
-- [x] Hilbert transform
-- [x] Short-time Fourier transform (STFT)
-- [x] Hartley transform
-- [x] Modified DCT/DST (MDCT/MDST)
-- [x] Z-transform for non-uniform frequency spacing (CZT)
+### DCT/DST Variants (complete set)
+- DCT types I–VIII
+- DST types I–VIII
+- Inverse transforms for all types
+- MDCT and MDST (Modified DCT/DST)
+- N-dimensional DCT/DST via separable application
 
-### ✅ **Performance & Optimization (100% Complete)**
-- [x] Memory-efficient operations for large arrays
-- [x] Parallel implementations using Rayon
-- [x] SIMD-accelerated implementations
-- [x] Advanced plan caching and serialization
-- [x] Auto-tuning for hardware-specific optimizations
-- [x] Smart thresholds for algorithm selection
+### Wavelet Packet Transform
+- Full wavelet packet decomposition tree
+- Best-basis selection via Shannon entropy criterion
+- Reconstruction from any subtree
+- Wavelet families: Daubechies (up to 20), Symlets, Coiflets, Biorthogonal
+- Continuous wavelet transform (CWT) via FFT convolution
 
-### ✅ **GPU & Hardware Acceleration (100% Complete)**
-- [x] **Multi-GPU Backend System**: CUDA, HIP (ROCm), SYCL, CPU fallback
-- [x] **CUDA Integration**: Enhanced kernels with stream management
-- [x] **ROCm/HIP Backend**: AMD GPU acceleration
-- [x] **SYCL Backend**: Cross-platform GPU support
-- [x] **Multi-GPU Processing**: Intelligent workload distribution
-- [x] **Specialized Hardware**: FPGA and ASIC accelerator support
-- [x] **Performance**: 10-100x speedup, sub-microsecond latency
+### Polyphase Filter Bank
+- Analysis and synthesis polyphase decomposition
+- DFT-modulated (cosine-modulated) filter bank
+- Critically sampled and oversampled modes
+- Perfect reconstruction condition check
 
-### ✅ **Sparse FFT Algorithms (100% Complete)**
-- [x] Sublinear-time sparse FFT algorithm
-- [x] Compressed sensing-based approach
-- [x] Iterative and deterministic variants
-- [x] Frequency pruning and spectral flatness methods
-- [x] Batch processing for multiple signals
-- [x] GPU-accelerated implementations
+### Hilbert-Huang Transform (HHT)
+- EMD (Empirical Mode Decomposition) via cubic spline envelope
+- EEMD (Ensemble EMD) with white noise injection
+- CEEMDAN (Complete EEMD with Adaptive Noise)
+- Hilbert spectrum from IMFs
+- Instantaneous frequency via Teager energy operator
 
-### ✅ **Time-Frequency Analysis (100% Complete)**
-- [x] Spectrograms and waterfall plots
-- [x] Advanced visualization utilities
-- [x] Signal analysis toolkit
-- [x] Filter design and application
+### Spectral Analysis Enhancements
+- Burg AR model spectral estimation
+- Welch's method with configurable averaging
+- Multitaper spectral estimation (DPSS)
+- ESPRIT frequency estimator
+- Capon beamformer spectral estimator
 
-### ✅ **Quality & Testing (100% Complete)**
-- [x] **Zero Warnings Policy**: All clippy and build warnings resolved
-- [x] **230+ Tests Passing**: Comprehensive test coverage
-- [x] **58 Examples**: Extensive demonstration code
-- [x] **DOC Tests**: All 75 documentation tests passing
-- [x] **Production Quality**: Robust error handling and resource management
+### Multidimensional FFT Utilities
+- `multidim.rs` / `multidim_utils.rs` — separable N-dimensional plans
+- In-place tiled 2D FFT for large arrays
+- Row-column FFT with configurable tile size
 
----
+### Convolution and Correlation
+- Overlap-save (OLS) convolution
+- Overlap-add (OLA) convolution
+- FFT-based cross-correlation
+- FFT-based polynomial multiplication
+- Correlation-based delay estimation
 
-## 🚀 **Performance Achievements**
+### Window Functions Library
+- 100+ windows including Kaiser-Bessel derived (KBD), DPSS, Parzen, Bohman
+- `window_functions.rs` module with parameterized window generation
+- Window coherent gain and noise bandwidth computation
 
-- **10-100x speedup** over CPU implementations with GPU acceleration
-- **Sub-microsecond latency** with specialized hardware (FPGA/ASIC)
-- **Linear scaling** with additional GPU devices
-- **100 GFLOPS/W efficiency** with purpose-built accelerators
-- **Broad compatibility** across NVIDIA, AMD, Intel, and custom hardware
-
----
-
-## 📚 **Documentation Status**
-
-### ✅ **Complete Documentation**
-- [x] Comprehensive README with usage examples
-- [x] API documentation for all public functions
-- [x] Performance analysis and benchmarking guides
-- [x] Hardware acceleration documentation
-- [x] Integration guides for GPU backends
-- [x] Example code for all major features
-
-### ✅ **Benchmarking & Analysis**
-- [x] Formal benchmark suite (8 categories)
-- [x] Performance comparison tools
-- [x] SciPy compatibility validation
-- [x] Algorithm comparison utilities
-- [x] Automated benchmark scripts
+### Spectrogram Enhancements
+- Enhanced normalized spectrogram with configurable dynamic range
+- Waterfall 3D data generation (mesh, line stacks)
+- Reassigned spectrogram (improved time-frequency localization)
+- Synchrosqueezed STFT
 
 ---
 
-## 🎉 **RELEASE READINESS STATUS**
+## v0.4.0 — Planned
 
-### **✅ Code Quality**
-- Zero compilation warnings
-- Zero clippy warnings in core library
-- All tests passing (230+ tests)
-- Memory safety verified
-- Thread safety confirmed
+### GPU FFT via OxiFFT GPU Backend
+- [ ] GPU-accelerated 1D/2D/ND FFT using OxiFFT GPU backend when available
+- [ ] Automatic CPU/GPU dispatch based on input size and available hardware
+- [ ] GPU batch FFT for many same-size transforms in parallel
+- [ ] GPU overlap-save convolution for real-time filtering
 
-### **✅ Performance**
-- Benchmarks completed across all acceleration methods
-- Performance metrics documented
-- Optimization recommendations provided
-- Hardware compatibility verified
+### Streaming FFT for Large Data
+- [ ] Streaming FFT processor with configurable buffer and overlap
+- [ ] Out-of-core 2D FFT for images too large for RAM
+- [ ] Streaming spectrogram with rolling window output
+- [ ] Ring-buffer STFT for online/real-time applications
 
-### **✅ Documentation**
-- Complete API documentation
-- Comprehensive usage examples
-- Performance guides
-- Integration documentation
-- Troubleshooting guides
+### Quantum FFT
+- [ ] Quantum Fourier Transform circuit simulation (via `scirs2-core` quantum primitives)
+- [ ] Phase estimation circuit using QFT
+- [ ] Shor's algorithm building blocks
 
-### **✅ Testing**
-- Unit tests: 100% coverage of core functionality
-- Integration tests: Cross-platform compatibility verified
-- Performance tests: All acceleration methods validated
-- DOC tests: All examples working correctly
+### Additional Algorithms
+- [ ] Short-time fractional Fourier transform (STFRFT)
+- [ ] Wigner-Ville distribution (full, smoothed)
+- [ ] Ambiguity function computation
+- [ ] Cyclostationary spectral analysis
+- [ ] Ramanujan periodic transform
 
----
-
-## 🔮 **Post-Production Roadmap** (v0.2.0+)
-
-While 0.1.0 is feature-complete and production-ready, future enhancements may include:
-
-### **Advanced Features** (Low Priority)
-- [ ] Quantum computing integration
-- [ ] Neuromorphic processor support
-- [ ] Advanced multi-GPU memory sharing
-- [ ] JIT compilation for custom kernels
-
-### **Ecosystem Integration** (Medium Priority)
-- [ ] Python bindings for SciPy compatibility
-- [ ] WebAssembly support for browser applications
-- [ ] Integration with other SciRS2 modules
-
-### **Performance Optimizations** (Ongoing)
-- [ ] Dynamic precision adjustment
-- [ ] Adaptive memory compression
-- [ ] Advanced caching strategies
+### Performance
+- [ ] AVX-512 butterfly kernels for radix-4 and radix-8 FFT stages
+- [ ] NEON/SVE butterfly kernels for ARM
+- [ ] Cache-oblivious recursive FFT (Frigo-Johnson style)
+- [ ] FFT plan serialization for ahead-of-time compilation
 
 ---
 
-## 📋 **Production Checklist**
+## Known Issues / Technical Debt
 
-### **✅ COMPLETE**
-- [x] All core functionality implemented and tested
-- [x] GPU acceleration fully functional across all major vendors
-- [x] Specialized hardware support implemented
-- [x] Zero warnings build achieved
-- [x] Comprehensive test suite passing
-- [x] Performance benchmarks completed
-- [x] Documentation comprehensive and accurate
-- [x] Examples working and representative
-- [x] Memory safety verified
-- [x] Thread safety confirmed
-- [x] API stability confirmed
-- [x] Version metadata consistent
-
----
-
-## 🎯 **FINAL STATUS: READY FOR PRODUCTION**
-
-**scirs2-fft v0.1.5** represents a complete, production-ready FFT implementation with:
-
-- **World-class performance** through multi-GPU and specialized hardware acceleration
-- **Comprehensive functionality** covering all major FFT variants and applications  
-- **Production quality** with extensive testing and zero-warning builds
-- **Complete documentation** with examples and performance guides
-- **Future-proof architecture** ready for ecosystem expansion
-
-**This is Stable Release (stable). The module is production-ready with comprehensive GPU support, SIMD optimizations, and zero-warning code quality.**
+- `spectral.rs` was deleted and replaced by the `spectral/` submodule; verify no broken re-exports remain
+- `nufft_legacy.rs` is retained for backward compatibility; deprecate and remove in v0.4.0
+- EMD cubic spline envelope may not converge for highly non-stationary signals; add iteration cap with warning
+- NTT works only for inputs whose length divides `p - 1`; document this constraint clearly
+- Lomb-Scargle FAP estimation is approximate (chi-squared); implement bootstrap alternative
+- Several spectral analysis files exceed 2000 lines; use `rslines 50` to identify split targets
+- GPU sparse FFT feature flags (`cuda`, `hip`, `sycl`) depend on external hardware; CI uses mock backend
+- STFT `istft` reconstruction requires correct `noverlap`; add assertion for perfect reconstruction condition
+- Wavelet packet tree reconstruction is not yet invertible for all wavelet families; test suite should cover round-trip error

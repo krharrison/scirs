@@ -8,11 +8,13 @@ use std::fmt::Debug;
 mod extrema;
 mod moments;
 mod region;
+mod region_props_enhanced;
 mod statistics;
 
 pub use extrema::*;
 pub use moments::*;
 pub use region::*;
+pub use region_props_enhanced::*;
 pub use statistics::*;
 
 /// Properties structure for labeled regions

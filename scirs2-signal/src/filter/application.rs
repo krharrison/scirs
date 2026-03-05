@@ -33,9 +33,9 @@ use std::fmt::Debug;
 /// use scirs2_signal::filter::iir::butter;
 ///
 /// // Design a filter and apply it with zero phase delay
-/// let (b, a) = butter(4, 0.2, "lowpass").unwrap();
+/// let (b, a) = butter(4, 0.2, "lowpass").expect("operation should succeed");
 /// let signal = vec![1.0, 2.0, 3.0, 2.0, 1.0];
-/// let filtered = filtfilt(&b, &a, &signal).unwrap();
+/// let filtered = filtfilt(&b, &a, &signal).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn filtfilt<T>(b: &[f64], a: &[f64], x: &[T]) -> SignalResult<Vec<f64>>
@@ -98,9 +98,9 @@ where
 /// use scirs2_signal::filter::iir::butter;
 ///
 /// // Design a filter and apply it to a signal
-/// let (b, a) = butter(4, 0.2, "lowpass").unwrap();
+/// let (b, a) = butter(4, 0.2, "lowpass").expect("operation should succeed");
 /// let signal = vec![1.0, 2.0, 3.0, 2.0, 1.0];
-/// let filtered = lfilter(&b, &a, &signal).unwrap();
+/// let filtered = lfilter(&b, &a, &signal).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn lfilter<T>(b: &[f64], a: &[f64], x: &[T]) -> SignalResult<Vec<f64>>
@@ -141,37 +141,29 @@ where
             0.0
         } + if !z.is_empty() { z[0] } else { 0.0 };
 
-        // Update state variables
-        for j in 1..z.len() {
-            let b_term = if j < b_norm.len() {
-                b_norm[j] * x_f64[i]
+        // Update state variables (Direct Form II Transposed)
+        //
+        //   z[j-1] = b[j]*x[i] - a[j]*y[i] + z[j]    for j = 1 .. N-2
+        //   z[N-1] = b[N]*x[i] - a[N]*y[i]             (last state, no next_z)
+        //
+        // where N = z.len() and indices j run over the delay line.  Because j
+        // increases, z[j] is always the *old* value when we read it.
+        let n_state = z.len();
+        for j in 0..n_state {
+            let b_idx = j + 1;
+            let a_idx = j + 1;
+            let b_term = if b_idx < b_norm.len() {
+                b_norm[b_idx] * x_f64[i]
             } else {
                 0.0
             };
-            let a_term = if j < a_norm.len() {
-                a_norm[j] * y[i]
+            let a_term = if a_idx < a_norm.len() {
+                a_norm[a_idx] * y[i]
             } else {
                 0.0
             };
-            let next_z = if j + 1 < z.len() { z[j] } else { 0.0 };
-
-            z[j - 1] = b_term + next_z - a_term;
-        }
-
-        // Update last state variable if it exists
-        if !z.is_empty() {
-            let last = z.len() - 1;
-            let b_term = if last + 1 < b_norm.len() {
-                b_norm[last + 1] * x_f64[i]
-            } else {
-                0.0
-            };
-            let a_term = if last + 1 < a_norm.len() {
-                a_norm[last + 1] * y[i]
-            } else {
-                0.0
-            };
-            z[last] = b_term - a_term;
+            let next_z = if j + 1 < n_state { z[j + 1] } else { 0.0 };
+            z[j] = b_term + next_z - a_term;
         }
     }
 
@@ -200,7 +192,7 @@ where
 ///
 /// // Convert a filter to minimum phase
 /// let b = vec![1.0, -2.0, 1.0]; // (z-1)^2, has zeros at z=1 (outside unit circle)
-/// let b_min = minimum_phase(&b, true).unwrap();
+/// let b_min = minimum_phase(&b, true).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn minimum_phase(b: &[f64], discretetime: bool) -> SignalResult<Vec<f64>> {
@@ -289,9 +281,9 @@ pub fn minimum_phase(b: &[f64], discretetime: bool) -> SignalResult<Vec<f64>> {
 /// use scirs2_signal::filter::iir::butter;
 ///
 /// // Compute group delay of a Butterworth filter
-/// let (b, a) = butter(4, 0.2, "lowpass").unwrap();
+/// let (b, a) = butter(4, 0.2, "lowpass").expect("operation should succeed");
 /// let frequencies = (0..128).map(|i| std::f64::consts::PI * i as f64 / 127.0).collect::<Vec<_>>();
-/// let gd = group_delay(&b, &a, &frequencies).unwrap();
+/// let gd = group_delay(&b, &a, &frequencies).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn group_delay(b: &[f64], a: &[f64], w: &[f64]) -> SignalResult<Vec<f64>> {
@@ -352,7 +344,7 @@ pub fn group_delay(b: &[f64], a: &[f64], w: &[f64]) -> SignalResult<Vec<f64>> {
 ///
 /// // Design a matched filter for a simple pulse
 /// let template = vec![1.0, 1.0, 1.0, 0.0, 0.0];
-/// let mf = matched_filter(&template, true).unwrap();
+/// let mf = matched_filter(&template, true).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn matched_filter(template: &[f64], normalize: bool) -> SignalResult<Vec<f64>> {
@@ -401,7 +393,7 @@ pub fn matched_filter(template: &[f64], normalize: bool) -> SignalResult<Vec<f64
 ///
 /// let signal = vec![0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0];
 /// let template = vec![1.0, 1.0, 1.0];
-/// let output = matched_filter_detect(&signal, &template, true).unwrap();
+/// let output = matched_filter_detect(&signal, &template, true).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn matched_filter_detect(

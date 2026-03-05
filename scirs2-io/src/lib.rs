@@ -108,6 +108,20 @@
 /// - Emergent behavior detection and autonomous system improvement
 pub mod advanced_coordinator;
 pub mod arff;
+/// Pure Rust BMP image file format (24-bit uncompressed)
+///
+/// Provides reading and writing of 24-bit uncompressed RGB BMP files
+/// using a pure Rust implementation with no external image library dependencies.
+pub mod bmp;
+/// Pure Rust columnar storage format
+///
+/// Provides a simplified Parquet-like columnar storage format with:
+/// - Column-oriented storage for efficient analytical queries
+/// - Run-length encoding (RLE) for repeated values
+/// - Dictionary encoding for categorical string data
+/// - Delta encoding for sorted numeric columns
+/// - Support for f64, i64, String, and bool column types
+pub mod columnar;
 /// Enhanced algorithms for Advanced Mode
 ///
 /// Provides advanced algorithmic enhancements for the Advanced coordinator:
@@ -237,6 +251,7 @@ pub mod idl;
 /// - Conversion between different image formats
 /// - Basic image processing operations
 pub mod image;
+pub mod jsonl;
 pub mod matlab;
 /// Matrix Market file format module
 ///
@@ -308,6 +323,15 @@ pub mod mmap;
 /// - Conversion between NetCDF and ndarray data structures
 /// - Memory-efficient access to large datasets
 pub mod netcdf;
+/// Pure Rust NetCDF Classic format reader/writer
+///
+/// Provides a complete pure Rust implementation of the NetCDF Classic (version 1)
+/// binary format without any C dependencies:
+/// - Named dimensions (including unlimited/record dimensions)
+/// - Typed variables (byte, char, short, int, float, double)
+/// - Global and per-variable attributes
+/// - Big-endian binary format with proper 4-byte alignment
+pub mod netcdf_lite;
 /// Network I/O and cloud storage integration
 ///
 /// Provides functionality for reading and writing files over network protocols
@@ -339,6 +363,14 @@ pub mod network;
 /// - Advanced-high performance processing with adaptive algorithms
 /// - SIMD-accelerated neural inference for low-latency decisions
 pub mod neural_adaptive_io;
+/// NumPy NPY/NPZ binary file format support
+///
+/// Provides reading and writing of NumPy's binary file formats:
+/// - `.npy` files: single arrays with header metadata
+/// - `.npz` files: ZIP archives of multiple named `.npy` arrays
+/// - Support for f32, f64, i32, i64 dtypes
+/// - Big-endian and little-endian byte order support
+pub mod npy;
 /// Out-of-core processing for terabyte-scale datasets
 ///
 /// Provides infrastructure for processing datasets too large for memory:
@@ -539,4 +571,24 @@ pub use advanced_coordinator::{
 pub use enhanced_algorithms::{
     AdvancedPatternAnalysis, AdvancedPatternRecognizer, DataCharacteristics, EmergentPattern,
     MetaPattern, OptimizationRecommendation, SynergyType,
+};
+
+// Re-export new format modules' key types
+pub use arff::{
+    read_arff, write_arff, ArffData, ArffValue, AttributeType, SparseArffData, SparseInstance,
+};
+pub use bmp::{read_bmp, write_bmp, BmpImage};
+pub use columnar::{
+    filter_table, read_columnar, read_columnar_with_columns, select_columns, split_into_row_groups,
+    write_columnar, write_columnar_with_options, Column, ColumnData, ColumnStats, ColumnTypeTag,
+    ColumnarTable, ColumnarWriteOptions, EncodingType, Predicate, RowGroup, RowGroupConfig,
+    TableStats,
+};
+pub use netcdf_lite::{NcDataType, NcDimension, NcFile, NcValue, NcVariable};
+pub use npy::{
+    read_npy, read_npz, write_npy, write_npy_f32, write_npy_f64, write_npy_f64_2d, write_npy_i32,
+    write_npy_i64, write_npz, ByteOrder, NpyArray, NpyDtype, NpyHeader, NpzArchive,
+};
+pub use wavfile::{
+    read_wav, write_wav, write_wav_config, WavFormat, WavHeader, WavOutputFormat, WavWriteConfig,
 };

@@ -1,191 +1,270 @@
-# SciRS2: Scientific Computing in Rust
+# SciRS2: Scientific Computing in Rust — All-in-One Meta-Crate
 
 [![crates.io](https://img.shields.io/crates/v/scirs2.svg)](https://crates.io/crates/scirs2)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2)](https://docs.rs/scirs2)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)]()
 
-SciRS2 is a comprehensive scientific computing library for Rust, inspired by SciPy and designed to provide a complete ecosystem for numerical computation, statistical analysis, and scientific algorithms.
+`scirs2` is the **all-in-one convenience meta-crate** for the SciRS2 scientific computing ecosystem. It re-exports the complete set of SciRS2 sub-crates through a unified interface, so you can depend on a single crate and enable only the domains you need via Cargo feature flags.
 
-**Important**: From v0.1.5, SciRS2 follows the [SciRS2 POLICY](../scirs2-core/SCIRS2_POLICY.md) for consistent ecosystem architecture with layered abstractions.
-
-## Overview
-
-This is the main SciRS2 crate, which provides a convenient facade over the ecosystem of specialized sub-crates. Each sub-crate focuses on a specific domain of scientific computing, while this crate re-exports their functionality in a unified interface.
-
-## Features
-
-SciRS2 brings together a large collection of scientific computing tools:
-
-- **Core Utilities**: Common functionality through `scirs2-core`
-- **Linear Algebra**: Matrix operations, decompositions, and solvers via `scirs2-linalg`
-- **Statistics**: Distributions, hypothesis testing, and statistical functions in `scirs2-stats`
-- **Optimization**: Minimization, root finding, and curve fitting with `scirs2-optimize`
-- **Integration**: Numerical integration and ODE solvers through `scirs2-integrate`
-- **Interpolation**: Various interpolation methods in `scirs2-interpolate`
-- **Special Functions**: Mathematical special functions via `scirs2-special`
-- **Fourier Analysis**: FFT and related transforms in `scirs2-fft`
-- **Signal Processing**: Filtering, convolution, and spectral analysis in `scirs2-signal`
-- **Sparse Matrices**: Efficient sparse matrix formats and operations via `scirs2-sparse`
-- **Spatial Algorithms**: Spatial data structures and algorithms in `scirs2-spatial`
-- **Image Processing**: Multidimensional image processing in `scirs2-ndimage`
-- **Machine Learning**: Clustering, metrics, and neural networks via multiple sub-crates
-- **Data I/O**: Reading and writing various scientific data formats via `scirs2-io`
-- **And more**: Various additional modules for specific applications
+If you prefer minimal compile times and finer dependency control, use the individual sub-crates directly (e.g., `scirs2-linalg`, `scirs2-stats`). If you want the full ecosystem available in one dependency, use this crate.
 
 ## Installation
 
-Add the following to your `Cargo.toml`:
+Add the meta-crate to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scirs2 = "0.1.5"  # Main package with default features
+scirs2 = "0.3.0"
 ```
 
-You can enable only the features you need:
+With only the sub-crates you need (recommended for production):
 
 ```toml
 [dependencies]
-scirs2 = { version = "0.1.5", features = ["linalg", "stats", "optimize"] }
+scirs2 = { version = "0.3.0", default-features = false, features = ["linalg", "stats", "optimize"] }
 ```
 
-Or use specific modules directly:
+For the complete ecosystem:
 
 ```toml
 [dependencies]
-scirs2-core = "0.1.5"
-scirs2-linalg = "0.1.5"
-scirs2-stats = "0.1.5"
+scirs2 = { version = "0.3.0", features = ["full"] }
 ```
 
-Basic usage examples:
+Or depend on individual sub-crates directly for fastest compile times:
+
+```toml
+[dependencies]
+scirs2-core     = "0.3.0"
+scirs2-linalg   = "0.3.0"
+scirs2-stats    = "0.3.0"
+```
+
+## Feature Flags
+
+Each sub-crate is gated behind a feature flag of the same name. `default` enables the `standard` feature group.
+
+### Feature Groups
+
+| Feature       | Includes                                                                                    |
+|---------------|---------------------------------------------------------------------------------------------|
+| `standard`    | `linalg`, `stats`, `integrate`, `interpolate`, `optimize`, `fft`, `special`, `signal`, `sparse`, `spatial`, `cluster`, `transform`, `metrics` |
+| `ai`          | `neural`, `autograd`                                                                        |
+| `experimental`| `ndimage`, `neural`, `series`, `text`, `io`, `datasets`, `graph`, `vision`, `autograd`     |
+| `full`        | `standard` + `experimental`                                                                 |
+
+### Individual Feature Flags
+
+| Feature       | Sub-crate              | Description                                        |
+|---------------|------------------------|----------------------------------------------------|
+| `linalg`      | `scirs2-linalg`        | Linear algebra: decompositions, solvers, matrix functions |
+| `stats`       | `scirs2-stats`         | Distributions, hypothesis testing, Bayesian methods |
+| `integrate`   | `scirs2-integrate`     | ODE/PDE solvers, quadrature, Monte Carlo integration |
+| `interpolate` | `scirs2-interpolate`   | Splines, RBF, MLS, kriging, barycentric interpolation |
+| `optimize`    | `scirs2-optimize`      | Unconstrained/constrained/global optimization, metaheuristics |
+| `fft`         | `scirs2-fft`           | FFT, DCT/DST, NUFFT, wavelet packets, spectral analysis |
+| `oxifft`      | `scirs2-fft` (OxiFFT) | High-performance pure-Rust FFT via OxiFFT backend  |
+| `special`     | `scirs2-special`       | Special functions: Bessel, gamma, elliptic, hypergeometric |
+| `signal`      | `scirs2-signal`        | Signal processing: filters, STFT, Kalman, source separation |
+| `sparse`      | `scirs2-sparse`        | Sparse matrix formats (CSR/CSC/COO), sparse solvers |
+| `spatial`     | `scirs2-spatial`       | KD-tree, R*-tree, Voronoi, convex hull, geodata    |
+| `cluster`     | `scirs2-cluster`       | K-means, DBSCAN, GMM, hierarchical, spectral clustering |
+| `transform`   | `scirs2-transform`     | PCA, ICA, UMAP, t-SNE, NMF, metric learning        |
+| `metrics`     | `scirs2-metrics`       | Classification, regression, ranking, segmentation metrics |
+| `ndimage`     | `scirs2-ndimage`       | N-dimensional image processing: morphology, segmentation |
+| `neural`      | `scirs2-neural`        | Neural networks, transformers, GNNs, training utilities |
+| `autograd`    | `scirs2-autograd`      | Automatic differentiation, higher-order gradients, JVP/VJP |
+| `series`      | `scirs2-series`        | Time series: ARIMA, Prophet, state-space, forecasting |
+| `text`        | `scirs2-text`          | NLP: tokenization, NER, topic models, embeddings   |
+| `io`          | `scirs2-io`            | Data I/O: CSV, JSON, HDF5-lite, Parquet-lite, Arrow |
+| `datasets`    | `scirs2-datasets`      | Benchmark datasets and synthetic data generators   |
+| `graph`       | `scirs2-graph`         | Graph algorithms, GNNs, community detection        |
+| `vision`      | `scirs2-vision`        | Computer vision: feature detection, stereo, depth  |
+
+## Re-exported Sub-crates
+
+All sub-crates are accessible as top-level modules when their feature is enabled:
+
+| Module path           | Feature flag   | Domain                             |
+|-----------------------|----------------|------------------------------------|
+| `scirs2::core`        | always         | Core utilities, SIMD, GPU, memory  |
+| `scirs2::linalg`      | `linalg`       | Linear algebra                     |
+| `scirs2::stats`       | `stats`        | Statistics and probability         |
+| `scirs2::integrate`   | `integrate`    | Numerical integration and ODEs     |
+| `scirs2::interpolate` | `interpolate`  | Interpolation                      |
+| `scirs2::optimize`    | `optimize`     | Optimization                       |
+| `scirs2::fft`         | `fft`          | Fourier transforms                 |
+| `scirs2::special`     | `special`      | Special functions                  |
+| `scirs2::signal`      | `signal`       | Signal processing                  |
+| `scirs2::sparse`      | `sparse`       | Sparse matrices                    |
+| `scirs2::spatial`     | `spatial`      | Spatial algorithms                 |
+| `scirs2::cluster`     | `cluster`      | Clustering                         |
+| `scirs2::transform`   | `transform`    | Dimensionality reduction           |
+| `scirs2::metrics`     | `metrics`      | Evaluation metrics                 |
+| `scirs2::ndimage`     | `ndimage`      | Image processing                   |
+| `scirs2::neural`      | `neural`       | Neural networks                    |
+| `scirs2::autograd`    | `autograd`     | Automatic differentiation          |
+| `scirs2::series`      | `series`       | Time series analysis               |
+| `scirs2::text`        | `text`         | Natural language processing        |
+| `scirs2::io`          | `io`           | Data input/output                  |
+| `scirs2::datasets`    | `datasets`     | Datasets and benchmarks            |
+| `scirs2::graph`       | `graph`        | Graph algorithms                   |
+| `scirs2::vision`      | `vision`       | Computer vision                    |
+
+## Quick Start Examples
+
+### Linear Algebra + Statistics
 
 ```rust
 use scirs2::prelude::*;
 use ndarray::array;
 
 fn main() -> CoreResult<()> {
-    // Linear algebra operations
-    let a = array![[1., 2.], [3., 4.]];
+    // Matrix eigendecomposition (scirs2-linalg)
+    let a = array![[4.0_f64, 2.0], [1.0, 3.0]];
     let eig = linalg::eigen::eig(&a)?;
     println!("Eigenvalues: {:?}", eig.eigenvalues);
-    println!("Eigenvectors: {:?}", eig.eigenvectors);
-    
-    // Statistical distributions
-    let normal = stats::distributions::normal::Normal::new(0.0, 1.0)?;
-    let samples = normal.random_sample(1000, None)?;
-    let mean = stats::descriptive::mean(&samples)?;
-    let std_dev = stats::descriptive::std_dev(&samples, None)?;
-    println!("Sample mean: {}, std dev: {}", mean, std_dev);
-    
-    // Optimization
-    let f = |x: &[f64]| x[0].powi(2) + x[1].powi(2);
-    let df = |x: &[f64], grad: &mut [f64]| {
-        grad[0] = 2.0 * x[0];
-        grad[1] = 2.0 * x[1];
-    };
-    let result = optimize::unconstrained::minimize(
-        f, df, &[1.0, 1.0], "L-BFGS-B", None, None)?;
-    println!("Optimization result: {:?}", result);
-    
-    // Special functions
-    let gamma = special::gamma::gamma(5.0)?;
-    println!("Gamma(5) = {}", gamma);
-    
-    // FFT
-    let signal = array![1.0, 2.0, 3.0, 4.0];
-    let fft_result = fft::fft(&signal)?;
-    println!("FFT result: {:?}", fft_result);
-    
+
+    // Normal distribution and sampling (scirs2-stats)
+    let normal = stats::distributions::Normal::new(0.0_f64, 1.0)?;
+    let samples = normal.rvs(1000)?;
+    let mean = stats::descriptive::mean(&samples.view())?;
+    println!("Sample mean: {:.4}", mean);
+
     Ok(())
 }
 ```
 
-## Feature Flags
+### Optimization + Special Functions
 
-This crate uses feature flags to control which sub-crates are included:
+```rust
+use scirs2::{optimize, special};
 
-- `core`: Core utilities (always enabled)
-- `linalg`: Linear algebra operations
-- `stats`: Statistical functions and distributions
-- `optimize`: Optimization algorithms
-- `integrate`: Numerical integration and ODEs
-- `interpolate`: Interpolation methods
-- `fft`: Fast Fourier Transform
-- `special`: Special functions
-- `signal`: Signal processing
-- `sparse`: Sparse matrices
-- `spatial`: Spatial algorithms
-- `ndimage`: N-dimensional image processing
-- `cluster`: Clustering algorithms
-- `datasets`: Dataset utilities
-- `io`: I/O utilities
-- `neural`: Neural networks
-- `graph`: Graph algorithms
-- `transform`: Data transformation
-- `metrics`: Evaluation metrics
-- `text`: Text processing
-- `vision`: Computer vision
-- `series`: Time series analysis
-- `autograd`: Automatic differentiation
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Minimize the Rosenbrock function (scirs2-optimize)
+    let result = optimize::unconstrained::minimize(
+        |x: &[f64]| (1.0 - x[0]).powi(2) + 100.0 * (x[1] - x[0].powi(2)).powi(2),
+        &[0.0, 0.0],
+        "L-BFGS-B",
+        None,
+    )?;
+    println!("Minimum at: {:?}", result.x);
+
+    // Gamma function (scirs2-special)
+    let g5 = special::gamma::gamma(5.0_f64)?;
+    println!("Gamma(5) = {}", g5);  // 24.0
+
+    Ok(())
+}
+```
+
+### Signal Processing + FFT
+
+```rust
+use scirs2::{signal, fft};
+use ndarray::Array1;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let t = Array1::linspace(0.0_f64, 1.0, 1024);
+    let sig = t.mapv(|ti| (2.0 * std::f64::consts::PI * 50.0 * ti).sin());
+
+    // Butterworth lowpass filter (scirs2-signal)
+    let sos = signal::filter::iirfilter(4, &[100.0], None, None, "butter", "low", 1024.0)?;
+    let filtered = signal::filter::sosfilt(&sos, sig.view())?;
+
+    // FFT of filtered signal (scirs2-fft)
+    let spectrum = fft::rfft(filtered.view())?;
+    println!("FFT output length: {}", spectrum.len());
+
+    Ok(())
+}
+```
+
+### Neural Network + Autograd
+
+```rust
+use scirs2::{neural, autograd};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Build a feed-forward network (scirs2-neural)
+    let model = neural::Sequential::new()
+        .dense(784, 256)?
+        .relu()
+        .dense(256, 10)?
+        .softmax()?;
+
+    // Compute gradients via automatic differentiation (scirs2-autograd)
+    autograd::run(|ctx| {
+        let x = ctx.placeholder("x", &[1, 784]);
+        let logits = model.forward_autograd(ctx, x)?;
+        let loss = autograd::losses::cross_entropy(logits, &[3])?;
+        let grads = autograd::grad(&[loss], model.parameters())?;
+        println!("Gradient norms computed: {}", grads.len());
+        Ok(())
+    })?;
+
+    Ok(())
+}
+```
 
 ## Architecture
 
-SciRS2 follows a modular architecture where each domain of scientific computing is implemented in a separate crate. This main crate provides a unified interface by re-exporting their functionality.
-
-### SciRS2 POLICY
-
-Starting with v0.1.5, SciRS2 follows a strict layered architecture:
-
-- **Core-Only Dependencies**: Only `scirs2-core` uses external dependencies directly
-- **Unified Abstractions**: All other crates use scirs2-core abstractions for `rand`, `ndarray`, etc.
-- **Ecosystem Consistency**: Ensures consistent APIs, centralized version control, and type safety
-- **Performance Benefits**: Enables better optimization through centralized abstractions
-
-See the [SciRS2 Ecosystem Policy](../scirs2-core/SCIRS2_POLICY.md) for complete details.
-
-### Architecture Benefits
-
-- **Modular Development**: Each domain can be developed and tested independently
-- **Reduced Compilation Time**: Users can include only the features they need
-- **Flexible Dependencies**: Sub-crates can have different dependency requirements
-- **Focused Documentation**: Each domain has its own focused documentation
-- **Consistent API**: Unified interfaces through scirs2-core abstractions
-
-### Module Structure
+SciRS2 follows a strict layered architecture per the [SciRS2 Ecosystem Policy](../scirs2-core/SCIRS2_POLICY.md):
 
 ```
-scirs2
-├── core       // Core utilities
-├── linalg     // Linear algebra
-├── stats      // Statistics
-├── optimize   // Optimization
-├── integrate  // Integration
-├── interpolate // Interpolation
-├── fft        // Fourier transforms
-├── special    // Special functions
-├── signal     // Signal processing
-├── sparse     // Sparse matrices
-├── spatial    // Spatial algorithms
-├── ndimage    // Image processing
-└── ...        // Other modules
+scirs2 (meta-crate, re-exports all)
+├── scirs2-core          ← Only crate allowed external dependencies (OxiBLAS, OxiFFT, etc.)
+├── Scientific Computing Layer
+│   ├── scirs2-linalg    ← Linear algebra
+│   ├── scirs2-stats     ← Statistics
+│   ├── scirs2-optimize  ← Optimization
+│   ├── scirs2-integrate ← Integration / ODEs
+│   ├── scirs2-interpolate ← Interpolation
+│   ├── scirs2-fft       ← Fourier analysis
+│   ├── scirs2-special   ← Special functions
+│   ├── scirs2-signal    ← Signal processing
+│   ├── scirs2-sparse    ← Sparse matrices
+│   └── scirs2-spatial   ← Spatial algorithms
+├── Machine Learning Layer
+│   ├── scirs2-cluster   ← Clustering
+│   ├── scirs2-transform ← Dimensionality reduction
+│   ├── scirs2-metrics   ← Evaluation metrics
+│   ├── scirs2-neural    ← Neural networks
+│   └── scirs2-autograd  ← Automatic differentiation
+└── Application Layer
+    ├── scirs2-ndimage   ← Image processing
+    ├── scirs2-series    ← Time series
+    ├── scirs2-graph     ← Graph algorithms
+    ├── scirs2-vision    ← Computer vision
+    ├── scirs2-text      ← NLP
+    ├── scirs2-io        ← Data I/O
+    └── scirs2-datasets  ← Datasets
 ```
+
+### Key Design Principles
+
+- **Pure Rust by Default**: Zero C/Fortran dependencies. OxiBLAS replaces OpenBLAS; OxiFFT replaces FFTW. All optional C-backed features are feature-gated.
+- **Core-Only External Dependencies**: Only `scirs2-core` links to external libraries. All other crates use `scirs2-core` abstractions.
+- **No `unwrap()`**: The entire ecosystem enforces proper error propagation through `Result`.
+- **Workspace-Unified**: All crates share the same version, edition, and lint configuration from the workspace root `Cargo.toml`.
 
 ## Performance
 
-SciRS2 is designed with performance in mind:
+SciRS2 v0.3.0 delivers production-grade performance:
 
-- Uses optimized BLAS and LAPACK implementations where appropriate
-- Leverages SIMD operations when available
-- Provides parallel processing capabilities
-- Uses memory-efficient algorithms
-- Employs caching for expensive computations
+- **SIMD Acceleration**: AVX2/AVX-512/NEON paths for 3-12x speedups on element-wise operations
+- **GPU Backends**: Metal (Apple Silicon), with CUDA and ROCm planned for v0.4.0
+- **Pure Rust FFT**: OxiFFT backend for competitive FFT throughput without C dependencies
+- **Parallel Algorithms**: Rayon-based parallel iterators in compute-intensive paths
+- **Memory-Efficient**: Buddy/Slab/Compaction allocators, arena allocators for hot paths
 
 ## Contributing
 
-See the [CONTRIBUTING.md](../CONTRIBUTING.md) file for contribution guidelines.
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for contribution guidelines.
 
 ## License
 
-This project is Licensed under the Apache License 2.0. See LICENSE for details.
+Apache License 2.0. See [LICENSE](../LICENSE) for details.
 
-You can choose to use either license. See the [LICENSE](../LICENSE) file for details.
+Copyright COOLJAPAN OU (Team Kitasan)

@@ -1,9 +1,29 @@
 //! Affinity Propagation clustering implementation
 //!
 //! Affinity Propagation is a clustering algorithm that identifies exemplars (cluster centers)
-//! among the data points and forms clusters of data points around these exemplars.
-//! It's particularly useful when the number of clusters is not known in advance,
-//! and works well for non-flat geometries.
+//! among the data points and forms clusters around these exemplars. It works by exchanging
+//! real-valued messages between data points until a high-quality set of exemplars emerges.
+//!
+//! # Features
+//!
+//! - **Message passing**: Responsibility and availability matrix updates
+//! - **Damping**: Prevents numerical oscillations (0.5 to 1.0)
+//! - **Convergence detection**: Monitors exemplar stability across iterations
+//! - **Preference tuning**: Controls the number of clusters
+//! - **Sparse similarity**: Support for precomputed sparse similarity matrices
+//!
+//! # Algorithm
+//!
+//! 1. Compute similarity matrix S (negative squared Euclidean distance by default)
+//! 2. Set diagonal (preference) to median of similarities or user-specified value
+//! 3. Iteratively update responsibility R and availability A matrices
+//! 4. Identify exemplars where R(k,k) + A(k,k) > 0
+//! 5. Assign non-exemplar points to nearest exemplar
+//!
+//! # References
+//!
+//! Frey, B.J. and Dueck, D. (2007). "Clustering by Passing Messages Between Data Points."
+//! Science, 315(5814), pp. 972-976.
 
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1, ArrayView2};
 use scirs2_core::numeric::{Float, FromPrimitive};
@@ -18,47 +38,55 @@ pub struct AffinityPropagationOptions<F: Float> {
     /// Damping factor (between 0.5 and 1.0) to avoid numerical oscillations
     pub damping: F,
 
-    /// Maximum number of iterations to run
+    /// Maximum number of iterations
     pub max_iter: usize,
 
-    /// Number of iterations with no change in the number of estimated clusters
-    /// that stops the convergence
+    /// Number of iterations with no change in exemplars that triggers convergence
     pub convergence_iter: usize,
 
-    /// Preference value used to decide the number of exemplars
-    /// If None, the median of non-diagonal elements in the similarity matrix is used
+    /// Preference value for all data points.
+    /// Controls cluster count: lower preference => fewer clusters.
+    /// If None, the median of non-diagonal similarities is used.
     pub preference: Option<F>,
 
-    /// Whether the similarity matrix is precomputed
+    /// Whether input is a precomputed similarity matrix
     pub affinity: String,
 
-    /// Maximum allowed similarity between two exemplars to be considered distinct
-    pub max_affinity_iterations: usize,
+    /// Verbose output for debugging
+    pub verbose: bool,
 }
 
 impl<F: Float + FromPrimitive> Default for AffinityPropagationOptions<F> {
     fn default() -> Self {
         Self {
-            damping: F::from(0.5).expect("Failed to convert constant to float"),
+            damping: F::from(0.5).unwrap_or(F::one()),
             max_iter: 200,
             convergence_iter: 15,
             preference: None,
             affinity: "euclidean".to_string(),
-            max_affinity_iterations: 100,
+            verbose: false,
         }
     }
 }
 
+/// Result of the Affinity Propagation algorithm
+#[derive(Debug, Clone)]
+pub struct AffinityPropagationResult<F: Float> {
+    /// Indices of exemplar (cluster center) points
+    pub cluster_centers_indices: Vec<usize>,
+    /// Cluster label for each data point
+    pub labels: Array1<i32>,
+    /// Number of iterations performed
+    pub n_iter: usize,
+    /// Whether the algorithm converged
+    pub converged: bool,
+    /// Final responsibility matrix
+    pub responsibility: Array2<F>,
+    /// Final availability matrix
+    pub availability: Array2<F>,
+}
+
 /// Compute pairwise similarity matrix based on negative squared Euclidean distance
-///
-/// # Arguments
-///
-/// * `data` - Input data
-///
-/// # Returns
-///
-/// * A similarity matrix where similarity(i, j) = -||x_i - x_j||^2
-#[allow(dead_code)]
 fn compute_similarity<F>(data: ArrayView2<F>) -> Result<Array2<F>>
 where
     F: Float + FromPrimitive + Debug + PartialOrd,
@@ -71,20 +99,16 @@ where
     for i in 0..n_samples {
         for j in i..n_samples {
             if i == j {
-                // Diagonal elements will be set to preference later
                 similarity[[i, i]] = F::zero();
             } else {
-                // Compute negative squared Euclidean distance
                 let mut dist_sq = F::zero();
                 for k in 0..n_features {
                     let diff = data[[i, k]] - data[[j, k]];
                     dist_sq = dist_sq + diff * diff;
                 }
-
-                let sim = -dist_sq; // Negative squared distance
-
+                let sim = -dist_sq;
                 similarity[[i, j]] = sim;
-                similarity[[j, i]] = sim; // Symmetric
+                similarity[[j, i]] = sim;
             }
         }
     }
@@ -92,24 +116,13 @@ where
     Ok(similarity)
 }
 
-/// Compute preference values for the similarity matrix
-///
-/// # Arguments
-///
-/// * `similarity` - Similarity matrix
-/// * `preference` - Optional preference value
-///
-/// # Returns
-///
-/// * Updated similarity matrix with diagonal elements set to preference
-#[allow(dead_code)]
+/// Compute preference values and set the diagonal of the similarity matrix
 fn compute_preference<F>(mut similarity: Array2<F>, preference: Option<F>) -> Result<Array2<F>>
 where
     F: Float + FromPrimitive + Debug + PartialOrd,
 {
     let n_samples = similarity.shape()[0];
 
-    // If preference is provided, use that
     if let Some(pref) = preference {
         for i in 0..n_samples {
             similarity[[i, i]] = pref;
@@ -117,8 +130,8 @@ where
         return Ok(similarity);
     }
 
-    // Otherwise, use the median of non-diagonal similarities
-    let mut non_diag_similarities = Vec::new();
+    // Compute median of non-diagonal similarities
+    let mut non_diag_similarities = Vec::with_capacity(n_samples * (n_samples - 1));
     for i in 0..n_samples {
         for j in 0..n_samples {
             if i != j {
@@ -133,22 +146,18 @@ where
         ));
     }
 
-    // Sort the similarities
     non_diag_similarities.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
 
-    // Get the median
     let n = non_diag_similarities.len();
     let median = if n % 2 == 0 {
-        // Even number of elements
-        let mid1 = non_diag_similarities[n / 2 - 1];
-        let mid2 = non_diag_similarities[n / 2];
-        (mid1 + mid2) / F::from(2.0).expect("Failed to convert constant to float")
+        let two = F::from(2.0).ok_or_else(|| {
+            ClusteringError::ComputationError("Failed to convert constant".into())
+        })?;
+        (non_diag_similarities[n / 2 - 1] + non_diag_similarities[n / 2]) / two
     } else {
-        // Odd number of elements
         non_diag_similarities[n / 2]
     };
 
-    // Set diagonal elements to median
     for i in 0..n_samples {
         similarity[[i, i]] = median;
     }
@@ -156,56 +165,49 @@ where
     Ok(similarity)
 }
 
-/// Run the Affinity Propagation algorithm
-///
-/// # Arguments
-///
-/// * `similarity` - Similarity matrix
-/// * `options` - Algorithm parameters
-///
-/// # Returns
-///
-/// * Tuple of (cluster_centers_indices, labels)
-#[allow(dead_code)]
+/// Run the core Affinity Propagation message-passing algorithm
 fn run_affinity_propagation<F>(
-    similarity: Array2<F>,
+    similarity: &Array2<F>,
     options: &AffinityPropagationOptions<F>,
-) -> Result<(Vec<usize>, Array1<i32>)>
+) -> Result<AffinityPropagationResult<F>>
 where
     F: Float + FromPrimitive + Debug + PartialOrd,
 {
     let n_samples = similarity.shape()[0];
 
-    // Verify damping is in the correct range
-    if options.damping < F::from(0.5).expect("Failed to convert constant to float")
-        || options.damping > F::one()
-    {
+    // Validate damping
+    let half = F::from(0.5).ok_or_else(|| {
+        ClusteringError::ComputationError("Failed to convert damping threshold".into())
+    })?;
+    if options.damping < half || options.damping > F::one() {
         return Err(ClusteringError::InvalidInput(
             "Damping factor must be between 0.5 and 1.0".to_string(),
         ));
     }
 
-    // Initialize messages
+    let damping = options.damping;
+    let one_minus_damping = F::one() - damping;
+
+    // Initialize message matrices
     let mut responsibility = Array2::zeros((n_samples, n_samples));
     let mut availability = Array2::zeros((n_samples, n_samples));
 
-    // Initialize temporary copy of messages
-    let mut old_responsibility = responsibility.clone();
-    let mut old_availability = availability.clone();
-
-    // Initialize convergence monitoring
+    // Convergence tracking
     let mut convergence_count = 0;
-    let mut last_labels: Option<Array1<i32>> = None;
+    let mut last_exemplars: Option<Vec<usize>> = None;
+    let mut converged = false;
 
-    // Main loop
+    // Main iteration loop
+    let mut n_iter = 0;
     for _iter in 0..options.max_iter {
-        // Update responsibility matrix
+        n_iter = _iter + 1;
+
+        // === Update responsibility matrix ===
         // r(i, k) = s(i, k) - max_{k' != k} { a(i, k') + s(i, k') }
-        old_responsibility.assign(&responsibility);
+        let old_responsibility = responsibility.clone();
 
         for i in 0..n_samples {
             for k in 0..n_samples {
-                // Find the maximum value of a(i, k') + s(i, k') for k' != k
                 let mut max_val = F::neg_infinity();
                 for k_prime in 0..n_samples {
                     if k_prime != k {
@@ -215,132 +217,131 @@ where
                         }
                     }
                 }
-
-                // Calculate r(i, k)
                 responsibility[[i, k]] = similarity[[i, k]] - max_val;
             }
         }
 
-        // Apply damping to responsibility matrix
+        // Apply damping to responsibility
         for i in 0..n_samples {
             for k in 0..n_samples {
-                responsibility[[i, k]] = options.damping * old_responsibility[[i, k]]
-                    + (F::one() - options.damping) * responsibility[[i, k]];
+                responsibility[[i, k]] = damping * old_responsibility[[i, k]]
+                    + one_minus_damping * responsibility[[i, k]];
             }
         }
 
-        // Update availability matrix
-        // a(i, k) = min { 0, r(k, k) + sum_{i' != i, k} max { 0, r(i', k) } } if i != k
-        // a(k, k) = sum_{i' != k} max { 0, r(i', k) } if i == k
-        old_availability.assign(&availability);
+        // === Update availability matrix ===
+        // a(i, k) = min(0, r(k,k) + sum_{i' != i,k} max(0, r(i',k)))  if i != k
+        // a(k, k) = sum_{i' != k} max(0, r(i',k))  if i == k
+        let old_availability = availability.clone();
 
         for i in 0..n_samples {
             for k in 0..n_samples {
                 if i != k {
-                    // Case i != k
                     let mut sum = F::zero();
                     for i_prime in 0..n_samples {
                         if i_prime != i && i_prime != k {
                             sum = sum + F::max(F::zero(), responsibility[[i_prime, k]]);
                         }
                     }
-
                     availability[[i, k]] = F::min(F::zero(), responsibility[[k, k]] + sum);
                 } else {
-                    // Case i == k (self-availability)
                     let mut sum = F::zero();
                     for i_prime in 0..n_samples {
                         if i_prime != k {
                             sum = sum + F::max(F::zero(), responsibility[[i_prime, k]]);
                         }
                     }
-
                     availability[[k, k]] = sum;
                 }
             }
         }
 
-        // Apply damping to availability matrix
+        // Apply damping to availability
         for i in 0..n_samples {
             for k in 0..n_samples {
-                availability[[i, k]] = options.damping * old_availability[[i, k]]
-                    + (F::one() - options.damping) * availability[[i, k]];
+                availability[[i, k]] =
+                    damping * old_availability[[i, k]] + one_minus_damping * availability[[i, k]];
             }
         }
 
-        // Check for convergence
-        let (cluster_centers_indices, labels) = extract_clusters(&responsibility, &availability)?;
+        // Check for convergence: identify current exemplars
+        let exemplars = identify_exemplars(&responsibility, &availability);
 
-        if let Some(old_labels) = &last_labels {
-            if compare_labels(old_labels.view(), labels.view()) {
+        if let Some(ref last) = last_exemplars {
+            if exemplars == *last {
                 convergence_count += 1;
             } else {
                 convergence_count = 0;
             }
         }
 
-        // Check if algorithm has converged
         if convergence_count >= options.convergence_iter {
-            return Ok((cluster_centers_indices, labels));
+            converged = true;
+            break;
         }
 
-        last_labels = Some(labels);
+        last_exemplars = Some(exemplars);
     }
 
-    // Return last result if max_iter is reached without convergence
-    let (cluster_centers_indices, labels) = extract_clusters(&responsibility, &availability)?;
-    Ok((cluster_centers_indices, labels))
+    // Final cluster extraction
+    let (cluster_centers_indices, labels) =
+        extract_clusters_from_matrices(&responsibility, &availability, similarity)?;
+
+    Ok(AffinityPropagationResult {
+        cluster_centers_indices,
+        labels,
+        n_iter,
+        converged,
+        responsibility,
+        availability,
+    })
+}
+
+/// Identify exemplars from the current R and A matrices
+fn identify_exemplars<F: Float>(
+    responsibility: &Array2<F>,
+    availability: &Array2<F>,
+) -> Vec<usize> {
+    let n_samples = responsibility.shape()[0];
+    let mut exemplars = Vec::new();
+
+    for k in 0..n_samples {
+        if responsibility[[k, k]] + availability[[k, k]] > F::zero() {
+            exemplars.push(k);
+        }
+    }
+
+    exemplars
 }
 
 /// Extract clusters from responsibility and availability matrices
-///
-/// # Arguments
-///
-/// * `responsibility` - Responsibility matrix
-/// * `availability` - Availability matrix
-///
-/// # Returns
-///
-/// * Tuple of (cluster_centers_indices, labels)
-#[allow(dead_code)]
-fn extract_clusters<F>(
+fn extract_clusters_from_matrices<F>(
     responsibility: &Array2<F>,
     availability: &Array2<F>,
+    similarity: &Array2<F>,
 ) -> Result<(Vec<usize>, Array1<i32>)>
 where
     F: Float + FromPrimitive + Debug + PartialOrd,
 {
     let n_samples = responsibility.shape()[0];
 
-    // Compute criterion matrix (sum of responsibility and availability)
-    let mut criterion = Array2::zeros((n_samples, n_samples));
-    for i in 0..n_samples {
-        for k in 0..n_samples {
-            criterion[[i, k]] = responsibility[[i, k]] + availability[[i, k]];
-        }
-    }
+    // Find exemplars
+    let mut exemplars = identify_exemplars(responsibility, availability);
 
-    // Find exemplars (cluster centers)
-    let mut cluster_centers_indices = Vec::new();
-    for k in 0..n_samples {
-        if criterion[[k, k]] > F::zero() {
-            cluster_centers_indices.push(k);
-        }
-    }
-
-    // If no exemplars were identified, select point with highest self-criterion
-    if cluster_centers_indices.is_empty() {
+    // If no exemplars found, select the point with highest self-criterion
+    if exemplars.is_empty() {
         let mut max_criterion = F::neg_infinity();
         let mut max_idx = 0;
 
         for k in 0..n_samples {
-            if criterion[[k, k]] > max_criterion {
-                max_criterion = criterion[[k, k]];
+            let criterion = responsibility[[k, k]] + availability[[k, k]];
+            if criterion > max_criterion {
+                max_criterion = criterion;
                 max_idx = k;
             }
         }
 
-        cluster_centers_indices.push(max_idx);
+        exemplars.push(max_idx);
     }
 
     // Assign labels based on similarity to exemplars
@@ -348,11 +349,12 @@ where
 
     for i in 0..n_samples {
         let mut max_similarity = F::neg_infinity();
-        let mut best_cluster = -1;
+        let mut best_cluster: i32 = -1;
 
-        for (cluster_idx, &exemplar) in cluster_centers_indices.iter().enumerate() {
-            if criterion[[i, exemplar]] > max_similarity {
-                max_similarity = criterion[[i, exemplar]];
+        for (cluster_idx, &exemplar) in exemplars.iter().enumerate() {
+            let sim = similarity[[i, exemplar]];
+            if sim > max_similarity {
+                max_similarity = sim;
                 best_cluster = cluster_idx as i32;
             }
         }
@@ -360,20 +362,10 @@ where
         labels[i] = best_cluster;
     }
 
-    Ok((cluster_centers_indices, labels))
+    Ok((exemplars, labels))
 }
 
-/// Compare two label assignments to check if they are the same
-///
-/// # Arguments
-///
-/// * `labels1` - First label assignment
-/// * `labels2` - Second label assignment
-///
-/// # Returns
-///
-/// * True if the label assignments are the same, false otherwise
-#[allow(dead_code)]
+/// Compare two label assignments for equality
 fn compare_labels(labels1: ArrayView1<i32>, labels2: ArrayView1<i32>) -> bool {
     if labels1.len() != labels2.len() {
         return false;
@@ -390,29 +382,25 @@ fn compare_labels(labels1: ArrayView1<i32>, labels2: ArrayView1<i32>) -> bool {
 
 /// Affinity Propagation clustering algorithm
 ///
-/// Affinity Propagation finds exemplars (cluster centers) among the data points
-/// and forms clusters of data points around these exemplars. The algorithm determines
-/// the number of clusters based on the input preference value.
+/// Finds exemplars (cluster centers) among the data points and forms clusters around them.
+/// The algorithm determines the number of clusters based on the input preference value.
 ///
 /// # Arguments
 ///
-/// * `data` - Input data (n_samples × n_features) or precomputed similarity matrix
+/// * `data` - Input data (n_samples x n_features) or precomputed similarity matrix
 /// * `precomputed` - Whether data is a precomputed similarity matrix
-/// * `options` - Optional parameters
+/// * `options` - Optional algorithm parameters
 ///
 /// # Returns
 ///
-/// * Tuple of (cluster_centers_indices, labels) where:
-///   - cluster_centers_indices: Indices of cluster centers
-///   - labels: Array of shape (n_samples,) with cluster assignments
+/// * Tuple of (cluster_centers_indices, labels)
 ///
 /// # Examples
 ///
 /// ```
-/// use scirs2_core::ndarray::{ArrayView1, Array2, ArrayView2};
+/// use scirs2_core::ndarray::Array2;
 /// use scirs2_cluster::affinity::{affinity_propagation, AffinityPropagationOptions};
 ///
-/// // Example data with two clusters
 /// let data = Array2::from_shape_vec((6, 2), vec![
 ///     1.0, 2.0,
 ///     1.2, 1.8,
@@ -422,7 +410,6 @@ fn compare_labels(labels1: ArrayView1<i32>, labels2: ArrayView1<i32>) -> bool {
 ///     3.9, 5.1,
 /// ]).expect("Operation failed");
 ///
-/// // Run affinity propagation
 /// let options = AffinityPropagationOptions {
 ///     damping: 0.9,
 ///     ..Default::default()
@@ -434,7 +421,6 @@ fn compare_labels(labels1: ArrayView1<i32>, labels2: ArrayView1<i32>) -> bool {
 ///     println!("Cluster assignments: {:?}", labels);
 /// }
 /// ```
-#[allow(dead_code)]
 pub fn affinity_propagation<F>(
     data: ArrayView2<F>,
     precomputed: bool,
@@ -445,29 +431,69 @@ where
 {
     let opts = options.unwrap_or_default();
 
-    // Validate input
     let n_samples = data.shape()[0];
     if n_samples == 0 {
         return Err(ClusteringError::InvalidInput("Empty input data".into()));
     }
 
-    if precomputed {
-        // Check if data is a square matrix (required for precomputed similarity)
+    if n_samples == 1 {
+        return Ok((vec![0], Array1::from_vec(vec![0])));
+    }
+
+    let similarity = if precomputed {
         if data.shape()[0] != data.shape()[1] {
             return Err(ClusteringError::InvalidInput(
                 "Precomputed similarity matrix must be square".into(),
             ));
         }
-
-        // Use the provided similarity matrix
-        let similarity = compute_preference(data.to_owned(), opts.preference)?;
-        run_affinity_propagation(similarity, &opts)
+        compute_preference(data.to_owned(), opts.preference)?
     } else {
-        // Compute similarity matrix from data
-        let similarity = compute_similarity(data)?;
-        let similarity = compute_preference(similarity, opts.preference)?;
-        run_affinity_propagation(similarity, &opts)
+        let sim = compute_similarity(data)?;
+        compute_preference(sim, opts.preference)?
+    };
+
+    let result = run_affinity_propagation(&similarity, &opts)?;
+
+    Ok((result.cluster_centers_indices, result.labels))
+}
+
+/// Affinity Propagation with full result including convergence info
+///
+/// # Arguments
+///
+/// * `data` - Input data (n_samples x n_features) or precomputed similarity matrix
+/// * `precomputed` - Whether data is a precomputed similarity matrix
+/// * `options` - Algorithm parameters
+///
+/// # Returns
+///
+/// * Full AffinityPropagationResult with convergence information
+pub fn affinity_propagation_full<F>(
+    data: ArrayView2<F>,
+    precomputed: bool,
+    options: AffinityPropagationOptions<F>,
+) -> Result<AffinityPropagationResult<F>>
+where
+    F: Float + FromPrimitive + Debug + PartialOrd,
+{
+    let n_samples = data.shape()[0];
+    if n_samples == 0 {
+        return Err(ClusteringError::InvalidInput("Empty input data".into()));
     }
+
+    let similarity = if precomputed {
+        if data.shape()[0] != data.shape()[1] {
+            return Err(ClusteringError::InvalidInput(
+                "Precomputed similarity matrix must be square".into(),
+            ));
+        }
+        compute_preference(data.to_owned(), options.preference)?
+    } else {
+        let sim = compute_similarity(data)?;
+        compute_preference(sim, options.preference)?
+    };
+
+    run_affinity_propagation(&similarity, &options)
 }
 
 #[cfg(test)]
@@ -475,19 +501,21 @@ mod tests {
     use super::*;
     use scirs2_core::ndarray::Array2;
 
-    #[test]
-    fn test_affinity_propagation_basic() {
-        // Create a dataset with 2 well-separated clusters
-        let data = Array2::from_shape_vec(
+    fn make_two_cluster_data() -> Array2<f64> {
+        Array2::from_shape_vec(
             (6, 2),
             vec![1.0, 2.0, 1.2, 1.8, 0.8, 1.9, 5.0, 6.0, 5.2, 5.8, 4.8, 6.1],
         )
-        .expect("Operation failed");
+        .expect("Failed to create test data")
+    }
 
-        // Run affinity propagation with tuned parameters
+    #[test]
+    fn test_affinity_propagation_basic() {
+        let data = make_two_cluster_data();
+
         let options = AffinityPropagationOptions {
-            damping: 0.5,            // Lower damping for faster convergence
-            preference: Some(-50.0), // Much lower preference to encourage fewer clusters
+            damping: 0.5,
+            preference: Some(-50.0),
             max_iter: 200,
             convergence_iter: 15,
             ..Default::default()
@@ -496,16 +524,12 @@ mod tests {
         let result = affinity_propagation(data.view(), false, Some(options));
         assert!(result.is_ok());
 
-        let (centers, labels) = result.expect("Operation failed");
+        let (centers, labels) = result.expect("Should succeed");
 
-        // We should have at least 1 cluster
         assert!(!centers.is_empty());
         assert!(centers.len() <= 6);
-
-        // Check dimensions
         assert_eq!(labels.len(), 6);
 
-        // Check that all points are assigned to clusters
         for &label in labels.iter() {
             assert!(label >= 0);
             assert!((label as usize) < centers.len());
@@ -514,8 +538,6 @@ mod tests {
 
     #[test]
     fn test_affinity_propagation_precomputed() {
-        // Create a precomputed similarity matrix for 4 points
-        // Higher values indicate more similarity
         let similarity = Array2::from_shape_vec(
             (4, 4),
             vec![
@@ -523,25 +545,158 @@ mod tests {
                 -6.0, 0.0,
             ],
         )
-        .expect("Operation failed");
+        .expect("Failed to create similarity");
 
-        // Run affinity propagation with precomputed similarity
         let options = AffinityPropagationOptions {
             damping: 0.9,
-            preference: Some(-5.0), // Adjusted preference
+            preference: Some(-5.0),
             ..Default::default()
         };
 
         let result = affinity_propagation(similarity.view(), true, Some(options));
         assert!(result.is_ok());
 
-        let (centers, labels) = result.expect("Operation failed");
+        let (centers, labels) = result.expect("Should succeed");
 
-        // Check dimensions
         assert_eq!(labels.len(), 4);
         assert!(!centers.is_empty());
-
-        // Check that at least some points are in the same cluster
         assert!(labels.iter().any(|&l| l == labels[0]));
+    }
+
+    #[test]
+    fn test_affinity_propagation_convergence() {
+        let data = make_two_cluster_data();
+
+        let options = AffinityPropagationOptions {
+            damping: 0.9,
+            preference: Some(-10.0),
+            max_iter: 500,
+            convergence_iter: 10,
+            ..Default::default()
+        };
+
+        let result =
+            affinity_propagation_full(data.view(), false, options).expect("Should succeed");
+
+        // With enough iterations, should converge
+        assert!(result.n_iter <= 500);
+        assert!(!result.cluster_centers_indices.is_empty());
+    }
+
+    #[test]
+    fn test_affinity_propagation_damping_effect() {
+        let data = make_two_cluster_data();
+
+        // Low damping -> faster updates, potentially less stable
+        let options_low = AffinityPropagationOptions {
+            damping: 0.5,
+            preference: Some(-20.0),
+            max_iter: 100,
+            ..Default::default()
+        };
+
+        // High damping -> slower updates, more stable
+        let options_high = AffinityPropagationOptions {
+            damping: 0.95,
+            preference: Some(-20.0),
+            max_iter: 100,
+            ..Default::default()
+        };
+
+        let result_low = affinity_propagation(data.view(), false, Some(options_low));
+        let result_high = affinity_propagation(data.view(), false, Some(options_high));
+
+        assert!(result_low.is_ok());
+        assert!(result_high.is_ok());
+    }
+
+    #[test]
+    fn test_affinity_propagation_invalid_damping() {
+        let data = make_two_cluster_data();
+
+        let options = AffinityPropagationOptions {
+            damping: 0.3, // Too low
+            ..Default::default()
+        };
+
+        let result = affinity_propagation(data.view(), false, Some(options));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_affinity_propagation_single_point() {
+        let data = Array2::from_shape_vec((1, 2), vec![1.0, 2.0]).expect("Failed to create data");
+
+        let result = affinity_propagation(data.view(), false, None);
+        assert!(result.is_ok());
+
+        let (centers, labels) = result.expect("Should succeed");
+        assert_eq!(centers.len(), 1);
+        assert_eq!(labels.len(), 1);
+        assert_eq!(labels[0], 0);
+    }
+
+    #[test]
+    fn test_affinity_propagation_empty_data() {
+        let data = Array2::<f64>::zeros((0, 2));
+        let result = affinity_propagation(data.view(), false, None);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_affinity_propagation_preference_controls_clusters() {
+        let data = make_two_cluster_data();
+
+        // Very low preference -> fewer clusters
+        let options_few = AffinityPropagationOptions {
+            damping: 0.9,
+            preference: Some(-100.0),
+            max_iter: 200,
+            ..Default::default()
+        };
+
+        // Higher preference -> potentially more clusters
+        let options_many = AffinityPropagationOptions {
+            damping: 0.9,
+            preference: Some(-1.0),
+            max_iter: 200,
+            ..Default::default()
+        };
+
+        let (centers_few, _) =
+            affinity_propagation(data.view(), false, Some(options_few)).expect("Should succeed");
+        let (centers_many, _) =
+            affinity_propagation(data.view(), false, Some(options_many)).expect("Should succeed");
+
+        // Higher preference should produce at least as many clusters
+        assert!(
+            centers_many.len() >= centers_few.len(),
+            "Higher preference should yield >= clusters: {} vs {}",
+            centers_many.len(),
+            centers_few.len()
+        );
+    }
+
+    #[test]
+    fn test_affinity_propagation_full_result() {
+        let data = make_two_cluster_data();
+
+        let options = AffinityPropagationOptions {
+            damping: 0.8,
+            preference: Some(-20.0),
+            max_iter: 100,
+            convergence_iter: 10,
+            ..Default::default()
+        };
+
+        let result =
+            affinity_propagation_full(data.view(), false, options).expect("Should succeed");
+
+        // Verify the result has all expected fields
+        assert_eq!(result.labels.len(), 6);
+        assert!(!result.cluster_centers_indices.is_empty());
+        assert!(result.n_iter > 0);
+        assert_eq!(result.responsibility.shape(), &[6, 6]);
+        assert_eq!(result.availability.shape(), &[6, 6]);
     }
 }

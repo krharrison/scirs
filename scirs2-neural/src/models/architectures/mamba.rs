@@ -528,8 +528,9 @@ impl<F: Float + Debug + ScalarOperand + Send + Sync + SimdUnifiedOps + NumAssign
 ///
 /// # Examples
 ///
-/// ```rust,ignore
+/// ```rust
 /// use scirs2_neural::models::architectures::{Mamba, MambaConfig};
+/// use scirs2_neural::layers::Layer;
 /// use scirs2_core::ndarray::Array3;
 /// use scirs2_core::random::rng;
 ///

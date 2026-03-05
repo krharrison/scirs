@@ -1,147 +1,165 @@
-# scirs2-stats Development Roadmap
+# scirs2-stats TODO
 
-## Production Status (v0.1.5)
+## Status: v0.3.0 Released (February 26, 2026)
 
-This release represents a **production-ready** statistical computing library with comprehensive platform testing and SIMD acceleration. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), all core functionality has been implemented, tested, and is ready for production use with ecosystem consistency and performance optimizations.
-
-### ✅ Completed Features
-
-#### Core Statistical Functions
-- [x] **Descriptive Statistics**: mean, median, variance, standard deviation, skewness, kurtosis, moments
-- [x] **Correlation Measures**: Pearson, Spearman, Kendall tau, partial correlation, point-biserial, intraclass correlation
-- [x] **Dispersion Measures**: MAD, median absolute deviation, IQR, range, coefficient of variation, Gini coefficient
-- [x] **Quantile-based Statistics**: Percentiles, quartiles, box plot statistics, winsorized statistics
-
-#### Statistical Distributions (25+ distributions)
-- [x] **Continuous Distributions**: Normal, Uniform, Student's t, Chi-square, F, Gamma, Beta, Exponential, Laplace, Logistic, Cauchy, Pareto, Weibull, Lognormal
-- [x] **Discrete Distributions**: Poisson, Bernoulli, Binomial, Geometric, Hypergeometric, Negative Binomial
-- [x] **Multivariate Distributions**: Multivariate Normal, Multivariate t, Dirichlet, Wishart, Inverse Wishart, Multinomial, Multivariate Lognormal
-- [x] **Circular Distributions**: Basic framework and initial implementations (von Mises, wrapped Cauchy)
-
-#### Statistical Tests
-- [x] **Parametric Tests**: One-sample t-test, independent t-test, paired t-test, one-way ANOVA, Tukey HSD
-- [x] **Non-parametric Tests**: Mann-Whitney U, Wilcoxon signed-rank, Kruskal-Wallis, Friedman test
-- [x] **Normality Tests**: Shapiro-Wilk, Anderson-Darling, D'Agostino's K² test
-- [x] **Goodness-of-fit Tests**: Kolmogorov-Smirnov (one-sample, two-sample), Chi-square tests
-- [x] **Homogeneity Tests**: Levene's test, Bartlett's test, Brown-Forsythe test
-
-#### Regression Analysis
-- [x] **Linear Models**: Simple and multiple linear regression, polynomial regression
-- [x] **Robust Regression**: RANSAC, Huber regression, Theil-Sen estimator
-- [x] **Regularized Models**: Ridge regression (L2), Lasso regression (L1), Elastic Net
-- [x] **Model Selection**: Stepwise regression, cross-validation utilities
-- [x] **Diagnostics**: Residual analysis, influence measures, VIF calculation, model criteria (AIC, BIC)
-
-#### Random Number Generation & Sampling
-- [x] **RNG Infrastructure**: Updated to rand 0.9.0, thread-safe implementations
-- [x] **Basic Sampling**: Uniform, normal, integer sampling, choice function
-- [x] **Bootstrap Sampling**: Non-parametric bootstrap with configurable sample sizes
-- [x] **Permutation Functions**: Array permutation and reordering
-
-#### SIMD Acceleration (December 29, 2025)
-- [x] **Mathematical Utilities**: SIMD-accelerated abs and sign functions
-  - [x] `abs_f64`, `abs_f32` - Absolute value computation
-  - [x] `sign_f64`, `sign_f32` - Sign extraction (-1, 0, +1)
-  - [x] Performance: 1.5-2x speedup for f64, 2-3x for f32 on large arrays (100K+ elements)
-  - [x] Platform support: AVX2 (x86_64), NEON (ARM), scalar fallback
-- [x] **Statistical Functions**: SIMD-accelerated variance, std, and weighted statistics (Phase 7)
-  - [x] `var(ddof=1)` - Fast path using `simd_variance` for sample variance
-  - [x] `std(ddof=1)` - Fast path using `simd_std` for sample standard deviation
-  - [x] `weighted_mean` - SIMD-accelerated weighted mean computation
-  - [x] Performance: 2x speedup for f32 operations on large arrays (1000+ elements)
-    - Variance: 675ns (f32) vs 1.411µs (f64) for 1000 elements
-    - Std: 440ns (f32) vs 907ns (f64) for 1000 elements
-    - Weighted Mean: 959ns (f32) vs 1.19µs (f64) for 1000 elements
-  - [x] Zero temporary array allocations using direct SIMD horizontal operations
-  - [x] Full backward compatibility with all ddof values
-- [x] **Integration**: Full scirs2-core::simd_ops integration
-- [x] **Testing**: 38 comprehensive tests (14 math_utils + 24 statistics)
-- [x] **Benchmarks**: Performance benchmarks demonstrating SIMD benefits
-
-#### Quality Assurance
-- [x] **Comprehensive Testing**: 553 tests (529 base + 14 math_utils + 24 statistics) with 100% pass rate
-- [x] **Code Quality**: Zero clippy warnings, formatted code
-- [x] **Documentation**: Complete API documentation with examples
-- [x] **Integration Tests**: Cross-module functionality testing
+19,644 workspace tests pass (100% pass rate). All v0.3.0 features are complete and production-ready.
 
 ---
 
-## Roadmap to v1.0.0 (Stable Release)
+## v0.3.0 Completed
 
-### API Stabilization & Polish
-- [ ] **API Review**: Final review of public APIs for consistency and usability
-- [ ] **Breaking Changes**: Address any remaining breaking changes before stable release
-- [ ] **Error Handling**: Standardize error messages and recovery suggestions
+### Classical Statistics
+- [x] Descriptive statistics: mean, median, trimmed mean, geometric/harmonic mean, variance, std, MAD, IQR, skewness, kurtosis, moments
+- [x] Pearson, Spearman, Kendall tau, partial correlation, ICC
+- [x] SIMD-accelerated variance, std, weighted mean (via scirs2-core)
 
-### Performance & Optimization
-- [ ] **Benchmark Suite**: Comprehensive benchmarks against SciPy and other libraries
-- [x] **SIMD Optimizations**: Leverage SIMD instructions for core operations where beneficial
-  - [x] Mathematical utilities (abs, sign) with 1.5-3x speedup
-  - [x] Statistical operations (variance, std, weighted_mean) with 2x speedup
-  - [ ] Optimize distribution sampling operations
-  - [ ] Extend to correlation and covariance computations
-- [ ] **Parallel Processing**: Expand use of Rayon for large dataset operations
-- [ ] **Memory Optimization**: Profile and optimize memory usage patterns
+### Probability Distributions (100+)
+- [x] Continuous: Normal, Uniform, t, Chi-square, F, Gamma, Beta, Exponential, Laplace, Logistic, Cauchy, Pareto, Weibull, Lognormal, Rayleigh, Gumbel, and more
+- [x] Discrete: Poisson, Bernoulli, Binomial, Geometric, Hypergeometric, Negative Binomial
+- [x] Multivariate: Multivariate Normal, Dirichlet, Wishart, Inverse-Wishart, Multinomial, Multivariate-t
+- [x] Circular: von Mises, wrapped Cauchy, wrapped Normal
+- [x] Generalized Pareto Distribution (GPD) — MLE and PWM fitting, POT methodology
+- [x] Alpha-stable distributions — characteristic function parametrization, simulation
+- [x] von Mises-Fisher distribution on the d-sphere — MLE concentration parameter
+- [x] Truncated distributions — arbitrary interval truncation of any base distribution
+- [x] Tweedie distribution — compound Poisson-Gamma, power variance family
 
-### Extended Testing & Validation
-- [ ] **Property-based Testing**: Expand property-based tests for mathematical invariants
-- [ ] **Cross-platform Testing**: Ensure consistent behavior across platforms
-- [ ] **Numerical Stability**: Extended testing for edge cases and numerical precision
+### Hypothesis Testing
+- [x] t-tests (one-sample, two-sample, paired), one-way ANOVA, Tukey HSD
+- [x] Mann-Whitney U, Wilcoxon signed-rank, Kruskal-Wallis, Friedman
+- [x] Shapiro-Wilk, Anderson-Darling, D'Agostino's K²
+- [x] Kolmogorov-Smirnov (one- and two-sample), Chi-square goodness-of-fit
+- [x] Levene, Bartlett, Brown-Forsythe homogeneity tests
+- [x] Multiple testing corrections: Bonferroni, BH, BY, Holm, Hochberg
+- [x] Effect size measures: Cohen's d, Cohen's f², eta-squared, partial eta-squared, omega-squared, Cramer's V, epsilon-squared
+
+### Regression
+- [x] Simple and multiple linear regression, polynomial regression
+- [x] Ridge (L2), Lasso (L1), Elastic Net
+- [x] RANSAC, Huber regression, Theil-Sen
+- [x] Stepwise selection, cross-validation, AIC/BIC, VIF, residual analysis
+
+### Bayesian & MCMC
+- [x] Conjugate priors (Beta-Binomial, Gamma-Poisson, Normal-Normal, Dirichlet-Multinomial)
+- [x] Metropolis-Hastings with adaptive proposals
+- [x] Hamiltonian Monte Carlo (HMC) with leapfrog integrator
+- [x] No-U-Turn Sampler (NUTS)
+- [x] Gibbs sampling (systematic and random-scan)
+- [x] Slice sampling (stepping-out and doubling procedures)
+- [x] Sequential Monte Carlo (SMC) / particle filters: Bootstrap PF, Auxiliary PF, resample-move, tempering
+- [x] Hierarchical Bayesian models
+- [x] Bayesian networks (exact inference via variable elimination, approximate via loopy BP)
+- [x] Variational inference utilities
+
+### Gaussian Processes
+- [x] Kernels: SE, Matern (1/2, 3/2, 5/2), rational quadratic, periodic, linear, polynomial, neural network
+- [x] Kernel composition: sum, product, scale
+- [x] GP regression (exact) with marginal likelihood optimization
+- [x] GP classification (Laplace and EP approximations)
+- [x] Sparse GP: FITC, VFE (inducing-point methods)
+- [x] Deep GP (stacked latent layers with doubly stochastic VI)
+
+### Survival Analysis
+- [x] Kaplan-Meier estimator with Greenwood variance and confidence bands
+- [x] Nelson-Aalen cumulative hazard estimator
+- [x] Cox proportional hazards (partial likelihood, Breslow baseline, time-varying covariates)
+- [x] Accelerated Failure Time (AFT) models: Weibull, log-normal, log-logistic
+- [x] Competing risks: cause-specific hazard and Fine-Gray sub-distribution hazard
+- [x] Log-rank test, Wilcoxon test, restricted mean survival time (RMST)
+
+### Copulas & Dependence
+- [x] Parametric copulas: Frank, Clayton, Gumbel, Gaussian (normal), Student-t
+- [x] Vine copulas: C-vine, D-vine, R-vine with pair-copula construction
+- [x] Copula fitting (MLE, canonical ML), tail dependence coefficients
+- [x] Conditional simulation from fitted copula
+
+### Nonparametric Bayes
+- [x] Dirichlet Process Mixture Models (DPMM) via collapsed Gibbs sampling
+- [x] Chinese Restaurant Process (CRP) — prior and posterior samplers
+- [x] Indian Buffet Process (IBP) — binary latent feature models
+- [x] Stick-breaking and Polya urn representations
+
+### Mixture Models
+- [x] Gaussian Mixture Models (GMM) — EM and variational EM
+- [x] Finite mixture models (general base distributions)
+- [x] Bayesian GMM with automatic component selection
+
+### Causal Inference
+- [x] Causal DAG and CPDAG representation
+- [x] D-separation, Markov blanket, skeleton algorithms
+- [x] Cointegration: Engle-Granger two-step, Johansen trace and max-eigenvalue tests
+- [x] Structural equation models (linear SEM, path coefficients)
+- [x] Causal impact analysis via Bayesian structural time series
+
+### Time-Series Statistics
+- [x] Dynamic Factor Models (DFM) with EM fitting and Kalman smoother
+- [x] Time-Varying Parameter VAR (TVP-VAR) with Kalman filter and forgetting factors
+- [x] Hidden Markov Models (HMM): Baum-Welch, Viterbi, forward-backward
+- [x] Stationarity tests: ADF, KPSS, Phillips-Perron, DFGLS, Zivot-Andrews structural break
+- [x] Spectral density: periodogram, Welch, multitaper (DPSS)
+
+### Compositional & Spatial
+- [x] Compositional data: Aitchison geometry, ALR/CLR/ILR transforms, Dirichlet MLE, closure, perturbation
+- [x] Spatial: empirical variogram, theoretical models (spherical, exponential, Gaussian), kriging (ordinary, simple, universal)
+- [x] Moran's I spatial autocorrelation, K-function, L-function, Ripley's edge correction
+- [x] Spatial scan statistics (circular window, Kulldorff)
+
+### Panel Data & Hierarchical
+- [x] Fixed effects (within estimator, Mundlak), random effects (GLS/FGLS), pooled OLS
+- [x] Hausman specification test, cross-sectional dependence (Pesaran CD)
+- [x] Hierarchical linear models (HLM) with random intercepts and slopes
+
+### Extreme Value Analysis
+- [x] GEV distribution, block maxima method
+- [x] Peaks-over-threshold (POT) with GPD tail fitting
+- [x] Return level and return period estimation
+
+### Sampling & QMC
+- [x] Sobol sequences (Joe-Kuo direction numbers), Halton, Faure
+- [x] Latin hypercube sampling (LHS) with maximin and correlation optimization
+- [x] Owen's scrambled nets
+- [x] Bootstrap: non-parametric, stratified, block (circular and non-overlapping)
+- [x] Jackknife, permutation tests
 
 ---
 
-## Future Enhancements (Post-1.0)
+## v0.4.0 Roadmap
 
-### Advanced Statistical Methods
-- [ ] **Bayesian Statistics**: Conjugate priors, Bayesian linear regression, hierarchical models
-- [ ] **MCMC Methods**: Metropolis-Hastings, Gibbs sampling, Hamiltonian Monte Carlo
-- [ ] **Multivariate Analysis**: PCA, factor analysis, discriminant analysis
-- [ ] **Survival Analysis**: Kaplan-Meier estimator, Cox proportional hazards
+### Variational Inference
+- [ ] Automatic Differentiation Variational Inference (ADVI) with normalizing flows
+- [ ] Stein Variational Gradient Descent (SVGD)
+- [ ] Black-box VI with variance reduction (REINFORCE, VIMCO)
 
-### Advanced Sampling & Monte Carlo
-- [ ] **Quasi-Monte Carlo**: Sobol sequences, Halton sequences, Latin hypercube sampling
-- [ ] **Advanced Bootstrap**: Stratified bootstrap, block bootstrap for time series
-- [ ] **Importance Sampling**: Weighted sampling methods for rare events
+### Causal Inference (Extended)
+- [ ] Full do-calculus identification engine (ID algorithm, hedge criterion)
+- [ ] PC algorithm and FCI algorithm for causal discovery from observational data
+- [ ] Instrumental variable (IV) estimation and 2SLS
+- [ ] Difference-in-differences and synthetic control methods
 
-### Extended Distribution Support
-- [ ] **Mixture Models**: Gaussian mixture models, finite mixture distributions
-- [ ] **Kernel Density Estimation**: Non-parametric density estimation
-- [ ] **Truncated Distributions**: Support for bounded versions of continuous distributions
-- [ ] **Custom Distributions**: Framework for user-defined distributions
+### Online & Streaming Bayesian Learning
+- [ ] Online variational Bayes for conjugate models
+- [ ] Streaming Gaussian processes with sparse updates
+- [ ] Sequential Bayesian model comparison (SMC-based)
 
-### Integration & Ecosystem
-- [ ] **SciPy Compatibility**: Extended compatibility layer for Python interop
-- [ ] **Visualization Integration**: Integration with plotting libraries
-- [ ] **Streaming Analytics**: Support for online/streaming statistical computations
-- [ ] **GPU Acceleration**: CUDA/OpenCL support for large-scale computations
+### Advanced Nonparametric Bayes
+- [ ] Hierarchical Dirichlet Process (HDP) for topic models
+- [ ] Beta process for sparse feature learning
+- [ ] Normalized random measures with independent increments (NRMI)
 
-### Developer Experience
-- [ ] **Builder Patterns**: Fluent APIs for complex statistical operations
-- [ ] **Proc Macros**: Derive macros for custom statistical types
-- [ ] **Error Recovery**: Enhanced error handling with suggested fixes
-- [ ] **Performance Profiling**: Built-in profiling for algorithm selection
+### Multivariate Volatility
+- [ ] DCC-GARCH (Dynamic Conditional Correlation)
+- [ ] BEKK-GARCH for multivariate financial data
+- [ ] Realized covariance and HAR-RV models
 
----
-
-## Contributing
-
-This library is production-ready but we welcome contributions for:
-
-1. **Bug Reports**: Issues with existing functionality
-2. **Performance Improvements**: Optimization of existing algorithms
-3. **Documentation**: Examples, tutorials, and API improvements
-4. **Future Features**: Implementation of post-1.0 roadmap items
-
-See the main repository for contribution guidelines.
+### High-Dimensional Statistics
+- [ ] Graphical Lasso (GLASSO) for sparse precision matrix estimation
+- [ ] Factor-adjusted robust multiple testing
+- [ ] High-dimensional t-tests and principal component regression
 
 ---
 
-## Version History
+## Known Issues
 
-- **v0.1.5** (Current): Production-ready with SIMD-accelerated mathematical utilities
-  - Added SIMD abs/sign functions (1.5-3x speedup on large arrays)
-  - 294+ tests passing with zero warnings
-  - Full scirs2-core::simd_ops integration
-- **v0.1.5**: Production-ready release with comprehensive statistical functionality
-- **v1.0.0** (Planned): Stable API with performance optimizations and extended testing
-- **v1.1.0+** (Future): Advanced statistical methods and ecosystem integration
+- Slice sampling performance degrades on very high-dimensional posteriors (>100 dimensions) — use HMC/NUTS instead
+- Deep GP fitting is memory-intensive for large datasets (>10k points); sparse approximation recommended
+- TVP-VAR with large lag orders (>4) and many series (>8) may be slow without parallel feature enabled

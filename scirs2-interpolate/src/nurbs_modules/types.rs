@@ -91,7 +91,7 @@ impl<T> NurbsFloat for T where
 ///     &knots.view(),
 ///     degree,
 ///     ExtrapolateMode::Extrapolate
-/// ).unwrap();
+/// ).expect("doc example: should succeed");
 /// ```
 #[derive(Debug, Clone)]
 pub struct NurbsCurve<T: NurbsFloat> {
@@ -146,7 +146,7 @@ pub struct NurbsCurve<T: NurbsFloat> {
 ///     &knotsv.view(),
 ///     1, 1,  // degreeu, degreev
 ///     ExtrapolateMode::Extrapolate
-/// ).unwrap();
+/// ).expect("doc example: should succeed");
 /// ```
 #[derive(Debug, Clone)]
 pub struct NurbsSurface<T: NurbsFloat> {

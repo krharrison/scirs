@@ -17,30 +17,37 @@ use scirs2_core::random::thread_rng;
 
 // Direct imports from scirs2-graph
 use scirs2_graph::{
-    // Graph types
-    Graph, DiGraph,
+    articulation_points,
+    // Centrality
+    betweenness_centrality,
     // Traversal
-    breadth_first_search, depth_first_search,
+    breadth_first_search,
+    bridges,
+    closeness_centrality,
+    // Connectivity
+    connected_components,
+    depth_first_search,
+    // Graph properties
+    diameter,
     // Shortest paths
     dijkstra_path,
     floyd_warshall,
-    // Connectivity
-    connected_components, strongly_connected_components,
-    articulation_points, bridges, is_bipartite,
-    // Centrality
-    betweenness_centrality, closeness_centrality,
+    is_bipartite,
+    label_propagation_result,
     // Community detection
-    louvain_communities_result, label_propagation_result,
-    modularity,
-    // Graph properties
-    diameter,
+    louvain_communities_result,
     // Spanning trees
     minimum_spanning_tree,
+    modularity,
+    strongly_connected_components,
+    DiGraph,
+    // Graph types
+    Graph,
 };
 // Additional imports from submodules
 use scirs2_graph::generators::{
-    erdos_renyi_graph, barabasi_albert_graph, watts_strogatz_graph,
-    complete_graph, path_graph, cycle_graph, star_graph,
+    barabasi_albert_graph, complete_graph, cycle_graph, erdos_renyi_graph, path_graph, star_graph,
+    watts_strogatz_graph,
 };
 use scirs2_graph::measures::{clustering_coefficient, pagerank_centrality};
 
@@ -155,7 +162,8 @@ fn erdos_renyi_graph_py(py: Python, n: usize, p: f64) -> PyResult<Py<PyAny>> {
     dict.set_item("directed", false)?;
 
     // Extract edges
-    let edges: Vec<(usize, usize, f64)> = edges_vec.iter()
+    let edges: Vec<(usize, usize, f64)> = edges_vec
+        .iter()
         .map(|e| (e.source, e.target, e.weight))
         .collect();
     dict.set_item("edges", edges)?;
@@ -176,7 +184,8 @@ fn barabasi_albert_graph_py(py: Python, n: usize, m: usize) -> PyResult<Py<PyAny
     dict.set_item("num_edges", edges_vec.len())?;
     dict.set_item("directed", false)?;
 
-    let edges: Vec<(usize, usize, f64)> = edges_vec.iter()
+    let edges: Vec<(usize, usize, f64)> = edges_vec
+        .iter()
         .map(|e| (e.source, e.target, e.weight))
         .collect();
     dict.set_item("edges", edges)?;
@@ -197,7 +206,8 @@ fn watts_strogatz_graph_py(py: Python, n: usize, k: usize, p: f64) -> PyResult<P
     dict.set_item("num_edges", edges_vec.len())?;
     dict.set_item("directed", false)?;
 
-    let edges: Vec<(usize, usize, f64)> = edges_vec.iter()
+    let edges: Vec<(usize, usize, f64)> = edges_vec
+        .iter()
         .map(|e| (e.source, e.target, e.weight))
         .collect();
     dict.set_item("edges", edges)?;
@@ -217,7 +227,8 @@ fn complete_graph_py(py: Python, n: usize) -> PyResult<Py<PyAny>> {
     dict.set_item("num_edges", edges_vec.len())?;
     dict.set_item("directed", false)?;
 
-    let edges: Vec<(usize, usize, f64)> = edges_vec.iter()
+    let edges: Vec<(usize, usize, f64)> = edges_vec
+        .iter()
         .map(|e| (e.source, e.target, e.weight))
         .collect();
     dict.set_item("edges", edges)?;
@@ -237,7 +248,8 @@ fn path_graph_py(py: Python, n: usize) -> PyResult<Py<PyAny>> {
     dict.set_item("num_edges", edges_vec.len())?;
     dict.set_item("directed", false)?;
 
-    let edges: Vec<(usize, usize, f64)> = edges_vec.iter()
+    let edges: Vec<(usize, usize, f64)> = edges_vec
+        .iter()
         .map(|e| (e.source, e.target, e.weight))
         .collect();
     dict.set_item("edges", edges)?;
@@ -257,7 +269,8 @@ fn cycle_graph_py(py: Python, n: usize) -> PyResult<Py<PyAny>> {
     dict.set_item("num_edges", edges_vec.len())?;
     dict.set_item("directed", false)?;
 
-    let edges: Vec<(usize, usize, f64)> = edges_vec.iter()
+    let edges: Vec<(usize, usize, f64)> = edges_vec
+        .iter()
         .map(|e| (e.source, e.target, e.weight))
         .collect();
     dict.set_item("edges", edges)?;
@@ -277,7 +290,8 @@ fn star_graph_py(py: Python, n: usize) -> PyResult<Py<PyAny>> {
     dict.set_item("num_edges", edges_vec.len())?;
     dict.set_item("directed", false)?;
 
-    let edges: Vec<(usize, usize, f64)> = edges_vec.iter()
+    let edges: Vec<(usize, usize, f64)> = edges_vec
+        .iter()
         .map(|e| (e.source, e.target, e.weight))
         .collect();
     dict.set_item("edges", edges)?;
@@ -444,7 +458,8 @@ fn connected_components_py(
     dict.set_item("n_components", components.len())?;
 
     // Convert components to list of lists (Component<N> = HashSet<N>)
-    let comp_list: Vec<Vec<usize>> = components.into_iter()
+    let comp_list: Vec<Vec<usize>> = components
+        .into_iter()
         .map(|c: std::collections::HashSet<usize>| c.into_iter().collect())
         .collect();
     dict.set_item("components", comp_list)?;
@@ -474,7 +489,8 @@ fn strongly_connected_components_py(
     let dict = PyDict::new(py);
     dict.set_item("n_components", components.len())?;
 
-    let comp_list: Vec<Vec<usize>> = components.into_iter()
+    let comp_list: Vec<Vec<usize>> = components
+        .into_iter()
         .map(|c: std::collections::HashSet<usize>| c.into_iter().collect())
         .collect();
     dict.set_item("components", comp_list)?;
@@ -512,11 +528,7 @@ fn articulation_points_py(
 /// Find bridges (cut edges)
 #[pyfunction]
 #[allow(unused_variables)]
-fn bridges_py(
-    py: Python,
-    edges: &Bound<'_, PyList>,
-    num_nodes: usize,
-) -> PyResult<Py<PyAny>> {
+fn bridges_py(py: Python, edges: &Bound<'_, PyList>, num_nodes: usize) -> PyResult<Py<PyAny>> {
     let mut graph = Graph::<usize, f64, u32>::new();
 
     for edge in edges.iter() {
@@ -539,11 +551,7 @@ fn bridges_py(
 /// Check if graph is bipartite
 #[pyfunction]
 #[allow(unused_variables)]
-fn is_bipartite_py(
-    py: Python,
-    edges: &Bound<'_, PyList>,
-    num_nodes: usize,
-) -> PyResult<Py<PyAny>> {
+fn is_bipartite_py(py: Python, edges: &Bound<'_, PyList>, num_nodes: usize) -> PyResult<Py<PyAny>> {
     let mut graph = Graph::<usize, f64, u32>::new();
 
     for edge in edges.iter() {
@@ -561,11 +569,15 @@ fn is_bipartite_py(
 
     if result.is_bipartite {
         // BipartiteResult has coloring: HashMap<N, u8> where 0 is left and 1 is right
-        let left: Vec<usize> = result.coloring.iter()
+        let left: Vec<usize> = result
+            .coloring
+            .iter()
             .filter(|(_, &color)| color == 0)
             .map(|(&node, _)| node)
             .collect();
-        let right: Vec<usize> = result.coloring.iter()
+        let right: Vec<usize> = result
+            .coloring
+            .iter()
             .filter(|(_, &color)| color == 1)
             .map(|(&node, _)| node)
             .collect();
@@ -709,7 +721,9 @@ fn louvain_communities_py(
     dict.set_item("modularity", result.quality_score)?;
 
     // Convert communities (Vec<HashSet<N>>) to list of lists
-    let comm_list: Vec<Vec<usize>> = result.communities.into_iter()
+    let comm_list: Vec<Vec<usize>> = result
+        .communities
+        .into_iter()
         .map(|c: std::collections::HashSet<usize>| c.into_iter().collect())
         .collect();
     dict.set_item("communities", comm_list)?;
@@ -742,7 +756,9 @@ fn label_propagation_py(
     let dict = PyDict::new(py);
     dict.set_item("n_communities", result.communities.len())?;
 
-    let comm_list: Vec<Vec<usize>> = result.communities.into_iter()
+    let comm_list: Vec<Vec<usize>> = result
+        .communities
+        .into_iter()
         .map(|c: std::collections::HashSet<usize>| c.into_iter().collect())
         .collect();
     dict.set_item("communities", comm_list)?;
@@ -792,10 +808,7 @@ fn modularity_py(
 /// Calculate graph diameter
 #[pyfunction]
 #[allow(unused_variables)]
-fn diameter_py(
-    edges: &Bound<'_, PyList>,
-    num_nodes: usize,
-) -> PyResult<f64> {
+fn diameter_py(edges: &Bound<'_, PyList>, num_nodes: usize) -> PyResult<f64> {
     let mut graph = Graph::<usize, f64, u32>::new();
 
     for edge in edges.iter() {
@@ -806,8 +819,7 @@ fn diameter_py(
     }
 
     // diameter returns Option<f64>
-    diameter(&graph)
-        .ok_or_else(|| PyRuntimeError::new_err("Graph is not connected or empty"))
+    diameter(&graph).ok_or_else(|| PyRuntimeError::new_err("Graph is not connected or empty"))
 }
 
 /// Calculate clustering coefficient
@@ -845,11 +857,7 @@ fn clustering_coefficient_py(
 
 /// Calculate graph density
 #[pyfunction]
-fn graph_density_py(
-    edges: &Bound<'_, PyList>,
-    num_nodes: usize,
-    directed: bool,
-) -> PyResult<f64> {
+fn graph_density_py(edges: &Bound<'_, PyList>, num_nodes: usize, directed: bool) -> PyResult<f64> {
     let num_edges = edges.len();
 
     if directed {
@@ -893,9 +901,8 @@ fn minimum_spanning_tree_py(
 
     let dict = PyDict::new(py);
     // mst is a Vec<Edge>, where Edge has source, target, weight fields
-    let mst_edges: Vec<(usize, usize, f64)> = mst.iter()
-        .map(|e| (e.source, e.target, e.weight))
-        .collect();
+    let mst_edges: Vec<(usize, usize, f64)> =
+        mst.iter().map(|e| (e.source, e.target, e.weight)).collect();
     dict.set_item("edges", mst_edges.clone())?;
 
     let total_weight: f64 = mst_edges.iter().map(|(_, _, w)| *w).sum();

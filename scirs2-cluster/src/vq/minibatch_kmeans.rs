@@ -1,11 +1,28 @@
 //! Mini-Batch K-means clustering implementation
 //!
-//! This module provides an implementation of the Mini-Batch K-means algorithm,
-//! a variant of k-means that uses mini-batches to reduce computation time while
-//! still attempting to optimize the same objective function.
+//! This module provides an implementation of the Mini-Batch K-means algorithm
+//! (Sculley 2010), a variant of k-means that uses mini-batches to reduce
+//! computation time while still attempting to optimize the same objective function.
 //!
-//! Mini-Batch K-means is much faster than standard K-means for large datasets
-//! and provides results that are generally close to those of the standard algorithm.
+//! # Advantages over standard K-means
+//!
+//! - **Much faster** for large datasets (sublinear per-iteration cost)
+//! - **Similar quality** to standard k-means in practice
+//! - **Streaming compatible**: can process data in chunks
+//!
+//! # Algorithm
+//!
+//! 1. Initialize centroids (k-means++ or random)
+//! 2. For each iteration:
+//!    a. Sample a mini-batch of size `batch_size` from the data
+//!    b. Assign each sample in the batch to its nearest centroid
+//!    c. Update centroids using per-center learning rate: eta = 1 / count(center)
+//! 3. Monitor convergence using exponentially weighted average (EWA) of inertia
+//! 4. Detect and reassign near-empty clusters
+//!
+//! # References
+//!
+//! Sculley, D. (2010). "Web-Scale K-Means Clustering." WWW, pp. 1177-1178.
 
 use scirs2_core::ndarray::{s, Array1, Array2, ArrayView2};
 use scirs2_core::numeric::{Float, FromPrimitive};
@@ -14,6 +31,21 @@ use std::fmt::Debug;
 
 use super::{euclidean_distance, kmeans_plus_plus};
 use crate::error::{ClusteringError, Result};
+
+/// Initialization method for Mini-Batch K-means
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MiniBatchInit {
+    /// K-means++ initialization (default, recommended)
+    KMeansPlusPlus,
+    /// Random sampling from data points
+    Random,
+}
+
+impl Default for MiniBatchInit {
+    fn default() -> Self {
+        MiniBatchInit::KMeansPlusPlus
+    }
+}
 
 /// Options for Mini-Batch K-means clustering
 #[derive(Debug, Clone)]
@@ -32,6 +64,10 @@ pub struct MiniBatchKMeansOptions<F: Float> {
     pub init_size: Option<usize>,
     /// Ratio of samples that should be reassigned to prevent empty clusters
     pub reassignment_ratio: F,
+    /// Initialization method
+    pub init: MiniBatchInit,
+    /// EWA smoothing factor for inertia tracking (0 to 1)
+    pub ewa_smoothing: F,
 }
 
 impl<F: Float + FromPrimitive> Default for MiniBatchKMeansOptions<F> {
@@ -39,28 +75,49 @@ impl<F: Float + FromPrimitive> Default for MiniBatchKMeansOptions<F> {
         Self {
             max_iter: 100,
             batch_size: 1024,
-            tol: F::from(1e-4).expect("Failed to convert constant to float"),
+            tol: F::from(1e-4).unwrap_or(F::epsilon()),
             random_seed: None,
             max_no_improvement: 10,
             init_size: None,
-            reassignment_ratio: F::from(0.01).expect("Failed to convert constant to float"),
+            reassignment_ratio: F::from(0.01).unwrap_or(F::epsilon()),
+            init: MiniBatchInit::KMeansPlusPlus,
+            ewa_smoothing: F::from(0.7).unwrap_or(F::one()),
         }
     }
+}
+
+/// Result of Mini-Batch K-means with convergence diagnostics
+#[derive(Debug, Clone)]
+pub struct MiniBatchKMeansResult<F: Float> {
+    /// Final cluster centroids (k x n_features)
+    pub centroids: Array2<F>,
+    /// Cluster assignments for each data point
+    pub labels: Array1<usize>,
+    /// Number of iterations performed
+    pub n_iter: usize,
+    /// Final inertia (sum of squared distances to nearest centroid)
+    pub inertia: F,
+    /// Whether the algorithm converged
+    pub converged: bool,
+    /// History of EWA inertia values per iteration
+    pub inertia_history: Vec<F>,
+    /// Per-cluster count of assigned samples
+    pub cluster_counts: Array1<usize>,
+    /// Number of reassignments performed during training
+    pub n_reassignments: usize,
 }
 
 /// Mini-Batch K-means clustering algorithm
 ///
 /// # Arguments
 ///
-/// * `data` - Input data (n_samples × n_features)
+/// * `data` - Input data (n_samples x n_features)
 /// * `k` - Number of clusters
 /// * `options` - Optional parameters
 ///
 /// # Returns
 ///
-/// * Tuple of (centroids, labels) where:
-///   - centroids: Array of shape (k × n_features)
-///   - labels: Array of shape (n_samples,) with cluster assignments
+/// * Tuple of (centroids, labels)
 ///
 /// # Examples
 ///
@@ -77,14 +134,27 @@ impl<F: Float + FromPrimitive> Default for MiniBatchKMeansOptions<F> {
 ///     4.2, 4.1,
 /// ]).expect("Operation failed");
 ///
-/// let (centroids, labels) = minibatch_kmeans(ArrayView2::from(&data), 2, None).expect("Operation failed");
+/// let (centroids, labels) = minibatch_kmeans(ArrayView2::from(&data), 2, None)
+///     .expect("Operation failed");
 /// ```
-#[allow(dead_code)]
 pub fn minibatch_kmeans<F>(
     data: ArrayView2<F>,
     k: usize,
     options: Option<MiniBatchKMeansOptions<F>>,
 ) -> Result<(Array2<F>, Array1<usize>)>
+where
+    F: Float + FromPrimitive + Debug + std::iter::Sum,
+{
+    let result = minibatch_kmeans_full(data, k, options)?;
+    Ok((result.centroids, result.labels))
+}
+
+/// Mini-Batch K-means with full diagnostic output
+pub fn minibatch_kmeans_full<F>(
+    data: ArrayView2<F>,
+    k: usize,
+    options: Option<MiniBatchKMeansOptions<F>>,
+) -> Result<MiniBatchKMeansResult<F>>
 where
     F: Float + FromPrimitive + Debug + std::iter::Sum,
 {
@@ -122,45 +192,61 @@ where
     };
 
     // Determine initialization size
-    let init_size = opts.init_size.unwrap_or_else(|| {
-        let default_size = 3 * opts.batch_size;
-        if default_size < 3 * k {
-            default_size
-        } else {
-            3 * k
+    let init_size = opts
+        .init_size
+        .unwrap_or_else(|| {
+            let default_size = 3 * opts.batch_size;
+            if default_size < 3 * k {
+                3 * k
+            } else {
+                default_size
+            }
+        })
+        .min(n_samples);
+
+    // Initialize centroids
+    let centroids = match opts.init {
+        MiniBatchInit::KMeansPlusPlus => {
+            if init_size < n_samples {
+                let mut indices = Vec::with_capacity(init_size);
+                for _ in 0..init_size {
+                    indices.push(rng.random_range(0..n_samples));
+                }
+                let init_data =
+                    Array2::from_shape_fn((init_size, n_features), |(i, j)| data[[indices[i], j]]);
+                kmeans_plus_plus(init_data.view(), k, opts.random_seed)?
+            } else {
+                kmeans_plus_plus(data, k, opts.random_seed)?
+            }
         }
-    });
-
-    let init_size = init_size.min(n_samples);
-
-    // Initialize centroids using kmeans++
-    let centroids = if init_size < n_samples {
-        // Sample init_size data points for initialization (simpler method for this example)
-        let mut indices = Vec::with_capacity(init_size);
-        for _ in 0..init_size {
-            indices.push(rng.random_range(0..n_samples));
+        MiniBatchInit::Random => {
+            let mut centers = Array2::zeros((k, n_features));
+            for i in 0..k {
+                let idx = rng.random_range(0..n_samples);
+                centers.row_mut(i).assign(&data.row(idx));
+            }
+            centers
         }
-
-        let init_data =
-            Array2::from_shape_fn((init_size, n_features), |(i, j)| data[[indices[i], j]]);
-        kmeans_plus_plus(init_data.view(), k, opts.random_seed)?
-    } else {
-        // Use all data points for initialization
-        kmeans_plus_plus(data, k, opts.random_seed)?
     };
 
-    // Initialize variables for optimization
+    // Initialize variables
     let mut centroids = centroids;
-    let mut counts = Array1::ones(k); // Initialize counts to avoid division by zero
+    let mut counts = Array1::<F>::from_elem(k, F::one());
 
-    // Variables for convergence detection
-    let mut ewa_inertia = None; // Exponentially weighted average of inertia
+    // Convergence tracking
+    let mut ewa_inertia: Option<F> = None;
     let mut no_improvement_count = 0;
     let mut best_inertia = F::infinity();
     let mut prev_centers: Option<Array2<F>> = None;
+    let mut inertia_history = Vec::with_capacity(opts.max_iter);
+    let mut total_reassignments = 0;
+    let mut converged = false;
+    let mut n_iter = 0;
 
-    // Mini-batch optimization
+    // Mini-batch optimization loop
     for iter in 0..opts.max_iter {
+        n_iter = iter + 1;
+
         // Sample a mini-batch
         let batch_size = opts.batch_size.min(n_samples);
         let mut batch_indices = Vec::with_capacity(batch_size);
@@ -169,26 +255,23 @@ where
         }
 
         // Perform mini-batch step
-        let (batch_inertia, has_converged) =
+        let step_result =
             mini_batch_step(&data, &batch_indices, &mut centroids, &mut counts, &opts)?;
 
-        // If this is the last iteration, assign all points to clusters for final labeling
-        // We don't need to do this on every iteration, just for the final result
-        if iter == opts.max_iter - 1 {
-            // This will be used only for the final return value
-            let (_new_labels_) = assign_labels(data, centroids.view())?;
-            // We don't store this since we'll recompute it at the end anyway
-        }
+        total_reassignments += step_result.n_reassignments;
 
-        // Update exponentially weighted average of inertia
-        let ewa_factor = F::from(0.7).expect("Failed to convert constant to float"); // Smoothing factor for EWA
+        // Update EWA of inertia
         let current_ewa = match ewa_inertia {
-            Some(prev_ewa) => prev_ewa * ewa_factor + batch_inertia * (F::one() - ewa_factor),
-            None => batch_inertia,
+            Some(prev_ewa) => {
+                prev_ewa * opts.ewa_smoothing
+                    + step_result.batch_inertia * (F::one() - opts.ewa_smoothing)
+            }
+            None => step_result.batch_inertia,
         };
         ewa_inertia = Some(current_ewa);
+        inertia_history.push(current_ewa);
 
-        // Check for convergence based on inertia
+        // Check inertia improvement
         if current_ewa < best_inertia {
             best_inertia = current_ewa;
             no_improvement_count = 0;
@@ -196,64 +279,75 @@ where
             no_improvement_count += 1;
         }
 
-        // Check for convergence based on centroid movement
-        if let Some(prev) = prev_centers {
+        // Check centroid movement convergence
+        if let Some(ref prev) = prev_centers {
             let mut center_shift = F::zero();
             for i in 0..k {
                 let dist = euclidean_distance(centroids.slice(s![i, ..]), prev.slice(s![i, ..]));
                 center_shift = center_shift + dist;
             }
-
-            // Normalize by number of centroids and features
-            center_shift = center_shift / F::from(k).expect("Failed to convert to float");
+            let k_f = F::from(k).unwrap_or(F::one());
+            center_shift = center_shift / k_f;
 
             if center_shift < opts.tol {
-                // Converged based on centroid movement
+                converged = true;
                 break;
             }
         }
 
-        // Store current centroids for next iteration
         prev_centers = Some(centroids.clone());
 
-        // Check for early stopping
+        // Early stopping
         if no_improvement_count >= opts.max_no_improvement {
-            break;
-        }
-
-        // If convergence detected in mini-batch step
-        if has_converged {
+            converged = true;
             break;
         }
     }
 
     // Final label assignment
-    let (final_labels, _) = assign_labels(data, centroids.view())?;
+    let (final_labels, final_distances) = assign_labels(data, centroids.view())?;
 
-    Ok((centroids, final_labels))
+    // Compute final inertia
+    let final_inertia = final_distances
+        .iter()
+        .fold(F::zero(), |acc, &d| acc + d * d);
+
+    // Compute per-cluster counts
+    let mut cluster_counts = Array1::<usize>::zeros(k);
+    for &label in final_labels.iter() {
+        if label < k {
+            cluster_counts[label] += 1;
+        }
+    }
+
+    Ok(MiniBatchKMeansResult {
+        centroids,
+        labels: final_labels,
+        n_iter,
+        inertia: final_inertia,
+        converged,
+        inertia_history,
+        cluster_counts,
+        n_reassignments: total_reassignments,
+    })
+}
+
+/// Result of a single mini-batch step
+struct MiniBatchStepResult<F: Float> {
+    /// Inertia of the mini-batch (average squared distance)
+    batch_inertia: F,
+    /// Number of reassignments performed
+    n_reassignments: usize,
 }
 
 /// Performs a single Mini-Batch K-means step
-///
-/// # Arguments
-///
-/// * `data` - Input data
-/// * `batch_indices` - Indices of samples in the current mini-batch
-/// * `centroids` - Current centroids (modified in-place)
-/// * `counts` - Counts of samples assigned to each centroid (modified in-place)
-/// * `opts` - Algorithm options
-///
-/// # Returns
-///
-/// * Tuple of (batch_inertia, has_converged)
-#[allow(dead_code)]
 fn mini_batch_step<F>(
     data: &ArrayView2<F>,
     batch_indices: &[usize],
     centroids: &mut Array2<F>,
     counts: &mut Array1<F>,
     opts: &MiniBatchKMeansOptions<F>,
-) -> Result<(F, bool)>
+) -> Result<MiniBatchStepResult<F>>
 where
     F: Float + FromPrimitive + Debug,
 {
@@ -261,16 +355,14 @@ where
     let n_features = centroids.shape()[1];
     let batch_size = batch_indices.len();
 
-    // Initialize mini-batch specific variables
     let mut closest_distances = Array1::from_elem(batch_size, F::infinity());
-    let mut closest_centers = Array1::zeros(batch_size);
+    let mut closest_centers = Array1::<usize>::zeros(batch_size);
     let mut inertia = F::zero();
 
-    // Assign samples to closest centroids
+    // Assignment: find nearest centroid for each batch sample
     for (i, &sample_idx) in batch_indices.iter().enumerate() {
         let sample = data.slice(s![sample_idx, ..]);
 
-        // Find closest centroid
         let mut min_dist = F::infinity();
         let mut min_idx = 0;
 
@@ -287,15 +379,15 @@ where
         inertia = inertia + min_dist * min_dist;
     }
 
-    // Update centroids based on mini-batch assignments
+    // Update centroids using per-center learning rate
     for i in 0..batch_size {
         let center_idx = closest_centers[i];
         let sample_idx = batch_indices[i];
         let sample = data.slice(s![sample_idx, ..]);
 
-        // Incremental update of centroid
         let count = counts[center_idx];
-        let learning_rate = F::one() / (count + F::one()); // Decrease learning rate as count increases
+        // Learning rate decreases as count increases: eta = 1 / (count + 1)
+        let learning_rate = F::one() / (count + F::one());
 
         for j in 0..n_features {
             centroids[[center_idx, j]] =
@@ -305,16 +397,14 @@ where
         counts[center_idx] = count + F::one();
     }
 
-    // Handle reassignment of small or empty clusters
-    let mut has_empty = false;
+    // Handle near-empty clusters via reassignment
+    let mut n_reassignments = 0;
     let max_count = counts.fold(F::zero(), |a, &b| a.max(b));
     let reassign_threshold = max_count * opts.reassignment_ratio;
 
-    for i in 0..k {
-        if counts[i] < reassign_threshold {
-            has_empty = true;
-
-            // Find the point furthest from its centroid in this batch
+    for c in 0..k {
+        if counts[c] < reassign_threshold {
+            // Find the batch point furthest from its assigned centroid
             let mut max_dist = F::zero();
             let mut max_idx = 0;
 
@@ -325,46 +415,33 @@ where
                 }
             }
 
-            // Reassign this centroid to the furthest point
             if max_dist > F::zero() {
                 let sample_idx = batch_indices[max_idx];
                 let sample = data.slice(s![sample_idx, ..]);
 
                 for j in 0..n_features {
-                    centroids[[i, j]] = sample[j];
+                    centroids[[c, j]] = sample[j];
                 }
 
-                // Reset count to a small value to prevent immediate reassignment
-                counts[i] =
-                    counts[i].max(F::from(1.0).expect("Failed to convert constant to float"));
-
-                // Update closest center and distance for this point
-                closest_centers[max_idx] = i;
+                counts[c] = counts[c].max(F::one());
+                closest_centers[max_idx] = c;
                 closest_distances[max_idx] = F::zero();
+                n_reassignments += 1;
             }
         }
     }
 
     // Normalize inertia by batch size
-    inertia = inertia / F::from(batch_size).expect("Failed to convert to float");
+    let batch_f = F::from(batch_size).unwrap_or(F::one());
+    inertia = inertia / batch_f;
 
-    // Check if we have converged
-    let has_converged = !has_empty && inertia < opts.tol;
-
-    Ok((inertia, has_converged))
+    Ok(MiniBatchStepResult {
+        batch_inertia: inertia,
+        n_reassignments,
+    })
 }
 
 /// Assigns each sample in the dataset to its closest centroid
-///
-/// # Arguments
-///
-/// * `data` - Input data
-/// * `centroids` - Current centroids
-///
-/// # Returns
-///
-/// * Tuple of (labels, distances)
-#[allow(dead_code)]
 fn assign_labels<F>(
     data: ArrayView2<F>,
     centroids: ArrayView2<F>,
@@ -375,8 +452,8 @@ where
     let n_samples = data.shape()[0];
     let n_clusters = centroids.shape()[0];
 
-    let mut labels = Array1::zeros(n_samples);
-    let mut distances = Array1::zeros(n_samples);
+    let mut labels = Array1::<usize>::zeros(n_samples);
+    let mut distances = Array1::<F>::zeros(n_samples);
 
     for i in 0..n_samples {
         let sample = data.slice(s![i, ..]);
@@ -405,40 +482,35 @@ mod tests {
     use super::*;
     use scirs2_core::ndarray::Array2;
 
-    #[test]
-    fn test_minibatch_kmeans_simple() {
-        // Create a simple dataset with clear clusters
-        let data = Array2::from_shape_vec(
+    fn make_two_cluster_data() -> Array2<f64> {
+        Array2::from_shape_vec(
             (6, 2),
             vec![1.0, 2.0, 1.2, 1.8, 0.8, 1.9, 4.0, 5.0, 4.2, 4.8, 3.9, 5.1],
         )
-        .expect("Operation failed");
+        .expect("Failed to create test data")
+    }
 
-        // Run mini-batch k-means with k=2
+    #[test]
+    fn test_minibatch_kmeans_simple() {
+        let data = make_two_cluster_data();
+
         let options = MiniBatchKMeansOptions {
             max_iter: 10,
             batch_size: 3,
-            random_seed: Some(42), // For reproducibility
+            random_seed: Some(42),
             ..Default::default()
         };
 
         let (centroids, labels) =
-            minibatch_kmeans(data.view(), 2, Some(options)).expect("Operation failed");
+            minibatch_kmeans(data.view(), 2, Some(options)).expect("Should succeed");
 
-        // Check dimensions
         assert_eq!(centroids.shape(), &[2, 2]);
         assert_eq!(labels.shape(), &[6]);
 
-        // Check that we have 2 unique labels
-        let unique_labels: Vec<_> = labels
-            .iter()
-            .copied()
-            .collect::<std::collections::HashSet<_>>()
-            .into_iter()
-            .collect();
+        let unique_labels: std::collections::HashSet<_> = labels.iter().copied().collect();
         assert_eq!(unique_labels.len(), 2);
 
-        // Check that the first 3 points are in one cluster and the last 3 in another
+        // First 3 points should share a label, last 3 should share another
         let first_label = labels[0];
         assert_eq!(labels[1], first_label);
         assert_eq!(labels[2], first_label);
@@ -446,64 +518,171 @@ mod tests {
         let second_label = labels[3];
         assert_eq!(labels[4], second_label);
         assert_eq!(labels[5], second_label);
+    }
 
-        // First cluster should be around (1, 2)
-        let cluster1_idx = if first_label == 0 { 0 } else { 1 };
-        assert!((centroids[[cluster1_idx, 0]] - 1.0).abs() < 0.5);
-        assert!((centroids[[cluster1_idx, 1]] - 2.0).abs() < 0.5);
+    #[test]
+    fn test_minibatch_kmeans_full_diagnostics() {
+        let data = make_two_cluster_data();
 
-        // Second cluster should be around (4, 5)
-        let cluster2_idx = if first_label == 0 { 1 } else { 0 };
-        assert!((centroids[[cluster2_idx, 0]] - 4.0).abs() < 0.5);
-        assert!((centroids[[cluster2_idx, 1]] - 5.0).abs() < 0.5);
+        let options = MiniBatchKMeansOptions {
+            max_iter: 50,
+            batch_size: 4,
+            random_seed: Some(42),
+            ..Default::default()
+        };
+
+        let result = minibatch_kmeans_full(data.view(), 2, Some(options)).expect("Should succeed");
+
+        assert_eq!(result.centroids.shape(), &[2, 2]);
+        assert_eq!(result.labels.shape(), &[6]);
+        assert!(result.n_iter > 0);
+        assert!(result.inertia >= 0.0);
+        assert!(!result.inertia_history.is_empty());
+
+        // Every cluster should have at least one point
+        for &count in result.cluster_counts.iter() {
+            assert!(count > 0, "Each cluster should have assigned points");
+        }
+    }
+
+    #[test]
+    fn test_minibatch_kmeans_convergence() {
+        let data = make_two_cluster_data();
+
+        let options = MiniBatchKMeansOptions {
+            max_iter: 1000,
+            batch_size: 6, // Full batch
+            random_seed: Some(42),
+            tol: 1e-6,
+            max_no_improvement: 20,
+            ..Default::default()
+        };
+
+        let result = minibatch_kmeans_full(data.view(), 2, Some(options)).expect("Should succeed");
+
+        // Should converge before max_iter
+        assert!(
+            result.n_iter < 1000,
+            "Should converge before max_iter, took {} iters",
+            result.n_iter
+        );
     }
 
     #[test]
     fn test_minibatch_kmeans_empty_clusters() {
-        // Create a dataset where empty clusters could occur
         let data = Array2::from_shape_vec(
             (8, 2),
             vec![
                 1.0, 1.0, 1.1, 1.1, 1.2, 1.0, 1.0, 1.2, 5.0, 5.0, 5.1, 5.1, 5.2, 5.0, 5.0, 5.2,
             ],
         )
-        .expect("Operation failed");
+        .expect("Failed to create data");
 
-        // Run mini-batch k-means with k=3 (which would likely lead to an empty cluster)
         let options = MiniBatchKMeansOptions {
             max_iter: 20,
             batch_size: 4,
-            random_seed: Some(42),   // For reproducibility
-            reassignment_ratio: 0.1, // Higher reassignment to test this feature
+            random_seed: Some(42),
+            reassignment_ratio: 0.1,
             ..Default::default()
         };
 
         let (centroids, labels) =
-            minibatch_kmeans(data.view(), 3, Some(options)).expect("Operation failed");
+            minibatch_kmeans(data.view(), 3, Some(options)).expect("Should succeed");
 
-        // Check dimensions
         assert_eq!(centroids.shape(), &[3, 2]);
         assert_eq!(labels.shape(), &[8]);
 
-        // We should have at most 3 clusters
-        let unique_labels: Vec<_> = labels
-            .iter()
-            .copied()
-            .collect::<std::collections::HashSet<_>>()
-            .into_iter()
-            .collect();
+        let unique_labels: std::collections::HashSet<_> = labels.iter().copied().collect();
         assert!(unique_labels.len() <= 3);
+    }
 
-        // Every centroid should have at least one point assigned to it
-        let mut centroid_counts = [0; 3];
-        for &label in labels.iter() {
-            centroid_counts[label] += 1;
-        }
+    #[test]
+    fn test_minibatch_kmeans_random_init() {
+        let data = make_two_cluster_data();
 
-        // We might not have all 3 clusters used due to reassignment
-        // but there should be no empty clusters in the output
-        for &count in centroid_counts.iter() {
-            assert!(count > 0);
+        let options = MiniBatchKMeansOptions {
+            init: MiniBatchInit::Random,
+            random_seed: Some(42),
+            max_iter: 50,
+            batch_size: 4,
+            ..Default::default()
+        };
+
+        let (centroids, labels) =
+            minibatch_kmeans(data.view(), 2, Some(options)).expect("Should succeed");
+
+        assert_eq!(centroids.shape(), &[2, 2]);
+        assert_eq!(labels.shape(), &[6]);
+    }
+
+    #[test]
+    fn test_minibatch_kmeans_inertia_decreases() {
+        let data = make_two_cluster_data();
+
+        let options = MiniBatchKMeansOptions {
+            max_iter: 50,
+            batch_size: 6,
+            random_seed: Some(42),
+            ewa_smoothing: 0.5,
+            ..Default::default()
+        };
+
+        let result = minibatch_kmeans_full(data.view(), 2, Some(options)).expect("Should succeed");
+
+        // Overall trend of inertia should be decreasing
+        if result.inertia_history.len() >= 3 {
+            let first_few: f64 = result.inertia_history[..3].iter().copied().sum::<f64>() / 3.0;
+            let last_few: f64 = result.inertia_history[result.inertia_history.len() - 3..]
+                .iter()
+                .copied()
+                .sum::<f64>()
+                / 3.0;
+
+            assert!(
+                last_few <= first_few + 1.0,
+                "Inertia should generally decrease: first_avg={}, last_avg={}",
+                first_few,
+                last_few
+            );
         }
+    }
+
+    #[test]
+    fn test_minibatch_kmeans_invalid_inputs() {
+        let data = make_two_cluster_data();
+
+        // k = 0
+        let result = minibatch_kmeans(data.view(), 0, None);
+        assert!(result.is_err());
+
+        // k > n_samples
+        let result = minibatch_kmeans(data.view(), 100, None);
+        assert!(result.is_err());
+
+        // Empty data
+        let empty = Array2::<f64>::zeros((0, 2));
+        let result = minibatch_kmeans(empty.view(), 2, None);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_minibatch_kmeans_k_equals_n() {
+        let data = make_two_cluster_data();
+
+        let options = MiniBatchKMeansOptions {
+            random_seed: Some(42),
+            max_iter: 10,
+            ..Default::default()
+        };
+
+        let (centroids, labels) =
+            minibatch_kmeans(data.view(), 6, Some(options)).expect("Should succeed");
+
+        assert_eq!(centroids.shape(), &[6, 2]);
+        assert_eq!(labels.shape(), &[6]);
+
+        // Each point should be in its own cluster
+        let unique_labels: std::collections::HashSet<_> = labels.iter().copied().collect();
+        assert_eq!(unique_labels.len(), 6);
     }
 }

@@ -1,6 +1,6 @@
 # SciRS2 Comprehensive API Reference
 
-[![Version](https://img.shields.io/badge/version-0.1.0-orange.svg)]()
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)]()
 [![Status](https://img.shields.io/badge/status-production--ready-green.svg)]()
 
 Welcome to the comprehensive API reference for the SciRS2 scientific computing ecosystem. This guide provides detailed information about all modules, their APIs, and how they integrate together.
@@ -691,4 +691,4 @@ use scirs2_neural::prelude::*;
 
 **This API reference is actively maintained and updated with each release. For the latest information, see the individual module documentation and the [SciRS2 main repository](https://github.com/cool-japan/scirs).**
 
-*Generated for SciRS2 v0.1.5 | Last updated: 2025-09-29*
+*Generated for SciRS2 v0.3.0 | Last updated: 2026-03-05*

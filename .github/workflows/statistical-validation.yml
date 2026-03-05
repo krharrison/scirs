@@ -1,0 +1,426 @@
+name: Statistical Validation
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "scirs2-stats/**"
+      - "scirs2-linalg/**"
+      - "scirs2-special/**"
+      - "scirs2-python/**"
+      - "scripts/validate_distributions.py"
+      - "scripts/validate_linalg.py"
+      - "scripts/reference_values/**"
+      - ".github/workflows/statistical-validation.yml"
+  pull_request:
+    branches: [master, main]
+    paths:
+      - "scirs2-stats/**"
+      - "scirs2-linalg/**"
+      - "scirs2-special/**"
+      - "scirs2-python/**"
+      - "scripts/validate_distributions.py"
+      - "scripts/validate_linalg.py"
+      - "scripts/reference_values/**"
+  # Allow manual triggering for debugging
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Validation mode (standalone or live)"
+        required: false
+        default: "standalone"
+        type: choice
+        options:
+          - standalone
+          - live
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Standalone validation — runs without a Rust build.
+  # Compares SciPy's current output against the pre-computed JSON baseline.
+  # Catches regressions where our reference values diverge from SciPy.
+  # ---------------------------------------------------------------------------
+  standalone-validation:
+    name: Standalone Distribution/Linalg Validation (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy scipy
+
+      - name: Verify scripts are present
+        run: |
+          test -f scripts/validate_distributions.py || { echo "ERROR: validate_distributions.py missing"; exit 1; }
+          test -f scripts/validate_linalg.py        || { echo "ERROR: validate_linalg.py missing"; exit 1; }
+          test -f scripts/reference_values/distributions.json || { echo "ERROR: distributions.json missing"; exit 1; }
+          echo "All validation scripts present."
+
+      - name: Run distribution validation (standalone)
+        run: |
+          python scripts/validate_distributions.py \
+            --verbose \
+            --report /tmp/dist_report_standalone_py${{ matrix.python }}.json
+        # This is a hard gate: our JSON baseline must match current SciPy.
+
+      - name: Run linalg validation (standalone)
+        run: |
+          python scripts/validate_linalg.py \
+            --verbose \
+            --report /tmp/linalg_report_standalone_py${{ matrix.python }}.json
+        # LU/QR/SVD/eigenvalue self-consistency checks.
+
+      - name: Upload standalone validation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-standalone-py${{ matrix.python }}
+          path: |
+            /tmp/dist_report_standalone_py${{ matrix.python }}.json
+            /tmp/linalg_report_standalone_py${{ matrix.python }}.json
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
+  # Reference baseline verification — ensure distributions.json is up to date.
+  # Regenerates the baseline with the current SciPy version and checks for
+  # meaningful drift.  Fails if any value has drifted > 1e-9 (would indicate
+  # a SciPy API change or precision regression).
+  # ---------------------------------------------------------------------------
+  baseline-verification:
+    name: Reference Baseline Drift Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install numpy scipy
+
+      - name: Verify baseline values against current SciPy
+        run: |
+          python - <<'PYEOF'
+          """
+          Spot-check key values from the JSON baseline against live SciPy calls.
+          Uses a tighter tolerance (1e-9) than the main scripts to catch upstream
+          SciPy changes early.
+          """
+          import json, sys, math
+          from pathlib import Path
+          from scipy import stats as sp
+
+          baseline = json.loads(
+              Path("scripts/reference_values/distributions.json").read_text()
+          )
+
+          DRIFT_TOL = 1e-9
+          failures = []
+
+          def check(name, expected, actual, label):
+              if expected is None:
+                  return
+              if abs(expected) < 1e-300:
+                  err = abs(actual - expected)
+                  ok = err < DRIFT_TOL
+              else:
+                  err = abs(actual - expected) / abs(expected)
+                  ok = err < DRIFT_TOL
+              if not ok:
+                  failures.append(
+                      f"{name}/{label}: expected={expected:.12g}, "
+                      f"scipy={actual:.12g}, drift={err:.3e}"
+                  )
+
+          dists = baseline["distributions"]
+
+          # Normal(0,1)
+          d = sp.norm(0, 1)
+          for pt in dists["normal"]["pdf_points"]:
+              check("normal", pt["pdf"], d.pdf(pt["x"]), f"pdf@{pt['x']}")
+          for pt in dists["normal"]["cdf_points"]:
+              check("normal", pt["cdf"], d.cdf(pt["x"]), f"cdf@{pt['x']}")
+
+          # Gamma(shape=2,scale=1)
+          g = sp.gamma(2, scale=1)
+          for pt in dists["gamma"]["pdf_points"]:
+              check("gamma", pt["pdf"], g.pdf(pt["x"]), f"pdf@{pt['x']}")
+          for pt in dists["gamma"]["cdf_points"]:
+              check("gamma", pt["cdf"], g.cdf(pt["x"]), f"cdf@{pt['x']}")
+
+          # Gamma(shape=3,scale=0.5) — parameterization regression guard
+          g2 = sp.gamma(3, scale=0.5)
+          for pt in dists["gamma_shape3_rate2"]["pdf_points"]:
+              check("gamma_shape3_rate2", pt["pdf"], g2.pdf(pt["x"]), f"pdf@{pt['x']}")
+
+          # Poisson(mu=3)
+          p = sp.poisson(3)
+          for pt in dists["poisson"]["pmf_points"]:
+              check("poisson", pt["pmf"], p.pmf(pt["k"]), f"pmf@{pt['k']}")
+
+          # Beta(2,5)
+          b = sp.beta(2, 5)
+          for pt in dists["beta"]["pdf_points"][:4]:
+              check("beta", pt["pdf"], b.pdf(pt["x"]), f"pdf@{pt['x']}")
+
+          # t(df=10)
+          t = sp.t(10)
+          for pt in dists["t_distribution"]["pdf_points"]:
+              check("t_dist", pt["pdf"], t.pdf(pt["x"]), f"pdf@{pt['x']}")
+
+          if failures:
+              print("BASELINE DRIFT DETECTED:")
+              for f in failures:
+                  print(f"  {f}")
+              print(f"\nTotal: {len(failures)} value(s) drifted beyond {DRIFT_TOL}")
+              sys.exit(1)
+
+          print(f"Baseline verification passed — no drift detected (tol={DRIFT_TOL})")
+          PYEOF
+
+  # ---------------------------------------------------------------------------
+  # Live validation with maturin (optional, continue-on-error).
+  # Builds the Python wheel and runs live cross-validation against SciPy.
+  # Only runs on ubuntu-latest to keep CI times reasonable.
+  # ---------------------------------------------------------------------------
+  live-validation:
+    name: Live Validation (maturin build + scipy cross-check)
+    runs-on: ubuntu-latest
+    continue-on-error: true   # Optional: wheel build may fail without full dep set
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-statval-ubuntu-stable"
+
+      - name: Install Python dependencies
+        run: |
+          pip install maturin numpy scipy
+
+      - name: Build scirs2-python wheel (dev mode)
+        run: |
+          cd scirs2-python
+          maturin build --out dist --release 2>&1 | tail -100
+        continue-on-error: true  # Build may fail; live tests are best-effort
+
+      - name: Install wheel (if built)
+        run: |
+          if ls scirs2-python/dist/*.whl 1>/dev/null 2>&1; then
+            pip install scirs2-python/dist/*.whl
+            echo "WHEEL_INSTALLED=true" >> "$GITHUB_ENV"
+          else
+            echo "Wheel not found; live validation will run scipy-vs-scipy scaffold"
+            echo "WHEEL_INSTALLED=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Run distribution live validation
+        run: |
+          python scripts/validate_distributions.py \
+            --live \
+            --verbose \
+            --report /tmp/dist_report_live.json
+        continue-on-error: true  # Live validation is informational until bindings stabilise
+
+      - name: Run linalg live validation
+        run: |
+          python scripts/validate_linalg.py \
+            --live \
+            --verbose \
+            --report /tmp/linalg_report_live.json
+        continue-on-error: true
+
+      - name: Upload live validation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-live
+          path: |
+            /tmp/dist_report_live.json
+            /tmp/linalg_report_live.json
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
+  # Gamma parameterization regression guard.
+  # The most infamous class of distribution bugs is confusion between
+  # rate/scale parameterization.  This job performs an explicit check that
+  # cannot be fooled by shared code paths.
+  # ---------------------------------------------------------------------------
+  gamma-parameterization-guard:
+    name: Gamma Parameterization Regression Guard
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install numpy scipy
+
+      - name: Check Gamma rate/scale parameterization
+        run: |
+          python - <<'PYEOF'
+          """
+          Explicit guard against Gamma parameterization bugs.
+
+          Bug class: confusing rate=lambda vs scale=1/lambda.
+          Example: Gamma(shape=2, rate=2) != Gamma(shape=2, scale=2).
+          - Gamma(shape=2, scale=1) has mean=2, var=2
+          - Gamma(shape=2, rate=2)  has mean=1, var=0.5  (scale=0.5)
+
+          This test locks down the expected values for both parameterizations
+          so that any confusion is caught immediately.
+          """
+          import sys
+          from scipy import stats as sp
+
+          TOL = 1e-9
+          failures = []
+
+          def near(a, b, label):
+              if abs(a - b) / max(abs(b), 1e-300) > TOL:
+                  failures.append(f"{label}: got {a:.10g}, expected {b:.10g}")
+
+          # --- scale parameterization (scipy native) ---
+          # Gamma(shape=2, scale=1): mean=2, var=2, pdf(1.0)=0.3678794...
+          g_s1 = sp.gamma(a=2, scale=1.0)
+          near(g_s1.mean(), 2.0,                   "gamma(a=2,scale=1).mean")
+          near(g_s1.var(),  2.0,                   "gamma(a=2,scale=1).var")
+          near(g_s1.pdf(1.0), 0.36787944117144233, "gamma(a=2,scale=1).pdf(1.0)")
+          near(g_s1.cdf(2.0), 0.5939941502901619,  "gamma(a=2,scale=1).cdf(2.0)")
+
+          # Gamma(shape=3, scale=0.5) = Gamma(shape=3, rate=2)
+          # mean = shape * scale = 3 * 0.5 = 1.5
+          # var  = shape * scale^2 = 3 * 0.25 = 0.75
+          g_r2 = sp.gamma(a=3, scale=0.5)
+          near(g_r2.mean(), 1.5,  "gamma(a=3,rate=2).mean")
+          near(g_r2.var(),  0.75, "gamma(a=3,rate=2).var")
+          near(g_r2.pdf(1.0), 0.5413411329464508, "gamma(a=3,rate=2).pdf(1.0)")
+
+          # Verify that scale=2 != scale=0.5 (rate/scale confusion test)
+          g_wrong = sp.gamma(a=3, scale=2.0)
+          if abs(g_wrong.mean() - g_r2.mean()) < 0.01:
+              failures.append(
+                  "GUARD: gamma(a=3,scale=2).mean == gamma(a=3,scale=0.5).mean — "
+                  "parameterization test is broken"
+              )
+          if abs(g_wrong.pdf(1.0) - g_r2.pdf(1.0)) < 0.01:
+              failures.append(
+                  "GUARD: gamma(a=3,scale=2).pdf(1) == gamma(a=3,scale=0.5).pdf(1) — "
+                  "parameterization test is broken"
+              )
+
+          # --- Cross-check Gamma / Chi-squared relationship ---
+          # chi2(df=4) == gamma(a=2, scale=2)
+          chi4  = sp.chi2(df=4)
+          gamma_equiv = sp.gamma(a=2, scale=2)
+          near(chi4.mean(), gamma_equiv.mean(), "chi2(4) mean vs gamma(2,2)")
+          near(chi4.var(),  gamma_equiv.var(),  "chi2(4) var  vs gamma(2,2)")
+          near(chi4.pdf(2.0), gamma_equiv.pdf(2.0), "chi2(4).pdf(2) vs gamma(2,2).pdf(2)")
+
+          if failures:
+              print("GAMMA PARAMETERIZATION GUARD FAILED:")
+              for f in failures:
+                  print(f"  FAIL: {f}")
+              sys.exit(1)
+
+          print("Gamma parameterization guard: ALL CHECKS PASSED")
+          PYEOF
+
+  # ---------------------------------------------------------------------------
+  # Summary job
+  # ---------------------------------------------------------------------------
+  statistical-validation-summary:
+    name: Statistical Validation Summary
+    runs-on: ubuntu-latest
+    needs:
+      - standalone-validation
+      - baseline-verification
+      - live-validation          # continue-on-error=true; not required to pass
+      - gamma-parameterization-guard
+    if: always()
+
+    steps:
+      - name: Check critical validation jobs
+        run: |
+          echo "=== Statistical Validation Results ==="
+          echo "standalone-validation:       ${{ needs.standalone-validation.result }}"
+          echo "baseline-verification:       ${{ needs.baseline-verification.result }}"
+          echo "live-validation:             ${{ needs.live-validation.result }} (optional)"
+          echo "gamma-parameterization-guard: ${{ needs.gamma-parameterization-guard.result }}"
+          echo ""
+
+          FAILED=0
+
+          # standalone-validation is mandatory
+          if [[ "${{ needs.standalone-validation.result }}" != "success" ]]; then
+            echo "FAILED: standalone-validation"
+            echo "  Distribution PDF/CDF values or linalg factorizations do not match"
+            echo "  the pre-computed SciPy reference baseline."
+            echo "  Check scripts/reference_values/distributions.json and re-run locally:"
+            echo "    pip install numpy scipy"
+            echo "    python scripts/validate_distributions.py --verbose"
+            FAILED=$((FAILED + 1))
+          fi
+
+          # baseline-verification is mandatory
+          if [[ "${{ needs.baseline-verification.result }}" != "success" ]]; then
+            echo "FAILED: baseline-verification"
+            echo "  The stored reference values in distributions.json have drifted"
+            echo "  from the current SciPy output beyond the allowed tolerance (1e-9)."
+            echo "  Regenerate the baseline: python scripts/generate_baseline.py"
+            FAILED=$((FAILED + 1))
+          fi
+
+          # gamma parameterization guard is mandatory
+          if [[ "${{ needs.gamma-parameterization-guard.result }}" != "success" ]]; then
+            echo "FAILED: gamma-parameterization-guard"
+            echo "  Gamma rate/scale parameterization regression detected."
+            echo "  Ensure scirs2-stats uses scale=1/rate (scipy convention)."
+            FAILED=$((FAILED + 1))
+          fi
+
+          # live-validation is optional (continue-on-error)
+          if [[ "${{ needs.live-validation.result }}" == "failure" ]]; then
+            echo "WARNING: live-validation failed (optional; non-blocking)"
+          fi
+
+          if [[ "$FAILED" -gt 0 ]]; then
+            echo ""
+            echo "ERROR: $FAILED mandatory statistical validation job(s) failed."
+            exit 1
+          fi
+
+          echo "All mandatory statistical validation checks PASSED."

@@ -1249,3 +1249,675 @@ where
 
     Ok(std_errors)
 }
+
+// ===========================================================================
+// Least Trimmed Squares (LTS) regression
+// ===========================================================================
+
+/// Results for Least Trimmed Squares regression.
+pub struct LtsResult<F>
+where
+    F: Float + std::fmt::Debug + std::fmt::Display + 'static,
+{
+    /// Estimated coefficients (intercept first if fit_intercept)
+    pub coefficients: Array1<F>,
+    /// Boolean mask indicating inliers used in the final fit
+    pub inlier_mask: Vec<bool>,
+    /// Number of observations used (h)
+    pub n_support: usize,
+    /// Trimmed sum of squared residuals (objective)
+    pub trimmed_sse: F,
+    /// R-squared of the final fit on inliers
+    pub r_squared: F,
+    /// Residuals for all observations
+    pub residuals: Array1<F>,
+}
+
+/// Perform Least Trimmed Squares (LTS) regression.
+///
+/// LTS regression (Rousseeuw 1984) minimises the sum of the h smallest
+/// squared residuals, where `h = floor(n*(1-trim_fraction)) + 1`. This
+/// provides a high breakdown point estimator that can resist up to nearly
+/// 50 % of outliers.
+///
+/// The algorithm uses the FAST-LTS approach: many random subsets of size
+/// `p+1` are drawn, each is used to seed a C-step concentration, and the
+/// best result (smallest trimmed SSE) is kept.
+///
+/// # Arguments
+///
+/// * `x` - Design matrix (n x p). Pass a single-column matrix for simple regression.
+/// * `y` - Response vector (length n)
+/// * `trim_fraction` - Fraction of observations to trim (default 0.25, i.e. keep 75 %)
+/// * `n_trials` - Number of random initial subsets (default 500)
+/// * `max_c_steps` - Maximum C-steps per trial (default 10)
+/// * `random_seed` - Optional seed for reproducibility
+///
+/// # Returns
+///
+/// An `LtsResult` with coefficients, inlier mask, and fit statistics.
+///
+/// # Examples
+///
+/// ```
+/// use scirs2_core::ndarray::{array, Array2};
+/// use scirs2_stats::regression::robust::lts_regression;
+///
+/// let x = Array2::from_shape_vec((10, 1), vec![
+///     1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0
+/// ]).expect("shape");
+/// let y = array![2.1, 4.0, 5.9, 8.1, 10.0, 12.0, 14.0, 16.1, 18.0, 50.0];
+/// let result = lts_regression(&x.view(), &y.view(), None, None, None, Some(42))
+///     .expect("LTS failed");
+/// // Slope should be close to 2.0 (y ≈ 2x), and the last point is an outlier
+/// assert!((result.coefficients[1] - 2.0).abs() < 0.5);
+/// assert!(!result.inlier_mask[9]); // outlier excluded
+/// ```
+#[allow(clippy::too_many_arguments)]
+pub fn lts_regression<F>(
+    x: &ArrayView2<F>,
+    y: &ArrayView1<F>,
+    trim_fraction: Option<f64>,
+    n_trials: Option<usize>,
+    max_c_steps: Option<usize>,
+    random_seed: Option<u64>,
+) -> StatsResult<LtsResult<F>>
+where
+    F: Float
+        + std::iter::Sum<F>
+        + std::ops::Div<Output = F>
+        + std::fmt::Debug
+        + std::fmt::Display
+        + 'static
+        + scirs2_core::numeric::NumAssign
+        + scirs2_core::numeric::One
+        + scirs2_core::ndarray::ScalarOperand
+        + Send
+        + Sync,
+{
+    use scirs2_core::random::SliceRandom;
+
+    let n = x.nrows();
+    let p_feat = x.ncols();
+    if n != y.len() {
+        return Err(StatsError::DimensionMismatch(format!(
+            "x has {} rows but y has length {}",
+            n,
+            y.len()
+        )));
+    }
+
+    let trim_frac = trim_fraction.unwrap_or(0.25);
+    if trim_frac < 0.0 || trim_frac >= 0.5 {
+        return Err(StatsError::InvalidArgument(
+            "trim_fraction must be in [0, 0.5)".to_string(),
+        ));
+    }
+
+    // h = number of observations to keep
+    let h = ((n as f64) * (1.0 - trim_frac)).floor() as usize + 1;
+    let h = h.min(n);
+    let p = p_feat + 1; // +1 for intercept
+
+    if h < p {
+        return Err(StatsError::InvalidArgument(format!(
+            "Not enough observations to keep (h={}) for {} parameters",
+            h, p
+        )));
+    }
+    if n < p + 1 {
+        return Err(StatsError::InvalidArgument(
+            "Need at least p+2 observations for LTS".to_string(),
+        ));
+    }
+
+    let n_trials = n_trials.unwrap_or(500.min(n * 10));
+    let max_c_steps = max_c_steps.unwrap_or(10);
+
+    // Build design matrix with intercept
+    let x_design = add_intercept(x);
+
+    // RNG
+    use scirs2_core::random::Random;
+    let mut rng = if let Some(seed) = random_seed {
+        Random::seed(seed)
+    } else {
+        use scirs2_core::random::Rng;
+        let mut temp = scirs2_core::random::thread_rng();
+        Random::seed(temp.random())
+    };
+
+    let mut best_sse = F::infinity();
+    let mut best_inlier_mask = vec![false; n];
+    let mut best_coeffs = Array1::<F>::zeros(p);
+
+    let mut indices: Vec<usize> = (0..n).collect();
+
+    for _trial in 0..n_trials {
+        // Draw random subset of size p
+        indices.shuffle(&mut rng);
+        let subset = &indices[..p];
+
+        // Fit to subset
+        let sub_x = Array2::from_shape_fn((p, p), |(i, j)| x_design[[subset[i], j]]);
+        let sub_y = Array1::from_shape_fn(p, |i| y[subset[i]]);
+
+        let coeffs = match lstsq(&sub_x.view(), &sub_y.view(), None) {
+            Ok(res) => res.x,
+            Err(_) => continue,
+        };
+
+        // C-step concentration
+        let (final_coeffs, final_mask, final_sse) =
+            lts_c_steps(&x_design, y, &coeffs, h, max_c_steps)?;
+
+        if final_sse < best_sse {
+            best_sse = final_sse;
+            best_inlier_mask = final_mask;
+            best_coeffs = final_coeffs;
+        }
+    }
+
+    if best_sse.is_infinite() {
+        return Err(StatsError::ComputationError(
+            "LTS could not find a valid fit".to_string(),
+        ));
+    }
+
+    // Compute residuals for all observations
+    let fitted = x_design.dot(&best_coeffs);
+    let residuals = y.to_owned() - &fitted;
+
+    // R-squared on inliers
+    let inlier_y_sum = best_inlier_mask
+        .iter()
+        .enumerate()
+        .filter(|(_, &m)| m)
+        .map(|(i, _)| y[i])
+        .sum::<F>();
+    let h_f = F::from(h).unwrap_or_else(|| F::one());
+    let inlier_y_mean = inlier_y_sum / h_f;
+
+    let ss_tot: F = best_inlier_mask
+        .iter()
+        .enumerate()
+        .filter(|(_, &m)| m)
+        .map(|(i, _)| float_powi(y[i] - inlier_y_mean, 2))
+        .sum();
+    let ss_res: F = best_inlier_mask
+        .iter()
+        .enumerate()
+        .filter(|(_, &m)| m)
+        .map(|(i, _)| float_powi(residuals[i], 2))
+        .sum();
+
+    let r_squared = if ss_tot > F::epsilon() {
+        F::one() - ss_res / ss_tot
+    } else {
+        F::one()
+    };
+
+    Ok(LtsResult {
+        coefficients: best_coeffs,
+        inlier_mask: best_inlier_mask,
+        n_support: h,
+        trimmed_sse: best_sse,
+        r_squared,
+        residuals,
+    })
+}
+
+/// Perform C-steps for LTS concentration starting from initial coefficients.
+fn lts_c_steps<F>(
+    x_design: &Array2<F>,
+    y: &ArrayView1<F>,
+    initial_coeffs: &Array1<F>,
+    h: usize,
+    max_steps: usize,
+) -> StatsResult<(Array1<F>, Vec<bool>, F)>
+where
+    F: Float
+        + std::iter::Sum<F>
+        + std::ops::Div<Output = F>
+        + std::fmt::Debug
+        + std::fmt::Display
+        + 'static
+        + scirs2_core::numeric::NumAssign
+        + scirs2_core::numeric::One
+        + scirs2_core::ndarray::ScalarOperand
+        + Send
+        + Sync,
+{
+    let n = x_design.nrows();
+    let mut coeffs = initial_coeffs.clone();
+    let mut prev_sse = F::infinity();
+
+    for _step in 0..max_steps {
+        // Compute residuals
+        let fitted = x_design.dot(&coeffs);
+        let residuals: Vec<(F, usize)> = (0..n)
+            .map(|i| (float_powi(y[i] - fitted[i], 2), i))
+            .collect();
+
+        // Sort by squared residual and keep the h smallest
+        let mut sorted_res = residuals;
+        sorted_res.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+
+        let inlier_indices: Vec<usize> = sorted_res[..h].iter().map(|&(_, idx)| idx).collect();
+        let trimmed_sse: F = sorted_res[..h].iter().map(|&(sq, _)| sq).sum();
+
+        // Check convergence
+        let diff = float_abs(prev_sse - trimmed_sse);
+        if diff < F::epsilon() {
+            let mut mask = vec![false; n];
+            for &idx in &inlier_indices {
+                mask[idx] = true;
+            }
+            return Ok((coeffs, mask, trimmed_sse));
+        }
+        prev_sse = trimmed_sse;
+
+        // Refit on inliers
+        let sub_x = Array2::from_shape_fn((h, x_design.ncols()), |(i, j)| {
+            x_design[[inlier_indices[i], j]]
+        });
+        let sub_y = Array1::from_shape_fn(h, |i| y[inlier_indices[i]]);
+
+        coeffs = match lstsq(&sub_x.view(), &sub_y.view(), None) {
+            Ok(res) => res.x,
+            Err(_) => {
+                let mut mask = vec![false; n];
+                for &idx in &inlier_indices {
+                    mask[idx] = true;
+                }
+                return Ok((coeffs, mask, trimmed_sse));
+            }
+        };
+    }
+
+    // Final pass
+    let fitted = x_design.dot(&coeffs);
+    let mut residuals: Vec<(F, usize)> = (0..n)
+        .map(|i| (float_powi(y[i] - fitted[i], 2), i))
+        .collect();
+    residuals.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+
+    let trimmed_sse: F = residuals[..h].iter().map(|&(sq, _)| sq).sum();
+    let mut mask = vec![false; n];
+    for &(_, idx) in residuals[..h].iter() {
+        mask[idx] = true;
+    }
+
+    Ok((coeffs, mask, trimmed_sse))
+}
+
+// ===========================================================================
+// Tukey bisquare (biweight) M-estimator regression
+// ===========================================================================
+
+/// Perform robust regression using Tukey's bisquare (biweight) weight function.
+///
+/// This uses IRLS with the bisquare weight function, which gives zero weight
+/// to observations with large residuals. This provides a high breakdown point
+/// estimator. The default tuning constant `c = 4.685` gives 95 % efficiency
+/// at the normal model.
+///
+/// # Arguments
+///
+/// * `x` - Design matrix (n x p)
+/// * `y` - Response vector (length n)
+/// * `c` - Tuning constant (default 4.685)
+/// * `fit_intercept` - Whether to include an intercept (default true)
+/// * `max_iter` - Maximum IRLS iterations (default 50)
+/// * `tol` - Convergence tolerance (default 1e-6)
+///
+/// # Returns
+///
+/// A `RegressionResults` struct with the robust regression results.
+///
+/// # Examples
+///
+/// ```
+/// use scirs2_core::ndarray::{array, Array2};
+/// use scirs2_stats::regression::robust::bisquare_regression;
+///
+/// let x = Array2::from_shape_vec((10, 1), vec![
+///     1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0,
+/// ]).expect("shape");
+/// let y = array![2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 50.0];
+/// let result = bisquare_regression(&x.view(), &y.view(), None, None, None, None)
+///     .expect("bisquare regression failed");
+/// assert_eq!(result.coefficients.len(), 2);
+/// // Slope should be close to 2
+/// assert!((result.coefficients[1] - 2.0).abs() < 0.5);
+/// ```
+#[allow(clippy::too_many_arguments)]
+pub fn bisquare_regression<F>(
+    x: &ArrayView2<F>,
+    y: &ArrayView1<F>,
+    c: Option<F>,
+    fit_intercept: Option<bool>,
+    max_iter: Option<usize>,
+    tol: Option<F>,
+) -> StatsResult<RegressionResults<F>>
+where
+    F: Float
+        + std::iter::Sum<F>
+        + std::ops::Div<Output = F>
+        + std::fmt::Debug
+        + std::fmt::Display
+        + 'static
+        + scirs2_core::numeric::NumAssign
+        + scirs2_core::numeric::One
+        + scirs2_core::ndarray::ScalarOperand
+        + Send
+        + Sync,
+{
+    if x.nrows() != y.len() {
+        return Err(StatsError::DimensionMismatch(format!(
+            "x has {} rows but y has length {}",
+            x.nrows(),
+            y.len()
+        )));
+    }
+
+    let n = x.nrows();
+    let fit_intercept = fit_intercept.unwrap_or(true);
+    let c = c.unwrap_or_else(|| F::from(4.685).expect("const"));
+    let max_iter = max_iter.unwrap_or(50);
+    let tol = tol.unwrap_or_else(|| F::from(1e-6).expect("const"));
+
+    let x_design = if fit_intercept {
+        add_intercept(x)
+    } else {
+        x.to_owned()
+    };
+    let p = x_design.ncols();
+
+    if n <= p {
+        return Err(StatsError::InvalidArgument(format!(
+            "Need more observations ({}) than parameters ({})",
+            n, p
+        )));
+    }
+
+    // Initial OLS estimate
+    let mut coefficients = fit_ols(&x_design.view(), y)?;
+    let mut residuals = y.to_owned() - &x_design.dot(&coefficients);
+
+    // IRLS with bisquare weights
+    for _ in 0..max_iter {
+        // Scale estimate from MAD of residuals
+        let sigma = {
+            let mad = median_abs_deviation_from_zero(&residuals.view());
+            mad / F::from(0.6745).expect("const")
+        };
+
+        if sigma <= F::epsilon() {
+            break;
+        }
+
+        // Compute bisquare weights
+        let mut weights = Array1::<F>::zeros(n);
+        for i in 0..n {
+            let u = residuals[i] / sigma;
+            let u_over_c = u / c;
+            let u2 = u_over_c * u_over_c;
+            if u2 < F::one() {
+                let one_minus_u2 = F::one() - u2;
+                weights[i] = one_minus_u2 * one_minus_u2;
+            }
+            // else weights[i] = 0 (already zero)
+        }
+
+        // Weighted least squares
+        let sqrt_w = weights.mapv(|w| scirs2_core::numeric::Float::sqrt(w));
+        let sqrt_w_col = sqrt_w.clone().insert_axis(scirs2_core::ndarray::Axis(1));
+        let xw = &x_design * &sqrt_w_col;
+        let yw = &y.to_owned() * &sqrt_w;
+
+        let new_coeffs = match lstsq(&xw.view(), &yw.view(), None) {
+            Ok(res) => res.x,
+            Err(_) => break,
+        };
+
+        let new_residuals = y - &x_design.dot(&new_coeffs);
+
+        // Check convergence
+        let coef_change = (&new_coeffs - &coefficients).mapv(float_abs).sum();
+        let coef_norm = coefficients.mapv(float_abs).sum();
+        let rel_change = if coef_norm > F::epsilon() {
+            coef_change / coef_norm
+        } else {
+            coef_change
+        };
+
+        coefficients = new_coeffs;
+        residuals = new_residuals;
+
+        if rel_change < tol {
+            break;
+        }
+    }
+
+    // Final statistics
+    let fitted_values = x_design.dot(&coefficients);
+    let df_residuals = n - p;
+
+    let y_mean = y.iter().cloned().sum::<F>() / F::from(n).expect("const");
+    let ss_total = y.iter().map(|&yi| float_powi(yi - y_mean, 2)).sum::<F>();
+    let ss_res = residuals.iter().map(|&ri| float_powi(ri, 2)).sum::<F>();
+    let ss_exp = ss_total - ss_res;
+
+    let r_squared = if ss_total > F::epsilon() {
+        ss_exp / ss_total
+    } else {
+        F::one()
+    };
+    let adj_r_squared = F::one()
+        - (F::one() - r_squared) * F::from(n - 1).expect("const")
+            / F::from(df_residuals).expect("const");
+
+    let mse = ss_res / F::from(df_residuals).expect("const");
+    let residual_std_error = scirs2_core::numeric::Float::sqrt(mse);
+
+    let std_errors = match calculate_std_errors(&x_design.view(), &residuals.view(), df_residuals) {
+        Ok(se) => se,
+        Err(_) => Array1::<F>::zeros(p),
+    };
+    let t_values = calculate_t_values(&coefficients, &std_errors);
+    let p_values = t_values.mapv(|t| {
+        let t_abs = scirs2_core::numeric::Float::abs(t);
+        let df_f = F::from(df_residuals).expect("const");
+        F::from(2.0).expect("const")
+            * (F::one() - t_abs / scirs2_core::numeric::Float::sqrt(df_f + t_abs * t_abs))
+    });
+
+    let df_model = p - if fit_intercept { 1 } else { 0 };
+    let f_statistic = if df_model > 0 && df_residuals > 0 {
+        (ss_exp / F::from(df_model).expect("const"))
+            / (ss_res / F::from(df_residuals).expect("const"))
+    } else {
+        F::infinity()
+    };
+
+    let mut conf_intervals = Array2::<F>::zeros((p, 2));
+    for i in 0..p {
+        let margin = std_errors[i] * F::from(1.96).expect("const");
+        conf_intervals[[i, 0]] = coefficients[i] - margin;
+        conf_intervals[[i, 1]] = coefficients[i] + margin;
+    }
+
+    Ok(RegressionResults {
+        coefficients,
+        std_errors,
+        t_values,
+        p_values,
+        conf_intervals,
+        r_squared,
+        adj_r_squared,
+        f_statistic,
+        f_p_value: F::zero(),
+        residual_std_error,
+        df_residuals,
+        residuals,
+        fitted_values,
+        inlier_mask: vec![true; n],
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use scirs2_core::ndarray::{array, Array2};
+
+    // -------------------------------------------------------------------
+    // LTS regression tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn test_lts_basic() {
+        let x = Array2::from_shape_vec(
+            (10, 1),
+            vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        )
+        .expect("shape");
+        let y = array![2.1, 4.0, 5.9, 8.1, 10.0, 12.0, 14.0, 16.1, 18.0, 20.1];
+        let result = lts_regression(&x.view(), &y.view(), None, None, None, Some(42))
+            .expect("LTS should succeed");
+        // Slope near 2.0
+        assert!((result.coefficients[1] - 2.0).abs() < 0.3);
+    }
+
+    #[test]
+    fn test_lts_with_outlier() {
+        let x = Array2::from_shape_vec(
+            (10, 1),
+            vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        )
+        .expect("shape");
+        let y = array![2.1, 4.0, 5.9, 8.1, 10.0, 12.0, 14.0, 16.1, 18.0, 50.0];
+        let result = lts_regression(&x.view(), &y.view(), None, None, None, Some(42))
+            .expect("LTS should succeed");
+        // Slope should be close to 2 despite the outlier
+        assert!((result.coefficients[1] - 2.0).abs() < 0.5);
+        // Outlier should be excluded
+        assert!(!result.inlier_mask[9]);
+    }
+
+    #[test]
+    fn test_lts_multiple_outliers() {
+        let x = Array2::from_shape_vec(
+            (12, 1),
+            vec![
+                1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
+            ],
+        )
+        .expect("shape");
+        let y = array![2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 50.0, 60.0, 22.0, 24.0];
+        let result = lts_regression(&x.view(), &y.view(), Some(0.2), Some(200), None, Some(42))
+            .expect("LTS should succeed");
+        assert!((result.coefficients[1] - 2.0).abs() < 0.5);
+    }
+
+    #[test]
+    fn test_lts_r_squared() {
+        let x = Array2::from_shape_vec(
+            (10, 1),
+            vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        )
+        .expect("shape");
+        let y = array![2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0];
+        let result = lts_regression(&x.view(), &y.view(), None, None, None, Some(42))
+            .expect("LTS should succeed");
+        let r2: f64 = scirs2_core::numeric::NumCast::from(result.r_squared).expect("cast");
+        assert!(r2 > 0.95);
+    }
+
+    #[test]
+    fn test_lts_dimension_mismatch() {
+        let x = Array2::from_shape_vec((5, 1), vec![1.0, 2.0, 3.0, 4.0, 5.0]).expect("shape");
+        let y = array![1.0, 2.0, 3.0];
+        assert!(lts_regression(&x.view(), &y.view(), None, None, None, None).is_err());
+    }
+
+    #[test]
+    fn test_lts_too_few_observations() {
+        let x = Array2::from_shape_vec((2, 1), vec![1.0, 2.0]).expect("shape");
+        let y = array![1.0, 2.0];
+        assert!(lts_regression(&x.view(), &y.view(), None, None, None, None).is_err());
+    }
+
+    // -------------------------------------------------------------------
+    // Bisquare regression tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn test_bisquare_basic() {
+        let x = Array2::from_shape_vec(
+            (10, 1),
+            vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        )
+        .expect("shape");
+        let y = array![2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0];
+        let result = bisquare_regression(&x.view(), &y.view(), None, None, None, None)
+            .expect("bisquare should succeed");
+        assert!((result.coefficients[1] - 2.0).abs() < 0.3);
+    }
+
+    #[test]
+    fn test_bisquare_with_outlier() {
+        let x = Array2::from_shape_vec(
+            (10, 1),
+            vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        )
+        .expect("shape");
+        let y = array![2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 50.0];
+        let result = bisquare_regression(&x.view(), &y.view(), None, None, None, None)
+            .expect("bisquare should succeed");
+        // Slope should be closer to 2.0 than OLS would give
+        assert!((result.coefficients[1] - 2.0).abs() < 1.0);
+    }
+
+    #[test]
+    fn test_bisquare_r_squared() {
+        let x = Array2::from_shape_vec(
+            (10, 1),
+            vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        )
+        .expect("shape");
+        let y = array![2.1, 4.0, 5.9, 8.1, 10.0, 12.0, 14.1, 16.0, 18.0, 20.1];
+        let result = bisquare_regression(&x.view(), &y.view(), None, None, None, None)
+            .expect("bisquare should succeed");
+        let r2: f64 = scirs2_core::numeric::NumCast::from(result.r_squared).expect("cast");
+        assert!(r2 > 0.95);
+    }
+
+    #[test]
+    fn test_bisquare_custom_c() {
+        let x = Array2::from_shape_vec(
+            (10, 1),
+            vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        )
+        .expect("shape");
+        let y = array![2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 50.0];
+        // Very small c means more aggressive down-weighting
+        let result = bisquare_regression(&x.view(), &y.view(), Some(2.0), None, None, None)
+            .expect("bisquare should succeed");
+        assert!((result.coefficients[1] - 2.0).abs() < 1.0);
+    }
+
+    #[test]
+    fn test_bisquare_dimension_mismatch() {
+        let x = Array2::from_shape_vec((5, 1), vec![1.0, 2.0, 3.0, 4.0, 5.0]).expect("shape");
+        let y = array![1.0, 2.0, 3.0];
+        assert!(bisquare_regression(&x.view(), &y.view(), None, None, None, None).is_err());
+    }
+
+    #[test]
+    fn test_bisquare_too_few() {
+        let x = Array2::from_shape_vec((1, 1), vec![1.0]).expect("shape");
+        let y = array![1.0];
+        assert!(bisquare_regression(&x.view(), &y.view(), None, None, None, None).is_err());
+    }
+}

@@ -32,7 +32,7 @@
 //
 // // Apply Total Variation denoising
 // let config = TvConfig::default();
-// let denoised = tv_denoise_1d(&noisy_signal, 0.5, &config).unwrap();
+// let denoised = tv_denoise_1d(&noisy_signal, 0.5, &config).expect("operation should succeed");
 // ```
 
 use crate::error::{SignalError, SignalResult};
@@ -106,7 +106,7 @@ impl Default for TvConfig {
 ///
 /// let signal = Array1::from_vec(vec![1.2, 2.3, 3.1, 2.2, 1.3, 0.2, -0.3, -1.1]);
 /// let config = TvConfig::default();
-/// let denoised = tv_denoise_1d(&signal, 0.5, &config).unwrap();
+/// let denoised = tv_denoise_1d(&signal, 0.5, &config).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn tv_denoise_1d(
@@ -351,7 +351,7 @@ fn compute_tv_gradient_1d(
 ///
 /// let image = Array2::from_shape_fn((10, 10), |(i, j)| (i + j) as f64 / 20.0);
 /// let config = TvConfig::default();
-/// let denoised = tv_denoise_2d(&image, 0.5, &config).unwrap();
+/// let denoised = tv_denoise_2d(&image, 0.5, &config).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn tv_denoise_2d(

@@ -16,7 +16,6 @@
 
 use crate::error::{CoreError, CoreResult, ErrorContext, ErrorLocation};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// NUMA node information
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -280,13 +279,159 @@ impl NumaTopology {
         Ok((total_kb * 1024, free_kb * 1024))
     }
 
-    /// Detect NUMA topology on Windows
+    /// Detect NUMA topology on Windows using `GetLogicalProcessorInformationEx`.
+    ///
+    /// Queries the OS for NUMA node topology via `RelationNumaNode` processor
+    /// relationship records, extracting per-node CPU affinity masks.  Memory
+    /// information is obtained from `GlobalMemoryStatusEx` and distributed
+    /// evenly across all detected nodes as an approximation.
+    ///
+    /// Record layout within `SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX` (64-bit):
+    /// ```text
+    /// [0..4]  Relationship (i32)
+    /// [4..8]  Size (u32)
+    /// [8..12] NodeNumber (u32)                 ← NUMA node ID
+    /// [12..30] Reserved ([u8;18])
+    /// [30..32] GroupCount (u16)
+    /// [32..40] GROUP_AFFINITY::Mask (usize)    ← CPU affinity mask (first field)
+    /// ```
     #[cfg(target_os = "windows")]
     fn detect_windows() -> CoreResult<Self> {
-        // Windows NUMA detection would use GetNumaHighestNodeNumber and GetNumaNodeProcessorMask
-        // For now, return non-NUMA fallback
-        // TODO: Implement Windows NUMA detection when windows-sys feature is added
-        Self::detect_non_numa()
+        use windows_sys::Win32::Foundation::FALSE;
+        use windows_sys::Win32::System::SystemInformation::{
+            GetLogicalProcessorInformationEx, GlobalMemoryStatusEx, RelationNumaNode,
+            MEMORYSTATUSEX, SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX,
+        };
+
+        // ----------------------------------------------------------------
+        // 1. Obtain total / available system memory
+        // ----------------------------------------------------------------
+        let (total_mem, free_mem): (u64, u64) = unsafe {
+            let mut mem_status: MEMORYSTATUSEX = std::mem::zeroed();
+            mem_status.dwLength = std::mem::size_of::<MEMORYSTATUSEX>() as u32;
+            if GlobalMemoryStatusEx(&mut mem_status) == FALSE {
+                (0u64, 0u64)
+            } else {
+                (mem_status.ullTotalPhys, mem_status.ullAvailPhys)
+            }
+        };
+
+        // ----------------------------------------------------------------
+        // 2. Query required buffer size (first call returns FALSE with size)
+        // ----------------------------------------------------------------
+        let mut buf_len: u32 = 0;
+        unsafe {
+            GetLogicalProcessorInformationEx(RelationNumaNode, std::ptr::null_mut(), &mut buf_len);
+        }
+        if buf_len == 0 {
+            return Self::detect_non_numa();
+        }
+
+        // ----------------------------------------------------------------
+        // 3. Allocate buffer and retrieve NUMA information
+        // ----------------------------------------------------------------
+        let mut buf: Vec<u8> = vec![0u8; buf_len as usize];
+        let success = unsafe {
+            GetLogicalProcessorInformationEx(
+                RelationNumaNode,
+                buf.as_mut_ptr() as *mut SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX,
+                &mut buf_len,
+            )
+        };
+        if success == FALSE {
+            return Self::detect_non_numa();
+        }
+
+        // ----------------------------------------------------------------
+        // 4. Walk variable-length records
+        // ----------------------------------------------------------------
+        // Offsets (all relative to record start):
+        //   [0..4]  Relationship (i32)
+        //   [4..8]  Size (u32)
+        //   [8..12] NodeNumber (u32)  → node_id
+        //   [32..]  GROUP_AFFINITY::Mask (usize) = CPU affinity mask
+        // Derivation: 8 (header) + 4 (NodeNumber) + 18 (Reserved) + 2 (GroupCount) = 32
+        const NODE_NUMBER_OFFSET: usize = 8;
+        const MASK_OFFSET: usize = 8 + 4 + 18 + 2; // = 32
+        const MASK_SIZE: usize = std::mem::size_of::<usize>();
+        const RELATION_NUMA_NODE: u32 = 1;
+
+        let mut nodes: Vec<NumaNode> = Vec::new();
+        let mut offset: usize = 0;
+
+        while offset + 8 <= buf_len as usize {
+            let record_size = u32::from_ne_bytes([
+                buf[offset + 4],
+                buf[offset + 5],
+                buf[offset + 6],
+                buf[offset + 7],
+            ]) as usize;
+
+            if record_size == 0 || offset + record_size > buf_len as usize {
+                break;
+            }
+
+            let relationship = u32::from_ne_bytes([
+                buf[offset],
+                buf[offset + 1],
+                buf[offset + 2],
+                buf[offset + 3],
+            ]);
+
+            if relationship == RELATION_NUMA_NODE
+                && offset + MASK_OFFSET + MASK_SIZE <= offset + record_size
+            {
+                let node_number = u32::from_ne_bytes([
+                    buf[offset + NODE_NUMBER_OFFSET],
+                    buf[offset + NODE_NUMBER_OFFSET + 1],
+                    buf[offset + NODE_NUMBER_OFFSET + 2],
+                    buf[offset + NODE_NUMBER_OFFSET + 3],
+                ]) as usize;
+
+                let abs_mask_start = offset + MASK_OFFSET;
+                let abs_mask_end = abs_mask_start + MASK_SIZE;
+                if abs_mask_end <= buf.len() {
+                    let mut mask_arr = [0u8; 8];
+                    mask_arr[..MASK_SIZE].copy_from_slice(&buf[abs_mask_start..abs_mask_end]);
+                    let mask = usize::from_ne_bytes(mask_arr);
+
+                    let cpu_list: Vec<usize> = (0..usize::BITS as usize)
+                        .filter(|&bit| (mask >> bit) & 1 == 1)
+                        .collect();
+
+                    // Memory will be balanced after all nodes are collected
+                    let node = NumaNode::new(node_number, cpu_list, 0);
+                    nodes.push(node);
+                }
+            }
+
+            offset += record_size;
+        }
+
+        if nodes.is_empty() {
+            return Self::detect_non_numa();
+        }
+
+        // Distribute memory evenly across detected nodes
+        let node_count = nodes.len() as u64;
+        let per_node_total = if node_count > 0 {
+            total_mem / node_count
+        } else {
+            0
+        };
+        let per_node_free = if node_count > 0 {
+            free_mem / node_count
+        } else {
+            0
+        };
+        for node in &mut nodes {
+            node.memory_bytes = per_node_total;
+            node.memory_free_bytes = per_node_free;
+        }
+
+        nodes.sort_by_key(|node| node.node_id);
+        let is_numa = nodes.len() > 1;
+        Ok(Self::new(nodes, is_numa))
     }
 
     /// Fallback for non-NUMA systems

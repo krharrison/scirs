@@ -3,18 +3,29 @@
 //! This module provides functionality for segmenting images into regions
 //! or partitioning images into meaningful parts.
 
+pub mod grabcut;
+pub mod kmeans_seg;
 pub mod mean_shift;
 pub mod region_growing;
 pub mod semantic;
 pub mod slic;
+pub mod unified;
 pub mod watershed;
 
+pub use grabcut::{
+    apply_foreground_mask, grabcut_mask_to_image, grabcut_rect, grabcut_with_mask, GrabCutMask,
+    GrabCutParams, GrabCutResult,
+};
+pub use kmeans_seg::{
+    kmeans_labels_to_color, kmeans_labels_to_gray, kmeans_segment, KMeansSegParams, KMeansSegResult,
+};
 pub use mean_shift::{mean_shift, MeanShiftParams};
 pub use region_growing::{
     adaptive_region_growing, region_growing, region_labels_to_color, RegionGrowingParams, SeedPoint,
 };
 pub use semantic::*;
 pub use slic::{draw_superpixel_boundaries, slic};
+pub use unified::{segment, SegmentMethod, SegmentResult};
 pub use watershed::{
     compute_gradient_magnitude, labels_to_color_image, watershed, watershed_markers,
 };

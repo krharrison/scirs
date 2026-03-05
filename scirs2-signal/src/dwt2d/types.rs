@@ -104,7 +104,7 @@ impl Default for MemoryPool {
 /// use scirs2_signal::dwt2d::dwt2d_decompose;
 ///
 /// let data = Array2::from_shape_fn((4, 4), |(i, j)| (i + j) as f64);
-/// let result = dwt2d_decompose(&data, Wavelet::Haar, None).unwrap();
+/// let result = dwt2d_decompose(&data, Wavelet::Haar, None).expect("operation should succeed");
 ///
 /// let ll = &result.approx;    // Approximation coefficients
 /// let lh = &result.detail_h;  // Horizontal details

@@ -726,48 +726,51 @@ impl EllipticalSliceSampler {
             // Sample from prior
             let nu = Array1::from_vec(mvn.sample(&mut rng));
 
-            // Define ellipse
+            // Define ellipse: compute log-level threshold for this slice
             let log_y = log_likelihood(&current_state)
                 + (rng.sample(Uniform::new(0.0, 1.0).expect("Operation failed")) as f64).ln();
 
-            // Choose initial bracket
-            let theta = rng
+            // Choose initial bracket uniformly over full circle [0, 2π)
+            let initial_theta = rng
                 .sample(Uniform::new(0.0, 2.0 * std::f64::consts::PI).expect("Operation failed"));
-            let mut theta_min = theta - 2.0 * std::f64::consts::PI;
-            let mut theta_max = theta;
+            let mut theta_min = initial_theta - 2.0 * std::f64::consts::PI;
+            let mut theta_max = initial_theta;
+            // theta tracks the current proposal angle; start from the initial random angle
+            let mut theta = initial_theta;
 
-            // Slice sampling on the ellipse
+            // Shrink-bracket slice sampling on the ellipse
             loop {
                 let cos_theta = theta.cos();
                 let sin_theta = theta.sin();
 
-                // Propose new state on ellipse
+                // Propose new state on ellipse defined by current_state and prior sample nu
                 let mut proposal = Array1::zeros(self.dimension);
                 for i in 0..self.dimension {
                     proposal[i] = current_state[i] * cos_theta + nu[i] * sin_theta;
                 }
 
-                // Check if proposal is acceptable
+                // Accept proposal if it lies above the log-slice level
                 if log_likelihood(&proposal) > log_y {
                     current_state = proposal;
                     break;
                 }
 
-                // Shrink bracket
-                if theta < 0.0 {
+                // Shrink bracket based on whether theta is below/above initial_theta
+                if theta < initial_theta {
                     theta_min = theta;
                 } else {
                     theta_max = theta;
                 }
 
-                // Sample new angle from bracket
+                // Sample new angle from the shrunk bracket
                 let new_theta =
                     rng.sample(Uniform::new(theta_min, theta_max).expect("Operation failed"));
                 if (new_theta - theta).abs() < 1e-10 {
-                    // Bracket too small, accept current state
+                    // Bracket has collapsed; accept current state to avoid infinite loop
                     break;
                 }
-                // Note: theta should be updated here for the next iteration
+                // Update theta for the next bracket-shrinking iteration
+                theta = new_theta;
             }
 
             samples.push(current_state.clone());
@@ -1002,7 +1005,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_elliptical_slice_sampling() {
         let prior_cov = Array2::eye(2);
         let ess = EllipticalSliceSampler::new(prior_cov);

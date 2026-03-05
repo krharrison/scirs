@@ -42,12 +42,16 @@ quickcheck = { workspace = true }
 quickcheck_macros = { workspace = true }
 rand = { workspace = true }
 approx = { workspace = true }
+proptest = { workspace = true }
+scirs2-optimize = { path = "../scirs2-optimize", default-features = false }
 
 [features]
 default = []
 # NOTE: OpenBLAS/Netlib features removed - using pure Rust OxiBLAS for all platforms
 # Memory mapping support for large files
 memmap = []
+# Parallel processing (delegates to scirs2-core/parallel which uses rayon)
+parallel = ["scirs2-core/parallel"]
 # Python bindings support
 python = ["scirs2-core/python"]
 

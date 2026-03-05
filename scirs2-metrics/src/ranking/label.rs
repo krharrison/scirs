@@ -46,7 +46,7 @@ use crate::error::{MetricsError, Result};
 /// let y_score = array![0.9, 0.8, 0.7, 0.6, 0.5];
 ///
 /// // Calculate coverage error
-/// let coverage = coverage_error(&y_true, &y_score).unwrap();
+/// let coverage = coverage_error(&y_true, &y_score).expect("should succeed");
 /// assert_eq!(coverage, 2.0); // Since the last relevant label is at index 1
 /// ```
 #[allow(dead_code)]
@@ -147,17 +147,17 @@ where
 ///     1.0, 0.0, 1.0, 0.0, 0.0,  // Sample 1: labels 0 and 2 are relevant
 ///     0.0, 0.0, 1.0, 1.0, 0.0,  // Sample 2: labels 2 and 3 are relevant
 ///     0.0, 1.0, 1.0, 0.0, 1.0,  // Sample 3: labels 1, 2, and 4 are relevant
-/// ]).unwrap();
+/// ]).expect("should succeed");
 ///
 /// // Predicted scores for each label
 /// let y_score = Array2::from_shape_vec((3, 5), vec![
 ///     0.9, 0.2, 0.8, 0.3, 0.1,  // Scores for sample 1
 ///     0.2, 0.3, 0.9, 0.7, 0.1,  // Scores for sample 2
 ///     0.1, 0.9, 0.8, 0.2, 0.7,  // Scores for sample 3
-/// ]).unwrap();
+/// ]).expect("should succeed");
 ///
 /// // Calculate average coverage error
-/// let coverage = coverage_error_multiple(&y_true, &y_score).unwrap();
+/// let coverage = coverage_error_multiple(&y_true, &y_score).expect("should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn coverage_error_multiple<T, S, R>(
@@ -264,17 +264,17 @@ where
 ///     1.0, 0.0, 1.0, 0.0, 0.0,  // Sample 1: labels 0 and 2 are relevant
 ///     0.0, 0.0, 1.0, 1.0, 0.0,  // Sample 2: labels 2 and 3 are relevant
 ///     0.0, 1.0, 1.0, 0.0, 1.0,  // Sample 3: labels 1, 2, and 4 are relevant
-/// ]).unwrap();
+/// ]).expect("should succeed");
 ///
 /// // Predicted scores for each label
 /// let y_score = Array2::from_shape_vec((3, 5), vec![
 ///     0.9, 0.2, 0.8, 0.3, 0.1,  // Scores for sample 1
 ///     0.2, 0.3, 0.9, 0.7, 0.1,  // Scores for sample 2
 ///     0.1, 0.9, 0.8, 0.2, 0.7,  // Scores for sample 3
-/// ]).unwrap();
+/// ]).expect("should succeed");
 ///
 /// // Calculate label ranking loss
-/// let loss = label_ranking_loss(&y_true, &y_score).unwrap();
+/// let loss = label_ranking_loss(&y_true, &y_score).expect("should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn label_ranking_loss<T, S, R>(
@@ -386,17 +386,17 @@ where
 ///     1.0, 0.0, 1.0, 0.0, 0.0,  // Sample 1: labels 0 and 2 are relevant
 ///     0.0, 0.0, 1.0, 1.0, 0.0,  // Sample 2: labels 2 and 3 are relevant
 ///     0.0, 1.0, 1.0, 0.0, 1.0,  // Sample 3: labels 1, 2, and 4 are relevant
-/// ]).unwrap();
+/// ]).expect("should succeed");
 ///
 /// // Predicted scores for each label
 /// let y_score = Array2::from_shape_vec((3, 5), vec![
 ///     0.9, 0.2, 0.8, 0.3, 0.1,  // Scores for sample 1
 ///     0.2, 0.3, 0.9, 0.7, 0.1,  // Scores for sample 2
 ///     0.1, 0.9, 0.8, 0.2, 0.7,  // Scores for sample 3
-/// ]).unwrap();
+/// ]).expect("should succeed");
 ///
 /// // Calculate label ranking average precision score
-/// let score = label_ranking_average_precision_score(&y_true, &y_score).unwrap();
+/// let score = label_ranking_average_precision_score(&y_true, &y_score).expect("should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn label_ranking_average_precision_score<T, S, R>(

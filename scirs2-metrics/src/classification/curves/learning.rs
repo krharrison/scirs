@@ -31,7 +31,7 @@ use scirs2_core::ndarray::{Array1, ArrayBase, Data, Dimension};
 ///
 /// let total_examples = 1000;
 /// let (train_sizes_abs, train_scores_result, test_scores_result) =
-///     learning_curve(&train_sizes, &train_scores, &test_scores, total_examples).unwrap();
+///     learning_curve(&train_sizes, &train_scores, &test_scores, total_examples).expect("should succeed");
 /// ```
 /// Type alias for learning curve result
 pub type LearningCurveResult = (Array1<usize>, Array1<f64>, Array1<f64>);

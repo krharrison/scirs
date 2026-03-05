@@ -57,7 +57,7 @@ pub enum WindowType {
 /// use scirs2_fft::fft::windowing::{create_window, WindowType};
 ///
 /// // Create a Hann window of length 10
-/// let window = create_window(WindowType::Hann, 10).unwrap();
+/// let window = create_window(WindowType::Hann, 10).expect("valid input");
 /// assert_eq!(window.len(), 10);
 /// assert!(window[0] < 0.01); // Near zero at the edges
 /// assert!(window[5] > 0.9); // Near one in the middle
@@ -212,10 +212,10 @@ pub fn create_window(windowtype: WindowType, length: usize) -> FFTResult<Vec<f64
 /// let signal = vec![1.0, 2.0, 3.0, 4.0, 3.0, 2.0, 1.0];
 ///
 /// // Create a Hann window
-/// let window = create_window(WindowType::Hann, signal.len()).unwrap();
+/// let window = create_window(WindowType::Hann, signal.len()).expect("valid input");
 ///
 /// // Apply the window to the signal
-/// let windowed_signal = apply_window(&signal, &window).unwrap();
+/// let windowed_signal = apply_window(&signal, &window).expect("valid input");
 ///
 /// // Check that the window was applied correctly
 /// assert_eq!(windowed_signal.len(), signal.len());

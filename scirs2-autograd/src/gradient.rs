@@ -145,11 +145,17 @@ fn compute_grad_for_input<'graph, F: Float>(
     if op_name.ends_with("AddOp")
         || op_name == "Add"
         || op_name == "SimdAdd"
+        || op_name == "SimdElementwiseAdd"
+        || op_name == "SimdGradientAccumulate"
         || op_name == "OptimizedBroadcastAdd"
     {
         // For addition, gradient passes through unchanged
         Some(gy)
-    } else if op_name.ends_with("SubOp") || op_name == "Sub" || op_name == "OptimizedBroadcastSub" {
+    } else if op_name.ends_with("SubOp")
+        || op_name == "Sub"
+        || op_name == "SimdElementwiseSub"
+        || op_name == "OptimizedBroadcastSub"
+    {
         if i == 0 {
             Some(gy)
         } else {
@@ -158,6 +164,7 @@ fn compute_grad_for_input<'graph, F: Float>(
     } else if op_name.ends_with("MulOp")
         || op_name == "Mul"
         || op_name == "SimdMul"
+        || op_name == "SimdElementwiseMul"
         || op_name == "OptimizedBroadcastMul"
     {
         // d(a*b)/da = b*grad_out, d(a*b)/db = a*grad_out
@@ -168,7 +175,11 @@ fn compute_grad_for_input<'graph, F: Float>(
             let a = y_tensor.get_backprop_input(0);
             Some(T::mul(a, gy))
         }
-    } else if op_name.ends_with("DivOp") || op_name == "Div" || op_name == "OptimizedBroadcastDiv" {
+    } else if op_name.ends_with("DivOp")
+        || op_name == "Div"
+        || op_name == "SimdElementwiseDiv"
+        || op_name == "OptimizedBroadcastDiv"
+    {
         if i == 0 {
             let b = y_tensor.get_backprop_input(1);
             Some(T::div(gy, b))
@@ -293,7 +304,10 @@ fn compute_grad_for_input<'graph, F: Float>(
         let dy_dx = T::mul(T::mul(y_tensor, one_minus_y), gy);
         Some(dy_dx)
     } else if op_name.contains("ReLU") {
-        Some(gy)
+        // d ReLU(x)/dx = 1 if x > 0, else 0
+        let zero = T::scalar(F::zero(), g);
+        let mask = T::greater(x_tensor, zero);
+        Some(T::mul(mask, gy))
     } else if op_name.contains("Tanh") {
         let one = T::scalar(F::one(), g);
         let y_squared = T::mul(y_tensor, y_tensor);

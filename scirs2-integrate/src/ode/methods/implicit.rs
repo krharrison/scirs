@@ -230,14 +230,16 @@ where
             let f_eval = f(next_t, y_next.view());
             func_evals += 1;
 
-            // Compute residual: c_0 * y_{n+1} - h * f(t_{n+1}, y_{n+1}) - sum_{j=1}^p c_j * y_{n+1-j}
+            // Compute residual: c_0 * y_{n+1} + sum_{j=1}^p c_j * y_{n+1-j} - h * f(t_{n+1}, y_{n+1})
+            // The coefficients already contain the correct signs,
+            // e.g. BDF2: [3/2, -2, 1/2] means (3/2)*y_{n+1} + (-2)*y_n + (1/2)*y_{n-1} = h*f
             let mut residual = y_next.clone() * coeffs[0];
 
-            // Previous values contribution
+            // Previous values contribution: ADD c_j * y_{n+1-j} (sign is in c_j)
             for (j, coeff) in coeffs.iter().enumerate().skip(1).take(order) {
                 if j <= y_values.len() {
                     let idx = y_values.len() - j;
-                    residual = residual - y_values[idx].clone() * *coeff;
+                    residual = residual + y_values[idx].clone() * *coeff;
                 }
             }
 

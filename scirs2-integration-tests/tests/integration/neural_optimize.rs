@@ -1,7 +1,7 @@
 // Integration tests for scirs2-neural + scirs2-optimize
 // Tests ML training pipelines, optimizer integration, and gradient flow
 
-use ndarray::{Array1, Array2, Axis};
+use scirs2_core::ndarray::{Array1, Array2, Axis};
 use proptest::prelude::*;
 use crate::integration::common::*;
 use crate::integration::fixtures::TestDatasets;

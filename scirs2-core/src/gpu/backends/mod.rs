@@ -28,6 +28,13 @@ pub mod metal;
 #[cfg(all(feature = "metal", target_os = "macos"))]
 pub mod metal_mps;
 
+/// MSL compute kernel source strings for the Metal backend.
+///
+/// Each constant is a complete Metal Shading Language kernel that can be
+/// compiled at runtime by `MetalContext::create_compute_pipeline`.
+#[cfg(all(feature = "metal", target_os = "macos"))]
+pub mod msl_kernels;
+
 #[cfg(all(feature = "mpsgraph", target_os = "macos"))]
 pub mod metal_mpsgraph;
 

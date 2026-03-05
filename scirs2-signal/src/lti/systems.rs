@@ -211,7 +211,7 @@ impl LtiSystem for TransferFunction {
 
     fn to_zpk(&self) -> SignalResult<ZerosPoleGain> {
         // Convert transfer function to ZPK form by finding roots of numerator and denominator
-        // This is a basic implementation - a production version would use more robust methods
+        // using companion matrix eigenvalue method
 
         let gain = if self.num.is_empty() {
             0.0
@@ -219,11 +219,23 @@ impl LtiSystem for TransferFunction {
             self.num[0]
         };
 
-        // Note: In practice, we would use a reliable polynomial root-finding algorithm
-        // For now, returning placeholder with empty zeros and poles
+        // Find zeros (roots of numerator)
+        let zeros = if self.num.len() > 1 {
+            poly_roots_real(&self.num)?
+        } else {
+            Vec::new()
+        };
+
+        // Find poles (roots of denominator)
+        let poles = if self.den.len() > 1 {
+            poly_roots_real(&self.den)?
+        } else {
+            Vec::new()
+        };
+
         Ok(ZerosPoleGain {
-            zeros: Vec::new(), // Replace with actual roots of numerator
-            poles: Vec::new(), // Replace with actual roots of denominator
+            zeros,
+            poles,
             gain,
             dt: self.dt,
         })
@@ -533,17 +545,22 @@ impl ZerosPoleGain {
 impl LtiSystem for ZerosPoleGain {
     fn to_tf(&self) -> SignalResult<TransferFunction> {
         // Convert ZPK to transfer function by expanding the polynomial products
-        // This is a basic implementation - a production version would use more robust methods
-
-        // For now, return a placeholder
-        // In practice, we would expand (s - zero_1) * (s - zero_2) * ... for the numerator
+        // Expand (s - zero_1) * (s - zero_2) * ... for the numerator
         // and (s - pole_1) * (s - pole_2) * ... for the denominator
 
-        Ok(TransferFunction {
-            num: vec![self.gain],
-            den: vec![1.0],
-            dt: self.dt,
-        })
+        let num_complex = poly_from_roots(&self.zeros);
+        let den_complex = poly_from_roots(&self.poles);
+
+        // Extract real parts (for real-coefficient systems, imaginary parts should be ~0)
+        let mut num: Vec<f64> = num_complex.iter().map(|c| c.re).collect();
+        let den: Vec<f64> = den_complex.iter().map(|c| c.re).collect();
+
+        // Apply gain to numerator
+        for coeff in &mut num {
+            *coeff *= self.gain;
+        }
+
+        TransferFunction::new(num, den, Some(self.dt))
     }
 
     fn to_zpk(&self) -> SignalResult<ZerosPoleGain> {
@@ -551,20 +568,9 @@ impl LtiSystem for ZerosPoleGain {
     }
 
     fn to_ss(&self) -> SignalResult<StateSpace> {
-        // Convert ZPK to state-space
-        // Typically done by first converting to transfer function, then to state-space
-
-        // For now, return a placeholder
-        Ok(StateSpace {
-            a: Vec::new(),
-            b: Vec::new(),
-            c: Vec::new(),
-            d: Vec::new(),
-            n_inputs: 1,
-            n_outputs: 1,
-            n_states: 0,
-            dt: self.dt,
-        })
+        // Convert ZPK to state-space via transfer function
+        let tf = self.to_tf()?;
+        tf.to_ss()
     }
 
     fn frequency_response(&self, w: &[f64]) -> SignalResult<Vec<Complex64>> {
@@ -586,15 +592,15 @@ impl LtiSystem for ZerosPoleGain {
     }
 
     fn impulse_response(&self, t: &[f64]) -> SignalResult<Vec<f64>> {
-        // Placeholder for impulse response calculation
-        let response = vec![0.0; t.len()];
-        Ok(response)
+        // Delegate to transfer function representation
+        let tf = self.to_tf()?;
+        tf.impulse_response(t)
     }
 
     fn step_response(&self, t: &[f64]) -> SignalResult<Vec<f64>> {
-        // Placeholder for step response calculation
-        let response = vec![0.0; t.len()];
-        Ok(response)
+        // Delegate to transfer function representation
+        let tf = self.to_tf()?;
+        tf.step_response(t)
     }
 
     fn is_stable(&self) -> SignalResult<bool> {
@@ -841,30 +847,31 @@ impl StateSpace {
 
 impl LtiSystem for StateSpace {
     fn to_tf(&self) -> SignalResult<TransferFunction> {
-        // Convert state-space to transfer function
+        // Convert state-space to transfer function using Faddeev-LeVerrier algorithm
         // For SISO systems, TF(s) = C * (sI - A)^-1 * B + D
 
-        // For now, return a placeholder
-        // In practice, we would calculate the matrix inverse and polynomial expansion
+        if self.n_states == 0 {
+            // Static gain system
+            let d_val = if !self.d.is_empty() { self.d[0] } else { 0.0 };
+            return TransferFunction::new(vec![d_val], vec![1.0], Some(self.dt));
+        }
 
-        Ok(TransferFunction {
-            num: vec![1.0],
-            den: vec![1.0],
-            dt: self.dt,
-        })
+        let n = self.n_states;
+
+        // Compute characteristic polynomial of A using Faddeev-LeVerrier algorithm
+        // det(sI - A) = s^n + c_{n-1}*s^{n-1} + ... + c_0
+        let char_poly = characteristic_polynomial(&self.a, n);
+
+        // Compute numerator: C * adj(sI - A) * B + D * det(sI - A)
+        let num_poly = compute_ss_numerator(&self.a, &self.b, &self.c, &self.d, n, &char_poly);
+
+        TransferFunction::new(num_poly, char_poly, Some(self.dt))
     }
 
     fn to_zpk(&self) -> SignalResult<ZerosPoleGain> {
-        // Convert state-space to ZPK
-        // Typically done by first converting to transfer function, then factoring
-
-        // For now, return a placeholder
-        Ok(ZerosPoleGain {
-            zeros: Vec::new(),
-            poles: Vec::new(),
-            gain: 1.0,
-            dt: self.dt,
-        })
+        // Convert state-space to ZPK via transfer function
+        let tf = self.to_tf()?;
+        tf.to_zpk()
     }
 
     fn to_ss(&self) -> SignalResult<StateSpace> {
@@ -872,37 +879,609 @@ impl LtiSystem for StateSpace {
     }
 
     fn frequency_response(&self, w: &[f64]) -> SignalResult<Vec<Complex64>> {
-        // Calculate the frequency response for state-space system
-        // H(s) = C * (sI - A)^-1 * B + D
+        // Calculate H(jw) = C * (jwI - A)^-1 * B + D for each frequency
+        // using complex linear system solve
 
-        // For now, return a placeholder
-        // In practice, we would calculate the matrix inverse for each frequency
+        if self.n_states == 0 {
+            let d_val = if !self.d.is_empty() { self.d[0] } else { 0.0 };
+            return Ok(vec![Complex64::new(d_val, 0.0); w.len()]);
+        }
 
-        let response = vec![Complex64::new(1.0, 0.0); w.len()];
+        let n = self.n_states;
+        let mut response = Vec::with_capacity(w.len());
+
+        for &freq in w {
+            let s = if self.dt {
+                Complex64::new(0.0, freq).exp()
+            } else {
+                Complex64::new(0.0, freq)
+            };
+
+            // Build sI - A
+            let mut si_minus_a = vec![Complex64::new(0.0, 0.0); n * n];
+            for i in 0..n {
+                for j in 0..n {
+                    let a_ij = self.a[i * n + j];
+                    si_minus_a[i * n + j] = if i == j {
+                        s - Complex64::new(a_ij, 0.0)
+                    } else {
+                        Complex64::new(-a_ij, 0.0)
+                    };
+                }
+            }
+
+            // Solve (sI - A) * x = B for x
+            let b_complex: Vec<Complex64> =
+                self.b.iter().map(|&v| Complex64::new(v, 0.0)).collect();
+            let x = solve_complex_system(&si_minus_a, &b_complex, n)?;
+
+            // H(s) = C * x + D
+            let mut h = Complex64::new(0.0, 0.0);
+            for i in 0..n {
+                h += Complex64::new(self.c[i], 0.0) * x[i];
+            }
+            if !self.d.is_empty() {
+                h += Complex64::new(self.d[0], 0.0);
+            }
+
+            response.push(h);
+        }
+
         Ok(response)
     }
 
     fn impulse_response(&self, t: &[f64]) -> SignalResult<Vec<f64>> {
-        // Placeholder for impulse response calculation
-        let response = vec![0.0; t.len()];
-        Ok(response)
+        // Convert to TF and use its impulse response (which uses lsim)
+        let tf = self.to_tf()?;
+        tf.impulse_response(t)
     }
 
     fn step_response(&self, t: &[f64]) -> SignalResult<Vec<f64>> {
-        // Placeholder for step response calculation
-        let response = vec![0.0; t.len()];
-        Ok(response)
+        // Convert to TF and use its step response (which uses lsim)
+        let tf = self.to_tf()?;
+        tf.step_response(t)
     }
 
     fn is_stable(&self) -> SignalResult<bool> {
-        // A state-space system is stable if all eigenvalues of A have negative real parts (continuous-time)
-        // or are inside the unit circle (discrete-time)
+        // A state-space system is stable if all eigenvalues of A have negative real parts (continuous)
+        // or are inside the unit circle (discrete)
 
-        // For now, return a placeholder
-        // In practice, we would calculate the eigenvalues of A
+        if self.n_states == 0 {
+            return Ok(true);
+        }
+
+        // Compute eigenvalues via characteristic polynomial roots
+        let char_poly = characteristic_polynomial(&self.a, self.n_states);
+        let eigenvalues = poly_roots_real(&char_poly)?;
+
+        for ev in &eigenvalues {
+            if self.dt {
+                if ev.norm() >= 1.0 {
+                    return Ok(false);
+                }
+            } else {
+                if ev.re >= 0.0 {
+                    return Ok(false);
+                }
+            }
+        }
 
         Ok(true)
     }
+}
+
+// ============================================================================
+// Helper functions for polynomial root finding and system conversions
+// ============================================================================
+
+/// Find roots of a polynomial using the companion matrix eigenvalue method.
+/// Polynomial coefficients are in descending power order: p[0]*x^n + p[1]*x^(n-1) + ... + p[n]
+fn poly_roots_real(coeffs: &[f64]) -> SignalResult<Vec<Complex64>> {
+    if coeffs.is_empty() || coeffs.len() == 1 {
+        return Ok(Vec::new());
+    }
+
+    // Normalize by leading coefficient
+    let lead = coeffs[0];
+    if lead.abs() < 1e-15 {
+        return Err(SignalError::ValueError(
+            "Leading coefficient is zero".to_string(),
+        ));
+    }
+
+    let n = coeffs.len() - 1; // degree of polynomial
+    if n == 0 {
+        return Ok(Vec::new());
+    }
+
+    if n == 1 {
+        // Linear: lead*x + coeffs[1] = 0 => x = -coeffs[1]/lead
+        return Ok(vec![Complex64::new(-coeffs[1] / lead, 0.0)]);
+    }
+
+    if n == 2 {
+        // Quadratic formula
+        let a = lead;
+        let b = coeffs[1];
+        let c = coeffs[2];
+        let disc = b * b - 4.0 * a * c;
+        if disc >= 0.0 {
+            let sq = disc.sqrt();
+            return Ok(vec![
+                Complex64::new((-b + sq) / (2.0 * a), 0.0),
+                Complex64::new((-b - sq) / (2.0 * a), 0.0),
+            ]);
+        } else {
+            let sq = (-disc).sqrt();
+            return Ok(vec![
+                Complex64::new(-b / (2.0 * a), sq / (2.0 * a)),
+                Complex64::new(-b / (2.0 * a), -sq / (2.0 * a)),
+            ]);
+        }
+    }
+
+    // Build companion matrix for the monic polynomial
+    // x^n + (c1)*x^(n-1) + ... + c_n = 0
+    let mut companion = vec![0.0; n * n];
+    for i in 0..n {
+        // Last column contains negated coefficients
+        companion[i * n + (n - 1)] = -coeffs[i + 1] / lead;
+    }
+    // Sub-diagonal of ones
+    for i in 1..n {
+        companion[i * n + (i - 1)] = 1.0;
+    }
+
+    // Compute eigenvalues using QR iteration
+    qr_eigenvalues(&companion, n)
+}
+
+/// QR iteration for eigenvalues of a general matrix.
+/// Uses Hessenberg reduction followed by implicit QR shifts.
+fn qr_eigenvalues(matrix: &[f64], n: usize) -> SignalResult<Vec<Complex64>> {
+    if n == 0 {
+        return Ok(Vec::new());
+    }
+    if n == 1 {
+        return Ok(vec![Complex64::new(matrix[0], 0.0)]);
+    }
+
+    // First reduce to upper Hessenberg form
+    let mut h = matrix.to_vec();
+    hessenberg_reduce(&mut h, n);
+
+    let max_iter = 200 * n;
+    let mut eigenvalues = Vec::with_capacity(n);
+
+    let mut p = n;
+    let mut iter_count = 0;
+
+    while p > 0 && iter_count < max_iter {
+        if p == 1 {
+            eigenvalues.push(Complex64::new(h[0], 0.0));
+            break;
+        }
+
+        if p == 2 {
+            let evs = eigenvalues_2x2(h[0], h[1], h[n], h[n + 1]);
+            eigenvalues.push(evs.0);
+            eigenvalues.push(evs.1);
+            break;
+        }
+
+        // Check for convergence on subdiagonal
+        let sub_idx = (p - 1) * n + (p - 2);
+        let diag_sum = h[(p - 2) * n + (p - 2)].abs() + h[(p - 1) * n + (p - 1)].abs();
+        let threshold = 1e-14 * diag_sum.max(1e-15);
+
+        if h[sub_idx].abs() < threshold {
+            // Deflation: eigenvalue found
+            eigenvalues.push(Complex64::new(h[(p - 1) * n + (p - 1)], 0.0));
+            p -= 1;
+            iter_count = 0;
+            continue;
+        }
+
+        // Check 2x2 block at bottom
+        let sub_idx2 = if p >= 3 { (p - 2) * n + (p - 3) } else { 0 };
+        if p >= 3
+            && h[sub_idx2].abs()
+                < 1e-14
+                    * (h[(p - 3) * n + (p - 3)].abs() + h[(p - 2) * n + (p - 2)].abs()).max(1e-15)
+        {
+            // 2x2 block converged
+            let r1 = (p - 2) * n + (p - 2);
+            let r2 = (p - 2) * n + (p - 1);
+            let r3 = (p - 1) * n + (p - 2);
+            let r4 = (p - 1) * n + (p - 1);
+            let evs = eigenvalues_2x2(h[r1], h[r2], h[r3], h[r4]);
+            eigenvalues.push(evs.0);
+            eigenvalues.push(evs.1);
+            p -= 2;
+            iter_count = 0;
+            continue;
+        }
+
+        // Perform one implicit QR step with Wilkinson shift
+        implicit_qr_step(&mut h, n, p);
+        iter_count += 1;
+    }
+
+    // If we ran out of iterations, extract remaining diagonal elements
+    if eigenvalues.len() < n {
+        for i in 0..p {
+            eigenvalues.push(Complex64::new(h[i * n + i], 0.0));
+        }
+    }
+
+    Ok(eigenvalues)
+}
+
+/// Reduce a matrix to upper Hessenberg form using Householder reflections.
+fn hessenberg_reduce(h: &mut [f64], n: usize) {
+    for k in 0..n.saturating_sub(2) {
+        // Compute Householder vector for column k, rows k+1..n
+        let m = n - k - 1;
+        if m == 0 {
+            continue;
+        }
+
+        let mut v = vec![0.0; m];
+        for i in 0..m {
+            v[i] = h[(k + 1 + i) * n + k];
+        }
+
+        let norm = v.iter().map(|x| x * x).sum::<f64>().sqrt();
+        if norm < 1e-15 {
+            continue;
+        }
+
+        let sign = if v[0] >= 0.0 { 1.0 } else { -1.0 };
+        v[0] += sign * norm;
+        let v_norm = v.iter().map(|x| x * x).sum::<f64>().sqrt();
+        if v_norm < 1e-15 {
+            continue;
+        }
+        for vi in &mut v {
+            *vi /= v_norm;
+        }
+
+        // Apply H = I - 2*v*v^T from the left: H * (submatrix)
+        for j in k..n {
+            let mut dot = 0.0;
+            for i in 0..m {
+                dot += v[i] * h[(k + 1 + i) * n + j];
+            }
+            for i in 0..m {
+                h[(k + 1 + i) * n + j] -= 2.0 * v[i] * dot;
+            }
+        }
+
+        // Apply from the right: (submatrix) * H
+        for i in 0..n {
+            let mut dot = 0.0;
+            for j in 0..m {
+                dot += h[i * n + (k + 1 + j)] * v[j];
+            }
+            for j in 0..m {
+                h[i * n + (k + 1 + j)] -= 2.0 * dot * v[j];
+            }
+        }
+    }
+}
+
+/// Compute eigenvalues of a 2x2 matrix [[a, b], [c, d]]
+fn eigenvalues_2x2(a: f64, b: f64, c: f64, d: f64) -> (Complex64, Complex64) {
+    let trace = a + d;
+    let det = a * d - b * c;
+    let disc = trace * trace - 4.0 * det;
+
+    if disc >= 0.0 {
+        let sq = disc.sqrt();
+        (
+            Complex64::new((trace + sq) / 2.0, 0.0),
+            Complex64::new((trace - sq) / 2.0, 0.0),
+        )
+    } else {
+        let sq = (-disc).sqrt();
+        (
+            Complex64::new(trace / 2.0, sq / 2.0),
+            Complex64::new(trace / 2.0, -sq / 2.0),
+        )
+    }
+}
+
+/// Perform one implicit QR step with Wilkinson shift on upper Hessenberg matrix.
+fn implicit_qr_step(h: &mut [f64], n: usize, p: usize) {
+    // Wilkinson shift: eigenvalue of bottom-right 2x2 block closest to h[p-1,p-1]
+    let a11 = h[(p - 2) * n + (p - 2)];
+    let a12 = h[(p - 2) * n + (p - 1)];
+    let a21 = h[(p - 1) * n + (p - 2)];
+    let a22 = h[(p - 1) * n + (p - 1)];
+
+    let trace = a11 + a22;
+    let det = a11 * a22 - a12 * a21;
+    let disc = trace * trace - 4.0 * det;
+
+    let shift = if disc >= 0.0 {
+        let sq = disc.sqrt();
+        let ev1 = (trace + sq) / 2.0;
+        let ev2 = (trace - sq) / 2.0;
+        if (ev1 - a22).abs() < (ev2 - a22).abs() {
+            ev1
+        } else {
+            ev2
+        }
+    } else {
+        // Complex eigenvalue pair - use real part of closest eigenvalue
+        trace / 2.0
+    };
+
+    // Apply shifted QR step: QR factorize (H - shift*I), then H = R*Q + shift*I
+    // Using Givens rotations for Hessenberg matrix
+    let mut cos_vals = vec![0.0; p - 1];
+    let mut sin_vals = vec![0.0; p - 1];
+
+    // Shift diagonal
+    for i in 0..p {
+        h[i * n + i] -= shift;
+    }
+
+    // QR via Givens rotations
+    for i in 0..p - 1 {
+        let a_val = h[i * n + i];
+        let b_val = h[(i + 1) * n + i];
+        let r = (a_val * a_val + b_val * b_val).sqrt();
+        if r < 1e-15 {
+            cos_vals[i] = 1.0;
+            sin_vals[i] = 0.0;
+            continue;
+        }
+        let c = a_val / r;
+        let s = b_val / r;
+        cos_vals[i] = c;
+        sin_vals[i] = s;
+
+        // Apply rotation to rows i, i+1
+        for j in i..p.min(n) {
+            let t1 = h[i * n + j];
+            let t2 = h[(i + 1) * n + j];
+            h[i * n + j] = c * t1 + s * t2;
+            h[(i + 1) * n + j] = -s * t1 + c * t2;
+        }
+    }
+
+    // Multiply R * Q (apply rotations from the right)
+    for i in 0..p - 1 {
+        let c = cos_vals[i];
+        let s = sin_vals[i];
+        for j in 0..(i + 2).min(p) {
+            let t1 = h[j * n + i];
+            let t2 = h[j * n + (i + 1)];
+            h[j * n + i] = c * t1 + s * t2;
+            h[j * n + (i + 1)] = -s * t1 + c * t2;
+        }
+    }
+
+    // Restore shift
+    for i in 0..p {
+        h[i * n + i] += shift;
+    }
+}
+
+/// Expand polynomial from roots: (x - r1)(x - r2)...(x - rn) -> coefficient vector
+/// Returns coefficients in descending order [1, -(r1+r2+...), ..., (-1)^n * r1*r2*...]
+fn poly_from_roots(roots: &[Complex64]) -> Vec<Complex64> {
+    let n = roots.len();
+    if n == 0 {
+        return vec![Complex64::new(1.0, 0.0)];
+    }
+
+    let mut coeffs = vec![Complex64::new(0.0, 0.0); n + 1];
+    coeffs[0] = Complex64::new(1.0, 0.0);
+
+    for (i, &root) in roots.iter().enumerate() {
+        // Multiply current polynomial by (x - root)
+        for j in (1..=i + 1).rev() {
+            coeffs[j] = coeffs[j] - root * coeffs[j - 1];
+        }
+    }
+
+    coeffs
+}
+
+/// Compute characteristic polynomial of matrix A using Faddeev-LeVerrier algorithm.
+/// Returns coefficients in descending power order [1, c_{n-1}, ..., c_0].
+fn characteristic_polynomial(a: &[f64], n: usize) -> Vec<f64> {
+    if n == 0 {
+        return vec![1.0];
+    }
+
+    let mut coeffs = vec![0.0; n + 1];
+    coeffs[0] = 1.0;
+
+    // M_k = A * M_{k-1} + c_{n-k} * I, starting with M_0 = I
+    let mut m = vec![0.0; n * n];
+    // Identity matrix
+    for i in 0..n {
+        m[i * n + i] = 1.0;
+    }
+
+    for k in 1..=n {
+        // M = A * M_prev
+        let m_prev = m.clone();
+        for i in 0..n {
+            for j in 0..n {
+                let mut sum = 0.0;
+                for l in 0..n {
+                    sum += a[i * n + l] * m_prev[l * n + j];
+                }
+                m[i * n + j] = sum;
+            }
+        }
+
+        // c_{n-k} = -trace(M) / k
+        let mut trace = 0.0;
+        for i in 0..n {
+            trace += m[i * n + i];
+        }
+        let c = -trace / k as f64;
+        coeffs[k] = c;
+
+        // M = M + c * I
+        for i in 0..n {
+            m[i * n + i] += c;
+        }
+    }
+
+    coeffs
+}
+
+/// Compute numerator polynomial of SS -> TF conversion.
+/// For SISO: num(s) = C * adj(sI - A) * B + D * det(sI - A)
+fn compute_ss_numerator(
+    a: &[f64],
+    b: &[f64],
+    c: &[f64],
+    d: &[f64],
+    n: usize,
+    char_poly: &[f64],
+) -> Vec<f64> {
+    if n == 0 {
+        return if !d.is_empty() { vec![d[0]] } else { vec![0.0] };
+    }
+
+    // Use Faddeev-LeVerrier to compute C * adj(sI - A) * B as a polynomial in s
+    // adj(sI - A) = sum_{k=0}^{n-1} N_k * s^k
+    // where N_{n-1} = I, N_{k} = A * N_{k+1} + c_{n-1-k} * I
+
+    let mut adj_coeffs = vec![vec![0.0; n * n]; n]; // N_k matrices
+
+    // N_{n-1} = I
+    for i in 0..n {
+        adj_coeffs[n - 1][i * n + i] = 1.0;
+    }
+
+    // Compute N_{k} = A * N_{k+1} + char_poly[n-1-k] * I
+    for k_idx in (0..n - 1).rev() {
+        let next = adj_coeffs[k_idx + 1].clone();
+        for i in 0..n {
+            for j in 0..n {
+                let mut sum = 0.0;
+                for l in 0..n {
+                    sum += a[i * n + l] * next[l * n + j];
+                }
+                adj_coeffs[k_idx][i * n + j] = sum;
+                if i == j {
+                    adj_coeffs[k_idx][i * n + j] += char_poly[n - 1 - k_idx];
+                }
+            }
+        }
+    }
+
+    // Compute C * N_k * B for each k to get polynomial coefficients
+    // num(s) = sum_{k=0}^{n-1} (C * N_k * B) * s^k + D * char_poly(s)
+    let mut num = vec![0.0; n + 1];
+
+    // D * char_poly contribution
+    let d_val = if !d.is_empty() { d[0] } else { 0.0 };
+    for (i, &cp) in char_poly.iter().enumerate() {
+        num[i] += d_val * cp;
+    }
+
+    // C * N_k * B contribution: coefficient of s^k goes to position n-k
+    for k in 0..n {
+        let nk = &adj_coeffs[k];
+        let mut cb = 0.0;
+        for i in 0..n {
+            let mut nb_i = 0.0;
+            for j in 0..n {
+                nb_i += nk[i * n + j] * b[j];
+            }
+            cb += c[i] * nb_i;
+        }
+        // s^k corresponds to index (n - k) in descending order
+        num[n - k] += cb;
+    }
+
+    num
+}
+
+/// Solve a complex linear system A*x = b using Gaussian elimination with partial pivoting.
+fn solve_complex_system(
+    a: &[Complex64],
+    b: &[Complex64],
+    n: usize,
+) -> SignalResult<Vec<Complex64>> {
+    if n == 0 {
+        return Ok(Vec::new());
+    }
+
+    // Augmented matrix [A|b]
+    let mut aug = vec![Complex64::new(0.0, 0.0); n * (n + 1)];
+    for i in 0..n {
+        for j in 0..n {
+            aug[i * (n + 1) + j] = a[i * n + j];
+        }
+        aug[i * (n + 1) + n] = b[i];
+    }
+
+    // Forward elimination with partial pivoting
+    for col in 0..n {
+        // Find pivot
+        let mut max_val = 0.0;
+        let mut max_row = col;
+        for row in col..n {
+            let val = aug[row * (n + 1) + col].norm();
+            if val > max_val {
+                max_val = val;
+                max_row = row;
+            }
+        }
+
+        if max_val < 1e-15 {
+            return Err(SignalError::ComputationError(
+                "Singular matrix in complex system solve".to_string(),
+            ));
+        }
+
+        // Swap rows
+        if max_row != col {
+            for j in 0..=n {
+                let tmp = aug[col * (n + 1) + j];
+                aug[col * (n + 1) + j] = aug[max_row * (n + 1) + j];
+                aug[max_row * (n + 1) + j] = tmp;
+            }
+        }
+
+        // Eliminate below
+        let pivot = aug[col * (n + 1) + col];
+        for row in (col + 1)..n {
+            let factor = aug[row * (n + 1) + col] / pivot;
+            for j in col..=n {
+                let val = aug[col * (n + 1) + j];
+                aug[row * (n + 1) + j] -= factor * val;
+            }
+        }
+    }
+
+    // Back substitution
+    let mut x = vec![Complex64::new(0.0, 0.0); n];
+    for i in (0..n).rev() {
+        let mut sum = aug[i * (n + 1) + n];
+        for j in (i + 1)..n {
+            sum -= aug[i * (n + 1) + j] * x[j];
+        }
+        let diag = aug[i * (n + 1) + i];
+        if diag.norm() < 1e-15 {
+            return Err(SignalError::ComputationError(
+                "Zero diagonal in back substitution".to_string(),
+            ));
+        }
+        x[i] = sum / diag;
+    }
+
+    Ok(x)
 }
 
 #[cfg(test)]

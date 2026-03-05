@@ -107,7 +107,7 @@ fn return_temp_buffer(buffer: Vec<f64>) {
 /// }
 ///
 /// // Decompose the image using Haar wavelet
-/// let result = dwt2d_decompose(&image, Wavelet::Haar, None).unwrap();
+/// let result = dwt2d_decompose(&image, Wavelet::Haar, None).expect("operation should succeed");
 ///
 /// // All subbands have half the size of the original image
 /// assert_eq!(result.approx.shape(), &[4, 4]);
@@ -404,11 +404,11 @@ where
 /// use scirs2_signal::dwt2d::{dwt2d_decompose_optimized, Dwt2dConfig};
 ///
 /// // Create a sample image
-/// let data = Array2::from_shape_vec((8, 8), (0..64).map(|x| x as f64).collect()).unwrap();
+/// let data = Array2::from_shape_vec((8, 8), (0..64).map(|x| x as f64).collect()).expect("operation should succeed");
 ///
 /// // Use optimized decomposition with default configuration
 /// let config = Dwt2dConfig::default();
-/// let result = dwt2d_decompose_optimized(&data, Wavelet::Haar, None, &config).unwrap();
+/// let result = dwt2d_decompose_optimized(&data, Wavelet::Haar, None, &config).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn dwt2d_decompose_optimized<T>(
@@ -662,7 +662,7 @@ where
 /// let image = Array2::from_shape_fn((32, 32), |(i, j)| (i + j) as f64);
 ///
 /// // Perform 3-level decomposition
-/// let decomposition = wavedec2(&image, Wavelet::DB(4), 3, None).unwrap();
+/// let decomposition = wavedec2(&image, Wavelet::DB(4), 3, None).expect("operation should succeed");
 ///
 /// // We get 3 levels of decomposition
 /// assert_eq!(decomposition.len(), 3);

@@ -708,7 +708,7 @@ impl<F: Float + Debug + ScalarOperand + Send + Sync + SimdUnifiedOps + NumAssign
 // //             20, // hidden_size
 // //             &mut rng,
 // //         )
-// //         .unwrap();
+// //         .expect("operation should succeed");
 // //
 // //         // Create a batch of input data
 // //         let batch_size = 2;

@@ -10,6 +10,7 @@ pub mod exponential;
 pub mod fractional;
 pub mod hyperbolic;
 pub mod special;
+pub mod sylvester;
 pub mod trigonometric;
 pub mod utils;
 

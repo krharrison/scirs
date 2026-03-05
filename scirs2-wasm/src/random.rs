@@ -3,7 +3,7 @@
 use crate::array::WasmArray;
 use crate::error::WasmError;
 use crate::utils::parse_shape;
-use ndarray::ArrayD;
+use scirs2_core::ndarray::ArrayD;
 use scirs2_core::random::*;
 use wasm_bindgen::prelude::*;
 

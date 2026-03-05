@@ -34,7 +34,10 @@ use scirs2_core::numeric::Float;
 pub use self::linear::{linear_regression, linregress, multilinear_regression, odr};
 pub use self::polynomial::polyfit;
 pub use self::regularized::{elastic_net, group_lasso, lasso_regression, ridge_regression};
-pub use self::robust::{huber_regression, ransac, theilslopes, HuberT, TheilSlopesResult};
+pub use self::robust::{
+    bisquare_regression, huber_regression, lts_regression, ransac, theilslopes, HuberT, LtsResult,
+    TheilSlopesResult,
+};
 pub use self::stepwise::{
     stepwise_regression, StepwiseCriterion, StepwiseDirection, StepwiseResults,
 };

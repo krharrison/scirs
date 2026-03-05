@@ -234,7 +234,7 @@ pub struct ARMASpectralResult {
 ///
 /// let signal = Array1::linspace(0.0, 1.0, 256).mapv(|t| (2.0 * std::f64::consts::PI * 10.0 * t).sin());
 /// let config = ARSpectralConfig::default();
-/// let result = ar_spectral_estimation(&signal, &config).unwrap();
+/// let result = ar_spectral_estimation(&signal, &config).expect("operation should succeed");
 /// ```
 pub fn ar_spectral_estimation(
     signal: &Array1<f64>,

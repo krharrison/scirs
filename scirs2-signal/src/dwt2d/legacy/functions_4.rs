@@ -47,7 +47,7 @@ use super::functions::{div_ceil, simd_calculate_energy};
 /// }
 ///
 /// // Decompose the image
-/// let mut decomposition = dwt2d_decompose(&data, Wavelet::Haar, None).unwrap();
+/// let mut decomposition = dwt2d_decompose(&data, Wavelet::Haar, None).expect("operation should succeed");
 ///
 /// // Count coefficients before thresholding
 /// let (before_total_) = count_nonzeros(&decomposition, true);

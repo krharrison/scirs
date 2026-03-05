@@ -470,3 +470,6 @@ mod tests {
 
 /// Production-level configuration management with validation, hot reloading, and feature flags
 pub mod production;
+
+/// Unified strongly-typed configuration (SciRS2Config) with builder pattern and SIMD detection
+pub mod unified;

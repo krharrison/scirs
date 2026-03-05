@@ -51,12 +51,12 @@
 //!
 //! // Calculate option price
 //! let call_price = black_scholes(spot_price, strike_price, time_to_expiry,
-//!                               risk_free_rate, volatility, true).unwrap();
+//!                               risk_free_rate, volatility, true).expect("should succeed");
 //! println!("Call option price: ${:.2}", call_price);
 //!
 //! // Calculate Greeks for risk management
 //! let greeks = black_scholes_greeks(spot_price, strike_price, time_to_expiry,
-//!                                  risk_free_rate, volatility, true).unwrap();
+//!                                  risk_free_rate, volatility, true).expect("should succeed");
 //! println!("Delta: {:.4}, Gamma: {:.4}, Vega: {:.4}",
 //!          greeks.delta, greeks.gamma, greeks.vega);
 //! ```
@@ -71,8 +71,8 @@
 //! let rate = 0.05;
 //! let vol = 0.2;
 //!
-//! let call = black_scholes(spot, strike, time, rate, vol, true).unwrap();
-//! let put = black_scholes(spot, strike, time, rate, vol, false).unwrap();
+//! let call = black_scholes(spot, strike, time, rate, vol, true).expect("should succeed");
+//! let put = black_scholes(spot, strike, time, rate, vol, false).expect("should succeed");
 //! let pv_strike = present_value(strike, rate, time);
 //!
 //! // Put-Call Parity: C - P = S - PV(K)
@@ -118,8 +118,8 @@
 //! let mut total_delta = 0.0;
 //!
 //! for pos in &positions {
-//!     let price = black_scholes(pos.spot, pos.strike, pos.time, rate, pos.vol, pos.is_call).unwrap();
-//!     let greeks = black_scholes_greeks(pos.spot, pos.strike, pos.time, rate, pos.vol, pos.is_call).unwrap();
+//!     let price = black_scholes(pos.spot, pos.strike, pos.time, rate, pos.vol, pos.is_call).expect("should succeed");
+//!     let greeks = black_scholes_greeks(pos.spot, pos.strike, pos.time, rate, pos.vol, pos.is_call).expect("should succeed");
 //!     
 //!     total_value += price * pos.quantity as f64;
 //!     total_delta += greeks.delta * pos.quantity as f64;
@@ -182,7 +182,7 @@
 //! use scirs2_series::financial::pricing::options::black_scholes_greeks;
 //!
 //! // Calculate hedge ratio for delta-neutral portfolio
-//! let option_greeks = black_scholes_greeks(100.0, 100.0, 0.25, 0.05, 0.2, true).unwrap();
+//! let option_greeks = black_scholes_greeks(100.0, 100.0, 0.25, 0.05, 0.2, true).expect("should succeed");
 //! let option_quantity = 1000; // Long 1000 call options
 //!
 //! // Hedge ratio: short delta × option quantity shares of stock
@@ -195,7 +195,7 @@
 //! use scirs2_series::financial::pricing::options::black_scholes_greeks;
 //!
 //! // Monitor gamma exposure for large price moves
-//! let greeks = black_scholes_greeks(100.0, 100.0, 0.25, 0.05, 0.2, true).unwrap();
+//! let greeks = black_scholes_greeks(100.0, 100.0, 0.25, 0.05, 0.2, true).expect("should succeed");
 //! let position_size = 10000;
 //!
 //! // Estimate delta change for 1% stock move

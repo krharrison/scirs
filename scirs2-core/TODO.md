@@ -1,196 +1,125 @@
-# scirs2-core TODO (0.1.0)
+# scirs2-core Development TODO
 
-Status snapshot: 2025-12-29
+## v0.3.0 — COMPLETED
 
-This file is a feature readiness checklist for the initial 0.1.0 release.
-It focuses on what is IMPLEMENTED vs what remains.
+### Work-Stealing Scheduler and Parallel Iterators
+- Work-stealing deque with Chase-Lev algorithm
+- Parallel map, reduce, scan, map-reduce primitives
+- Parallel iterator adapters (ParallelIterator trait)
+- NUMA-aware thread placement and affinity
 
-Legend:
-- [x] IMPLEMENTED (present in the repo and intended to ship in 0.1.0)
-- [ ] TODO (not yet implemented, incomplete, or needs verification/hardening)
+### Async Utilities
+- Async semaphore (tokio-compatible)
+- Bounded async channel
+- Async timeout wrapper
+- Async rate limiter (token bucket)
 
-# scirs2-core TODO (0.1.0)
+### Cache-Oblivious Algorithms
+- Cache-oblivious B-tree (van Emde Boas layout)
+- Cache-oblivious matrix multiply (recursive tiling)
+- Cache-oblivious merge sort
 
-Status snapshot: 2025-12-29
+### Lock-Free Data Structures
+- Lock-free queue (Michael-Scott queue with epoch GC)
+- Lock-free stack (Treiber stack)
+- Lock-free hash map (split-ordered lists)
+- Fixed `LockFreeQueue` CAS-before-read race condition (Feb 26, 2026)
 
-This file is a 0.1.0-first-release checklist.
-It is intentionally not a timeline: it focuses on what is IMPLEMENTED vs what remains.
+### HAMT Persistent Data Structure
+- Hash array mapped trie with structural sharing
+- Persistent insert, delete, lookup
+- Iterator over key-value pairs
 
-Legend:
-- [x] IMPLEMENTED (implemented in the repo and intended to ship in 0.1.0)
-- [ ] TODO (not implemented yet, incomplete, or needs verification/hardening)
+### GPU Memory Management
+- Pool allocator (fixed-size blocks)
+- Slab allocator (typed object pools)
+- Buddy allocator (power-of-two splitting/merging)
+- Best-fit allocator with free-list coalescing
+- GPU buffer abstraction over multiple backends
 
-## 0.1.0 release checklist
+### Memory Utilities
+- Arena allocator (bump pointer)
+- NUMA allocator with topology detection
+- Object pool with reuse tracking
+- Zero-copy buffer management
+- `MemoryMappedArray` for out-of-core data
 
-### Public API and stability
-- [x] Public prelude exists (see `src/prelude.rs`)
-- [x] Error module exists (see `src/error/`)
-- [x] API versioning utilities exist (see `src/apiversioning.rs`)
-- [x] Deprecation/versioning support exists (see `src/versioning/deprecation.rs`)
-- [x] API standards docs exist (see `docs/API_STANDARDS.md`)
-- [x] Reference docs exist (see `docs/REFERENCE.md`)
-- [x] API freeze notes exist (see `docs/API_FREEZE_1.0.md`)
-- [ ] Confirm what is considered stable in 0.1.0 (public modules + feature flags)
-- [ ] Ensure any "experimental" APIs are clearly feature-gated and documented
-- [ ] Verify the top-level module exports are intentional (avoid accidental public surface)
+### Validation System
+- Schema-based validation (`ValidationSchema`, `Constraint`)
+- Config validation with JSON/TOML-compatible schemas
+- Assertion helpers: `check_finite`, `check_positive`, `check_shape`, `check_range`
+- Type coercion utilities
 
-### ndarray core + ndarray_ext
+### Distributed Computing
+- Ring allreduce (bandwidth-optimal gradient averaging)
+- Parameter server with async push/pull
+- Collective ops: broadcast, scatter, gather, allgather, reduce-scatter
 
-#### Core ndarray facade
-- [x] New ndarray facade exists (see `src/ndarray/mod.rs`)
-- [x] Backward-compat re-exports to `ndarray_ext` exist (see `src/ndarray/mod.rs`)
-- [ ] Verify the recommended import path for 0.1.0 (docs + examples)
+### ML Pipeline Abstractions
+- `Transformer` trait (fit/transform)
+- `Predictor` trait (predict/predict_proba)
+- `Evaluator` trait (score with configurable metrics)
+- `Pipeline` struct for chaining steps
+- Batch and streaming inference modes
 
-#### ndarray_ext: broadcasting and shape utilities
-- [x] Broadcasting compatibility checks (see `src/ndarray_ext/broadcasting.rs`)
-- [x] `broadcastshape` utilities (see `src/ndarray_ext/broadcasting.rs`)
-- [x] `broadcast_arrays` helpers (see `src/ndarray_ext/broadcasting.rs`)
-- [x] `broadcast_apply` helpers (see `src/ndarray_ext/broadcasting.rs`)
-- [ ] Add explicit docs/examples for multi-array broadcasting edge cases
+### Metrics Collector
+- Counters, gauges, histograms
+- Label sets for multi-dimensional metrics
+- Export hooks (text format compatible with Prometheus)
 
-#### ndarray_ext: array manipulation/ops
-- [x] Core ops module exists (see `src/ndarray_ext/ops.rs`)
-- [x] `reshape` helpers (see `src/ndarray_ext/ops.rs`)
-- [x] `stack` helpers (see `src/ndarray_ext/ops.rs`)
-- [x] `split` helpers (see `src/ndarray_ext/ops.rs`)
-- [x] `swapaxes` helpers (see `src/ndarray_ext/ops.rs`)
-- [x] 2D argmin/argmax helpers exist (see `src/ndarray_ext/manipulation.rs`)
-- [x] Views module documents zero-copy transformations (see `src/ndarray_ext/views.rs`)
-- [ ] Confirm behavior on empty inputs, singleton dimensions, and axis handling
+### Other Additions
+- Bioinformatics: alignment extensions, motif detection, sequence types
+- Geospatial: geodesic distance, coordinate projections, spatial stats
+- Quantum computing primitives: qubit, gate, measurement
+- Reactive programming: Observable, Subject, filter/map/merge operators
+- Combinatorics: permutations, combinations, partitions, multinomials
+- String interning: global interner with `InternedStr` type
+- Arbitrary precision: multi-precision floats and integers
+- Interval arithmetic: directed rounding, verified inclusion
 
-#### ndarray_ext: SIMD reductions (1D)
-- [x] SIMD reduction module exists (see `src/ndarray_ext/reduction.rs`)
-- [x] `sum_simd` (see `src/ndarray_ext/reduction.rs`)
-- [x] `mean_simd` (see `src/ndarray_ext/reduction.rs`)
-- [x] `min_simd` / `max_simd` (see `src/ndarray_ext/reduction.rs`)
-- [x] `variance_simd` / `std_simd` with `ddof` (see `src/ndarray_ext/reduction.rs`)
-- [x] `argmin_simd` / `argmax_simd` (see `src/ndarray_ext/reduction.rs`)
-- [x] `cumsum_simd` / `cumprod_simd` (see `src/ndarray_ext/reduction.rs`)
-- [ ] Document numerical expectations (NaN/Inf handling, stable vs unstable reduction)
+---
 
-#### ndarray_ext: preprocessing (SIMD)
-- [x] Preprocessing module exists (see `src/ndarray_ext/preprocessing.rs`)
-- [x] `normalize_simd` (see `src/ndarray_ext/preprocessing.rs`)
-- [x] `standardize_simd` (see `src/ndarray_ext/preprocessing.rs`)
-- [x] `clip_simd` (see `src/ndarray_ext/preprocessing.rs`)
-- [x] `softmax_simd` (see `src/ndarray_ext/preprocessing.rs`)
-- [x] `relu_simd` (see `src/ndarray_ext/preprocessing.rs`)
-- [x] `leaky_relu_simd` (see `src/ndarray_ext/preprocessing.rs`)
-- [ ] Confirm softmax behavior across dtypes and extreme values
-- [ ] Provide one canonical example per preprocessing function
+## v0.4.0 — Planned
 
-#### ndarray_ext: statistics
-- [x] Correlation utilities exist (see `src/ndarray_ext/stats/correlation.rs`)
-- [ ] Ensure stats modules have consistent naming and error behavior
+### GPU Memory Pooling Enhancements
+- [ ] Unified memory (CPU+GPU shared pages) allocator
+- [ ] Async GPU buffer transfer pipeline
+- [ ] Per-stream allocation for CUDA streams
+- [ ] Memory defragmentation for long-running workloads
 
-### SIMD operations (core)
+### NUMA-Aware Allocation
+- [ ] NUMA-local allocator backed by `libnuma` (feature-gated)
+- [ ] Automatic NUMA-aware placement for parallel work items
+- [ ] Cross-NUMA bandwidth measurement and routing
 
-#### Core traits and organization
-- [x] SIMD ops trait exists: `SimdUnifiedOps` (see `src/simd_ops/functions.rs`)
-- [x] SIMD infrastructure exists (see `src/simd/`, `src/simd_impl.rs`, `src/simd_ops/`)
-- [x] SIMD test module exists (see `src/simd_ops_tests.rs`)
-- [ ] Split/organize very large modules where it improves maintainability (no behavior change)
+### WebGPU Backend Preparation
+- [ ] `wgpu`-based GPU buffer abstraction
+- [ ] Compute shader dispatch via WebGPU
+- [ ] Browser-compatible feature flag (`target_arch = "wasm32"`)
 
-#### Unary operations
-- [x] `simd_abs_f32` / `simd_abs_f64` (see `src/simd/unary.rs`)
-- [x] `simd_sqrt_f32` / `simd_sqrt_f64` (see `src/simd/unary.rs`)
-- [x] `simd_sign_f32` / `simd_sign_f64` (see `src/simd/unary.rs`)
-- [x] Integer-power ops `simd_powi_f32` / `simd_powi_f64` (see `src/simd/unary_powi.rs`)
+### Distributed Computing Enhancements
+- [ ] Gossip protocol for peer discovery
+- [ ] Fault-tolerant parameter server (leader election)
+- [ ] Gradient compression (top-k sparsification, quantization)
 
-#### Rounding
-- [x] `simd_floor_f32` / `simd_floor_f64` (see `src/simd/rounding.rs`)
-- [x] `simd_ceil_f32` / `simd_ceil_f64` (see `src/simd/rounding.rs`)
-- [x] `simd_round_f32` / `simd_round_f64` (see `src/simd/rounding.rs`)
+### Profiling Improvements
+- [ ] perf-event integration for Linux hardware counters
+- [ ] Tracy profiler integration (feature-gated)
+- [ ] Flame graph export from profiling data
 
-#### Transcendentals (vectorized)
-- [x] `simd_exp_f32` / `simd_exp_f64` (see `src/simd/transcendental/functions.rs`)
-- [x] `simd_exp_fast_f32` (see `src/simd/transcendental/functions.rs`)
-- [x] `simd_ln_f32` / `simd_ln_f64` (see `src/simd/transcendental/functions_5.rs`)
-- [x] `simd_log2_f32` / `simd_log2_f64` (see `src/simd/transcendental/functions_6.rs`)
-- [x] `simd_log10_f32` / `simd_log10_f64` (see `src/simd/transcendental/functions_6.rs`)
-- [x] `simd_sin_f32` / `simd_sin_f64` (see `src/simd/transcendental/functions_5.rs`, `functions_6.rs`)
-- [x] `simd_cos_f32` / `simd_cos_f64` (see `src/simd/transcendental/functions_6.rs`)
-- [x] `simd_tanh_f32` / `simd_tanh_f64` (see `src/simd/transcendental/functions_4.rs`)
-- [x] Polynomial approximations exist for several functions (see `src/simd_ops_polynomial.rs`)
-- [ ] Clarify which transcendentals are "core-stable" vs "best-effort fast math"
+### Additional Data Structures
+- [ ] Persistent vector (RRB-tree)
+- [ ] Concurrent skip list
+- [ ] Compressed trie for string keys
+- [ ] Bloom filter and counting Bloom filter
 
-#### Similarity
-- [x] Cosine similarity for f32/f64 exists (see `src/simd/similarity.rs`)
+---
 
-### Memory efficiency and out-of-core
+## Known Issues / Technical Debt
 
-#### Module surface
-- [x] `memory_efficient` module is exported (see `src/lib.rs`)
-- [x] Memory-efficient docs exist (see `docs/memory_efficient.md`)
-
-#### Memory mapped arrays
-- [x] `MemoryMappedArray` exists (see `src/memory_efficient/memmap.rs`)
-- [x] `open_mmap` exists (see `src/memory_efficient/memmap.rs`)
-- [x] `create_mmap` exists (see `src/memory_efficient/memmap.rs`)
-- [ ] Verify portability and failure modes for mmap across supported platforms
-
-#### Chunked / lazy / out-of-core
-- [x] `ChunkedArray` exists (see `src/memory_efficient/chunked.rs`)
-- [x] `chunk_wise_op` exists (see `src/memory_efficient/chunked.rs`)
-- [x] `chunk_wise_reduce` exists (see `src/memory_efficient/chunked.rs`)
-- [x] `LazyArray` exists (see `src/memory_efficient/lazy_array.rs`)
-- [x] `OutOfCoreArray` exists (see `src/memory_efficient/out_of_core.rs`)
-- [x] Cross-file prefetcher exists (see `src/memory_efficient/cross_file_prefetch.rs`)
-- [ ] Define/verify thread-safety and aliasing rules for all out-of-core types
-- [ ] Add stress tests for chunking boundaries and extremely large shapes
-
-### Performance utilities
-- [x] Performance optimization utilities exist (see `src/performance_optimization.rs`)
-- [x] Cache optimization utilities exist (see `src/performance/cache_optimization.rs`)
-- [ ] Define "fast path" guarantees (what triggers them, what is fallback)
-- [ ] Keep a small, stable baseline benchmark suite for regression detection
-
-### Parallelism
-- [x] Parallel module exists (see `src/parallel/`)
-- [x] Parallel ops entrypoints exist (see `src/parallel_ops.rs`, `src/parallel_redirect.rs`)
-- [ ] Confirm defaults and determinism expectations (ordering, reductions)
-- [ ] Add targeted tests for parallel reductions and chunked iterators
-
-### GPU (core surface)
-- [x] GPU module exists (see `src/gpu/`)
-- [x] GPU registry exists (see `src/gpu_registry.rs`)
-- [ ] Ensure any GPU APIs exposed by core are clearly feature-gated and documented
-- [ ] Provide one minimal example for any GPU-exposed public API
-
-### Error handling and diagnostics
-- [x] Core error types exist (see `src/error/error.rs`)
-- [x] Error recovery utilities exist (see `src/error/recovery.rs`)
-- [x] Diagnostics utilities exist (see `src/error/diagnostics.rs`)
-- [ ] Ensure error messages are consistent and actionable across modules
-- [ ] Prefer `Result` over panic in all public APIs; audit panic paths
-
-### Validation and testing support
-- [x] Validation module exists (see `src/validation/`)
-- [x] Cross-platform SIMD validation exists (see `src/validation/cross_platform.rs`)
-- [x] Testing infrastructure exists (see `src/testing/`)
-- [ ] Ensure the core crate’s own tests cover feature-gated modules appropriately
-
-### Logging, profiling, and configuration
-- [x] Logging module exists (see `src/logging.rs`, `src/logging/`)
-- [x] Profiling module exists (see `src/profiling/`)
-- [x] Config module exists (see `src/config.rs`, `src/config/`)
-- [ ] Ensure logging/profiling APIs are consistent and minimally invasive
-
-### Documentation
-- [x] Getting started exists (see `docs/getting_started.md`)
-- [x] Examples overview exists (see `docs/examples.md`)
-- [x] Error handling guide exists (see `docs/error_handling.md`)
-- [x] Performance characteristics exist (see `docs/PERFORMANCE_CHARACTERISTICS.md`)
-- [x] SIMD optimization notes exist (see `docs/SIMD_ULTRA_OPTIMIZATION.md`)
-- [x] Production operation docs exist (see `docs/PRODUCTION_OPERATIONS.md`)
-- [x] Production deployment docs exist (see `docs/PRODUCTION_DEPLOYMENT.md`)
-- [x] Security audit preparation exists (see `docs/SECURITY_AUDIT_PREPARATION.md`)
-- [ ] Audit docs for user-facing consistency in 0.1.0 (remove narrative-only phrasing)
-- [ ] Document feature flags and their tradeoffs in one place
-
-## Backlog (keep short, non-timeline)
-
-- [ ] Reduce accidental public API surface (where feasible)
-- [ ] Add more property-based tests for shape/stride/broadcast corner cases
-- [ ] Add compatibility tests for mmap + out-of-core on all supported platforms
-- [ ] Expand benchmarks only where they catch real regressions
+- Several source files exceed 2000 lines (refactoring policy); track with `rslines 50` and split
+- `#![allow(dead_code)]` is blanket-applied; should be narrowed to specific items
+- GPU allocator tests are `#[ignore]`d on CI due to hardware availability; need mock backend
+- NUMA allocator falls back silently when `libnuma` is absent; add explicit warning log
+- `no_std` support is declared but not regularly tested; add CI job without `std` feature
+- Lock-free structures use Rust `std::sync::atomic`; `loom` model checking not yet integrated

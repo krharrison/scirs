@@ -1,119 +1,138 @@
 # SciRS2 Integration Tests
 
-This package contains comprehensive cross-crate integration tests for SciRS2 v0.2.0.
+Cross-crate integration test suite for the SciRS2 ecosystem, v0.3.0.
 
-## Overview
+## Purpose
 
-The integration tests verify that different SciRS2 modules work correctly together,
-testing data flow, API compatibility, and end-to-end workflows.
+This crate verifies that SciRS2 sub-crates compose correctly at their boundaries. Unit tests within each sub-crate check isolated functionality; the tests here check data flow, API compatibility, type interoperability, and end-to-end numerical correctness across module boundaries.
 
-## Test Coverage
+All tests run with `--all-features` so that every optional sub-crate is exercised together.
 
-### Cross-Module Workflows
-- **Neural + Optimize**: ML training pipelines with optimization algorithms
-- **FFT + Signal**: Spectral analysis and signal processing
-- **Sparse + Linalg**: Sparse linear algebra operations
-- **NDImage + Vision**: Image processing and computer vision workflows
-- **Stats + Datasets**: Statistical data analysis
+---
 
-### Performance Tests
-- End-to-end pipeline benchmarks
-- Memory usage profiling
-- GPU/CPU handoff efficiency
-- Zero-copy transfer validation
+## Integration Scenarios Tested (v0.3.0)
 
-## Running Tests
+### autograd + neural
 
-### All integration tests
+File: `tests/integration/neural_optimize.rs`
+
+- Backward pass through a `Sequential` model using `scirs2-autograd` tape recording
+- Gradient checks: numerical finite-difference vs. autograd derivatives agree to `1e-5`
+- Training loop convergence on XOR and linear regression fixtures
+- Second-order derivatives (Hessian-vector products) through dense layers
+
+### linalg + sparse
+
+File: `tests/integration/sparse_linalg.rs`
+
+- Round-trip: build a sparse CSR matrix in `scirs2-sparse`, convert to dense `ndarray` array, and verify identical results from `scirs2-linalg` dense eigensolvers
+- Sparse Cholesky from `scirs2-sparse` vs. dense Cholesky from `scirs2-linalg` on the same positive-definite matrix
+- GMRES convergence with `scirs2-sparse` preconditioners applied to systems assembled with `scirs2-linalg` matrix functions
+
+### stats + optimize
+
+File: `tests/integration/stats_datasets.rs`
+
+- Maximum-likelihood parameter estimation: optimize log-likelihood constructed from `scirs2-stats` distributions using `scirs2-optimize` L-BFGS-B
+- Bayesian credible-interval workflow: NUTS sampler from `scirs2-stats` + posterior summarization
+- Bootstrap confidence intervals via `scirs2-stats` resampling, compared against analytical results
+
+### signal + fft
+
+File: `tests/integration/fft_signal.rs`
+
+- Butterworth filter design (`scirs2-signal`) → apply to synthetic sinusoid → `rfft` (`scirs2-fft`) → verify spectral peaks match expected frequencies
+- STFT via `scirs2-signal` vs. manual windowed-FFT via `scirs2-fft`: bin-for-bin agreement
+- Inverse FFT round-trip: signal → FFT → IFFT → recovered signal within tolerance
+
+### vision + ndimage
+
+File: `tests/integration/ndimage_vision.rs`
+
+- Gaussian blur (`scirs2-ndimage`) → Harris corner detection (`scirs2-vision`): corner count stable to denoising
+- Morphological opening (`scirs2-ndimage`) → contour extraction (`scirs2-vision`): shape area preserved
+- SIFT keypoints (`scirs2-vision`) matched after affine warp constructed using `scirs2-ndimage` geometric transforms
+
+---
+
+## How to Run
+
+### Recommended (nextest, parallel, fast feedback)
+
 ```bash
-cargo test --package scirs2-integration-tests
+cargo nextest run --all-features -p scirs2-integration-tests
 ```
 
-### Specific test file
+### Standard cargo test
+
 ```bash
-# Neural + Optimize tests
-cargo test --package scirs2-integration-tests --test integration neural_optimize
-
-# FFT + Signal tests
-cargo test --package scirs2-integration-tests --test integration fft_signal
-
-# Performance tests
-cargo test --package scirs2-integration-tests --test integration performance
+cargo test --all-features --package scirs2-integration-tests
 ```
 
-### Property-based tests only
-```bash
-cargo test --package scirs2-integration-tests prop_
-```
+### Single scenario
 
-### Performance benchmarks (ignored by default)
 ```bash
-cargo test --package scirs2-integration-tests --ignored
+# autograd + neural only
+cargo nextest run --all-features -p scirs2-integration-tests neural
+
+# linalg + sparse only
+cargo nextest run --all-features -p scirs2-integration-tests sparse_linalg
+
+# signal + fft only
+cargo nextest run --all-features -p scirs2-integration-tests fft_signal
 ```
 
 ### With verbose output
+
 ```bash
-cargo test --package scirs2-integration-tests -- --nocapture
+cargo nextest run --all-features -p scirs2-integration-tests --no-capture
 ```
+
+### Performance / ignored tests
+
+```bash
+cargo test --all-features --package scirs2-integration-tests -- --ignored
+```
+
+---
 
 ## Test Structure
 
-See `tests/README.md` for detailed information about:
-- Test organization
-- Available test fixtures
-- Test utilities
-- Property-based testing patterns
-- Performance targets
-
-## Features
-
-Optional features can be enabled for specific tests:
-```bash
-# Run tests with CUDA support
-cargo test --package scirs2-integration-tests --features cuda
-
-# Run tests with SIMD optimizations
-cargo test --package scirs2-integration-tests --features simd
+```
+scirs2-integration-tests/
+├── Cargo.toml
+└── tests/
+    └── integration/
+        ├── mod.rs                # Module root
+        ├── neural_optimize.rs    # autograd ↔ neural
+        ├── sparse_linalg.rs      # linalg ↔ sparse
+        ├── stats_datasets.rs     # stats ↔ optimize ↔ datasets
+        ├── fft_signal.rs         # signal ↔ fft
+        ├── ndimage_vision.rs     # vision ↔ ndimage
+        ├── performance.rs        # Cross-crate perf benchmarks (ignored by default)
+        ├── common/               # Shared helpers (array builders, timing)
+        └── fixtures/             # Test data generators
 ```
 
-## Development
+---
 
-### Adding New Tests
+## Adding New Tests
 
-1. Choose the appropriate test file based on modules involved
-2. Follow the no-unwrap policy (use `expect()` or proper error handling)
-3. Use property-based testing where applicable
-4. Add performance targets for critical paths
-5. Document test objectives
+1. Choose the test file matching the module boundary being tested (or create a new file if the scenario crosses more than two modules).
+2. Follow the no-`unwrap()` policy: use `?` or `expect("descriptive message")`.
+3. Use `std::env::temp_dir()` for any temporary file I/O inside tests.
+4. Mark slow tests with `#[ignore]` and document the expected runtime.
+5. Use `approx::assert_relative_eq!` for floating-point comparisons — avoid raw `==`.
 
-### Test Utilities
+---
 
-Common utilities are available in `tests/integration/common/`:
-- `test_utils.rs`: Helper functions for array creation, timing, memory checks
-- Property test generators for dimensions, tolerances, etc.
+## Current Status (v0.3.0)
 
-### Test Fixtures
+- All five integration scenarios above are implemented and passing
+- 100% of tests pass as part of the full workspace test suite (`cargo nextest run --all-features --workspace`)
+- Performance tests in `performance.rs` are `#[ignore]`d by default and require explicit opt-in
 
-Standard test data is available in `tests/integration/fixtures/`:
-- XOR dataset
-- Linear regression data
-- Sinusoidal signals
-- Sparse matrices
-- Test images
-- Statistical distributions
-
-## Current Status
-
-The test infrastructure is complete with:
-- ✅ Test organization and module structure
-- ✅ Common utilities and helpers
-- ✅ Test fixtures and data generators
-- ✅ Property-based testing framework
-- ✅ Performance measurement utilities
-
-Many test implementations contain `TODO` markers indicating where actual
-test logic should be added once module APIs stabilize. The structure and
-patterns are ready for implementation.
+---
 
 ## License
 
@@ -121,4 +140,4 @@ Apache-2.0
 
 ## Authors
 
-COOLJAPAN OU (Team KitaSan)
+COOLJAPAN OU (Team Kitasan)

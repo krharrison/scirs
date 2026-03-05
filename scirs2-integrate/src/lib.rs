@@ -267,7 +267,9 @@ pub mod mode_tests;
 
 // Integration modules
 pub mod bvp;
+pub mod bvp_collocation;
 pub mod bvp_extended;
+pub mod clenshaw_curtis;
 pub mod cubature;
 pub mod dae;
 pub mod gaussian;
@@ -308,6 +310,9 @@ pub mod visualization;
 // Distributed computing support
 pub mod distributed;
 
+// Delay Differential Equations
+pub mod dde;
+
 // ODE module is now fully implemented in ode/
 
 pub mod qmc;
@@ -315,6 +320,7 @@ pub mod quad;
 pub mod quad_vec;
 pub mod romberg;
 pub mod scheduling;
+pub mod sparse_grid;
 pub mod tanhsinh;
 pub mod utils;
 pub mod verification;
@@ -325,6 +331,7 @@ pub use autotuning::{
     AlgorithmTuner, AutoTuner, GpuInfo, HardwareDetector, HardwareInfo, SimdFeature, TuningProfile,
 };
 pub use bvp::{solve_bvp, solve_bvp_auto, BVPOptions, BVPResult};
+pub use bvp_collocation::{solve_bvp_collocation, CollocationBVPOptions, CollocationBVPResult};
 pub use bvp_extended::{
     solve_bvp_extended, solve_multipoint_bvp, BoundaryConditionType as BVPBoundaryConditionType,
     ExtendedBoundaryConditions, MultipointBVP, RobinBC,
@@ -333,9 +340,15 @@ pub use cubature::{cubature, nquad, Bound, CubatureOptions, CubatureResult};
 pub use dae::{
     bdf_implicit_dae, bdf_implicit_with_index_reduction, bdf_semi_explicit_dae,
     bdf_with_index_reduction, create_block_ilu_preconditioner, create_block_jacobi_preconditioner,
-    krylov_bdf_implicit_dae, krylov_bdf_semi_explicit_dae, solve_higher_index_dae,
-    solve_implicit_dae, solve_ivp_dae, solve_semi_explicit_dae, DAEIndex, DAEOptions, DAEResult,
-    DAEStructure, DAEType, DummyDerivativeReducer, PantelidesReducer, ProjectionMethod,
+    estimate_dae_index, find_consistent_initial_conditions, krylov_bdf_implicit_dae,
+    krylov_bdf_semi_explicit_dae, radau_iia_dae, solve_higher_index_dae, solve_implicit_dae,
+    solve_ivp_dae, solve_semi_explicit_dae, DAEIndex, DAEOptions, DAEResult, DAEStructure, DAEType,
+    DummyDerivativeReducer, ImplicitDAESystem, PantelidesReducer, ProjectionMethod,
+};
+// Export DDE solver types
+pub use dde::{
+    solve_dde, DDEOptions, DDEResult, DDESystem, DelayType, MultiDelayDDE, SimpleConstantDDE,
+    StateDependentDDE,
 };
 pub use lebedev::{lebedev_integrate, lebedev_rule, LebedevOrder, LebedevRule};
 pub use memory::{
@@ -384,6 +397,30 @@ pub use pde::spectral::{
 pub use pde::{
     BoundaryCondition, BoundaryConditionType, BoundaryLocation, Domain, PDEError, PDEResult,
     PDESolution, PDESolverInfo, PDEType,
+};
+// Enhanced PDE solver exports (v0.3.0)
+pub use pde::fd_solvers::{
+    cfl_heat_1d, cfl_heat_2d, cfl_wave_1d, cfl_wave_2d, solve_heat_1d, solve_heat_2d,
+    solve_poisson_2d as fd_solve_poisson_2d, solve_wave_1d, solve_wave_2d, CFLAnalysis,
+    EllipticIterativeMethod, FDBoundaryCondition, Heat2DResult, HeatResult, PoissonResult,
+    TimeSteppingMethod, Wave2DResult, WaveResult,
+};
+pub use pde::fem_1d::{
+    mark_for_refinement, solve_steady_1d, solve_transient_1d, FEM1DBoundaryCondition,
+    FEM1DElementType, FEM1DSteadyOptions, FEM1DSteadyResult, FEM1DTransientOptions,
+    FEM1DTransientResult, Mesh1D, RefinementIndicator,
+};
+pub use pde::mol_enhanced::{
+    mol_advection_1d, mol_advection_diffusion_1d, mol_diffusion_1d, mol_reaction_diffusion,
+    AdvectionScheme, MOLBoundaryCondition, MOLEnhancedOptions, MOLEnhancedResult,
+    MOLTimeIntegrator, ReactionDiffusionResult, ReactionDiffusionSystem, StencilOrder,
+};
+pub use pde::spectral_enhanced::{
+    chebyshev_collocation_points, chebyshev_diff2_matrix as chebyshev_diff2_matrix_enhanced,
+    chebyshev_diff_matrix as chebyshev_diff_matrix_enhanced, chebyshev_diffusion_1d,
+    chebyshev_nonlinear_bvp, chebyshev_poisson_1d, dealias_23, dealias_23_2d, fourier_advection_1d,
+    fourier_diff2_matrix, fourier_diff_matrix, fourier_diffusion_1d, map_chebyshev_to_interval,
+    scale_chebyshev_diff, SpectralBasisType, SpectralEnhancedOptions, SpectralEnhancedResult,
 };
 // Export symbolic integration types
 pub use symbolic::{
@@ -588,6 +625,21 @@ pub use neural_rl_step_control::{
     TrainingResult,
 };
 // Implicit solvers for PDEs
+pub use clenshaw_curtis::{
+    quad_cc, quad_cc_tol, ClenshawCurtisOptions, ClenshawCurtisResult, ClenshawCurtisRule,
+};
+pub use ode::methods::rosenbrock::{rosenbrock_method, RosenbrockVariant};
+// Export enhanced symplectic ODE methods
+pub use ode::methods::symplectic::{
+    create_stepper as create_symplectic_stepper, solve_hamiltonian, EnergyMonitor,
+    HamiltonianSystem as SymplecticHamiltonianSystem, SeparableSystem as SymplecticSeparableSystem,
+    StormerVerletODE, SymplecticMethod, SymplecticODEResult, SymplecticStepper, VelocityVerletODE,
+    Yoshida4, Yoshida6, Yoshida8,
+};
+// Export enhanced event detection
+pub use ode::events::{
+    CrossingDirection, DetectedEvent, EventDef, EventDetector, EventResponse, RootFindingMethod,
+};
 pub use pde::implicit::{
     ADIResult, BackwardEuler1D, CrankNicolson1D, ImplicitMethod, ImplicitOptions, ImplicitResult,
     ADI2D,
@@ -595,6 +647,9 @@ pub use pde::implicit::{
 pub use qmc::{qmc_quad, qmc_quad_parallel, Faure, Halton, QMCQuadResult, RandomGenerator, Sobol};
 pub use quad::{quad, simpson, trapezoid};
 pub use quad_vec::{quad_vec, NormType, QuadRule, QuadVecOptions, QuadVecResult};
+pub use sparse_grid::{
+    sparse_grid_quad, SparseGridOptions, SparseGridResult, SparseGridRuleFamily,
+};
 pub use symplectic::{
     position_verlet, symplectic_euler, symplectic_euler_a, symplectic_euler_b, velocity_verlet,
     CompositionMethod, GaussLegendre4, GaussLegendre6, HamiltonianFn, HamiltonianSystem,

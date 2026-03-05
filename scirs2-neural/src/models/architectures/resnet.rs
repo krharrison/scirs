@@ -9,8 +9,9 @@ use crate::error::{NeuralError, Result};
 use crate::layers::conv::PaddingMode;
 use crate::layers::{BatchNorm, Conv2D, Dense, Dropout, Layer};
 use scirs2_core::ndarray::{Array, IxDyn, ScalarOperand};
-use scirs2_core::numeric::{Float, NumAssign};
+use scirs2_core::numeric::{Float, FromPrimitive, NumAssign, ToPrimitive};
 use scirs2_core::random::SeedableRng;
+use std::collections::HashMap;
 use std::fmt::Debug;
 
 /// ResNet block configuration
@@ -347,6 +348,114 @@ impl<F: Float + Debug + ScalarOperand + Send + Sync + NumAssign + 'static> Layer
     }
 }
 
+impl<
+        F: Float
+            + Debug
+            + ScalarOperand
+            + Send
+            + Sync
+            + NumAssign
+            + ToPrimitive
+            + FromPrimitive
+            + 'static,
+    > BasicBlock<F>
+{
+    /// Extract named parameters with a given prefix (HuggingFace-compatible naming)
+    pub(crate) fn extract_named_params(&self, prefix: &str) -> Vec<(String, Array<F, IxDyn>)> {
+        let mut result = Vec::new();
+        // conv1: weight, bias
+        for (i, p) in self.conv1.params().iter().enumerate() {
+            let suffix = if i == 0 { "weight" } else { "bias" };
+            result.push((format!("{prefix}.conv1.{suffix}"), p.clone()));
+        }
+        // bn1: weight (gamma), bias (beta)
+        for (i, p) in self.bn1.params().iter().enumerate() {
+            let suffix = if i == 0 { "weight" } else { "bias" };
+            result.push((format!("{prefix}.bn1.{suffix}"), p.clone()));
+        }
+        // conv2
+        for (i, p) in self.conv2.params().iter().enumerate() {
+            let suffix = if i == 0 { "weight" } else { "bias" };
+            result.push((format!("{prefix}.conv2.{suffix}"), p.clone()));
+        }
+        // bn2
+        for (i, p) in self.bn2.params().iter().enumerate() {
+            let suffix = if i == 0 { "weight" } else { "bias" };
+            result.push((format!("{prefix}.bn2.{suffix}"), p.clone()));
+        }
+        // downsample (optional)
+        if let Some((ref conv, ref bn)) = self.downsample {
+            for (i, p) in conv.params().iter().enumerate() {
+                let suffix = if i == 0 { "weight" } else { "bias" };
+                result.push((format!("{prefix}.downsample.0.{suffix}"), p.clone()));
+            }
+            for (i, p) in bn.params().iter().enumerate() {
+                let suffix = if i == 0 { "weight" } else { "bias" };
+                result.push((format!("{prefix}.downsample.1.{suffix}"), p.clone()));
+            }
+        }
+        result
+    }
+
+    /// Load named parameters from a map using the given prefix
+    pub(crate) fn load_named_params(
+        &mut self,
+        prefix: &str,
+        params_map: &HashMap<String, Array<F, IxDyn>>,
+    ) -> Result<()> {
+        // conv1
+        if let Some(w) = params_map.get(&format!("{prefix}.conv1.weight")) {
+            let mut ps = vec![w.clone()];
+            if let Some(b) = params_map.get(&format!("{prefix}.conv1.bias")) {
+                ps.push(b.clone());
+            }
+            self.conv1.set_params(&ps)?;
+        }
+        // bn1
+        if let Some(w) = params_map.get(&format!("{prefix}.bn1.weight")) {
+            let mut ps = vec![w.clone()];
+            if let Some(b) = params_map.get(&format!("{prefix}.bn1.bias")) {
+                ps.push(b.clone());
+            }
+            self.bn1.set_params(&ps)?;
+        }
+        // conv2
+        if let Some(w) = params_map.get(&format!("{prefix}.conv2.weight")) {
+            let mut ps = vec![w.clone()];
+            if let Some(b) = params_map.get(&format!("{prefix}.conv2.bias")) {
+                ps.push(b.clone());
+            }
+            self.conv2.set_params(&ps)?;
+        }
+        // bn2
+        if let Some(w) = params_map.get(&format!("{prefix}.bn2.weight")) {
+            let mut ps = vec![w.clone()];
+            if let Some(b) = params_map.get(&format!("{prefix}.bn2.bias")) {
+                ps.push(b.clone());
+            }
+            self.bn2.set_params(&ps)?;
+        }
+        // downsample
+        if let Some((ref mut conv, ref mut bn)) = self.downsample {
+            if let Some(w) = params_map.get(&format!("{prefix}.downsample.0.weight")) {
+                let mut ps = vec![w.clone()];
+                if let Some(b) = params_map.get(&format!("{prefix}.downsample.0.bias")) {
+                    ps.push(b.clone());
+                }
+                conv.set_params(&ps)?;
+            }
+            if let Some(w) = params_map.get(&format!("{prefix}.downsample.1.weight")) {
+                let mut ps = vec![w.clone()];
+                if let Some(b) = params_map.get(&format!("{prefix}.downsample.1.bias")) {
+                    ps.push(b.clone());
+                }
+                bn.set_params(&ps)?;
+            }
+        }
+        Ok(())
+    }
+}
+
 /// Bottleneck block for ResNet (3 conv layers)
 struct BottleneckBlock<F: Float + Debug + ScalarOperand + Send + Sync + NumAssign + 'static> {
     /// First convolutional layer (1x1 reduce)
@@ -521,6 +630,126 @@ impl<F: Float + Debug + ScalarOperand + Send + Sync + NumAssign + 'static> Layer
     }
 }
 
+impl<
+        F: Float
+            + Debug
+            + ScalarOperand
+            + Send
+            + Sync
+            + NumAssign
+            + ToPrimitive
+            + FromPrimitive
+            + 'static,
+    > BottleneckBlock<F>
+{
+    /// Extract named parameters with a given prefix (HuggingFace-compatible naming)
+    pub(crate) fn extract_named_params(&self, prefix: &str) -> Vec<(String, Array<F, IxDyn>)> {
+        let mut result = Vec::new();
+        for (i, p) in self.conv1.params().iter().enumerate() {
+            let suffix = if i == 0 { "weight" } else { "bias" };
+            result.push((format!("{prefix}.conv1.{suffix}"), p.clone()));
+        }
+        for (i, p) in self.bn1.params().iter().enumerate() {
+            let suffix = if i == 0 { "weight" } else { "bias" };
+            result.push((format!("{prefix}.bn1.{suffix}"), p.clone()));
+        }
+        for (i, p) in self.conv2.params().iter().enumerate() {
+            let suffix = if i == 0 { "weight" } else { "bias" };
+            result.push((format!("{prefix}.conv2.{suffix}"), p.clone()));
+        }
+        for (i, p) in self.bn2.params().iter().enumerate() {
+            let suffix = if i == 0 { "weight" } else { "bias" };
+            result.push((format!("{prefix}.bn2.{suffix}"), p.clone()));
+        }
+        for (i, p) in self.conv3.params().iter().enumerate() {
+            let suffix = if i == 0 { "weight" } else { "bias" };
+            result.push((format!("{prefix}.conv3.{suffix}"), p.clone()));
+        }
+        for (i, p) in self.bn3.params().iter().enumerate() {
+            let suffix = if i == 0 { "weight" } else { "bias" };
+            result.push((format!("{prefix}.bn3.{suffix}"), p.clone()));
+        }
+        if let Some((ref conv, ref bn)) = self.downsample {
+            for (i, p) in conv.params().iter().enumerate() {
+                let suffix = if i == 0 { "weight" } else { "bias" };
+                result.push((format!("{prefix}.downsample.0.{suffix}"), p.clone()));
+            }
+            for (i, p) in bn.params().iter().enumerate() {
+                let suffix = if i == 0 { "weight" } else { "bias" };
+                result.push((format!("{prefix}.downsample.1.{suffix}"), p.clone()));
+            }
+        }
+        result
+    }
+
+    /// Load named parameters from a map using the given prefix
+    pub(crate) fn load_named_params(
+        &mut self,
+        prefix: &str,
+        params_map: &HashMap<String, Array<F, IxDyn>>,
+    ) -> Result<()> {
+        if let Some(w) = params_map.get(&format!("{prefix}.conv1.weight")) {
+            let mut ps = vec![w.clone()];
+            if let Some(b) = params_map.get(&format!("{prefix}.conv1.bias")) {
+                ps.push(b.clone());
+            }
+            self.conv1.set_params(&ps)?;
+        }
+        if let Some(w) = params_map.get(&format!("{prefix}.bn1.weight")) {
+            let mut ps = vec![w.clone()];
+            if let Some(b) = params_map.get(&format!("{prefix}.bn1.bias")) {
+                ps.push(b.clone());
+            }
+            self.bn1.set_params(&ps)?;
+        }
+        if let Some(w) = params_map.get(&format!("{prefix}.conv2.weight")) {
+            let mut ps = vec![w.clone()];
+            if let Some(b) = params_map.get(&format!("{prefix}.conv2.bias")) {
+                ps.push(b.clone());
+            }
+            self.conv2.set_params(&ps)?;
+        }
+        if let Some(w) = params_map.get(&format!("{prefix}.bn2.weight")) {
+            let mut ps = vec![w.clone()];
+            if let Some(b) = params_map.get(&format!("{prefix}.bn2.bias")) {
+                ps.push(b.clone());
+            }
+            self.bn2.set_params(&ps)?;
+        }
+        if let Some(w) = params_map.get(&format!("{prefix}.conv3.weight")) {
+            let mut ps = vec![w.clone()];
+            if let Some(b) = params_map.get(&format!("{prefix}.conv3.bias")) {
+                ps.push(b.clone());
+            }
+            self.conv3.set_params(&ps)?;
+        }
+        if let Some(w) = params_map.get(&format!("{prefix}.bn3.weight")) {
+            let mut ps = vec![w.clone()];
+            if let Some(b) = params_map.get(&format!("{prefix}.bn3.bias")) {
+                ps.push(b.clone());
+            }
+            self.bn3.set_params(&ps)?;
+        }
+        if let Some((ref mut conv, ref mut bn)) = self.downsample {
+            if let Some(w) = params_map.get(&format!("{prefix}.downsample.0.weight")) {
+                let mut ps = vec![w.clone()];
+                if let Some(b) = params_map.get(&format!("{prefix}.downsample.0.bias")) {
+                    ps.push(b.clone());
+                }
+                conv.set_params(&ps)?;
+            }
+            if let Some(w) = params_map.get(&format!("{prefix}.downsample.1.weight")) {
+                let mut ps = vec![w.clone()];
+                if let Some(b) = params_map.get(&format!("{prefix}.downsample.1.bias")) {
+                    ps.push(b.clone());
+                }
+                bn.set_params(&ps)?;
+            }
+        }
+        Ok(())
+    }
+}
+
 /// ResNet implementation
 pub struct ResNet<F: Float + Debug + ScalarOperand + Send + Sync + NumAssign + 'static> {
     /// Initial convolutional layer
@@ -648,6 +877,104 @@ impl<F: Float + Debug + ScalarOperand + Send + Sync + NumAssign + 'static> ResNe
         }
 
         Ok(output)
+    }
+}
+
+impl<
+        F: Float
+            + Debug
+            + ScalarOperand
+            + Send
+            + Sync
+            + NumAssign
+            + ToPrimitive
+            + FromPrimitive
+            + 'static,
+    > ResNet<F>
+{
+    /// Extract all named parameters in HuggingFace-compatible format.
+    ///
+    /// Parameter names follow PyTorch/HuggingFace ResNet naming convention:
+    /// - `conv1.weight`, `bn1.weight`, `bn1.bias`
+    /// - `layer1.0.conv1.weight`, `layer1.0.bn1.weight`, etc.
+    /// - `layer2.0.conv1.weight`, etc. (for bottleneck blocks)
+    /// - `fc.weight`, `fc.bias`
+    pub fn extract_named_params(&self) -> Result<Vec<(String, Array<F, IxDyn>)>> {
+        let mut result = Vec::new();
+
+        // Initial conv and bn
+        for (i, p) in self.conv1.params().iter().enumerate() {
+            let suffix = if i == 0 { "weight" } else { "bias" };
+            result.push((format!("conv1.{suffix}"), p.clone()));
+        }
+        for (i, p) in self.bn1.params().iter().enumerate() {
+            let suffix = if i == 0 { "weight" } else { "bias" };
+            result.push((format!("bn1.{suffix}"), p.clone()));
+        }
+
+        // Residual blocks: basic or bottleneck
+        for (idx, block) in self.layer1.iter().enumerate() {
+            let block_params = block.extract_named_params(&format!("layer1.{idx}"));
+            result.extend(block_params);
+        }
+        for (idx, block) in self.layer1_bottleneck.iter().enumerate() {
+            let block_params = block.extract_named_params(&format!("layer1.{idx}"));
+            result.extend(block_params);
+        }
+
+        // FC (classifier head)
+        for (i, p) in self.fc.params().iter().enumerate() {
+            let suffix = if i == 0 { "weight" } else { "bias" };
+            result.push((format!("fc.{suffix}"), p.clone()));
+        }
+
+        Ok(result)
+    }
+
+    /// Load named parameters from a map (by name).
+    ///
+    /// Unknown parameter names are silently ignored, enabling graceful
+    /// forward/backward compatibility between model versions.
+    pub fn load_named_params(
+        &mut self,
+        params_map: &HashMap<String, Array<F, IxDyn>>,
+    ) -> Result<()> {
+        // conv1
+        if let Some(w) = params_map.get("conv1.weight") {
+            let mut ps = vec![w.clone()];
+            if let Some(b) = params_map.get("conv1.bias") {
+                ps.push(b.clone());
+            }
+            self.conv1.set_params(&ps)?;
+        }
+        // bn1
+        if let Some(w) = params_map.get("bn1.weight") {
+            let mut ps = vec![w.clone()];
+            if let Some(b) = params_map.get("bn1.bias") {
+                ps.push(b.clone());
+            }
+            self.bn1.set_params(&ps)?;
+        }
+
+        // Basic blocks
+        for (idx, block) in self.layer1.iter_mut().enumerate() {
+            block.load_named_params(&format!("layer1.{idx}"), params_map)?;
+        }
+        // Bottleneck blocks
+        for (idx, block) in self.layer1_bottleneck.iter_mut().enumerate() {
+            block.load_named_params(&format!("layer1.{idx}"), params_map)?;
+        }
+
+        // fc
+        if let Some(w) = params_map.get("fc.weight") {
+            let mut ps = vec![w.clone()];
+            if let Some(b) = params_map.get("fc.bias") {
+                ps.push(b.clone());
+            }
+            self.fc.set_params(&ps)?;
+        }
+
+        Ok(())
     }
 }
 

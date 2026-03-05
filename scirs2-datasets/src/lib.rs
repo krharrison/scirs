@@ -153,6 +153,12 @@ pub mod toy;
 /// manipulating and transforming datasets.
 pub mod utils;
 
+/// Standard benchmark datasets (fully embedded, no download required)
+///
+/// Provides well-known ML datasets: Iris, Wine, Breast Cancer, Digits, Boston.
+/// Each returns a `DatasetResult` with data, target, feature names, and description.
+pub mod standard;
+
 /// API stability guarantees and compatibility documentation
 ///
 /// This module defines the API stability levels and compatibility guarantees
@@ -265,6 +271,31 @@ pub use generators::{
     make_swiss_roll, make_swiss_roll_advanced, make_time_series, make_torus, make_twin_peaks,
     ManifoldConfig, ManifoldType, MissingPattern, OutlierType,
 };
+// Time series generators
+pub use generators::time_series::{
+    make_ar_process, make_random_walk, make_seasonal, make_sine_wave,
+};
+// Graph generators
+pub use generators::graph::{
+    make_barabasi_albert, make_karate_club, make_random_graph, make_watts_strogatz,
+};
+// Sparse matrix generators
+pub use generators::sparse::{make_sparse_banded, make_sparse_laplacian, make_sparse_spd};
+// Classification generators
+pub use generators::classification::{
+    make_classification_enhanced, make_hastie_10_2, make_multilabel_classification,
+    ClassificationConfig, MultilabelConfig, MultilabelDataset,
+};
+// Regression generators
+pub use generators::regression::{
+    make_friedman1, make_friedman2, make_friedman3, make_low_rank_matrix, make_sparse_uncorrelated,
+};
+// Structured generators
+pub use generators::structured::{
+    make_biclusters, make_checkerboard, make_sparse_coded_signal, make_sparse_spd_matrix,
+    make_spd_matrix,
+};
+// Standard datasets
 pub use gpu::{
     get_optimal_gpu_config, is_cuda_available, is_opencl_available, list_gpu_devices,
     make_blobs_auto_gpu, make_classification_auto_gpu, make_regression_auto_gpu, GpuBackend,
@@ -298,6 +329,10 @@ pub use real_world::{
 };
 pub use registry::{get_registry, load_dataset_byname, DatasetMetadata, DatasetRegistry};
 pub use sample::*;
+pub use standard::{
+    load_boston as load_boston_full, load_breast_cancer as load_breast_cancer_full,
+    load_digits as load_digits_full, load_iris as load_iris_full, load_wine, DatasetResult,
+};
 pub use streaming::{
     stream_classification, stream_csv, stream_regression, DataChunk, StreamConfig, StreamProcessor,
     StreamStats, StreamTransformer, StreamingIterator,

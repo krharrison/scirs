@@ -27,7 +27,7 @@ use scirs2_core::ndarray::{Array1, ArrayBase, Data, Dimension};
 /// let y_true = array![0, 0, 1, 1, 1];
 /// let y_score = array![0.1, 0.4, 0.35, 0.8, 0.6];
 ///
-/// let (fpr, tpr, thresholds) = roc_curve(&y_true, &y_score).unwrap();
+/// let (fpr, tpr, thresholds) = roc_curve(&y_true, &y_score).expect("should succeed");
 /// ```
 /// Type alias for ROC curve result
 pub type ROCCurveResult = (Array1<f64>, Array1<f64>, Array1<f64>);

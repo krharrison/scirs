@@ -5,13 +5,13 @@
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict};
-use scirs2_numpy::{PyArray1, PyArray2, PyArrayMethods};
 use scirs2_core::Array2;
-use scirs2_stats::{
-    ks_2samp, friedman, chi2_independence, chi2_yates, linregress, polyfit, tukey_hsd,
-    pearsonr, spearmanr,
-};
+use scirs2_numpy::{PyArray1, PyArray2, PyArrayMethods};
 use scirs2_stats::contingency::{fisher_exact, odds_ratio, relative_risk};
+use scirs2_stats::{
+    chi2_independence, chi2_yates, friedman, ks_2samp, linregress, pearsonr, polyfit, spearmanr,
+    tukey_hsd,
+};
 
 /// Two-sample Kolmogorov-Smirnov test.
 ///
@@ -38,9 +38,7 @@ pub fn ks_2samp_py(
     let y_data = y.readonly();
     let y_arr = y_data.as_array();
     let (statistic, pvalue) = ks_2samp(&x_arr.view(), &y_arr.view(), alternative)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Two-sample KS test failed: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("Two-sample KS test failed: {}", e)))?;
     let dict = PyDict::new(py);
     dict.set_item("statistic", statistic)?;
     dict.set_item("pvalue", pvalue)?;
@@ -61,12 +59,10 @@ pub fn friedman_py(py: Python, data: &Bound<'_, PyArray2<f64>>) -> PyResult<Py<P
     let data_readonly = data.readonly();
     let data_view = data_readonly.as_array();
     let data_arr = scirs2_core::ndarray::Array2::from_shape_vec(
-            data_view.dim(),
-            data_view.iter().copied().collect(),
-        )
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Array conversion failed: {}", e),
-        ))?;
+        data_view.dim(),
+        data_view.iter().copied().collect(),
+    )
+    .map_err(|e| PyRuntimeError::new_err(format!("Array conversion failed: {}", e)))?;
     let (statistic, pvalue) = friedman(&data_arr.view())
         .map_err(|e| PyRuntimeError::new_err(format!("Friedman test failed: {}", e)))?;
     let dict = PyDict::new(py);
@@ -92,28 +88,23 @@ pub fn chi2_independence_py(
     let data_readonly = observed.readonly();
     let data_view = data_readonly.as_array();
     let data_arr = scirs2_core::ndarray::Array2::from_shape_vec(
-            data_view.dim(),
-            data_view.iter().copied().collect(),
-        )
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Array conversion failed: {}", e),
-        ))?;
-    let result = chi2_independence::<f64, i64>(&data_arr.view())
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Chi-square independence test failed: {}", e),
-        ))?;
+        data_view.dim(),
+        data_view.iter().copied().collect(),
+    )
+    .map_err(|e| PyRuntimeError::new_err(format!("Array conversion failed: {}", e)))?;
+    let result = chi2_independence::<f64, i64>(&data_arr.view()).map_err(|e| {
+        PyRuntimeError::new_err(format!("Chi-square independence test failed: {}", e))
+    })?;
     let dict = PyDict::new(py);
     dict.set_item("statistic", result.statistic)?;
     dict.set_item("pvalue", result.p_value)?;
     dict.set_item("df", result.df)?;
     let shape = result.expected.dim();
     let expected_vec: Vec<Vec<f64>> = (0..shape.0)
-        .map(|i| { (0..shape.1).map(|j| result.expected[(i, j)]).collect() })
+        .map(|i| (0..shape.1).map(|j| result.expected[(i, j)]).collect())
         .collect();
     let expected_py = PyArray2::from_vec2(py, &expected_vec)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Failed to create expected array: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("Failed to create expected array: {}", e)))?;
     dict.set_item("expected", expected_py)?;
     Ok(dict.into())
 }
@@ -128,41 +119,32 @@ pub fn chi2_independence_py(
 /// Returns:
 ///     Dictionary with 'statistic', 'pvalue', 'df', and 'expected'
 #[pyfunction]
-pub fn chi2_yates_py(
-    py: Python,
-    observed: &Bound<'_, PyArray2<i64>>,
-) -> PyResult<Py<PyAny>> {
+pub fn chi2_yates_py(py: Python, observed: &Bound<'_, PyArray2<i64>>) -> PyResult<Py<PyAny>> {
     let data_readonly = observed.readonly();
     let data_view = data_readonly.as_array();
     let shape = data_view.dim();
     if shape.0 != 2 || shape.1 != 2 {
-        return Err(
-            PyRuntimeError::new_err("Yates' correction requires a 2x2 contingency table"),
-        );
+        return Err(PyRuntimeError::new_err(
+            "Yates' correction requires a 2x2 contingency table",
+        ));
     }
     let data_arr = scirs2_core::ndarray::Array2::from_shape_vec(
-            data_view.dim(),
-            data_view.iter().copied().collect(),
-        )
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Array conversion failed: {}", e),
-        ))?;
+        data_view.dim(),
+        data_view.iter().copied().collect(),
+    )
+    .map_err(|e| PyRuntimeError::new_err(format!("Array conversion failed: {}", e)))?;
     let result = chi2_yates::<f64, i64>(&data_arr.view())
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Chi-square Yates' test failed: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("Chi-square Yates' test failed: {}", e)))?;
     let dict = PyDict::new(py);
     dict.set_item("statistic", result.statistic)?;
     dict.set_item("pvalue", result.p_value)?;
     dict.set_item("df", result.df)?;
     let expected_vec: Vec<f64> = result.expected.iter().copied().collect();
     let expected_py = PyArray2::from_vec2(
-            py,
-            &[expected_vec[0..2].to_vec(), expected_vec[2..4].to_vec()],
-        )
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Failed to create expected array: {}", e),
-        ))?;
+        py,
+        &[expected_vec[0..2].to_vec(), expected_vec[2..4].to_vec()],
+    )
+    .map_err(|e| PyRuntimeError::new_err(format!("Failed to create expected array: {}", e)))?;
     dict.set_item("expected", expected_py)?;
     Ok(dict.into())
 }
@@ -192,16 +174,12 @@ pub fn fisher_exact_py(
 ) -> PyResult<Py<PyAny>> {
     let table_readonly = table.readonly();
     let table_arr = Array2::from_shape_vec(
-            table_readonly.as_array().dim(),
-            table_readonly.as_array().iter().copied().collect(),
-        )
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Array conversion failed: {}", e),
-        ))?;
+        table_readonly.as_array().dim(),
+        table_readonly.as_array().iter().copied().collect(),
+    )
+    .map_err(|e| PyRuntimeError::new_err(format!("Array conversion failed: {}", e)))?;
     let (odds_ratio, pvalue) = fisher_exact(&table_arr.view(), alternative)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Fisher's exact test failed: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("Fisher's exact test failed: {}", e)))?;
     let dict = PyDict::new(py);
     dict.set_item("odds_ratio", odds_ratio)?;
     dict.set_item("pvalue", pvalue)?;
@@ -229,16 +207,12 @@ pub fn fisher_exact_py(
 pub fn odds_ratio_py(table: &Bound<'_, PyArray2<f64>>) -> PyResult<f64> {
     let table_readonly = table.readonly();
     let table_arr = Array2::from_shape_vec(
-            table_readonly.as_array().dim(),
-            table_readonly.as_array().iter().copied().collect(),
-        )
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Array conversion failed: {}", e),
-        ))?;
+        table_readonly.as_array().dim(),
+        table_readonly.as_array().iter().copied().collect(),
+    )
+    .map_err(|e| PyRuntimeError::new_err(format!("Array conversion failed: {}", e)))?;
     let or = odds_ratio(&table_arr.view())
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Odds ratio calculation failed: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("Odds ratio calculation failed: {}", e)))?;
     Ok(or)
 }
 /// Calculate relative risk (risk ratio) for a 2x2 contingency table.
@@ -263,16 +237,12 @@ pub fn odds_ratio_py(table: &Bound<'_, PyArray2<f64>>) -> PyResult<f64> {
 pub fn relative_risk_py(table: &Bound<'_, PyArray2<f64>>) -> PyResult<f64> {
     let table_readonly = table.readonly();
     let table_arr = Array2::from_shape_vec(
-            table_readonly.as_array().dim(),
-            table_readonly.as_array().iter().copied().collect(),
-        )
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Array conversion failed: {}", e),
-        ))?;
+        table_readonly.as_array().dim(),
+        table_readonly.as_array().iter().copied().collect(),
+    )
+    .map_err(|e| PyRuntimeError::new_err(format!("Array conversion failed: {}", e)))?;
     let rr = relative_risk(&table_arr.view())
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Relative risk calculation failed: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("Relative risk calculation failed: {}", e)))?;
     Ok(rr)
 }
 /// Calculate a simple linear regression on two 1D arrays.
@@ -303,13 +273,8 @@ pub fn linregress_py(
     let x_arr = x_readonly.as_array();
     let y_readonly = y.readonly();
     let y_arr = y_readonly.as_array();
-    let (slope, intercept, rvalue, pvalue, stderr) = linregress(
-            &x_arr.view(),
-            &y_arr.view(),
-        )
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Linear regression failed: {}", e),
-        ))?;
+    let (slope, intercept, rvalue, pvalue, stderr) = linregress(&x_arr.view(), &y_arr.view())
+        .map_err(|e| PyRuntimeError::new_err(format!("Linear regression failed: {}", e)))?;
     let dict = PyDict::new(py);
     dict.set_item("slope", slope)?;
     dict.set_item("intercept", intercept)?;
@@ -394,7 +359,9 @@ pub fn tukey_hsd_py(
     alpha: f64,
 ) -> PyResult<Py<PyAny>> {
     if args.len() < 2 {
-        return Err(PyRuntimeError::new_err("Need at least 2 groups for Tukey's HSD"));
+        return Err(PyRuntimeError::new_err(
+            "Need at least 2 groups for Tukey's HSD",
+        ));
     }
     let mut arrays = Vec::new();
     for item in args.iter() {
@@ -445,9 +412,7 @@ pub fn pearsonr_py(
     let y_readonly = y.readonly();
     let y_arr = y_readonly.as_array();
     let (r, pvalue) = pearsonr(&x_arr.view(), &y_arr.view(), alternative)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Pearson correlation test failed: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("Pearson correlation test failed: {}", e)))?;
     let dict = PyDict::new(py);
     dict.set_item("correlation", r)?;
     dict.set_item("pvalue", pvalue)?;
@@ -479,9 +444,7 @@ pub fn spearmanr_py(
     let y_readonly = y.readonly();
     let y_arr = y_readonly.as_array();
     let (rho, pvalue) = spearmanr(&x_arr.view(), &y_arr.view(), alternative)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Spearman correlation test failed: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("Spearman correlation test failed: {}", e)))?;
     let dict = PyDict::new(py);
     dict.set_item("correlation", rho)?;
     dict.set_item("pvalue", pvalue)?;

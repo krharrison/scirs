@@ -623,16 +623,13 @@ where
                 };
             }
 
-            // Compute D^(-1/2) A D^(-1/2)
+            // Compute I - D^(-1/2) A D^(-1/2)
             for i in 0..n {
                 for j in 0..n {
-                    normalized[[i, j]] = d_inv_sqrt[i] * adj_f64[[i, j]] * d_inv_sqrt[j];
+                    normalized[[i, j]] = -d_inv_sqrt[i] * adj_f64[[i, j]] * d_inv_sqrt[j];
                 }
-            }
-
-            // Subtract from identity
-            for i in 0..n {
-                normalized[[i, i]] = 1.0 - normalized[[i, i]];
+                // Add identity on diagonal
+                normalized[[i, i]] += 1.0;
             }
 
             Ok(normalized)
@@ -641,19 +638,16 @@ where
             // L = I - D^(-1) A
             let mut random_walk = Array2::<f64>::zeros((n, n));
 
-            // Compute D^(-1) A
+            // Compute I - D^(-1) A
             for i in 0..n {
                 let degree = degrees[i] as f64;
                 if degree > 0.0 {
                     for j in 0..n {
-                        random_walk[[i, j]] = adj_f64[[i, j]] / degree;
+                        random_walk[[i, j]] = -adj_f64[[i, j]] / degree;
                     }
                 }
-            }
-
-            // Subtract from identity
-            for i in 0..n {
-                random_walk[[i, i]] = 1.0 - random_walk[[i, i]];
+                // Add identity on diagonal
+                random_walk[[i, i]] += 1.0;
             }
 
             Ok(random_walk)
@@ -732,16 +726,13 @@ where
                 };
             }
 
-            // Compute D^(-1/2) A D^(-1/2)
+            // Compute I - D^(-1/2) A D^(-1/2)
             for i in 0..n {
                 for j in 0..n {
-                    normalized[[i, j]] = d_inv_sqrt[i] * adj_f64[[i, j]] * d_inv_sqrt[j];
+                    normalized[[i, j]] = -d_inv_sqrt[i] * adj_f64[[i, j]] * d_inv_sqrt[j];
                 }
-            }
-
-            // Subtract from identity
-            for i in 0..n {
-                normalized[[i, i]] = 1.0 - normalized[[i, i]];
+                // Add identity on diagonal
+                normalized[[i, i]] += 1.0;
             }
 
             Ok(normalized)
@@ -750,19 +741,16 @@ where
             // L = I - D^(-1) A
             let mut random_walk = Array2::<f64>::zeros((n, n));
 
-            // Compute D^(-1) A
+            // Compute I - D^(-1) A
             for i in 0..n {
                 let degree = degrees[i] as f64;
                 if degree > 0.0 {
                     for j in 0..n {
-                        random_walk[[i, j]] = adj_f64[[i, j]] / degree;
+                        random_walk[[i, j]] = -adj_f64[[i, j]] / degree;
                     }
                 }
-            }
-
-            // Subtract from identity
-            for i in 0..n {
-                random_walk[[i, i]] = 1.0 - random_walk[[i, i]];
+                // Add identity on diagonal
+                random_walk[[i, i]] += 1.0;
             }
 
             Ok(random_walk)

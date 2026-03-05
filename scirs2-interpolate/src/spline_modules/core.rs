@@ -76,7 +76,7 @@ pub struct CubicSpline<F: InterpolationFloat> {
 ///     .y(y)
 ///     .boundary_condition(SplineBoundaryCondition::NotAKnot)
 ///     .build()
-///     .unwrap();
+///     .expect("doc example: should succeed");
 /// ```
 #[derive(Debug, Clone)]
 pub struct CubicSplineBuilder<F: InterpolationFloat> {

@@ -14,10 +14,7 @@ use scirs2_numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods};
 use scirs2_core::ndarray::Array1;
 
 // Direct imports from scirs2-sparse
-use scirs2_sparse::{
-    CsrArray, CscArray, CooArray, SparseArray,
-    eye, diag_matrix,
-};
+use scirs2_sparse::{diag_matrix, eye, CooArray, CscArray, CsrArray, SparseArray};
 
 // ========================================
 // SPARSE ARRAY CREATION
@@ -199,8 +196,9 @@ fn sparse_matvec_py(
     let x_binding = x.readonly();
     let x_data = x_binding.as_array();
 
-    let result = csr.dot_vector(&x_data)
-        .map_err(|e| PyRuntimeError::new_err(format!("Matrix-vector multiplication failed: {}", e)))?;
+    let result = csr.dot_vector(&x_data).map_err(|e| {
+        PyRuntimeError::new_err(format!("Matrix-vector multiplication failed: {}", e))
+    })?;
 
     Ok(result.into_pyarray(py).unbind())
 }
@@ -234,7 +232,8 @@ fn sparse_matmul_py(
     )
     .map_err(|e| PyRuntimeError::new_err(format!("Invalid CSR data for B: {}", e)))?;
 
-    let result = a.dot(&b)
+    let result = a
+        .dot(&b)
         .map_err(|e| PyRuntimeError::new_err(format!("Matrix multiplication failed: {}", e)))?;
 
     // Use find() to get row, col, data from the boxed SparseArray
@@ -249,7 +248,8 @@ fn sparse_matmul_py(
         data.as_slice().unwrap_or(&[]),
         shape,
         false,
-    ).map_err(|e| PyRuntimeError::new_err(format!("Failed to create result CSR: {}", e)))?;
+    )
+    .map_err(|e| PyRuntimeError::new_err(format!("Failed to create result CSR: {}", e)))?;
 
     let dict = PyDict::new(py);
     dict.set_item("format", "csr")?;
@@ -280,7 +280,8 @@ fn sparse_transpose_py(
     )
     .map_err(|e| PyRuntimeError::new_err(format!("Invalid CSR data: {}", e)))?;
 
-    let transposed = csr.transpose()
+    let transposed = csr
+        .transpose()
         .map_err(|e| PyRuntimeError::new_err(format!("Transpose failed: {}", e)))?;
 
     // Use find() to get row, col, data from the boxed SparseArray
@@ -295,7 +296,8 @@ fn sparse_transpose_py(
         data.as_slice().unwrap_or(&[]),
         t_shape,
         false,
-    ).map_err(|e| PyRuntimeError::new_err(format!("Failed to create transposed CSR: {}", e)))?;
+    )
+    .map_err(|e| PyRuntimeError::new_err(format!("Failed to create transposed CSR: {}", e)))?;
 
     let dict = PyDict::new(py);
     dict.set_item("format", "csr")?;

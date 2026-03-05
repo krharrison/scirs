@@ -39,7 +39,6 @@ rayon = { workspace = true }
 tokio = { workspace = true, optional = true, features = ["full"] }
 serde = { workspace = true, optional = true, features = ["derive"] }
 oxicode = { workspace = true, optional = true }  # Binary serialization (SIMD-optimized)
-tch = { workspace = true, optional = true }
 prometheus = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 
@@ -51,7 +50,7 @@ default = []
 simd = ["scirs2-core/simd"]
 gpu = ["scirs2-core/gpu"]
 distributed = ["dep:tokio", "dep:serde", "dep:oxicode"]  # SIMD-optimized serialization
-auto-feature-engineering = ["dep:tch"]
+auto-feature-engineering = []
 monitoring = ["dep:prometheus", "dep:serde_json"]
 # Enable external ML library wrappers
 # pandrs = ["dep:pandrs_wrapper"]

@@ -22,7 +22,7 @@ use std::fmt::Debug;
 ///
 /// let tanh = Tanh::new();
 /// let input = Array::from_vec(vec![1.0, -1.0, 2.0, -2.0]).into_dyn();
-/// let output = tanh.forward(&input).unwrap();
+/// let output = tanh.forward(&input).expect("operation should succeed");
 /// ```
 #[derive(Debug, Clone, Copy)]
 pub struct Tanh;

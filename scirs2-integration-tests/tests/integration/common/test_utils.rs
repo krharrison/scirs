@@ -1,7 +1,7 @@
 // Common test utilities for cross-crate integration tests
 // Follows no-unwrap policy and provides helpers for property-based testing
 
-use ndarray::{Array1, Array2, ArrayD, Dimension};
+use scirs2_core::ndarray::{Array1, Array2, ArrayD, Dimension};
 use proptest::prelude::*;
 use scirs2_core::ScalarNum;
 use std::time::Instant;

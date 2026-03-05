@@ -1,6 +1,7 @@
 //! Auto-generated module structure
 
 pub mod autooptimizer_traits;
+pub mod bessel_functions;
 pub mod functions;
 pub mod functions_2;
 pub mod functions_3;

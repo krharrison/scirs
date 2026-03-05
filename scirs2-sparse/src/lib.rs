@@ -208,6 +208,9 @@ pub use linalg::{
     incomplete_cholesky,
     incomplete_lu,
     inv,
+    // IRAM eigenvalue solver (v0.3.0)
+    iram,
+    iram_shift_invert,
     lanczos,
     // Decomposition functions
     lu_decomposition,
@@ -233,6 +236,8 @@ pub use linalg::{
     svds,
     // TFQMR solver
     tfqmr,
+    // IRAM (Arnoldi) eigenvalue solver (v0.3.0)
+    ArnoldiConfig,
     ArpackOptions,
     // Interfaces
     AsLinearOperator,
@@ -304,6 +309,25 @@ pub mod sym_ops;
 
 // Tensor-based sparse operations (v0.2.0)
 pub mod tensor_sparse;
+
+// Enhanced BSR format with flat storage and Block LU (v0.3.0)
+pub mod bsr_enhanced;
+pub use bsr_enhanced::{block_lu, block_lu_solve, BlockLUResult, EnhancedBsr};
+
+// Enhanced DIA format with banded operations (v0.3.0)
+pub mod dia_enhanced;
+pub use dia_enhanced::{banded_solve, dia_tridiagonal_solve, tridiagonal_solve, EnhancedDia};
+
+// Compressed Sparse Fiber (CSF) tensor format (v0.3.0)
+pub mod csf_tensor;
+pub use csf_tensor::CsfTensor;
+
+// Sparse matrix utility functions (v0.3.0)
+pub mod sparse_functions;
+pub use sparse_functions::{
+    sparse_block_diag, sparse_diag_matrix, sparse_diags, sparse_eye, sparse_eye_rect,
+    sparse_hstack, sparse_kron, sparse_kronsum, sparse_random, sparse_vstack,
+};
 pub use sym_ops::{
     sym_coo_matvec, sym_csr_matvec, sym_csr_quadratic_form, sym_csr_rank1_update, sym_csr_trace,
 };
@@ -346,6 +370,78 @@ pub use parallel_vector_ops::{
     advanced_sparse_matvec_csr, parallel_axpy, parallel_dot, parallel_linear_combination,
     parallel_norm2, parallel_sparse_matvec_csr, parallel_vector_add, parallel_vector_copy,
     parallel_vector_scale, parallel_vector_sub, ParallelVectorOptions,
+};
+
+// Enhanced iterative solvers with preconditioners and sparse utilities (v0.3.0)
+pub mod iterative_solvers;
+pub use iterative_solvers::{
+    // Solvers
+    bicgstab as enhanced_bicgstab,
+    cg as enhanced_cg,
+    chebyshev,
+    // Sparse utility functions
+    estimate_spectral_radius,
+    gmres as enhanced_gmres,
+    sparse_diagonal,
+    sparse_norm,
+    sparse_trace,
+    // Preconditioners (Array1-based interface)
+    ILU0Preconditioner as EnhancedILU0Preconditioner,
+    // Configuration and result types
+    IterativeSolverConfig,
+    JacobiPreconditioner as EnhancedJacobiPreconditioner,
+    NormType,
+    Preconditioner,
+    SSORPreconditioner as EnhancedSSORPreconditioner,
+    SolverResult,
+};
+
+// LOBPCG eigensolver (v0.3.0)
+pub mod lobpcg;
+pub use lobpcg::{
+    lobpcg as lobpcg_eigensolver, lobpcg_generalised, EigenTarget, LobpcgConfig, LobpcgResult,
+};
+
+// Advanced Krylov subspace eigensolvers (v0.3.0)
+pub mod krylov;
+pub use krylov::{
+    iram as krylov_iram, thick_restart_lanczos, IramConfig, KrylovEigenResult,
+    ThickRestartLanczosConfig, WhichEigenvalues,
+};
+
+// Sparse matrix utilities (v0.3.0)
+pub mod sparse_utils;
+pub use sparse_utils::{
+    condest_1norm, permute_matrix, reverse_cuthill_mckee, sparse_add, sparse_extract_diagonal,
+    sparse_identity, sparse_kronecker, sparse_matrix_norm, sparse_matrix_trace, sparse_scale,
+    sparse_sub, sparse_transpose, spgemm, RcmResult, SparseNorm,
+};
+
+// Incomplete factorization preconditioners (v0.3.0)
+pub mod incomplete_factorizations;
+pub use incomplete_factorizations::{Ic0, Ilu0 as Ilu0Enhanced, IluK, Ilut, IlutConfig, Milu};
+
+// Sparse direct solvers (v0.3.0)
+pub mod direct_solver;
+pub use direct_solver::{
+    amd_ordering, elimination_tree, inverse_perm, nested_dissection_ordering,
+    sparse_cholesky_solve, sparse_lu_solve, symbolic_cholesky, SparseCholResult,
+    SparseCholeskySolver, SparseLuResult, SparseLuSolver, SparseSolver, SymbolicAnalysis,
+};
+
+// Sparse QR factorization (v0.3.0)
+pub mod sparse_qr;
+pub use sparse_qr::{
+    apply_q, apply_qt, extract_q_dense, numerical_rank, sparse_least_squares,
+    sparse_qr as sparse_qr_factorize, SparseLeastSquaresResult, SparseQrConfig, SparseQrResult,
+};
+
+// Unified sparse eigenvalue interface (v0.3.0)
+pub mod sparse_eigen;
+pub use sparse_eigen::{
+    cayley_transform_matvec, check_eigenpairs, compute_residuals, shift_invert_eig, sparse_eig,
+    sparse_eigs, sparse_eigsh, EigenMethod, EigenvalueTarget, SparseEigenConfig, SparseEigenResult,
+    SpectralTransform,
 };
 
 // Quantum-inspired sparse matrix operations (Advanced mode)

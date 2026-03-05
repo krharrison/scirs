@@ -575,6 +575,393 @@ pub fn clark_evans_index<T: Float>(coordinates: &ArrayView2<T>, study_area: T) -
     Ok(clark_evans)
 }
 
+/// Build a contiguity-based spatial weights matrix from polygon adjacency
+///
+/// Given a list of polygon boundaries (each polygon is a list of vertex indices),
+/// two polygons are considered neighbors if they share at least `min_shared_vertices`
+/// vertices (rook contiguity uses edges = 2 shared vertices in 2D,
+/// queen contiguity uses any shared vertex = 1).
+///
+/// # Arguments
+///
+/// * `polygons` - A slice of polygons, each represented as a vector of vertex indices
+/// * `n` - Total number of spatial units
+/// * `min_shared_vertices` - Minimum number of shared vertices to be considered neighbors
+///   (1 for queen contiguity, 2 for rook contiguity)
+///
+/// # Returns
+///
+/// * Binary spatial weights matrix (n x n)
+pub fn contiguity_weights_matrix(
+    polygons: &[Vec<usize>],
+    n: usize,
+    min_shared_vertices: usize,
+) -> SpatialResult<Array2<f64>> {
+    if polygons.len() != n {
+        return Err(SpatialError::DimensionError(format!(
+            "Number of polygons ({}) must match n ({})",
+            polygons.len(),
+            n
+        )));
+    }
+
+    if min_shared_vertices == 0 {
+        return Err(SpatialError::ValueError(
+            "min_shared_vertices must be at least 1".to_string(),
+        ));
+    }
+
+    let mut weights = Array2::zeros((n, n));
+
+    for i in 0..n {
+        for j in (i + 1)..n {
+            // Count shared vertices
+            let shared = polygons[i]
+                .iter()
+                .filter(|v| polygons[j].contains(v))
+                .count();
+
+            if shared >= min_shared_vertices {
+                weights[[i, j]] = 1.0;
+                weights[[j, i]] = 1.0;
+            }
+        }
+    }
+
+    Ok(weights)
+}
+
+/// Build a k-nearest neighbors spatial weights matrix
+///
+/// For each location, the k nearest neighbors (by Euclidean distance) receive
+/// a weight of 1, and all other locations receive a weight of 0. The resulting
+/// matrix is typically asymmetric (i may be a neighbor of j, but j may not be
+/// a neighbor of i).
+///
+/// # Arguments
+///
+/// * `coordinates` - Array of coordinate pairs for each location (n x d)
+/// * `k` - Number of nearest neighbors
+///
+/// # Returns
+///
+/// * Binary spatial weights matrix (n x n), where `w[i,j]` = 1 if j is among
+///   the k nearest neighbors of i
+///
+/// # Examples
+///
+/// ```
+/// use scirs2_core::ndarray::array;
+/// use scirs2_spatial::spatial_stats::knn_weights_matrix;
+///
+/// let coords = array![
+///     [0.0, 0.0],
+///     [1.0, 0.0],
+///     [0.0, 1.0],
+///     [1.0, 1.0],
+/// ];
+///
+/// let weights = knn_weights_matrix(&coords.view(), 2).expect("Operation failed");
+/// // Each point has exactly 2 neighbors
+/// for i in 0..4 {
+///     let row_sum: f64 = (0..4).map(|j| weights[[i, j]]).sum();
+///     assert!((row_sum - 2.0).abs() < 1e-10);
+/// }
+/// ```
+pub fn knn_weights_matrix(coordinates: &ArrayView2<f64>, k: usize) -> SpatialResult<Array2<f64>> {
+    let n = coordinates.shape()[0];
+    let ndim = coordinates.shape()[1];
+
+    if k == 0 {
+        return Err(SpatialError::ValueError("k must be at least 1".to_string()));
+    }
+
+    if k >= n {
+        return Err(SpatialError::ValueError(format!(
+            "k ({}) must be less than number of points ({})",
+            k, n
+        )));
+    }
+
+    let mut weights = Array2::zeros((n, n));
+
+    for i in 0..n {
+        // Compute distances from point i to all other points
+        let mut distances: Vec<(usize, f64)> = Vec::with_capacity(n - 1);
+        for j in 0..n {
+            if i != j {
+                let mut dist_sq = 0.0;
+                for d in 0..ndim {
+                    let diff = coordinates[[i, d]] - coordinates[[j, d]];
+                    dist_sq += diff * diff;
+                }
+                distances.push((j, dist_sq));
+            }
+        }
+
+        // Sort by distance
+        distances.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+
+        // Assign weight 1 to the k nearest neighbors
+        for &(j, _) in distances.iter().take(k) {
+            weights[[i, j]] = 1.0;
+        }
+    }
+
+    Ok(weights)
+}
+
+/// Compute Ripley's K-function for point pattern analysis
+///
+/// Ripley's K-function estimates the expected number of points within distance t
+/// of a typical point, divided by the intensity (point density). It is used to
+/// detect clustering or regularity at different spatial scales.
+///
+/// K(t) = (area / n^2) * sum_{i != j} I(d_{ij} <= t)
+///
+/// Where I is the indicator function. Under complete spatial randomness (CSR),
+/// K(t) = pi * t^2 in 2D.
+///
+/// # Arguments
+///
+/// * `coordinates` - Array of coordinate pairs [x, y] for each point (n x 2)
+/// * `study_area` - Area of the study region
+/// * `distances` - Array of distance thresholds at which to evaluate K
+///
+/// # Returns
+///
+/// * Array of K(t) values, one for each distance threshold
+///
+/// # Examples
+///
+/// ```
+/// use scirs2_core::ndarray::array;
+/// use scirs2_spatial::spatial_stats::ripleys_k;
+///
+/// let coords = array![
+///     [0.0, 0.0],
+///     [1.0, 0.0],
+///     [0.0, 1.0],
+///     [1.0, 1.0],
+///     [0.5, 0.5],
+/// ];
+///
+/// let distances = array![0.5, 1.0, 1.5, 2.0];
+/// let k_values = ripleys_k(&coords.view(), 4.0, &distances.view()).expect("Operation failed");
+/// assert_eq!(k_values.len(), 4);
+/// // K should be monotonically non-decreasing
+/// for i in 1..k_values.len() {
+///     assert!(k_values[i] >= k_values[i - 1]);
+/// }
+/// ```
+pub fn ripleys_k(
+    coordinates: &ArrayView2<f64>,
+    study_area: f64,
+    distances: &ArrayView1<f64>,
+) -> SpatialResult<Array1<f64>> {
+    let n = coordinates.shape()[0];
+
+    if coordinates.shape()[1] != 2 {
+        return Err(SpatialError::DimensionError(
+            "Coordinates must be 2D (x, y)".to_string(),
+        ));
+    }
+
+    if n < 2 {
+        return Err(SpatialError::ValueError(
+            "Need at least 2 points for Ripley's K".to_string(),
+        ));
+    }
+
+    if study_area <= 0.0 {
+        return Err(SpatialError::ValueError(
+            "Study area must be positive".to_string(),
+        ));
+    }
+
+    let n_dists = distances.len();
+    let mut k_values = Array1::zeros(n_dists);
+    let n_f = n as f64;
+    let intensity = n_f / study_area;
+
+    // Precompute all pairwise distances
+    let mut pairwise_dists: Vec<f64> = Vec::with_capacity(n * (n - 1) / 2);
+    for i in 0..n {
+        for j in (i + 1)..n {
+            let dx = coordinates[[i, 0]] - coordinates[[j, 0]];
+            let dy = coordinates[[i, 1]] - coordinates[[j, 1]];
+            pairwise_dists.push((dx * dx + dy * dy).sqrt());
+        }
+    }
+
+    // For each distance threshold, count pairs within that distance
+    for (t_idx, &t) in distances.iter().enumerate() {
+        let count: usize = pairwise_dists.iter().filter(|&&d| d <= t).count();
+        // Each pair (i,j) counted once, but K sums over ordered pairs i != j
+        // so multiply by 2
+        k_values[t_idx] = (study_area / (n_f * n_f)) * (2.0 * count as f64);
+    }
+
+    Ok(k_values)
+}
+
+/// Compute Ripley's L-function (variance-stabilized K-function)
+///
+/// L(t) = sqrt(K(t) / pi), which linearizes K under CSR so that L(t) = t
+/// for a complete spatial random process.
+///
+/// # Arguments
+///
+/// * `coordinates` - Array of coordinate pairs [x, y] for each point (n x 2)
+/// * `study_area` - Area of the study region
+/// * `distances` - Array of distance thresholds at which to evaluate L
+///
+/// # Returns
+///
+/// * Array of L(t) values, one for each distance threshold
+pub fn ripleys_l(
+    coordinates: &ArrayView2<f64>,
+    study_area: f64,
+    distances: &ArrayView1<f64>,
+) -> SpatialResult<Array1<f64>> {
+    let k_values = ripleys_k(coordinates, study_area, distances)?;
+
+    let l_values = k_values.mapv(|k| {
+        if k >= 0.0 {
+            (k / std::f64::consts::PI).sqrt()
+        } else {
+            0.0
+        }
+    });
+
+    Ok(l_values)
+}
+
+/// Calculate the average nearest neighbor distance statistic
+///
+/// Computes the mean distance from each point to its nearest neighbor,
+/// and returns the observed mean, the expected mean under CSR, the z-score,
+/// and the nearest-neighbor index (R = observed / expected).
+///
+/// # Arguments
+///
+/// * `coordinates` - Array of coordinate pairs [x, y] for each point (n x 2)
+/// * `study_area` - Area of the study region
+///
+/// # Returns
+///
+/// * `AnnResult` containing observed mean, expected mean, z-score, and R index
+///
+/// # Examples
+///
+/// ```
+/// use scirs2_core::ndarray::array;
+/// use scirs2_spatial::spatial_stats::average_nearest_neighbor;
+///
+/// let coords = array![
+///     [0.0, 0.0],
+///     [1.0, 0.0],
+///     [0.0, 1.0],
+///     [1.0, 1.0],
+/// ];
+///
+/// let result = average_nearest_neighbor(&coords.view(), 4.0).expect("Operation failed");
+/// assert!(result.observed_mean > 0.0);
+/// assert!(result.expected_mean > 0.0);
+/// // Regular grid should have R > 1
+/// assert!(result.r_index > 1.0);
+/// ```
+pub fn average_nearest_neighbor(
+    coordinates: &ArrayView2<f64>,
+    study_area: f64,
+) -> SpatialResult<AnnResult> {
+    let n = coordinates.shape()[0];
+    let ndim = coordinates.shape()[1];
+
+    if n < 2 {
+        return Err(SpatialError::ValueError(
+            "Need at least 2 points for average nearest neighbor".to_string(),
+        ));
+    }
+
+    if study_area <= 0.0 {
+        return Err(SpatialError::ValueError(
+            "Study area must be positive".to_string(),
+        ));
+    }
+
+    // Calculate nearest neighbor distances
+    let mut nn_distances = Vec::with_capacity(n);
+
+    for i in 0..n {
+        let mut min_distance = f64::INFINITY;
+
+        for j in 0..n {
+            if i != j {
+                let mut dist_sq = 0.0;
+                for d in 0..ndim {
+                    let diff = coordinates[[i, d]] - coordinates[[j, d]];
+                    dist_sq += diff * diff;
+                }
+                let dist = dist_sq.sqrt();
+                if dist < min_distance {
+                    min_distance = dist;
+                }
+            }
+        }
+
+        nn_distances.push(min_distance);
+    }
+
+    // Observed mean nearest neighbor distance
+    let observed_mean: f64 = nn_distances.iter().sum::<f64>() / n as f64;
+
+    // Expected mean under CSR: E(d) = 1 / (2 * sqrt(density))
+    let density = n as f64 / study_area;
+    let expected_mean = 1.0 / (2.0 * density.sqrt());
+
+    // Standard error of the mean under CSR
+    let se = 0.26136 / (n as f64 * density).sqrt();
+
+    // Z-score
+    let z_score = if se > 0.0 {
+        (observed_mean - expected_mean) / se
+    } else {
+        0.0
+    };
+
+    // Nearest neighbor index R
+    let r_index = if expected_mean > 0.0 {
+        observed_mean / expected_mean
+    } else {
+        0.0
+    };
+
+    Ok(AnnResult {
+        observed_mean,
+        expected_mean,
+        z_score,
+        r_index,
+        nn_distances,
+    })
+}
+
+/// Result of the average nearest neighbor analysis
+#[derive(Debug, Clone)]
+pub struct AnnResult {
+    /// Observed mean nearest neighbor distance
+    pub observed_mean: f64,
+    /// Expected mean nearest neighbor distance under complete spatial randomness
+    pub expected_mean: f64,
+    /// Z-score for significance testing
+    pub z_score: f64,
+    /// Nearest neighbor index (R = observed / expected)
+    /// R < 1 indicates clustering, R > 1 indicates dispersion, R ≈ 1 indicates randomness
+    pub r_index: f64,
+    /// Individual nearest neighbor distances for each point
+    pub nn_distances: Vec<f64>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -666,5 +1053,196 @@ mod tests {
 
         // Grid pattern should be regular (R > 1)
         assert!(ce_index > 1.0);
+    }
+
+    #[test]
+    fn test_contiguity_weights_matrix_queen() {
+        // 4 polygons sharing vertices (queen contiguity)
+        // Polygon 0: vertices {0, 1, 2, 3}
+        // Polygon 1: vertices {2, 3, 4, 5}
+        // Polygon 2: vertices {3, 5, 6, 7}
+        // Polygon 3: vertices {8, 9, 10, 11}
+        let polygons = vec![
+            vec![0, 1, 2, 3],
+            vec![2, 3, 4, 5],
+            vec![3, 5, 6, 7],
+            vec![8, 9, 10, 11],
+        ];
+
+        let weights = contiguity_weights_matrix(&polygons, 4, 1).expect("Operation failed");
+
+        assert_eq!(weights.shape(), &[4, 4]);
+
+        // Polygon 0 and 1 share vertices 2, 3
+        assert_relative_eq!(weights[[0, 1]], 1.0);
+        assert_relative_eq!(weights[[1, 0]], 1.0);
+
+        // Polygon 0 and 2 share vertex 3
+        assert_relative_eq!(weights[[0, 2]], 1.0);
+
+        // Polygon 1 and 2 share vertices 3, 5
+        assert_relative_eq!(weights[[1, 2]], 1.0);
+
+        // Polygon 3 is isolated
+        assert_relative_eq!(weights[[0, 3]], 0.0);
+        assert_relative_eq!(weights[[1, 3]], 0.0);
+        assert_relative_eq!(weights[[2, 3]], 0.0);
+    }
+
+    #[test]
+    fn test_contiguity_weights_matrix_rook() {
+        // With rook contiguity (min_shared = 2), only edges count
+        let polygons = vec![
+            vec![0, 1, 2, 3],
+            vec![2, 3, 4, 5],
+            vec![3, 5, 6, 7], // shares only vertex 3 with polygon 0
+            vec![8, 9, 10, 11],
+        ];
+
+        let weights = contiguity_weights_matrix(&polygons, 4, 2).expect("Operation failed");
+
+        // Polygon 0 and 1 share 2 vertices => neighbors
+        assert_relative_eq!(weights[[0, 1]], 1.0);
+
+        // Polygon 0 and 2 share only vertex 3 => NOT neighbors with rook
+        assert_relative_eq!(weights[[0, 2]], 0.0);
+
+        // Polygon 1 and 2 share vertices 3, 5 => neighbors
+        assert_relative_eq!(weights[[1, 2]], 1.0);
+    }
+
+    #[test]
+    fn test_knn_weights_matrix() {
+        let coords = array![[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [5.0, 5.0],];
+
+        let weights = knn_weights_matrix(&coords.view(), 2).expect("Operation failed");
+
+        assert_eq!(weights.shape(), &[5, 5]);
+
+        // Each point should have exactly 2 neighbors
+        for i in 0..5 {
+            let row_sum: f64 = (0..5).map(|j| weights[[i, j]]).sum();
+            assert_relative_eq!(row_sum, 2.0, epsilon = 1e-10);
+        }
+
+        // Diagonal should be zero
+        for i in 0..5 {
+            assert_relative_eq!(weights[[i, i]], 0.0);
+        }
+
+        // Point (0,0) should have (1,0) and (0,1) as nearest neighbors
+        assert_relative_eq!(weights[[0, 1]], 1.0);
+        assert_relative_eq!(weights[[0, 2]], 1.0);
+    }
+
+    #[test]
+    fn test_knn_weights_errors() {
+        let coords = array![[0.0, 0.0], [1.0, 0.0]];
+
+        // k = 0 should fail
+        assert!(knn_weights_matrix(&coords.view(), 0).is_err());
+
+        // k >= n should fail
+        assert!(knn_weights_matrix(&coords.view(), 2).is_err());
+    }
+
+    #[test]
+    fn test_ripleys_k() {
+        let coords = array![[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [0.5, 0.5],];
+
+        let distances = array![0.5, 1.0, 1.5, 2.0];
+        let k_values = ripleys_k(&coords.view(), 4.0, &distances.view()).expect("Operation failed");
+
+        assert_eq!(k_values.len(), 4);
+
+        // K should be monotonically non-decreasing
+        for i in 1..k_values.len() {
+            assert!(
+                k_values[i] >= k_values[i - 1],
+                "K should be non-decreasing: K[{}] = {} < K[{}] = {}",
+                i,
+                k_values[i],
+                i - 1,
+                k_values[i - 1]
+            );
+        }
+
+        // At distance 0.5, only (0.5,0.5) is within 0.5 of some points
+        // K(0) should be 0 (no points at distance 0)
+        // K at larger distances should be larger
+        assert!(k_values[3] > k_values[0]);
+    }
+
+    #[test]
+    fn test_ripleys_l() {
+        let coords = array![[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [0.5, 0.5],];
+
+        let distances = array![0.5, 1.0, 1.5];
+        let l_values = ripleys_l(&coords.view(), 4.0, &distances.view()).expect("Operation failed");
+
+        assert_eq!(l_values.len(), 3);
+
+        // L should be non-negative
+        for &l in l_values.iter() {
+            assert!(l >= 0.0);
+        }
+    }
+
+    #[test]
+    fn test_ripleys_k_errors() {
+        let coords = array![[0.0, 0.0]]; // Only 1 point
+        let distances = array![1.0];
+
+        assert!(ripleys_k(&coords.view(), 1.0, &distances.view()).is_err());
+
+        // Negative study area
+        let coords2 = array![[0.0, 0.0], [1.0, 1.0]];
+        assert!(ripleys_k(&coords2.view(), -1.0, &distances.view()).is_err());
+    }
+
+    #[test]
+    fn test_average_nearest_neighbor() {
+        // Regular grid pattern
+        let coords = array![[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0],];
+
+        let result = average_nearest_neighbor(&coords.view(), 4.0).expect("Operation failed");
+
+        assert!(result.observed_mean > 0.0);
+        assert!(result.expected_mean > 0.0);
+        assert_eq!(result.nn_distances.len(), 4);
+
+        // All nearest neighbor distances should be 1.0 for a unit grid
+        for &d in &result.nn_distances {
+            assert_relative_eq!(d, 1.0, epsilon = 1e-10);
+        }
+
+        // Regular pattern should have R > 1
+        assert!(result.r_index > 1.0);
+    }
+
+    #[test]
+    fn test_average_nearest_neighbor_clustered() {
+        // Clustered pattern: points very close together
+        let coords = array![[0.0, 0.0], [0.01, 0.0], [0.0, 0.01], [0.01, 0.01],];
+
+        let result = average_nearest_neighbor(&coords.view(), 100.0).expect("Operation failed");
+
+        // Clustered pattern should have R < 1
+        assert!(
+            result.r_index < 1.0,
+            "Expected R < 1 for clustered pattern, got {}",
+            result.r_index
+        );
+    }
+
+    #[test]
+    fn test_average_nearest_neighbor_errors() {
+        let coords = array![[0.0, 0.0]]; // Only 1 point
+
+        assert!(average_nearest_neighbor(&coords.view(), 1.0).is_err());
+
+        // Negative study area
+        let coords2 = array![[0.0, 0.0], [1.0, 1.0]];
+        assert!(average_nearest_neighbor(&coords2.view(), -1.0).is_err());
     }
 }

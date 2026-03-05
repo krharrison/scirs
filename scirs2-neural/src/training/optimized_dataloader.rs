@@ -8,6 +8,7 @@
 
 use crate::data::Dataset;
 use crate::error::{NeuralError, Result};
+use scirs2_core::chunking::{ChunkConfig, ChunkStrategy, ChunkingUtils};
 use scirs2_core::ndarray::{Array, IxDyn, ScalarOperand};
 use scirs2_core::numeric::{Float, FromPrimitive};
 use scirs2_core::random::seq::SliceRandom;
@@ -694,6 +695,485 @@ impl BatchSizeOptimizer {
 }
 
 // =============================================================================
+// Memory-Aware Data Loader (Phase 7.1 — scirs2-core::chunking integration)
+// =============================================================================
+
+/// Configuration for memory-aware data loading.
+///
+/// Controls how the loader queries available memory and selects chunk/batch
+/// sizes to avoid pressure on the allocator during training.
+#[derive(Debug, Clone)]
+pub struct MemoryAwareConfig {
+    /// Target fraction of estimated available system memory to use per batch.
+    /// Must be in (0.0, 1.0].  Defaults to 0.25 (use ≤ 25 % of available RAM
+    /// per batch so that forward + backward passes have head-room).
+    pub target_memory_fraction: f64,
+    /// Per-sample byte count used for sizing calculations.  Set this to the
+    /// actual element count × `size_of::<F>()` for your dataset.  If `None`,
+    /// the loader will query the first sample at construction time.
+    pub bytes_per_sample: Option<usize>,
+    /// Hard lower bound on batch size.
+    pub min_batch_size: usize,
+    /// Hard upper bound on batch size.
+    pub max_batch_size: usize,
+    /// Whether to shuffle indices each epoch.
+    pub shuffle: bool,
+    /// Whether to drop the final incomplete batch.
+    pub drop_last: bool,
+    /// Number of batches to keep prefetched in the background queue.
+    pub prefetch_ahead: usize,
+}
+
+impl Default for MemoryAwareConfig {
+    fn default() -> Self {
+        Self {
+            target_memory_fraction: 0.25,
+            bytes_per_sample: None,
+            min_batch_size: 4,
+            max_batch_size: 4096,
+            shuffle: true,
+            drop_last: false,
+            prefetch_ahead: 2,
+        }
+    }
+}
+
+/// Estimate available system memory in bytes using a conservative heuristic.
+///
+/// We do not depend on any OS-specific crate here; instead we read
+/// `/proc/meminfo` on Linux and fall back to a safe 512 MiB constant on other
+/// platforms.  This keeps the crate 100 % pure-Rust and cross-platform.
+fn estimate_available_memory_bytes() -> usize {
+    // Attempt Linux /proc/meminfo first (most accurate without extra deps).
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(contents) = std::fs::read_to_string("/proc/meminfo") {
+            // Look for "MemAvailable" which already accounts for reclaimable
+            // pages and is a better predictor than "MemFree".
+            for line in contents.lines() {
+                if line.starts_with("MemAvailable:") {
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if parts.len() >= 2 {
+                        if let Ok(kb) = parts[1].parse::<usize>() {
+                            return kb * 1024;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // Conservative fallback: assume 512 MiB is available.
+    512 * 1024 * 1024
+}
+
+/// Compute a batch size that respects the `target_memory_fraction` and the
+/// bounds in `config`, using `ChunkingUtils::optimal_chunk_size` from
+/// `scirs2-core::chunking` as a starting point for the element-count hint.
+///
+/// # Arguments
+/// * `dataset_len`       – number of samples in the dataset.
+/// * `bytes_per_sample`  – estimated byte cost of one (input + label) sample.
+/// * `config`            – `MemoryAwareConfig` with fraction and bounds.
+fn compute_adaptive_batch_size(
+    dataset_len: usize,
+    bytes_per_sample: usize,
+    config: &MemoryAwareConfig,
+) -> usize {
+    // ── Step 1: ask ChunkingUtils for a purely data-size-driven hint ─────────
+    // We use Adaptive strategy with bounds derived from the memory config so
+    // that the core chunking logic (CPU count, work-stealing, etc.) still
+    // participates in the decision.
+    let chunk_cfg = ChunkConfig {
+        strategy: ChunkStrategy::Adaptive,
+        min_chunk_size: config.min_batch_size,
+        max_chunk_size: config.max_batch_size,
+        ..ChunkConfig::default()
+    };
+    let chunking_hint = ChunkingUtils::optimal_chunk_size(dataset_len, &chunk_cfg);
+
+    // ── Step 2: derive a memory-budget-constrained upper bound ───────────────
+    let available = estimate_available_memory_bytes();
+    // How many bytes may we use for a single batch?
+    let budget_bytes = ((available as f64) * config.target_memory_fraction) as usize;
+    // Convert to sample count, guarding against division by zero.
+    let budget_samples = if bytes_per_sample > 0 {
+        (budget_bytes / bytes_per_sample).max(1)
+    } else {
+        config.max_batch_size
+    };
+
+    // ── Step 3: reconcile the two hints ──────────────────────────────────────
+    // Take the more conservative (smaller) of the two estimates, then clamp to
+    // the configured bounds.
+    let raw = chunking_hint.min(budget_samples);
+    raw.max(config.min_batch_size).min(config.max_batch_size)
+}
+
+/// A data loader that automatically sizes its batches based on available system
+/// memory and the `scirs2-core::chunking` adaptive strategy.
+///
+/// `MemoryAwareDataLoader` wraps an existing `Dataset` and selects a batch size
+/// at construction time (and can recompute it at epoch boundaries) so that the
+/// training process stays within a configurable fraction of available RAM.
+///
+/// The loader prefetches the next batch in a background thread while the caller
+/// consumes the current one, overlapping I/O and computation.
+///
+/// # Type Parameters
+/// * `F` – floating-point element type (e.g. `f32` or `f64`).
+/// * `D` – the underlying dataset type implementing [`crate::data::Dataset`].
+pub struct MemoryAwareDataLoader<
+    F: Float + Debug + ScalarOperand + FromPrimitive + NumAssign + Send + Sync + 'static,
+    D: Dataset<F> + Send + Sync + Clone + 'static,
+> {
+    /// The underlying dataset (shared with the prefetch thread).
+    dataset: Arc<D>,
+    /// The configuration supplied by the caller.
+    config: MemoryAwareConfig,
+    /// Shuffled or sequential sample indices for the current epoch.
+    indices: Vec<usize>,
+    /// Current read position (batch-level index, not sample-level).
+    position: AtomicUsize,
+    /// Batch size selected at construction (may be refreshed with
+    /// `refresh_batch_size`).
+    batch_size: usize,
+    /// Derived total number of batches for the current epoch.
+    num_batches: usize,
+    /// Loading performance statistics.
+    stats: Mutex<LoadingStats>,
+    _phantom: PhantomData<F>,
+}
+
+impl<
+        F: Float + Debug + ScalarOperand + FromPrimitive + NumAssign + Send + Sync + 'static,
+        D: Dataset<F> + Send + Sync + Clone + 'static,
+    > MemoryAwareDataLoader<F, D>
+{
+    /// Create a new `MemoryAwareDataLoader` with an automatically selected
+    /// batch size.
+    ///
+    /// The batch size is computed once at construction from the dataset length,
+    /// the per-sample byte cost, and available system memory.  Call
+    /// [`Self::refresh_batch_size`] at epoch boundaries if you want it to
+    /// re-examine memory pressure.
+    ///
+    /// # Arguments
+    /// * `dataset` – the dataset to load from.
+    /// * `config`  – memory-aware loading configuration.
+    pub fn new_adaptive(dataset: D, config: MemoryAwareConfig) -> Result<Self> {
+        let dataset_len = dataset.len();
+        if dataset_len == 0 {
+            return Err(NeuralError::TrainingError(
+                "Cannot create MemoryAwareDataLoader from an empty dataset".to_string(),
+            ));
+        }
+
+        // Resolve bytes_per_sample: use the caller's hint or probe the dataset.
+        let bytes_per_sample = match config.bytes_per_sample {
+            Some(b) => b,
+            None => {
+                // Peek at the first sample to determine array shapes.
+                let (x0, y0) = dataset.get(0)?;
+                (x0.len() + y0.len()) * std::mem::size_of::<F>()
+            }
+        };
+
+        let batch_size = compute_adaptive_batch_size(dataset_len, bytes_per_sample, &config);
+
+        let num_batches = if config.drop_last {
+            dataset_len / batch_size
+        } else {
+            dataset_len.div_ceil(batch_size)
+        };
+
+        let indices: Vec<usize> = (0..dataset_len).collect();
+
+        Ok(Self {
+            dataset: Arc::new(dataset),
+            config,
+            indices,
+            position: AtomicUsize::new(0),
+            batch_size,
+            num_batches,
+            stats: Mutex::new(LoadingStats::default()),
+            _phantom: PhantomData,
+        })
+    }
+
+    /// Recompute and update the batch size based on the current system memory
+    /// state.  Call this between epochs to react to changing memory pressure
+    /// (e.g. other processes using RAM).
+    ///
+    /// Returns the new batch size.
+    pub fn refresh_batch_size(&mut self) -> Result<usize> {
+        let dataset_len = self.dataset.len();
+        let bytes_per_sample = match self.config.bytes_per_sample {
+            Some(b) => b,
+            None => {
+                let (x0, y0) = self.dataset.get(0)?;
+                (x0.len() + y0.len()) * std::mem::size_of::<F>()
+            }
+        };
+
+        let new_batch_size =
+            compute_adaptive_batch_size(dataset_len, bytes_per_sample, &self.config);
+        self.batch_size = new_batch_size;
+        self.num_batches = if self.config.drop_last {
+            dataset_len / new_batch_size
+        } else {
+            dataset_len.div_ceil(new_batch_size)
+        };
+        Ok(new_batch_size)
+    }
+
+    /// Returns the batch size currently in use.
+    pub fn adaptive_batch_size(&self) -> usize {
+        self.batch_size
+    }
+
+    /// Returns the number of batches in the current epoch configuration.
+    pub fn num_batches(&self) -> usize {
+        self.num_batches
+    }
+
+    /// Returns the number of samples in the dataset.
+    pub fn len(&self) -> usize {
+        self.dataset.len()
+    }
+
+    /// Returns `true` if the dataset is empty.
+    pub fn is_empty(&self) -> bool {
+        self.dataset.len() == 0
+    }
+
+    /// Returns a snapshot of loading performance statistics.
+    pub fn stats(&self) -> LoadingStats {
+        self.stats
+            .lock()
+            .map_or_else(|_| LoadingStats::default(), |s| s.clone())
+    }
+
+    /// Reset state for the beginning of a new epoch (optionally shuffling
+    /// indices).  Does *not* refresh the batch size; call
+    /// [`Self::refresh_batch_size`] explicitly if desired.
+    pub fn reset(&mut self) {
+        if self.config.shuffle {
+            let mut rng = scirs2_core::random::rng();
+            self.indices.shuffle(&mut rng);
+        }
+        self.position.store(0, Ordering::Relaxed);
+    }
+
+    /// Load a single batch by batch index.  This is the core loading routine
+    /// shared between `next_batch` and the prefetch worker.
+    fn load_batch(&self, batch_idx: usize) -> BatchResult<F> {
+        let start = batch_idx * self.batch_size;
+        let end = (start + self.batch_size).min(self.indices.len());
+
+        if start >= self.indices.len() {
+            return Err(NeuralError::TrainingError(
+                "Batch index out of range".to_string(),
+            ));
+        }
+
+        let batch_indices: Vec<usize> = self.indices[start..end].to_vec();
+
+        if batch_indices.is_empty() {
+            return Err(NeuralError::TrainingError("Empty batch".to_string()));
+        }
+
+        // Probe the first sample to determine array shapes.
+        let (first_x, first_y) = self.dataset.get(batch_indices[0])?;
+
+        let batch_x_shape: Vec<usize> = std::iter::once(batch_indices.len())
+            .chain(first_x.shape().iter().copied())
+            .collect();
+        let batch_y_shape: Vec<usize> = std::iter::once(batch_indices.len())
+            .chain(first_y.shape().iter().copied())
+            .collect();
+
+        let mut batch_x = Array::zeros(IxDyn(&batch_x_shape));
+        let mut batch_y = Array::zeros(IxDyn(&batch_y_shape));
+
+        for (i, &idx) in batch_indices.iter().enumerate() {
+            let (x, y) = self.dataset.get(idx)?;
+            let mut sx = batch_x.slice_mut(scirs2_core::ndarray::s![i, ..]);
+            sx.assign(&x);
+            let mut sy = batch_y.slice_mut(scirs2_core::ndarray::s![i, ..]);
+            sy.assign(&y);
+        }
+
+        Ok((batch_x, batch_y))
+    }
+
+    /// Fetch the next batch sequentially (no background prefetch).  Returns
+    /// `None` once all batches for the current epoch have been consumed.
+    pub fn next_batch(&self) -> Option<BatchResult<F>> {
+        let batch_idx = self.position.fetch_add(1, Ordering::Relaxed);
+        if batch_idx >= self.num_batches {
+            return None;
+        }
+
+        let start_time = Instant::now();
+        let result = self.load_batch(batch_idx);
+        let elapsed = start_time.elapsed();
+
+        if let Ok(mut stats) = self.stats.lock() {
+            stats.batches_loaded += 1;
+            stats.samples_loaded += self.batch_size.min(
+                self.indices
+                    .len()
+                    .saturating_sub(batch_idx * self.batch_size),
+            );
+            stats.total_load_time += elapsed;
+            stats.avg_batch_time = stats.total_load_time / stats.batches_loaded as u32;
+            stats.cache_misses += 1;
+        }
+
+        Some(result)
+    }
+
+    /// Consume `self` and return a [`MemoryAwarePrefetchIter`] that loads the
+    /// next batch in a background thread while the caller processes the current
+    /// one.
+    pub fn into_prefetch_iter(self) -> MemoryAwarePrefetchIter<F, D> {
+        MemoryAwarePrefetchIter::new(self)
+    }
+}
+
+impl<
+        F: Float + Debug + ScalarOperand + FromPrimitive + NumAssign + Send + Sync + 'static,
+        D: Dataset<F> + Send + Sync + Clone + 'static,
+    > Iterator for MemoryAwareDataLoader<F, D>
+{
+    type Item = BatchResult<F>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next_batch()
+    }
+}
+
+// =============================================================================
+// Prefetching iterator for MemoryAwareDataLoader
+// =============================================================================
+
+/// Background-prefetching iterator produced by
+/// [`MemoryAwareDataLoader::into_prefetch_iter`].
+///
+/// Internally it spawns a single worker thread that fills a bounded queue with
+/// pre-loaded batches.  The consumer calls `next()` and receives batches in
+/// order; if the worker is faster the consumer never waits, if the consumer is
+/// faster it blocks briefly until the worker catches up.
+pub struct MemoryAwarePrefetchIter<
+    F: Float + Debug + ScalarOperand + FromPrimitive + NumAssign + Send + Sync + 'static,
+    D: Dataset<F> + Send + Sync + Clone + 'static,
+> {
+    loader: Arc<MemoryAwareDataLoader<F, D>>,
+    queue: Arc<PrefetchQueue<F>>,
+    worker: Option<thread::JoinHandle<()>>,
+    expected_idx: usize,
+    /// Buffer for batches that arrived out of the expected order.
+    out_of_order: VecDeque<(usize, BatchResult<F>)>,
+}
+
+impl<
+        F: Float + Debug + ScalarOperand + FromPrimitive + NumAssign + Send + Sync + 'static,
+        D: Dataset<F> + Send + Sync + Clone + 'static,
+    > MemoryAwarePrefetchIter<F, D>
+{
+    fn new(loader: MemoryAwareDataLoader<F, D>) -> Self {
+        let prefetch_ahead = loader.config.prefetch_ahead;
+        let num_batches = loader.num_batches;
+        let loader = Arc::new(loader);
+        let queue = Arc::new(PrefetchQueue::new(prefetch_ahead));
+
+        let worker_loader = Arc::clone(&loader);
+        let worker_queue = Arc::clone(&queue);
+
+        let worker = thread::spawn(move || {
+            for batch_idx in 0..num_batches {
+                if worker_queue.stop.load(Ordering::Relaxed) {
+                    break;
+                }
+                let result = worker_loader.load_batch(batch_idx);
+                if !worker_queue.push(batch_idx, result) {
+                    break;
+                }
+            }
+        });
+
+        Self {
+            loader,
+            queue,
+            worker: Some(worker),
+            expected_idx: 0,
+            out_of_order: VecDeque::new(),
+        }
+    }
+}
+
+impl<
+        F: Float + Debug + ScalarOperand + FromPrimitive + NumAssign + Send + Sync + 'static,
+        D: Dataset<F> + Send + Sync + Clone + 'static,
+    > Iterator for MemoryAwarePrefetchIter<F, D>
+{
+    type Item = BatchResult<F>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.expected_idx >= self.loader.num_batches {
+            return None;
+        }
+
+        // Drain the out-of-order buffer first.
+        if let Some(pos) = self
+            .out_of_order
+            .iter()
+            .position(|(idx, _)| *idx == self.expected_idx)
+        {
+            let (_, result) = self
+                .out_of_order
+                .remove(pos)
+                .expect("position was just found in out_of_order buffer");
+            self.expected_idx += 1;
+            return Some(result);
+        }
+
+        // Block until the worker delivers the expected batch.
+        let wait_start = Instant::now();
+        loop {
+            if let Some((idx, result)) = self.queue.pop() {
+                if idx == self.expected_idx {
+                    if let Ok(mut stats) = self.loader.stats.lock() {
+                        stats.prefetch_wait_time += wait_start.elapsed();
+                    }
+                    self.expected_idx += 1;
+                    return Some(result);
+                }
+                // Not the one we need — stash for later.
+                self.out_of_order.push_back((idx, result));
+            } else if self.queue.is_empty() && self.queue.stop.load(Ordering::Relaxed) {
+                return None;
+            } else {
+                thread::sleep(Duration::from_micros(10));
+            }
+        }
+    }
+}
+
+impl<
+        F: Float + Debug + ScalarOperand + FromPrimitive + NumAssign + Send + Sync + 'static,
+        D: Dataset<F> + Send + Sync + Clone + 'static,
+    > Drop for MemoryAwarePrefetchIter<F, D>
+{
+    fn drop(&mut self) {
+        self.queue.stop();
+        if let Some(handle) = self.worker.take() {
+            let _ = handle.join();
+        }
+    }
+}
+
+// =============================================================================
 // Tests
 // =============================================================================
 
@@ -899,5 +1379,185 @@ mod tests {
 
         let batches: Vec<_> = loader.collect();
         assert_eq!(batches.len(), 4); // 100 / 25 = 4 batches
+    }
+
+    // -------------------------------------------------------------------------
+    // MemoryAwareDataLoader tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_memory_aware_config_default() {
+        let cfg = MemoryAwareConfig::default();
+        assert!(
+            cfg.target_memory_fraction > 0.0 && cfg.target_memory_fraction <= 1.0,
+            "target_memory_fraction must be in (0, 1]"
+        );
+        assert!(cfg.min_batch_size >= 1);
+        assert!(cfg.max_batch_size >= cfg.min_batch_size);
+    }
+
+    #[test]
+    fn test_memory_aware_loader_creation() {
+        let dataset = create_test_dataset();
+        let config = MemoryAwareConfig {
+            shuffle: false,
+            drop_last: false,
+            ..Default::default()
+        };
+
+        let loader = MemoryAwareDataLoader::<f64, _>::new_adaptive(dataset, config)
+            .expect("loader creation must succeed");
+
+        // Batch size must be within the configured bounds.
+        let bs = loader.adaptive_batch_size();
+        assert!(bs >= 4, "batch_size ({bs}) must be >= min_batch_size (4)");
+        assert!(
+            bs <= 4096,
+            "batch_size ({bs}) must be <= max_batch_size (4096)"
+        );
+        // Dataset has 100 samples, so there must be at least 1 batch.
+        assert!(loader.num_batches() >= 1);
+        assert_eq!(loader.len(), 100);
+        assert!(!loader.is_empty());
+    }
+
+    #[test]
+    fn test_memory_aware_loader_iteration_all_samples() {
+        let dataset = create_test_dataset();
+        let config = MemoryAwareConfig {
+            shuffle: false,
+            drop_last: false,
+            min_batch_size: 10,
+            max_batch_size: 10,
+            target_memory_fraction: 1.0, // doesn't matter when bounds force batch_size
+            ..Default::default()
+        };
+
+        let mut loader = MemoryAwareDataLoader::<f64, _>::new_adaptive(dataset, config)
+            .expect("loader creation must succeed");
+        loader.reset();
+
+        let mut total_samples = 0usize;
+        let mut batch_count = 0usize;
+        while let Some(result) = loader.next_batch() {
+            let (x, _y) = result.expect("batch load must succeed");
+            total_samples += x.shape()[0];
+            batch_count += 1;
+        }
+
+        assert_eq!(total_samples, 100, "all 100 samples must be yielded");
+        assert_eq!(batch_count, 10, "100 samples / batch_size 10 = 10 batches");
+    }
+
+    #[test]
+    fn test_memory_aware_loader_drop_last() {
+        // 100 samples, batch_size clamped to 32 by bounds.
+        // drop_last=true → 3 full batches of 32, 4 samples discarded.
+        let dataset = create_test_dataset();
+        let config = MemoryAwareConfig {
+            shuffle: false,
+            drop_last: true,
+            min_batch_size: 32,
+            max_batch_size: 32,
+            target_memory_fraction: 1.0,
+            ..Default::default()
+        };
+
+        let mut loader = MemoryAwareDataLoader::<f64, _>::new_adaptive(dataset, config)
+            .expect("loader creation must succeed");
+        loader.reset();
+
+        let batches: Vec<_> = loader.collect();
+        assert_eq!(batches.len(), 3, "drop_last: 100/32 = 3 full batches");
+    }
+
+    #[test]
+    fn test_memory_aware_loader_refresh_batch_size() {
+        let dataset = create_test_dataset();
+        let config = MemoryAwareConfig {
+            shuffle: false,
+            ..Default::default()
+        };
+
+        let mut loader = MemoryAwareDataLoader::<f64, _>::new_adaptive(dataset, config)
+            .expect("loader creation must succeed");
+
+        let new_bs = loader.refresh_batch_size().expect("refresh must succeed");
+        assert!(new_bs >= loader.config.min_batch_size);
+        assert!(new_bs <= loader.config.max_batch_size);
+        assert_eq!(new_bs, loader.adaptive_batch_size());
+    }
+
+    #[test]
+    fn test_memory_aware_loader_stats() {
+        let dataset = create_test_dataset();
+        let config = MemoryAwareConfig {
+            shuffle: false,
+            drop_last: false,
+            min_batch_size: 10,
+            max_batch_size: 10,
+            target_memory_fraction: 1.0,
+            ..Default::default()
+        };
+
+        let mut loader = MemoryAwareDataLoader::<f64, _>::new_adaptive(dataset, config)
+            .expect("loader creation must succeed");
+        loader.reset();
+
+        while loader.next_batch().is_some() {}
+
+        let stats = loader.stats();
+        assert_eq!(stats.batches_loaded, 10);
+        assert_eq!(stats.samples_loaded, 100);
+    }
+
+    #[test]
+    fn test_memory_aware_prefetch_iter() {
+        let dataset = create_test_dataset();
+        let config = MemoryAwareConfig {
+            shuffle: false,
+            drop_last: false,
+            min_batch_size: 10,
+            max_batch_size: 10,
+            target_memory_fraction: 1.0,
+            prefetch_ahead: 2,
+            ..Default::default()
+        };
+
+        let mut loader = MemoryAwareDataLoader::<f64, _>::new_adaptive(dataset, config)
+            .expect("loader creation must succeed");
+        loader.reset();
+
+        let iter = loader.into_prefetch_iter();
+        let batches: Vec<_> = iter.collect();
+
+        // Each batch must be a successful result with the right shape.
+        for batch_result in &batches {
+            let (x, _y) = batch_result
+                .as_ref()
+                .expect("prefetch batch must not be an error");
+            assert_eq!(x.shape()[0], 10);
+        }
+        assert_eq!(batches.len(), 10);
+    }
+
+    #[test]
+    fn test_estimate_available_memory_is_positive() {
+        let mem = estimate_available_memory_bytes();
+        assert!(mem > 0, "available memory estimate must be > 0");
+    }
+
+    #[test]
+    fn test_compute_adaptive_batch_size_bounds() {
+        let config = MemoryAwareConfig {
+            min_batch_size: 8,
+            max_batch_size: 64,
+            target_memory_fraction: 0.1,
+            bytes_per_sample: Some(1024),
+            ..Default::default()
+        };
+        let bs = compute_adaptive_batch_size(1000, 1024, &config);
+        assert!(bs >= 8, "must respect min_batch_size");
+        assert!(bs <= 64, "must respect max_batch_size");
     }
 }

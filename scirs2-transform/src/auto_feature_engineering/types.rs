@@ -8,8 +8,6 @@ use scirs2_core::validation::check_not_empty;
 use std::collections::HashMap;
 #[cfg(feature = "auto-feature-engineering")]
 use std::collections::VecDeque;
-#[cfg(feature = "auto-feature-engineering")]
-use tch::{nn, Device, Tensor};
 
 /// Performance record for historical analysis
 #[cfg(feature = "auto-feature-engineering")]
@@ -109,78 +107,439 @@ pub struct TransformationConfig {
     /// Expected performance score for this transformation
     pub expected_performance: f64,
 }
-/// Meta-learning model for transformation selection
+/// A single dense (fully-connected) layer in a pure Rust neural network.
+///
+/// Stores weights as a flat `Vec<f64>` in row-major order (output_dim x input_dim)
+/// and bias as `Vec<f64>` of length output_dim.
+#[cfg(feature = "auto-feature-engineering")]
+#[derive(Debug, Clone)]
+pub struct DenseLayer {
+    /// Weight matrix stored in row-major order: weights[row * input_dim + col]
+    /// Shape: (output_dim, input_dim)
+    weights: Vec<f64>,
+    /// Bias vector of length output_dim
+    biases: Vec<f64>,
+    /// Number of input features
+    input_dim: usize,
+    /// Number of output features
+    output_dim: usize,
+}
+
+#[cfg(feature = "auto-feature-engineering")]
+impl DenseLayer {
+    /// Create a new dense layer with He initialization.
+    ///
+    /// He initialization uses N(0, sqrt(2/fan_in)) which works well with ReLU activations.
+    /// Uses a simple deterministic LCG seeded per layer to ensure reproducibility.
+    fn new(input_dim: usize, output_dim: usize, seed: u64) -> Self {
+        let n_weights = input_dim * output_dim;
+        let mut weights = Vec::with_capacity(n_weights);
+        let std_dev = (2.0 / input_dim as f64).sqrt();
+
+        // Simple deterministic PRNG (xoshiro-style splitmix64) for reproducible init
+        let mut state = seed;
+        for _ in 0..n_weights {
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            // Box-Muller transform for normal distribution
+            let u1 = ((state >> 11) as f64) / ((1u64 << 53) as f64);
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            let u2 = ((state >> 11) as f64) / ((1u64 << 53) as f64);
+            let u1_clamped = u1.max(1e-15); // avoid ln(0)
+            let z = (-2.0 * u1_clamped.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos();
+            weights.push(z * std_dev);
+        }
+
+        let biases = vec![0.0; output_dim];
+
+        DenseLayer {
+            weights,
+            biases,
+            input_dim,
+            output_dim,
+        }
+    }
+
+    /// Forward pass: y = Wx + b
+    ///
+    /// input: slice of length input_dim
+    /// output: Vec of length output_dim
+    fn forward(&self, input: &[f64]) -> Vec<f64> {
+        let mut output = Vec::with_capacity(self.output_dim);
+        for row in 0..self.output_dim {
+            let offset = row * self.input_dim;
+            let mut sum = self.biases[row];
+            for col in 0..self.input_dim {
+                sum += self.weights[offset + col] * input[col];
+            }
+            output.push(sum);
+        }
+        output
+    }
+
+    /// Backward pass for a dense layer.
+    ///
+    /// Given the gradient of the loss w.r.t. this layer's output (d_output),
+    /// and the input that was fed during forward pass, compute:
+    /// - gradient w.r.t. weights (accumulated into grad_weights)
+    /// - gradient w.r.t. biases (accumulated into grad_biases)
+    /// - gradient w.r.t. input (returned for chain rule to previous layer)
+    fn backward(
+        &self,
+        d_output: &[f64],
+        input: &[f64],
+        grad_weights: &mut [f64],
+        grad_biases: &mut [f64],
+    ) -> Vec<f64> {
+        // grad_biases[j] += d_output[j]
+        for j in 0..self.output_dim {
+            grad_biases[j] += d_output[j];
+        }
+
+        // grad_weights[j * input_dim + i] += d_output[j] * input[i]
+        for j in 0..self.output_dim {
+            let offset = j * self.input_dim;
+            for i in 0..self.input_dim {
+                grad_weights[offset + i] += d_output[j] * input[i];
+            }
+        }
+
+        // d_input[i] = sum_j(d_output[j] * weights[j * input_dim + i])
+        let mut d_input = vec![0.0; self.input_dim];
+        for j in 0..self.output_dim {
+            let offset = j * self.input_dim;
+            for i in 0..self.input_dim {
+                d_input[i] += d_output[j] * self.weights[offset + i];
+            }
+        }
+        d_input
+    }
+
+    /// Apply SGD update: w -= lr * grad
+    fn sgd_update(&mut self, grad_weights: &[f64], grad_biases: &[f64], learning_rate: f64) {
+        for (w, &gw) in self.weights.iter_mut().zip(grad_weights.iter()) {
+            *w -= learning_rate * gw;
+        }
+        for (b, &gb) in self.biases.iter_mut().zip(grad_biases.iter()) {
+            *b -= learning_rate * gb;
+        }
+    }
+}
+
+/// Activation function types supported by the pure Rust neural network.
+#[cfg(feature = "auto-feature-engineering")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Activation {
+    /// Rectified Linear Unit: max(0, x)
+    ReLU,
+    /// Softmax across all outputs (for the final layer)
+    Softmax,
+}
+
+/// A pure Rust feed-forward neural network.
+///
+/// Implements a multi-layer perceptron with ReLU hidden activations and
+/// a softmax output layer. Supports forward pass, analytical backpropagation,
+/// and SGD training -- all in pure Rust with no external C/Fortran dependencies.
+///
+/// Architecture: Linear(10,64) -> ReLU -> Linear(64,32) -> ReLU ->
+///               Linear(32,16) -> ReLU -> Linear(16,10) -> Softmax
+#[cfg(feature = "auto-feature-engineering")]
+#[derive(Debug, Clone)]
+pub struct PureRustNN {
+    /// Dense layers in order
+    layers: Vec<DenseLayer>,
+    /// Activation function after each layer
+    activations: Vec<Activation>,
+}
+
+#[cfg(feature = "auto-feature-engineering")]
+impl PureRustNN {
+    /// Create a new neural network with the specified layer sizes and activations.
+    ///
+    /// `layer_sizes` is a slice like `[10, 64, 32, 16, 10]` meaning:
+    ///   layer 0: 10 -> 64
+    ///   layer 1: 64 -> 32
+    ///   layer 2: 32 -> 16
+    ///   layer 3: 16 -> 10
+    ///
+    /// The last activation is always Softmax; all others are ReLU.
+    fn new(layer_sizes: &[usize]) -> Result<Self> {
+        if layer_sizes.len() < 2 {
+            return Err(TransformError::InvalidInput(
+                "Neural network needs at least 2 layer sizes (input and output)".to_string(),
+            ));
+        }
+
+        let n_layers = layer_sizes.len() - 1;
+        let mut layers = Vec::with_capacity(n_layers);
+        let mut activations = Vec::with_capacity(n_layers);
+
+        for i in 0..n_layers {
+            let seed = 42u64.wrapping_add(i as u64 * 1000003);
+            layers.push(DenseLayer::new(layer_sizes[i], layer_sizes[i + 1], seed));
+            if i < n_layers - 1 {
+                activations.push(Activation::ReLU);
+            } else {
+                activations.push(Activation::Softmax);
+            }
+        }
+
+        Ok(PureRustNN {
+            layers,
+            activations,
+        })
+    }
+
+    /// Forward pass through the entire network.
+    ///
+    /// Returns the final output and all intermediate activations (needed for backprop).
+    /// `intermediates[i]` is the output of layer i BEFORE activation.
+    /// `activated[i]` is the output AFTER activation.
+    fn forward_with_intermediates(
+        &self,
+        input: &[f64],
+    ) -> (Vec<f64>, Vec<Vec<f64>>, Vec<Vec<f64>>) {
+        let mut pre_activations: Vec<Vec<f64>> = Vec::with_capacity(self.layers.len());
+        let mut post_activations: Vec<Vec<f64>> = Vec::with_capacity(self.layers.len());
+        let mut current = input.to_vec();
+
+        for (i, layer) in self.layers.iter().enumerate() {
+            let pre = layer.forward(&current);
+            let post = apply_activation(&pre, self.activations[i]);
+            pre_activations.push(pre);
+            current = post.clone();
+            post_activations.push(post);
+        }
+
+        (current, pre_activations, post_activations)
+    }
+
+    /// Simple forward pass (inference only).
+    fn forward(&self, input: &[f64]) -> Vec<f64> {
+        let mut current = input.to_vec();
+        for (i, layer) in self.layers.iter().enumerate() {
+            let pre = layer.forward(&current);
+            current = apply_activation(&pre, self.activations[i]);
+        }
+        current
+    }
+
+    /// Train the network using mini-batch SGD with analytical backpropagation.
+    ///
+    /// `inputs`: batch of input vectors (each of length input_dim)
+    /// `targets`: batch of target vectors (each of length output_dim)
+    /// `learning_rate`: SGD step size
+    /// `epochs`: number of full passes over the data
+    ///
+    /// Uses MSE loss with softmax output. The softmax-MSE gradient combination
+    /// is computed analytically for each sample, then averaged over the batch.
+    fn train(
+        &mut self,
+        inputs: &[Vec<f64>],
+        targets: &[Vec<f64>],
+        learning_rate: f64,
+        epochs: usize,
+    ) -> Result<()> {
+        if inputs.is_empty() || targets.is_empty() {
+            return Err(TransformError::InvalidInput(
+                "Training data cannot be empty".to_string(),
+            ));
+        }
+        if inputs.len() != targets.len() {
+            return Err(TransformError::InvalidInput(
+                "Number of inputs must match number of targets".to_string(),
+            ));
+        }
+
+        let batch_size = inputs.len() as f64;
+        let n_layers = self.layers.len();
+
+        for _epoch in 0..epochs {
+            // Allocate gradient accumulators
+            let mut all_grad_weights: Vec<Vec<f64>> = self
+                .layers
+                .iter()
+                .map(|l| vec![0.0; l.weights.len()])
+                .collect();
+            let mut all_grad_biases: Vec<Vec<f64>> = self
+                .layers
+                .iter()
+                .map(|l| vec![0.0; l.biases.len()])
+                .collect();
+
+            // Accumulate gradients over the batch
+            for (input, target) in inputs.iter().zip(targets.iter()) {
+                let (_output, pre_acts, post_acts) = self.forward_with_intermediates(input);
+
+                // Compute d_loss/d_output for MSE loss: 2 * (output - target) / output_dim
+                // Combined with softmax derivative using the Jacobian
+                let output = &post_acts[n_layers - 1];
+                let output_dim = output.len();
+
+                // MSE gradient w.r.t. softmax output: d_mse/d_softmax = 2*(softmax - target)/n
+                let d_mse_d_softmax: Vec<f64> = output
+                    .iter()
+                    .zip(target.iter())
+                    .map(|(&o, &t)| 2.0 * (o - t) / output_dim as f64)
+                    .collect();
+
+                // Softmax Jacobian: d_softmax_i/d_z_j = softmax_i * (delta_ij - softmax_j)
+                // So d_loss/d_z = sum_i (d_mse/d_softmax_i * d_softmax_i/d_z_j)
+                //               = sum_i (d_mse_i * softmax_i * (delta_ij - softmax_j))
+                //               = softmax_j * (d_mse_j - sum_i(d_mse_i * softmax_i))
+                let dot_product: f64 = d_mse_d_softmax
+                    .iter()
+                    .zip(output.iter())
+                    .map(|(&dm, &s)| dm * s)
+                    .sum();
+                let mut d_loss_d_z: Vec<f64> = Vec::with_capacity(output_dim);
+                for j in 0..output_dim {
+                    d_loss_d_z.push(output[j] * (d_mse_d_softmax[j] - dot_product));
+                }
+
+                // Backpropagate through layers in reverse
+                let mut d_current = d_loss_d_z;
+                for layer_idx in (0..n_layers).rev() {
+                    let layer_input = if layer_idx == 0 {
+                        input.as_slice()
+                    } else {
+                        post_acts[layer_idx - 1].as_slice()
+                    };
+
+                    // For hidden layers with ReLU, apply ReLU derivative before the linear backward
+                    if layer_idx < n_layers - 1 {
+                        // ReLU derivative: 1 if pre_activation > 0, else 0
+                        let pre = &pre_acts[layer_idx];
+                        for (d, &p) in d_current.iter_mut().zip(pre.iter()) {
+                            if p <= 0.0 {
+                                *d = 0.0;
+                            }
+                        }
+                    }
+
+                    d_current = self.layers[layer_idx].backward(
+                        &d_current,
+                        layer_input,
+                        &mut all_grad_weights[layer_idx],
+                        &mut all_grad_biases[layer_idx],
+                    );
+                }
+            }
+
+            // Average gradients over the batch and apply SGD update
+            for layer_idx in 0..n_layers {
+                for gw in all_grad_weights[layer_idx].iter_mut() {
+                    *gw /= batch_size;
+                }
+                for gb in all_grad_biases[layer_idx].iter_mut() {
+                    *gb /= batch_size;
+                }
+                self.layers[layer_idx].sgd_update(
+                    &all_grad_weights[layer_idx],
+                    &all_grad_biases[layer_idx],
+                    learning_rate,
+                );
+            }
+        }
+
+        Ok(())
+    }
+}
+
+/// Apply an activation function element-wise (or across the vector for Softmax).
+#[cfg(feature = "auto-feature-engineering")]
+fn apply_activation(input: &[f64], activation: Activation) -> Vec<f64> {
+    match activation {
+        Activation::ReLU => input.iter().map(|&x| x.max(0.0)).collect(),
+        Activation::Softmax => {
+            // Numerically stable softmax: subtract max before exp
+            let max_val = input
+                .iter()
+                .fold(f64::NEG_INFINITY, |a, &b| if b > a { b } else { a });
+            let exps: Vec<f64> = input.iter().map(|&x| (x - max_val).exp()).collect();
+            let sum: f64 = exps.iter().sum();
+            if sum < f64::EPSILON {
+                // Fallback: uniform distribution if sum is too small
+                vec![1.0 / input.len() as f64; input.len()]
+            } else {
+                exps.iter().map(|&e| e / sum).collect()
+            }
+        }
+    }
+}
+
+/// Meta-learning model for transformation selection.
+///
+/// Uses a pure Rust feed-forward neural network with analytical backpropagation
+/// and SGD training for predicting optimal data transformations based on
+/// dataset meta-features.
 #[cfg(feature = "auto-feature-engineering")]
 pub struct MetaLearningModel {
-    /// Neural network for predicting transformation performance
-    model: nn::Sequential,
-    /// Variable store for parameters
-    vs: nn::VarStore,
-    /// Device for computation (CPU/GPU)
-    device: Device,
-    /// Training data cache
+    /// Pure Rust neural network: Linear(10,64)->ReLU->Linear(64,32)->ReLU->
+    /// Linear(32,16)->ReLU->Linear(16,10)->Softmax
+    network: PureRustNN,
+    /// Training data cache for incremental learning
     training_cache: Vec<(DatasetMetaFeatures, Vec<TransformationConfig>)>,
 }
+
 #[cfg(feature = "auto-feature-engineering")]
 impl MetaLearningModel {
-    /// Create a new meta-learning model
+    /// Create a new meta-learning model with He-initialized weights.
     pub fn new() -> Result<Self> {
-        let device = Device::cuda_if_available();
-        let vs = nn::VarStore::new(device);
-        let root = vs.root();
-        let model = nn::seq()
-            .add(nn::linear(&root / "layer1", 10, 64, Default::default()))
-            .add_fn(|xs| xs.relu())
-            .add(nn::linear(&root / "layer2", 64, 32, Default::default()))
-            .add_fn(|xs| xs.relu())
-            .add(nn::linear(&root / "layer3", 32, 16, Default::default()))
-            .add_fn(|xs| xs.relu())
-            .add(nn::linear(&root / "output", 16, 10, Default::default()))
-            .add_fn(|xs| xs.softmax(-1, tch::Kind::Float));
+        let network = PureRustNN::new(&[10, 64, 32, 16, 10])?;
         Ok(MetaLearningModel {
-            model,
-            vs,
-            device,
+            network,
             training_cache: Vec::new(),
         })
     }
-    /// Train the meta-learning model on historical transformation performance data
+
+    /// Train the meta-learning model on historical transformation performance data.
+    ///
+    /// Uses mini-batch SGD with analytical backpropagation through the network.
+    /// The network learns to map dataset meta-features (10 dimensions) to
+    /// transformation performance scores (10 transformation types).
     pub fn train(
         &mut self,
         training_data: Vec<(DatasetMetaFeatures, Vec<TransformationConfig>)>,
     ) -> Result<()> {
         self.training_cache.extend(training_data.clone());
-        let (input_features, target_scores) = self.prepare_training_data(&training_data)?;
-        for epoch in 0..100 {
-            let predicted = input_features.apply(&self.model);
-            let loss = predicted.mse_loss(&target_scores, tch::Reduction::Mean);
-            if epoch % 20 == 0 {
-                println!("Epoch {epoch}: Loss = {:.4}", loss.double_value(&[]));
-            }
-        }
+
+        let (inputs, targets) = self.prepare_training_data(&training_data)?;
+
+        // Train with SGD: learning rate 0.01, 100 epochs
+        self.network.train(&inputs, &targets, 0.01, 100)?;
+
         Ok(())
     }
-    /// Predict optimal transformations for a given dataset
+
+    /// Predict optimal transformations for a given dataset based on its meta-features.
     pub fn predict_transformations(
         &self,
         meta_features: &DatasetMetaFeatures,
     ) -> Result<Vec<TransformationConfig>> {
-        let input_tensor = self.meta_features_to_tensor(meta_features)?;
-        let prediction = input_tensor.apply(&self.model);
-        self.tensor_to_transformations(&prediction)
+        let input = self.meta_features_to_vec(meta_features)?;
+        let scores = self.network.forward(&input);
+        self.scores_to_transformations(&scores)
     }
+
+    /// Prepare training data by extracting feature vectors and target score vectors.
     fn prepare_training_data(
         &self,
         training_data: &[(DatasetMetaFeatures, Vec<TransformationConfig>)],
-    ) -> Result<(Tensor, Tensor)> {
+    ) -> Result<(Vec<Vec<f64>>, Vec<Vec<f64>>)> {
         if training_data.is_empty() {
             return Err(TransformError::InvalidInput(
-                "Training _data cannot be empty".to_string(),
+                "Training data cannot be empty".to_string(),
             ));
         }
-        let n_samples = training_data.len();
-        let mut input_features = Vec::with_capacity(n_samples * 10);
-        let mut target_scores = Vec::with_capacity(n_samples * 10);
+
+        let mut inputs = Vec::with_capacity(training_data.len());
+        let mut targets = Vec::with_capacity(training_data.len());
+
         for (meta_features, transformations) in training_data {
             let features = vec![
                 (meta_features.n_samples as f64).ln().max(0.0),
@@ -199,24 +558,22 @@ impl MetaLearningModel {
                     "Non-finite values detected in meta-features".to_string(),
                 ));
             }
-            input_features.extend(features);
+            inputs.push(features);
+
             let mut scores = vec![0.0f64; 10];
             for config in transformations {
                 let idx = self.transformation_type_to_index(&config.transformation_type);
                 let performance = config.expected_performance.clamp(0.0, 1.0);
-                scores[idx] = scores[idx].max(performance as f64);
+                scores[idx] = scores[idx].max(performance);
             }
-            target_scores.extend(scores);
+            targets.push(scores);
         }
-        let input_tensor = Tensor::from_slice(&input_features)
-            .reshape(&[n_samples as i64, 10])
-            .to_device(self.device);
-        let target_tensor = Tensor::from_slice(&target_scores)
-            .reshape(&[n_samples as i64, 10])
-            .to_device(self.device);
-        Ok((input_tensor, target_tensor))
+
+        Ok((inputs, targets))
     }
-    fn meta_features_to_tensor(&self, meta_features: &DatasetMetaFeatures) -> Result<Tensor> {
+
+    /// Convert DatasetMetaFeatures to a normalized feature vector.
+    fn meta_features_to_vec(&self, meta_features: &DatasetMetaFeatures) -> Result<Vec<f64>> {
         let features = vec![
             (meta_features.n_samples as f64).ln().max(0.0),
             (meta_features.n_features as f64).ln().max(0.0),
@@ -234,24 +591,27 @@ impl MetaLearningModel {
                 "Non-finite values detected in meta-features".to_string(),
             ));
         }
-        Ok(Tensor::from_slice(&features)
-            .reshape(&[1, 10])
-            .to_device(self.device))
+        Ok(features)
     }
-    fn tensor_to_transformations(&self, prediction: &Tensor) -> Result<Vec<TransformationConfig>> {
-        let scores: Vec<f64> = prediction.try_into().map_err(|e| {
-            TransformError::ComputationError(format!("Failed to extract tensor data: {:?}", e))
-        })?;
+
+    /// Convert network output scores to transformation configurations.
+    ///
+    /// Selects transformations whose predicted scores exceed a dynamic threshold
+    /// based on the maximum and mean scores. Falls back to top-3 if none exceed
+    /// the threshold.
+    fn scores_to_transformations(&self, scores: &[f64]) -> Result<Vec<TransformationConfig>> {
         if scores.len() != 10 {
             return Err(TransformError::ComputationError(format!(
                 "Expected 10 prediction scores, got {}",
                 scores.len()
             )));
         }
+
         let mut transformations = Vec::new();
         let max_score = scores.iter().fold(0.0f64, |a, &b| a.max(b));
         let mean_score = scores.iter().sum::<f64>() / scores.len() as f64;
         let threshold = (max_score * 0.7 + mean_score * 0.3).max(0.3);
+
         for (i, &score) in scores.iter().enumerate() {
             if score > threshold && score.is_finite() {
                 let transformation_type = self.index_to_transformation_type(i);
@@ -263,6 +623,8 @@ impl MetaLearningModel {
                 transformations.push(config);
             }
         }
+
+        // Fallback: if no transformation exceeds threshold, pick top 3
         if transformations.is_empty() {
             let mut score_indices: Vec<(usize, f64)> = scores
                 .iter()
@@ -282,6 +644,7 @@ impl MetaLearningModel {
                 transformations.push(config);
             }
         }
+
         transformations.sort_by(|a, b| {
             b.expected_performance
                 .partial_cmp(&a.expected_performance)
@@ -289,6 +652,7 @@ impl MetaLearningModel {
         });
         Ok(transformations)
     }
+
     fn transformation_type_to_index(&self, t_type: &TransformationType) -> usize {
         match t_type {
             TransformationType::StandardScaler => 0,
@@ -303,6 +667,7 @@ impl MetaLearningModel {
             TransformationType::TargetEncoder => 9,
         }
     }
+
     fn index_to_transformation_type(&self, index: usize) -> TransformationType {
         match index {
             0 => TransformationType::StandardScaler,
@@ -317,6 +682,7 @@ impl MetaLearningModel {
             _ => TransformationType::StandardScaler,
         }
     }
+
     fn get_default_parameters_for_type(&self, t_type: &TransformationType) -> HashMap<String, f64> {
         let mut params = HashMap::new();
         match t_type {
@@ -335,13 +701,17 @@ impl MetaLearningModel {
         params
     }
 }
-/// Reinforcement learning agent for transformation selection
+
+/// Reinforcement learning agent for transformation selection.
+///
+/// Uses pure Rust neural networks for Q-value estimation with experience replay.
+/// The agent learns to select optimal transformations through trial and error.
 #[cfg(feature = "auto-feature-engineering")]
 pub struct RLAgent {
-    /// Q-network for value estimation
-    q_network: nn::Sequential,
-    /// Target network for stable training
-    target_network: nn::Sequential,
+    /// Q-network for value estimation (pure Rust NN)
+    q_network: PureRustNN,
+    /// Target network for stable training (pure Rust NN)
+    target_network: PureRustNN,
     /// Experience replay buffer
     replay_buffer: VecDeque<Experience>,
     /// Epsilon for exploration

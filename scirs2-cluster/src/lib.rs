@@ -48,9 +48,9 @@
 //! let data = Array2::from_shape_vec((6, 2), vec![
 //!     1.0, 2.0, 1.2, 1.8, 0.8, 1.9,
 //!     3.7, 4.2, 3.9, 3.9, 4.2, 4.1,
-//! ]).unwrap();
+//! ]).expect("operation should succeed");
 //!
-//! let (centroids, labels) = kmeans(data.view(), 2, None, None, None, None).unwrap();
+//! let (centroids, labels) = kmeans(data.view(), 2, None, None, None, None).expect("operation should succeed");
 //! ```
 //!
 //! ## 🔒 Version: 0.1.5 (January 15, 2026)
@@ -81,18 +81,39 @@
 //!     3.7, 4.2,
 //!     3.9, 3.9,
 //!     4.2, 4.1,
-//! ]).unwrap();
+//! ]).expect("operation should succeed");
 //!
 //! // Standardize the data
-//! let standardized = standardize(data.view(), true).unwrap();
+//! let standardized = standardize(data.view(), true).expect("operation should succeed");
 //!
 //! // Run k-means with k=2
-//! let (centroids, labels) = kmeans(standardized.view(), 2, None, None, None, None).unwrap();
+//! let (centroids, labels) = kmeans(standardized.view(), 2, None, None, None, None).expect("operation should succeed");
 //!
 //! // Print the results
 //! println!("Centroids: {:?}", centroids);
 //! println!("Cluster assignments: {:?}", labels);
 //! ```
+
+/// Consensus and ensemble clustering methods.
+///
+/// Provides co-association consensus clustering, evidence accumulation clustering (EAC),
+/// bagging-based ensemble, and weighted voting ensemble algorithms.
+pub mod consensus_ensemble;
+/// External cluster validation indices.
+///
+/// Metrics that compare a clustering against ground-truth labels: ARI, NMI,
+/// Fowlkes-Mallows Index, V-measure, and Adjusted Mutual Information (AMI).
+pub mod external_validation;
+/// Advanced spectral clustering algorithms.
+///
+/// Unnormalized, Ng-Jordan-Weiss (symmetric normalized), and Shi-Malik (normalized cut)
+/// spectral clustering with eigengap heuristic and configurable similarity kernels.
+pub mod spectral_clustering;
+/// Internal cluster validation indices.
+///
+/// Silhouette coefficient, Calinski-Harabasz, Davies-Bouldin, Dunn index,
+/// gap statistic with bootstrap reference, and elbow method.
+pub mod validation;
 
 /// Cutting-edge clustering algorithms including quantum-inspired methods and advanced online learning.
 ///
@@ -295,6 +316,25 @@ pub mod preprocess;
 // #[cfg(feature = "python")]
 // pub mod python_api;
 
+/// SIMD-accelerated operations for clustering algorithms.
+///
+/// This module provides highly optimized SIMD implementations for core clustering
+/// operations including distance computation, K-means centroid updates, GMM E-step
+/// responsibility computation, pairwise distance matrices, and DBSCAN
+/// epsilon-neighborhood queries. All functions automatically fall back to scalar
+/// implementations when SIMD is not available.
+///
+/// # Features
+///
+/// * **Distance Computation**: Euclidean, squared Euclidean, Manhattan with SIMD
+/// * **K-means**: SIMD-accelerated cluster assignment and centroid updates
+/// * **GMM E-step**: SIMD log-sum-exp and responsibility computation
+/// * **Pairwise Distances**: Full and condensed distance matrices with blocking
+/// * **DBSCAN**: SIMD epsilon-neighborhood queries (single and batch)
+/// * **Hierarchical**: SIMD linkage distance computation
+#[cfg(feature = "simd")]
+pub mod simd_ops;
+
 // Quantum clustering module (used by other modules, must be unconditional)
 pub mod quantum_clustering;
 pub mod serialization;
@@ -413,12 +453,18 @@ pub use advanced_benchmarking::{
     QualityMetrics, RegressionAlert, RegressionSeverity, ScalabilityAnalysis, SystemInfo,
 };
 
-pub use affinity::{affinity_propagation, AffinityPropagationOptions};
+pub use affinity::{
+    affinity_propagation, affinity_propagation_full, AffinityPropagationOptions,
+    AffinityPropagationResult,
+};
 pub use birch::{birch, Birch, BirchOptions, BirchStatistics};
 pub use density::hdbscan::{
     dbscan_clustering, hdbscan, ClusterSelectionMethod, HDBSCANOptions, HDBSCANResult, StoreCenter,
 };
-pub use density::optics::{extract_dbscan_clustering, extract_xi_clusters, OPTICSResult};
+pub use density::optics::{
+    extract_dbscan_clustering, extract_xi_clusters, optics_with_options, OPTICSOptions,
+    OPTICSResult, XiCluster,
+};
 pub use density::*;
 pub use ensemble::convenience::{
     bootstrap_ensemble, ensemble_clustering, multi_algorithm_ensemble,
@@ -443,7 +489,10 @@ pub use leader::{
     euclidean_distance, leader_clustering, manhattan_distance, LeaderClustering, LeaderNode,
     LeaderTree,
 };
-pub use meanshift::{estimate_bandwidth, get_bin_seeds, mean_shift, MeanShift, MeanShiftOptions};
+pub use meanshift::{
+    estimate_bandwidth, estimate_bandwidth_scott, estimate_bandwidth_silverman, get_bin_seeds,
+    mean_shift, BandwidthEstimator, KernelType, MeanShift, MeanShiftOptions,
+};
 pub use metrics::{
     adjusted_rand_index, calinski_harabasz_score, davies_bouldin_score,
     homogeneity_completeness_v_measure, normalized_mutual_info, silhouette_samples,
@@ -567,9 +616,9 @@ pub use time_series::{
 pub use tuning::{
     AcquisitionFunction, AutoTuner, BayesianState, CVStrategy, ConvergenceInfo,
     CrossValidationConfig, EarlyStoppingConfig, EnsembleResults, EvaluationMetric,
-    EvaluationResult, ExplorationStats, HyperParameter, KernelType, LoadBalancingStrategy,
-    ParallelConfig, ResourceConstraints, SearchSpace, SearchStrategy, StandardSearchSpaces,
-    StoppingReason, SurrogateModel, TuningConfig, TuningResult,
+    EvaluationResult, ExplorationStats, HyperParameter, KernelType as TuningKernelType,
+    LoadBalancingStrategy, ParallelConfig, ResourceConstraints, SearchSpace, SearchStrategy,
+    StandardSearchSpaces, StoppingReason, SurrogateModel, TuningConfig, TuningResult,
 };
 
 // Re-export visualization and animation capabilities
@@ -643,6 +692,31 @@ pub mod accelerated {
 pub mod gpu_accelerated {
     // Note: accelerated module may not exist yet
 }
+
+// Re-export consensus ensemble methods
+pub use consensus_ensemble::{
+    bagging_ensemble, consensus_clustering, evidence_accumulation_clustering,
+    weighted_voting_ensemble, BaggingEnsembleConfig, BaggingResult, ConsensusConfig,
+    ConsensusResult, EacConfig, EacResult, WeightedVotingConfig, WeightedVotingResult,
+};
+
+// Re-export external validation indices
+pub use external_validation::{
+    adjusted_mutual_info_ext, adjusted_rand_index_ext, fowlkes_mallows_index,
+    normalized_mutual_info_ext, v_measure_ext, v_measure_standard, VMeasureResult,
+};
+
+// Re-export internal validation indices
+pub use validation::{
+    calinski_harabasz_internal, davies_bouldin_internal, dunn_index_internal, elbow_method,
+    gap_statistic, silhouette_samples_internal, silhouette_score_internal, ElbowResult,
+    GapStatisticResult,
+};
+
+// Re-export advanced spectral clustering
+pub use spectral_clustering::{
+    spectral_cluster, SimilarityKernel, SpectralConfig, SpectralResult, SpectralVariant,
+};
 
 #[cfg(test)]
 mod tests;

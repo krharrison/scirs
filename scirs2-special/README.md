@@ -1,506 +1,363 @@
-# SciRS2 Special
+# scirs2-special
 
 [![crates.io](https://img.shields.io/crates/v/scirs2-special.svg)](https://crates.io/crates/scirs2-special)
-[[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)]](../LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-special)](https://docs.rs/scirs2-special)
 
-**Production-ready special functions module for the SciRS2 scientific computing library (v0.1.5).**
+**Special mathematical functions for the SciRS2 scientific computing library (v0.3.0).**
 
-Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module provides a comprehensive collection of special mathematical functions used in scientific computing, engineering, and statistics. Designed for performance, accuracy, reliability, and ecosystem consistency, it offers memory-safe implementations with extensive testing coverage (190+ unit tests, 164 doctests).
+`scirs2-special` provides a comprehensive collection of special mathematical functions modeled after SciPy's `special` module. Version 0.3.0 extends the classical function set with advanced additions: Mathieu functions, Coulomb wave functions, spherical harmonics with Wigner/Gaunt symbols, Jacobi theta functions, Weierstrass elliptic functions, parabolic cylinder functions, Fox H-functions, Appell hypergeometric functions, Meixner-Pollaczek polynomials, Heun functions, polylogarithm, q-analogs, number-theoretic functions, and information-theoretic functions — all as pure Rust.
 
-## Production Status
+## Features (v0.3.0)
 
-✅ **Ready for production use** - Version 0.1.0 (SciRS2 POLICY & Enhanced Performance)
-- Zero warnings build with full clippy compliance
-- Comprehensive test coverage with property-based validation
-- Memory-safe implementations with proper error handling
-- 32 working examples demonstrating all function families
+### Classical Special Functions
 
-## Features
+#### Gamma and Related
+- Gamma function `Γ(z)`, log-gamma `ln Γ(z)`
+- Digamma `ψ(z)`, trigamma `ψ'(z)`, polygamma `ψ^(n)(z)`
+- Beta function `B(a,b)`, log-beta
+- Incomplete gamma: lower `γ(a,x)` and upper `Γ(a,x)`
+- Regularized incomplete gamma `P(a,x)`, `Q(a,x)`
+- Incomplete beta `I_x(a,b)` and its inverse
+- Factorial `n!`, log-factorial, binomial coefficient `C(n,k)`
+- Pochhammer symbol (rising factorial)
 
-### Core Mathematical Functions (Production Ready)
+#### Error Functions
+- Error function `erf(x)`, complementary `erfc(x)`
+- Scaled complementary `erfcx(x)` (stable for large x)
+- Imaginary error function `erfi(x)`
+- Dawson integral `F(x)`
+- Inverse error function `erfinv(x)`, inverse complementary `erfcinv(x)`
 
-- **🔥 Gamma Functions**: Complete gamma function family with complex support
-- **📊 Error Functions**: erf, erfc, inverse variants with high precision
-- **🌊 Bessel Functions**: J, Y, I, K variants including spherical forms
-- **🎯 Elliptic Functions**: Complete/incomplete integrals, Jacobi functions
-- **📐 Orthogonal Polynomials**: Legendre, Chebyshev, Hermite, Laguerre families
-- **🌍 Spherical Harmonics**: Real and complex with proper normalization
-- **⚡ Airy Functions**: Ai, Bi and derivatives with complex support
-- **🔬 Hypergeometric Functions**: 1F1, 2F1 with robust convergence
-- **🎵 Mathieu Functions**: Complete implementation with Fourier coefficients
-- **🧮 Zeta Functions**: Riemann, Hurwitz, and Dirichlet eta functions
-- **🌈 Lambert W Function**: Real and complex branches
-- **🔄 Kelvin Functions**: ber, bei, ker, kei and their derivatives
-- **📡 Struve Functions**: H and L variants with asymptotic expansions
-- **🌊 Fresnel Integrals**: S(x) and C(x) for optical applications
-- **🚀 Parabolic Cylinder Functions**: Weber functions with scaling
-- **⭐ Wright Functions**: Wright Omega and Bessel generalizations
-- **🔬 Coulomb Functions**: Quantum mechanical wave functions
-- **📈 Logarithmic Integral**: Li(x) and exponential integrals
+#### Bessel Functions
+- First kind `J_n(x)`: orders 0, 1, n (integer and real)
+- Second kind `Y_n(x)`: orders 0, 1, n
+- Modified first kind `I_n(x)`: exponentially scaled variant
+- Modified second kind `K_n(x)`: exponentially scaled variant
+- Spherical Bessel: `j_n(x)`, `y_n(x)`
+- Hankel functions `H_n^(1)(x)`, `H_n^(2)(x)` (complex)
+- Bessel function zeros
 
-### Advanced Capabilities
+#### Elliptic Integrals and Functions
+- Complete integrals: `K(k)`, `E(k)`, `Pi(n,k)`
+- Incomplete integrals: `F(phi,k)`, `E(phi,k)`, `Pi(phi,n,k)`
+- Jacobi elliptic functions: `sn`, `cn`, `dn` and 12 reciprocal/quotient variants
+- Carlson symmetric forms: `R_F`, `R_D`, `R_J`, `R_C`
 
-- **🚀 Vectorized Operations**: Efficient array processing with ndarray
-- **🔢 Complex Number Support**: Full complex arithmetic where applicable
-- **📊 Statistical Functions**: Logistic, softmax, logsumexp with numerical stability
-- **🧪 Combinatorial Functions**: Factorials, binomial coefficients, Stirling numbers
-- **⚡ Performance Optimized**: Lookup tables and efficient algorithms
-- **🔒 Memory Safe**: Zero-cost abstractions with Rust's safety guarantees
+#### Orthogonal Polynomials
+- Legendre: `P_n(x)`, associated `P_n^m(x)`
+- Chebyshev first kind `T_n(x)` and second kind `U_n(x)`
+- Hermite: physicist's `H_n(x)` and probabilist's `He_n(x)`
+- Laguerre: `L_n(x)` and associated `L_n^alpha(x)`
+- Gegenbauer (ultraspherical): `C_n^lambda(x)`
+- Jacobi: `P_n^(alpha,beta)(x)`
+- Zernike radial polynomials
 
-## Installation
+#### Airy Functions
+- `Ai(x)`, `Bi(x)` and their derivatives `Ai'(x)`, `Bi'(x)`
+- Exponentially scaled variants for large |x|
+- Complex argument support
 
-Add this production-ready crate to your `Cargo.toml`:
+#### Hypergeometric Functions
+- Confluent hypergeometric limit `_0F_1(b; z)`
+- Kummer's confluent `_1F_1(a; b; z)` and Tricomi's `U(a,b,z)`
+- Gauss hypergeometric `_2F_1(a,b; c; z)`: analytic continuation for |z| >= 1
+- Generalized hypergeometric `_pF_q`
+
+#### Zeta and Related
+- Riemann zeta `ζ(s)`, Hurwitz zeta `ζ(s,a)`, Dirichlet eta `η(s)`
+- Lerch transcendent `Φ(z,s,a)`
+- Lambert W function: real branches W_0 and W_{-1}
+
+#### Other Classical Functions
+- Struve functions `H_n(x)` and `L_n(x)` with asymptotic expansions
+- Kelvin functions: `ber`, `bei`, `ker`, `kei` and derivatives
+- Fresnel integrals `S(x)` and `C(x)` with modulus and phase
+- Parabolic cylinder functions: Weber `D_n(x)`, `U(a,x)`, `V(a,x)`
+- Spheroidal wave functions: prolate and oblate, angular and radial
+- Wright functions: Wright Omega `omega(z)`, Wright Bessel generalizations
+- Coulomb wave functions: regular `F_l(eta,rho)`, irregular `G_l(eta,rho)`, `H_l^+/-`
+- Logarithmic integral `li(x)`, offset logarithmic integral `Li(x)`
+- Exponential integrals `Ei(x)`, `E_n(x)`, `E_1(x)`
+
+### Advanced Special Functions (v0.3.0 Additions)
+
+#### Mathieu Functions
+- Characteristic values of even functions `a_r(q)` and odd functions `b_r(q)`
+- Even (cosine-elliptic) functions `ce_r(q, x)` with Fourier coefficients
+- Odd (sine-elliptic) functions `se_r(q, x)` with Fourier coefficients
+- Radial Mathieu functions of the first kind `Mc_r(q, x)` and second kind `Ms_r(q, x)`
+- Asymptotic expansions for large |q|
+
+#### Spherical Harmonics and Angular Momentum
+- Real spherical harmonics `Y_l^m(theta, phi)` for arbitrary l, m
+- Complex spherical harmonics with Condon-Shortley phase
+- Gaunt coefficients: integrals of products of three spherical harmonics
+- Wigner 3-j symbols by Racah formula
+- Wigner 6-j symbols (Racah W-coefficients)
+- Wigner 9-j symbols for compound angular momentum coupling
+- Clebsch-Gordan coefficients
+
+#### Jacobi Theta Functions
+- `theta_1(z, q)`, `theta_2(z, q)`, `theta_3(z, q)`, `theta_4(z, q)`
+- Logarithmic derivatives (theta functions of the second kind)
+- Quasi-periodicity relations and heat equation connections
+- Modular transformations
+
+#### Weierstrass Elliptic Functions
+- Weierstrass P-function `p(z; g2, g3)`
+- Weierstrass zeta function `zeta(z; g2, g3)`
+- Weierstrass sigma function `sigma(z; g2, g3)`
+- Elliptic invariants `g2`, `g3` from half-periods `omega1`, `omega2`
+- Discriminant `Delta` and Klein j-invariant
+
+#### Parabolic Cylinder Functions (Extended)
+- `D_n(x)` for non-integer n via connection to Whittaker functions
+- `U(a, x)` and `V(a, x)`: standard parabolic cylinder pair
+- Asymptotic expansions for large |x| and large |a|
+
+#### Fox H-Function
+- Generalized Fox H-function `H_{p,q}^{m,n}[z | (a,alpha)_p; (b,beta)_q]`
+- Series and integral representations
+- Special cases: Meijer G-function, Wright function, stable distributions
+
+#### Appell Hypergeometric Functions
+- `F_1(a; b1, b2; c; x, y)`: Appell first hypergeometric function
+- `F_2(a; b1, b2; c1, c2; x, y)`: Appell second
+- `F_3(a1, a2; b1, b2; c; x, y)`: Appell third
+- `F_4(a; b; c1, c2; x, y)`: Appell fourth
+
+#### Meixner-Pollaczek Polynomials
+- `P_n^lambda(x; phi)`: Meixner-Pollaczek polynomials
+- Recurrence relations and generating functions
+- Orthogonality weight and inner product
+
+#### Heun Functions
+- General Heun function `Hl(a, q; alpha, beta, gamma, delta; z)`
+- Confluent Heun function `HeunC`
+- Double-confluent Heun function `HeunD`
+- Biconfluent Heun function `HeunB`
+- Triconfluent Heun function `HeunT`
+
+#### Polylogarithm
+- `Li_s(z)` for complex `s` and `z`
+- Fermi-Dirac integrals `F_j(x)`
+- Bose-Einstein integrals `G_j(x)`
+- Clausen function `Cl_2(theta)`
+
+#### Q-Analogs
+- Q-Gamma function `Gamma_q(x)`
+- Q-Pochhammer symbol `(a; q)_n` and infinite product `(a; q)_infty`
+- Q-Binomial coefficient (Gaussian binomial)
+- Q-Exponential functions `e_q(z)` and `E_q(z)`
+- Q-Bessel functions of the first and second kind
+- Q-orthogonal polynomials: big and little q-Jacobi, q-Laguerre, q-Hermite
+
+#### Number Theory Functions
+- Ramanujan tau function `tau(n)`
+- Euler's totient function `phi(n)` and Jordan's totient
+- Liouville function `lambda(n)`, von Mangoldt function `Lambda(n)`
+- Mobius function `mu(n)` and Mertens function `M(n)`
+- Number of divisors `d(n)`, sum of divisors `sigma_k(n)`
+- Partition function `p(n)` via pentagonal recurrence
+- Bell polynomials (complete and partial)
+- Bernoulli numbers and polynomials; Euler numbers and polynomials
+- Stirling numbers of the first and second kind; Lah numbers
+
+#### Information-Theoretic Functions
+- KL divergence `D_KL(P || Q)` for discrete and Gaussian distributions
+- Jensen-Shannon divergence
+- Shannon entropy `H(p)`, Renyi entropy `H_alpha(p)`
+- Mutual information and conditional entropy
+- Cross-entropy and binary cross-entropy
+- Logistic function, softmax, logsumexp (numerically stable)
+- Sinc function
+
+#### Combinatorics Extensions
+- Bell polynomials `Y_n(x_1,...,x_n)` complete and partial
+- Falling factorial, rising factorial (Pochhammer)
+- Catalan numbers, Narayana numbers, Motzkin numbers
+- Derangement count, subfactorial
+- Restricted growth strings and set partition enumeration
+
+#### Orthogonal Polynomial Extensions
+- Wilson polynomials and Racah polynomials
+- Askey-Wilson polynomials (q-extensions)
+- Dual Hahn polynomials, continuous dual Hahn
+- Krawtchouk, Meixner, Charlier discrete orthogonal polynomials
+
+## Quick Start
+
+Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scirs2-special = "0.1.5"
+scirs2-special = "0.3.0"
 ```
 
-### Recommended Configuration
-
-For optimal performance in production applications:
+With parallel processing:
 
 ```toml
 [dependencies]
-scirs2-special = { version = "0.1.5", features = ["parallel"] }
+scirs2-special = { version = "0.3.0", features = ["parallel"] }
 ```
 
-### Available Features
-
-- `parallel`: Enable parallel processing for large arrays using Rayon  
-- `simd`: Enable SIMD optimizations through scirs2-core
-- `gpu`: Experimental GPU acceleration (WebGPU backend)
-- `lazy`: Lazy evaluation for improved memory efficiency
-
-## Usage
-
-Basic usage examples:
+### Classical functions
 
 ```rust
-use scirs2_special::{gamma, erf, bessel, elliptic, orthogonal, airy, hypergeometric};
-use scirs2_core::error::CoreResult;
+use scirs2_special::{gamma, bessel, erf, elliptic, orthogonal};
 
-// Gamma and related functions
-fn gamma_example() -> CoreResult<()> {
-    // Gamma function
-    let x = 4.5;
-    let gamma_x = gamma::gamma(x)?;
-    println!("Gamma({}) = {}", x, gamma_x);
-    
-    // Log gamma function (more numerically stable for large inputs)
-    let log_gamma_x = gamma::log_gamma(x)?;
-    println!("Log-gamma({}) = {}", x, log_gamma_x);
-    
-    // Beta function
-    let a = 2.0;
-    let b = 3.0;
-    let beta_ab = gamma::beta(a, b)?;
-    println!("Beta({}, {}) = {}", a, b, beta_ab);
-    
-    // Incomplete gamma function
-    let x = 2.0;
-    let a = 1.5;
-    let inc_gamma = gamma::inc_gamma(a, x)?;
-    println!("Incomplete gamma({}, {}) = {}", a, x, inc_gamma);
-    
-    Ok(())
-}
+// Gamma(5) = 4! = 24
+let g = gamma(5.0f64);
+assert!((g - 24.0).abs() < 1e-10);
 
-// Error function and related functions
-fn erf_example() -> CoreResult<()> {
-    // Error function
-    let x = 1.0;
-    let erf_x = erf::erf(x)?;
-    println!("erf({}) = {}", x, erf_x);
-    
-    // Complementary error function
-    let erfc_x = erf::erfc(x)?;
-    println!("erfc({}) = {}", x, erfc_x);
-    
-    // Scaled complementary error function
-    let erfcx_x = erf::erfcx(x)?;
-    println!("erfcx({}) = {}", x, erfcx_x);
-    
-    // Error function integral
-    let erfi_x = erf::erfi(x)?;
-    println!("erfi({}) = {}", x, erfi_x);
-    
-    // Inverse error function
-    let inv_erf_x = erf::inverse_erf(0.8)?;
-    println!("inverse_erf(0.8) = {}", inv_erf_x);
-    
-    Ok(())
-}
+// Bessel J_0(2.0)
+let j0 = bessel::j0(2.0f64);
+println!("J_0(2) = {}", j0);
 
-// Bessel functions
-fn bessel_example() -> CoreResult<()> {
-    // Bessel function of the first kind
-    let n = 0;
-    let x = 1.0;
-    let j0 = bessel::j(n, x)?;
-    println!("J_{}({}) = {}", n, x, j0);
-    
-    // Bessel function of the second kind
-    let y0 = bessel::y(n, x)?;
-    println!("Y_{}({}) = {}", n, x, y0);
-    
-    // Modified Bessel function of the first kind
-    let i0 = bessel::i(n, x)?;
-    println!("I_{}({}) = {}", n, x, i0);
-    
-    // Modified Bessel function of the second kind
-    let k0 = bessel::k(n, x)?;
-    println!("K_{}({}) = {}", n, x, k0);
-    
-    // Spherical Bessel function
-    let sj0 = bessel::spherical_jn(n, x)?;
-    println!("spherical_jn({}, {}) = {}", n, x, sj0);
-    
-    Ok(())
-}
+// erf(1.0)
+let e = erf::erf(1.0f64);
+println!("erf(1) = {}", e);
 
-// Elliptic functions
-fn elliptic_example() -> CoreResult<()> {
-    // Complete elliptic integral of the first kind
-    let k = 0.5;
-    let k1 = elliptic::ellipk(k)?;
-    println!("K({}) = {}", k, k1);
-    
-    // Complete elliptic integral of the second kind
-    let e1 = elliptic::ellipe(k)?;
-    println!("E({}) = {}", k, e1);
-    
-    // Incomplete elliptic integral of the first kind
-    let phi = 0.5;
-    let f1 = elliptic::ellipkinc(phi, k)?;
-    println!("F({}, {}) = {}", phi, k, f1);
-    
-    // Incomplete elliptic integral of the second kind
-    let e1 = elliptic::ellipeinc(phi, k)?;
-    println!("E({}, {}) = {}", phi, k, e1);
-    
-    Ok(())
-}
+// Complete elliptic integral K(0.5)
+let k = elliptic::ellipk(0.5f64)?;
+println!("K(0.5) = {}", k);
 
-// Orthogonal polynomials
-fn orthogonal_example() -> CoreResult<()> {
-    // Legendre polynomial
-    let n = 3;
-    let x = 0.5;
-    let p3 = orthogonal::legendre(n, x)?;
-    println!("P_{}({}) = {}", n, x, p3);
-    
-    // Chebyshev polynomial of the first kind
-    let t3 = orthogonal::chebyshev_t(n, x)?;
-    println!("T_{}({}) = {}", n, x, t3);
-    
-    // Chebyshev polynomial of the second kind
-    let u3 = orthogonal::chebyshev_u(n, x)?;
-    println!("U_{}({}) = {}", n, x, u3);
-    
-    // Hermite polynomial (physicist's version)
-    let h3 = orthogonal::hermite(n, x)?;
-    println!("H_{}({}) = {}", n, x, h3);
-    
-    // Laguerre polynomial
-    let l3 = orthogonal::laguerre(n, x)?;
-    println!("L_{}({}) = {}", n, x, l3);
-    
-    Ok(())
-}
-
-// Airy functions
-fn airy_example() -> CoreResult<()> {
-    let x = 1.0;
-    
-    // Airy function of the first kind
-    let ai = airy::airy_ai(x)?;
-    println!("Ai({}) = {}", x, ai);
-    
-    // Derivative of Airy function of the first kind
-    let ai_prime = airy::airy_ai_prime(x)?;
-    println!("Ai'({}) = {}", x, ai_prime);
-    
-    // Airy function of the second kind
-    let bi = airy::airy_bi(x)?;
-    println!("Bi({}) = {}", x, bi);
-    
-    // Derivative of Airy function of the second kind
-    let bi_prime = airy::airy_bi_prime(x)?;
-    println!("Bi'({}) = {}", x, bi_prime);
-    
-    Ok(())
-}
-
-// Hypergeometric functions
-fn hypergeometric_example() -> CoreResult<()> {
-    // Hypergeometric function 1F1
-    let a = 1.0;
-    let b = 2.0;
-    let x = 0.5;
-    let hyp1f1 = hypergeometric::hyp1f1(a, b, x)?;
-    println!("1F1({}, {}, {}) = {}", a, b, x, hyp1f1);
-    
-    // Hypergeometric function 2F1
-    let a = 1.0;
-    let b = 2.0;
-    let c = 3.0;
-    let x = 0.3;
-    let hyp2f1 = hypergeometric::hyp2f1(a, b, c, x)?;
-    println!("2F1({}, {}, {}, {}) = {}", a, b, c, x, hyp2f1);
-    
-    Ok(())
-}
+// Legendre polynomial P_3(0.5)
+let p3 = orthogonal::legendre(3, 0.5f64)?;
+println!("P_3(0.5) = {}", p3);
 ```
 
-## Components
-
-### Gamma Functions
-
-Gamma and related functions:
+### Mathieu functions
 
 ```rust
-use scirs2_special::gamma::{
-    gamma,                  // Gamma function
-    log_gamma,              // Natural logarithm of gamma function
-    digamma,                // Digamma function (derivative of log_gamma)
-    trigamma,               // Trigamma function (second derivative of log_gamma)
-    beta,                   // Beta function
-    inc_gamma,              // Incomplete gamma function
-    inc_gamma_upper,        // Upper incomplete gamma function
-    inc_beta,               // Incomplete beta function
-    factorial,              // Factorial function
-    binom,                  // Binomial coefficient
-};
+use scirs2_special::mathieu::{mathieu_a, mathieu_ce};
+
+// Characteristic value a_0(q=1.0)
+let a0 = mathieu_a(0, 1.0f64)?;
+println!("a_0(1.0) = {}", a0);
+
+// Even Mathieu function ce_0(q=1.0, x=0.5)
+let ce0 = mathieu_ce(0, 1.0f64, 0.5f64)?;
+println!("ce_0(1.0, 0.5) = {}", ce0);
 ```
 
-### Error Functions
-
-Error function and variants:
+### Spherical harmonics and Wigner symbols
 
 ```rust
-use scirs2_special::erf::{
-    erf,                    // Error function
-    erfc,                   // Complementary error function
-    erfcx,                  // Scaled complementary error function
-    erfi,                   // Imaginary error function
-    dawsn,                  // Dawson's integral
-    inverse_erf,            // Inverse error function
-    inverse_erfc,           // Inverse complementary error function
-};
+use scirs2_special::spherical_harmonics::{sph_harm, wigner_3j, gaunt};
+
+// Y_2^1(theta=0.5, phi=1.0)
+let y21 = sph_harm(2, 1, 0.5f64, 1.0f64)?;
+println!("Y_2^1 = {:?}", y21); // complex value
+
+// Wigner 3-j symbol (j1=1, j2=1, j3=2, m1=-1, m2=0, m3=1)
+let w3j = wigner_3j(1, 1, 2, -1, 0, 1)?;
+println!("Wigner 3-j = {}", w3j);
+
+// Gaunt coefficient integral of Y_2^1 * Y_2^0 * Y_2^(-1)
+let g = gaunt(2, 1, 2, 0, 2, -1)?;
+println!("Gaunt = {}", g);
 ```
 
-### Bessel Functions
-
-Bessel and related functions:
+### Jacobi theta functions
 
 ```rust
-use scirs2_special::bessel::{
-    // Bessel functions of the first kind
-    j,                      // Bessel function of the first kind
-    j0,                     // Bessel function of the first kind, order 0
-    j1,                     // Bessel function of the first kind, order 1
-    
-    // Bessel functions of the second kind
-    y,                      // Bessel function of the second kind
-    y0,                     // Bessel function of the second kind, order 0
-    y1,                     // Bessel function of the second kind, order 1
-    
-    // Modified Bessel functions
-    i,                      // Modified Bessel function of the first kind
-    i0,                     // Modified Bessel function of the first kind, order 0
-    i1,                     // Modified Bessel function of the first kind, order 1
-    k,                      // Modified Bessel function of the second kind
-    k0,                     // Modified Bessel function of the second kind, order 0
-    k1,                     // Modified Bessel function of the second kind, order 1
-    
-    // Spherical Bessel functions
-    spherical_jn,           // Spherical Bessel function of the first kind
-    spherical_yn,           // Spherical Bessel function of the second kind
-    
-    // Hankel functions
-    hankel1,                // Hankel function of the first kind
-    hankel2,                // Hankel function of the second kind
-};
+use scirs2_special::theta_functions::{theta_1, theta_3};
+
+// theta_1(z=0.5, q=0.3)
+let t1 = theta_1(0.5f64, 0.3f64)?;
+println!("theta_1(0.5, 0.3) = {}", t1);
+
+// theta_3(z=0.0, q=0.5) -- the Jacobi nome series
+let t3 = theta_3(0.0f64, 0.5f64)?;
+println!("theta_3(0, 0.5) = {}", t3);
 ```
 
-### Elliptic Functions
-
-Elliptic integrals and related functions:
+### Polylogarithm
 
 ```rust
-use scirs2_special::elliptic::{
-    // Complete elliptic integrals
-    ellipk,                 // Complete elliptic integral of the first kind
-    ellipe,                 // Complete elliptic integral of the second kind
-    ellippi,                // Complete elliptic integral of the third kind
-    
-    // Incomplete elliptic integrals
-    ellipkinc,              // Incomplete elliptic integral of the first kind
-    ellipeinc,              // Incomplete elliptic integral of the second kind
-    ellippinc,              // Incomplete elliptic integral of the third kind
-    
-    // Jacobi elliptic functions
-    jacobi_sn,              // Jacobi elliptic function sn
-    jacobi_cn,              // Jacobi elliptic function cn
-    jacobi_dn,              // Jacobi elliptic function dn
-    
-    // Carlson's elliptic integrals
-    elliprf,                // Carlson's elliptic integral of the first kind
-    elliprd,                // Carlson's elliptic integral of the second kind
-    elliprj,                // Carlson's elliptic integral of the third kind
-};
+use scirs2_special::polylogarithm::polylog;
+use num_complex::Complex64;
+
+// Li_2(0.5) = pi^2/12 - (ln 0.5)^2 / 2
+let li2 = polylog(2.0f64, Complex64::new(0.5, 0.0))?;
+println!("Li_2(0.5) = {}", li2.re);
 ```
 
-### Orthogonal Polynomials
-
-Various orthogonal polynomials:
+### Q-analogs
 
 ```rust
-use scirs2_special::orthogonal::{
-    // Legendre polynomials
-    legendre,               // Legendre polynomial
-    legendre_p,             // Associated Legendre polynomial
-    
-    // Chebyshev polynomials
-    chebyshev_t,            // Chebyshev polynomial of the first kind
-    chebyshev_u,            // Chebyshev polynomial of the second kind
-    
-    // Hermite polynomials
-    hermite,                // Hermite polynomial (physicist's version)
-    hermite_h,              // Hermite polynomial (probabilist's version)
-    
-    // Laguerre polynomials
-    laguerre,               // Laguerre polynomial
-    laguerre_l,             // Associated Laguerre polynomial
-    
-    // Gegenbauer polynomials
-    gegenbauer,             // Gegenbauer polynomial
-    
-    // Jacobi polynomials
-    jacobi,                 // Jacobi polynomial
-};
+use scirs2_special::q_analogs::{q_gamma, q_pochhammer};
+
+// Q-Gamma(4, q=0.5) -> should approach 3! = 6 as q -> 1
+let qg = q_gamma(4.0f64, 0.5f64)?;
+println!("Gamma_q(4; q=0.5) = {}", qg);
+
+// Q-Pochhammer (0.3; 0.5)_5
+let qp = q_pochhammer(0.3f64, 0.5f64, 5)?;
+println!("(0.3; 0.5)_5 = {}", qp);
 ```
 
-### Spherical Harmonics
-
-Spherical harmonic functions:
+### Information-theoretic functions
 
 ```rust
-use scirs2_special::spherical_harmonics::{
-    sph_harm,               // Spherical harmonic function
-    real_sph_harm,          // Real spherical harmonic function
-    sph_harm_theta_phi,     // Spherical harmonic using theta and phi
-    gaunt,                  // Gaunt coefficient (integral of 3 spherical harmonics)
-};
+use scirs2_special::information_theoretic::{kl_divergence, shannon_entropy, mutual_information};
+
+let p = vec![0.25, 0.25, 0.25, 0.25f64];
+let q = vec![0.5, 0.25, 0.125, 0.125f64];
+
+let kl = kl_divergence(&p, &q)?;
+let h = shannon_entropy(&p)?;
+println!("KL(P||Q) = {}, H(P) = {}", kl, h);
 ```
 
-### Airy Functions
+## API Overview
 
-Airy functions and their derivatives:
+| Module | Description |
+|--------|-------------|
+| `gamma` | Gamma, log-gamma, digamma, beta, incomplete variants |
+| `erf` | Error, complementary error, scaled, imaginary, Dawson |
+| `bessel` | J, Y, I, K Bessel; spherical Bessel; Hankel; zeros |
+| `elliptic` / `elliptic_ext` | Complete/incomplete integrals; Jacobi functions; Carlson |
+| `orthogonal` | Legendre, Chebyshev, Hermite, Laguerre, Gegenbauer, Jacobi, Zernike |
+| `airy` / `airy_ext` | Ai, Bi and derivatives; complex argument |
+| `hypergeometric` / `hypergeometric_ext` | _0F_1, _1F_1, _2F_1, U, Tricomi |
+| `mathieu` | Characteristic values, ce/se functions, radial Mc/Ms |
+| `spherical_harmonics` | Real/complex Y_l^m; Gaunt; Wigner 3j/6j/9j; CG coefficients |
+| `theta_functions` | Jacobi theta theta_1 through theta_4 |
+| `weierstrass` | Weierstrass P, zeta, sigma; elliptic invariants |
+| `parabolic_cylinder` | Weber D_n, U, V; asymptotic expansions |
+| `fox_h` | Generalized Fox H-function |
+| `appell` | Appell F_1, F_2, F_3, F_4 hypergeometric |
+| `meixner_pollaczek` | Meixner-Pollaczek polynomials P_n^lambda |
+| `heun` | General, confluent, double-confluent, biconfluent, triconfluent Heun |
+| `polylogarithm` | Li_s(z), Fermi-Dirac, Bose-Einstein, Clausen |
+| `q_analogs` | Q-Gamma, q-Pochhammer, q-exponential, q-binomial |
+| `q_bessel` | Q-Bessel functions of first and second kind |
+| `q_orthogonal` | Q-Jacobi, q-Laguerre, q-Hermite polynomials |
+| `number_theory` / `number_theory_ext` | Ramanujan tau, totient, Mobius, divisors, partitions |
+| `information_theoretic` | KL divergence, entropy, mutual information |
+| `combinatorial_ext` | Bell polynomials, Catalan, Narayana, Motzkin, Stirling |
+| `orthogonal_polynomials` | Wilson, Askey-Wilson, Racah, Krawtchouk |
+| `zeta` / `zeta_ext` | Riemann zeta, Hurwitz zeta, Lerch transcendent |
+| `struve` / `struve_ext` | Struve H and L with asymptotic expansions |
+| `combinatorial` | Factorials, binomial, multinomial, Stirling numbers |
+| `lattice` | Lattice functions and modular forms |
+| `statistical` | Logistic, softmax, logsumexp, sinc |
 
-```rust
-use scirs2_special::airy::{
-    airy_ai,                // Airy function of the first kind
-    airy_ai_prime,          // Derivative of Airy function of the first kind
-    airy_bi,                // Airy function of the second kind
-    airy_bi_prime,          // Derivative of Airy function of the second kind
-};
-```
+## Feature Flags
 
-### Hypergeometric Functions
+| Feature | Description |
+|---------|-------------|
+| `default` | All core and advanced special functions |
+| `parallel` | Rayon-based parallel array evaluation |
+| `simd` | SIMD-accelerated batch computation via scirs2-core |
 
-Various hypergeometric functions:
+## Documentation
 
-```rust
-use scirs2_special::hypergeometric::{
-    hyp0f1,                 // Confluent hypergeometric limit function
-    hyp1f1,                 // Kummer confluent hypergeometric function
-    hyp2f1,                 // Gauss hypergeometric function
-    hypu,                   // Tricomi confluent hypergeometric function
-};
-```
-
-### Mathieu Functions
-
-Solutions to Mathieu's differential equation:
-
-```rust
-use scirs2_special::mathieu::{
-    mathieu_a,              // Characteristic value of even Mathieu function
-    mathieu_b,              // Characteristic value of odd Mathieu function
-    mathieu_ce,             // Even Mathieu function
-    mathieu_se,             // Odd Mathieu function
-    mathieu_mc,             // Radial Mathieu function of the first kind
-    mathieu_ms,             // Radial Mathieu function of the second kind
-};
-```
-
-### Zeta Functions
-
-Zeta and related functions:
-
-```rust
-use scirs2_special::zeta::{
-    zeta,                   // Riemann zeta function
-    hurwitz_zeta,           // Hurwitz zeta function
-    eta,                    // Dirichlet eta function
-    lambert_w,              // Lambert W function
-};
-```
-
-## Testing & Reliability
-
-### Comprehensive Test Coverage
-
-This production release includes extensive validation:
-
-- **190 unit tests** covering all mathematical functions
-- **164 doctests** ensuring API documentation accuracy  
-- **7 integration tests** validating complex workflows
-- **Property-based testing** for mathematical identities
-- **Edge case validation** for extreme parameter values
-- **Numerical stability analysis** for critical functions
-
-### Quality Assurance
-
-- ✅ **Zero warnings** from cargo clippy (strict mode)
-- ✅ **Memory safety** guaranteed by Rust's type system
-- ✅ **Deterministic behavior** with reproducible results
-- ✅ **Error handling** with descriptive Result types
-- ✅ **Performance benchmarks** for regression detection
-
-## Examples
-
-The module includes **32 working examples** in the `examples/` directory:
-
-### Core Functions
-- `get_values.rs`: Basic usage of various special functions
-- `gamma_functions.rs`: Complete gamma function family
-- `bessel_functions.rs`: All Bessel function variants
-- `error_functions.rs`: Error function family with complex support
-
-### Advanced Applications  
-- `airy_functions.rs`: Quantum mechanics and optics applications
-- `elliptic_functions.rs`: Complete elliptic integral toolkit
-- `hypergeometric_functions.rs`: Series solutions and special cases
-- `mathieu_functions.rs`: Periodic solutions and Fourier analysis
-- `spherical_harmonics.rs`: 3D visualization and quantum mechanics
-- `coulomb_example.rs`: Quantum scattering calculations
-- `wright_omega_example.rs`: Advanced transcendental equations
-
-### Performance Demonstrations
-- `array_operations_demo.rs`: Vectorized operations showcase
-- `advanced_array_operations.rs`: Memory-efficient bulk processing
-- `special_comprehensive_demo.rs`: Full function library tour
-
-## Contributing
-
-See the [CONTRIBUTING.md](../CONTRIBUTING.md) file for contribution guidelines.
+Full API documentation is available at [docs.rs/scirs2-special](https://docs.rs/scirs2-special).
 
 ## License
 
-This project is Licensed under the Apache License 2.0. See LICENSE for details.
-
-You can choose to use either license. See the [LICENSE](../LICENSE) file for details.
+Licensed under the Apache License 2.0. See [LICENSE](../LICENSE) for details.

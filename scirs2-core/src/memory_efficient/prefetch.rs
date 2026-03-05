@@ -184,7 +184,14 @@ impl BlockAccessTracker {
 
         // Check for sequential access
         let mut is_sequential = true;
-        let mut prev = *self.history.front().expect("Operation failed");
+        let front = match self.history.front() {
+            Some(v) => *v,
+            None => {
+                self.current_pattern = AccessPattern::Random;
+                return;
+            }
+        };
+        let mut prev = front;
 
         for &block_idx in self.history.iter().skip(1) {
             if block_idx != prev + 1 {
@@ -199,11 +206,30 @@ impl BlockAccessTracker {
             return;
         }
 
-        // Check for strided access
+        // Check for strided access — need at least 2 elements (guarded by min_pattern_length)
+        let second = match self.history.get(1) {
+            Some(v) => *v,
+            None => {
+                self.current_pattern = AccessPattern::Random;
+                return;
+            }
+        };
+        let front2 = match self.history.front() {
+            Some(v) => *v,
+            None => {
+                self.current_pattern = AccessPattern::Random;
+                return;
+            }
+        };
         let mut is_strided = true;
-        let stride = self.history.get(1).expect("Operation failed")
-            - self.history.front().expect("Operation failed");
-        prev = *self.history.front().expect("Operation failed");
+        // Guard against underflow: treat decreasing patterns as random
+        let stride = if second >= front2 {
+            second - front2
+        } else {
+            self.current_pattern = AccessPattern::Random;
+            return;
+        };
+        prev = front2;
 
         for &block_idx in self.history.iter().skip(1) {
             if block_idx != prev + stride {
@@ -248,7 +274,10 @@ impl AccessPatternTracker for BlockAccessTracker {
         }
 
         let mut predictions = Vec::with_capacity(count);
-        let latest = *self.history.back().expect("Operation failed");
+        let latest = match self.history.back() {
+            Some(v) => *v,
+            None => return Vec::new(),
+        };
 
         match self.current_pattern {
             AccessPattern::Sequential => {
@@ -843,11 +872,14 @@ impl<A: Clone + Copy + 'static + Send + Sync> PrefetchingCompressedArray<A> {
             // Drop the lock before prefetching
             drop(guard);
 
-            // Request prefetching of predicted blocks
-            // TODO: Fix mutable reference issue - needs interior mutability or redesign
-            // for &idx in &to_prefetch {
-            //     self.prefetch_block_by_idx_by_idx(idx)?;
-            // }
+            // Request prefetching of predicted blocks via the channel sender.
+            // Interior mutability via Arc<Mutex<..>> + mpsc::Sender means only
+            // &self is required here — no &mut self needed.
+            for &idx in &to_prefetch {
+                if let Err(_e) = self.request_prefetch(idx) {
+                    // Non-fatal: prefetching is best-effort; ignore errors silently.
+                }
+            }
         }
 
         // Get the element from the underlying array
@@ -917,11 +949,14 @@ impl<A: Clone + Copy + 'static + Send + Sync> PrefetchingCompressedArray<A> {
             // Drop the lock before prefetching
             drop(guard);
 
-            // Request prefetching of predicted blocks
-            // TODO: Fix mutable reference issue - needs interior mutability or redesign
-            // for &idx in &to_prefetch {
-            //     self.prefetch_block_by_idx_by_idx(idx)?;
-            // }
+            // Request prefetching of predicted blocks via the channel sender.
+            // Interior mutability via Arc<Mutex<..>> + mpsc::Sender means only
+            // &self is required here — no &mut self needed.
+            for &idx in &to_prefetch {
+                if let Err(_e) = self.request_prefetch(idx) {
+                    // Non-fatal: prefetching is best-effort; ignore errors silently.
+                }
+            }
         }
 
         // Use the underlying array's slice method
@@ -1006,8 +1041,15 @@ impl<A: Clone + Copy + 'static + Send + Sync> PrefetchingCompressedArray<A> {
         // For large slices, we should also check intermediate blocks along the edges
         // This is a simplification, but covers many common cases
         if blocks.len() > 1 {
-            let min_block = *blocks.iter().min().expect("Operation failed");
-            let max_block = *blocks.iter().max().expect("Operation failed");
+            // Safety: blocks.len() > 1 guarantees min/max return Some
+            let min_block = match blocks.iter().min() {
+                Some(v) => *v,
+                None => return Ok(blocks),
+            };
+            let max_block = match blocks.iter().max() {
+                Some(v) => *v,
+                None => return Ok(blocks),
+            };
 
             // Add all blocks in between
             for block_idx in min_block..=max_block {

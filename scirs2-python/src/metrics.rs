@@ -14,23 +14,23 @@ use scirs2_numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods};
 use scirs2_core::ndarray::{Array1, Array2};
 
 // Direct imports from scirs2-metrics submodules
-use scirs2_metrics::classification::{
-    accuracy_score, precision_score, recall_score, f1_score, fbeta_score,
-    confusion_matrix, roc_auc_score, binary_log_loss,
-};
 use scirs2_metrics::classification::advanced::{
-    matthews_corrcoef, balanced_accuracy_score, cohen_kappa_score,
+    balanced_accuracy_score, cohen_kappa_score, matthews_corrcoef,
 };
 use scirs2_metrics::classification::curves::roc_curve;
-use scirs2_metrics::regression::{
-    mean_squared_error, mean_absolute_error, r2_score,
-    mean_absolute_percentage_error, explained_variance_score,
+use scirs2_metrics::classification::{
+    accuracy_score, binary_log_loss, confusion_matrix, f1_score, fbeta_score, precision_score,
+    recall_score, roc_auc_score,
 };
 use scirs2_metrics::clustering::{
-    silhouette_score, davies_bouldin_score, calinski_harabasz_score,
-    adjusted_rand_index, normalized_mutual_info_score,
+    adjusted_rand_index, calinski_harabasz_score, davies_bouldin_score,
+    normalized_mutual_info_score, silhouette_score,
 };
-use scirs2_metrics::ranking::{ndcg_score, mean_reciprocal_rank};
+use scirs2_metrics::ranking::{mean_reciprocal_rank, ndcg_score};
+use scirs2_metrics::regression::{
+    explained_variance_score, mean_absolute_error, mean_absolute_percentage_error,
+    mean_squared_error, r2_score,
+};
 
 // ========================================
 // CLASSIFICATION METRICS
@@ -132,8 +132,9 @@ fn confusion_matrix_py(
     let y_true_data = y_true_binding.as_array();
     let y_pred_data = y_pred_binding.as_array();
 
-    let (matrix, classes): (Array2<u64>, Array1<i64>) = confusion_matrix(&y_true_data, &y_pred_data, None)
-        .map_err(|e| PyRuntimeError::new_err(format!("Confusion matrix failed: {}", e)))?;
+    let (matrix, classes): (Array2<u64>, Array1<i64>) =
+        confusion_matrix(&y_true_data, &y_pred_data, None)
+            .map_err(|e| PyRuntimeError::new_err(format!("Confusion matrix failed: {}", e)))?;
 
     let dict = PyDict::new(py);
     dict.set_item("matrix", matrix.into_pyarray(py).unbind())?;
@@ -297,10 +298,7 @@ fn r2_score_py(
 
 /// Calculate mean absolute percentage error
 #[pyfunction]
-fn mape_py(
-    y_true: &Bound<'_, PyArray1<f64>>,
-    y_pred: &Bound<'_, PyArray1<f64>>,
-) -> PyResult<f64> {
+fn mape_py(y_true: &Bound<'_, PyArray1<f64>>, y_pred: &Bound<'_, PyArray1<f64>>) -> PyResult<f64> {
     let y_true_binding = y_true.readonly();
     let y_pred_binding = y_pred.readonly();
     let y_true_data = y_true_binding.as_array();
@@ -427,8 +425,16 @@ fn ndcg_score_py(
     let y_score_data = y_score_binding.as_array();
 
     // Convert 2D arrays to Vec of 1D arrays (each row is a query)
-    let y_true_vec: Vec<Array1<f64>> = y_true_data.rows().into_iter().map(|row| row.to_owned()).collect();
-    let y_score_vec: Vec<Array1<f64>> = y_score_data.rows().into_iter().map(|row| row.to_owned()).collect();
+    let y_true_vec: Vec<Array1<f64>> = y_true_data
+        .rows()
+        .into_iter()
+        .map(|row| row.to_owned())
+        .collect();
+    let y_score_vec: Vec<Array1<f64>> = y_score_data
+        .rows()
+        .into_iter()
+        .map(|row| row.to_owned())
+        .collect();
 
     ndcg_score(&y_true_vec, &y_score_vec, k)
         .map_err(|e| PyRuntimeError::new_err(format!("NDCG score failed: {}", e)))
@@ -437,18 +443,23 @@ fn ndcg_score_py(
 /// Calculate mean reciprocal rank
 /// y_true and y_score are 2D arrays where each row represents a query
 #[pyfunction]
-fn mrr_py(
-    y_true: &Bound<'_, PyArray2<f64>>,
-    y_score: &Bound<'_, PyArray2<f64>>,
-) -> PyResult<f64> {
+fn mrr_py(y_true: &Bound<'_, PyArray2<f64>>, y_score: &Bound<'_, PyArray2<f64>>) -> PyResult<f64> {
     let y_true_binding = y_true.readonly();
     let y_score_binding = y_score.readonly();
     let y_true_data = y_true_binding.as_array();
     let y_score_data = y_score_binding.as_array();
 
     // Convert 2D arrays to Vec of 1D arrays (each row is a query)
-    let y_true_vec: Vec<Array1<f64>> = y_true_data.rows().into_iter().map(|row| row.to_owned()).collect();
-    let y_score_vec: Vec<Array1<f64>> = y_score_data.rows().into_iter().map(|row| row.to_owned()).collect();
+    let y_true_vec: Vec<Array1<f64>> = y_true_data
+        .rows()
+        .into_iter()
+        .map(|row| row.to_owned())
+        .collect();
+    let y_score_vec: Vec<Array1<f64>> = y_score_data
+        .rows()
+        .into_iter()
+        .map(|row| row.to_owned())
+        .collect();
 
     mean_reciprocal_rank(&y_true_vec, &y_score_vec)
         .map_err(|e| PyRuntimeError::new_err(format!("MRR failed: {}", e)))

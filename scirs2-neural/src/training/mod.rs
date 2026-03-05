@@ -15,8 +15,8 @@
 //!
 //! ## Quick Start
 //!
-//! ```rust,ignore
-//! use scirs2_neural::training::{EnhancedTrainer, EnhancedTrainingConfig};
+//! ```rust
+//! use scirs2_neural::training::{EnhancedTrainingConfig, EarlyStoppingConfig};
 //!
 //! let config = EnhancedTrainingConfig {
 //!     epochs: 10,
@@ -26,8 +26,8 @@
 //!     ..Default::default()
 //! };
 //!
-//! let mut trainer = EnhancedTrainer::new(config);
-//! let history = trainer.fit(&mut model, dataset, &loss_fn, &mut optimizer)?;
+//! assert_eq!(config.epochs, 10);
+//! assert_eq!(config.batch_size, 32);
 //! ```
 
 use scirs2_core::ndarray::ScalarOperand;
@@ -36,26 +36,71 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 
 // Core training modules
+pub mod augmentation;
 pub mod backprop_efficient;
+pub mod checkpoint;
+pub mod early_stopping;
 pub mod gradient_accumulation;
 pub mod gradient_checkpointing;
+pub mod gradient_clipping;
+pub mod metrics_tracker;
 pub mod mixed_precision;
 pub mod progress_monitor;
 pub mod quantization_aware;
+pub mod schedulers;
 pub mod sparse_training;
 
 // Enhanced training loop (v0.2.0)
 pub mod enhanced_trainer;
 pub mod optimized_dataloader;
 
+// Advanced training capabilities (v0.3.0+)
+pub mod curriculum;
+pub mod federated;
+pub mod hparam_tuner;
+pub mod lr_finder;
+pub mod profiler;
+
 // Re-export core modules
 pub use backprop_efficient::*;
+pub use checkpoint::{
+    best_checkpoint, checkpoint_dir_name, latest_checkpoint, list_checkpoints, load_checkpoint,
+    save_checkpoint, CheckpointConfig, CheckpointError, CheckpointManager, CheckpointMetadata,
+    LrSchedulerState, OptimizerCheckpointState, OptimizerStateMetadata, ParamGroupState,
+    TrainingCheckpoint,
+};
 pub use gradient_accumulation::*;
 pub use gradient_checkpointing::*;
 pub use mixed_precision::*;
 pub use progress_monitor::*;
 pub use quantization_aware::*;
+pub use schedulers::{
+    ChainedScheduler, CosineAnnealingLR as CosineAnnealingScheduler, CosineAnnealingWarmRestarts,
+    CyclicLR, CyclicMode, ExponentialLR, LRScheduler, LinearWarmup, MultiStepLR, OneCycleLR,
+    PolynomialLR, ReduceOnPlateau as ReduceOnPlateauScheduler, StepLR, WarmupCosine,
+};
 pub use sparse_training::*;
+
+// Re-export gradient clipping (v0.3.0)
+pub use gradient_clipping::{
+    clip_grad_adaptive, clip_grad_agc, clip_grad_norm, clip_grad_value, grad_norm,
+    AdaptiveGradClipConfig, ClipNormType, GradientClipResult,
+};
+
+// Re-export standalone early stopping (v0.3.0)
+pub use early_stopping::{
+    EarlyStopping, EarlyStoppingWithState, StepResult as EarlyStoppingStepResult, StopReason,
+    StoppingMode,
+};
+
+// Re-export metrics tracker (v0.3.0)
+pub use metrics_tracker::{
+    BestMetric, MetricEntry, MetricGoal, MetricHistory, MetricStats, MetricsTracker,
+    TrainingHistory,
+};
+
+// Re-export augmentation (v0.3.0)
+pub use augmentation::{apply_cutmix, apply_mixup, AugmentationPipeline, AugmentationType};
 
 // Re-export enhanced training (v0.2.0)
 pub use enhanced_trainer::{
@@ -65,8 +110,39 @@ pub use enhanced_trainer::{
     ValidationConfig, WarmupSchedule,
 };
 pub use optimized_dataloader::{
-    BatchSizeOptimizationResult, BatchSizeOptimizer, LoadingStats, OptimizedDataLoader,
-    OptimizedLoaderConfig, PrefetchingIterator,
+    BatchSizeOptimizationResult, BatchSizeOptimizer, LoadingStats, MemoryAwareConfig,
+    MemoryAwareDataLoader, MemoryAwarePrefetchIter, OptimizedDataLoader, OptimizedLoaderConfig,
+    PrefetchingIterator,
+};
+
+// Re-export LR finder (v0.3.0+)
+pub use lr_finder::{
+    find_optimal_lr, LRFinder, LRFinderConfig, LRFinderConfigBuilder, LRFinderPoint,
+    LRFinderResult, LRFinderStatus, LRScheduleType, TypedLRFinder,
+};
+
+// Re-export curriculum learning (v0.3.0+)
+pub use curriculum::{
+    CompetenceSchedule, CurriculumConfig, CurriculumConfigBuilder, CurriculumLearner,
+    CurriculumSchedule, CurriculumStrategy, DifficultyScorer, LossBasedScorer, StaticScorer,
+};
+
+// Re-export federated learning (v0.3.0+)
+pub use federated::{
+    clip_l2_norm, AggregationMethod, ClientSelectionStrategy, ClientUpdate,
+    DifferentialPrivacyConfig, FederatedConfig, FederatedConfigBuilder, FederatedServer,
+    GradientCompressionConfig, RoundStats,
+};
+
+// Re-export training profiler (v0.3.0+)
+pub use profiler::{
+    estimate_conv2d_memory, estimate_dense_flops, estimate_dense_memory, BatchStats, Bottleneck,
+    EpochStats, LayerProfile, ProfilePhase, ProfileSummary, TrainingProfiler,
+};
+
+// Re-export hyperparameter tuner (v0.3.0+)
+pub use hparam_tuner::{
+    HParamSpace, HParamTuner, HParamValue, SearchStrategy, SpaceType, TrialResult,
 };
 
 /// Configuration structure for training neural networks

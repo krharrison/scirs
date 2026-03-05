@@ -288,13 +288,13 @@ impl std::fmt::Display for WindowType {
 /// use scirs2_signal::window::{WindowType, generate_window};
 ///
 /// // Parameterized windows with clear parameter names
-/// let tukey = generate_window(WindowType::Tukey { alpha: 0.25 }, 64, true).unwrap();
-/// let kaiser = generate_window(WindowType::Kaiser { beta: 14.0 }, 128, true).unwrap();
-/// let gaussian = generate_window(WindowType::Gaussian { std: 0.4 }, 64, true).unwrap();
+/// let tukey = generate_window(WindowType::Tukey { alpha: 0.25 }, 64, true).expect("operation should succeed");
+/// let kaiser = generate_window(WindowType::Kaiser { beta: 14.0 }, 128, true).expect("operation should succeed");
+/// let gaussian = generate_window(WindowType::Gaussian { std: 0.4 }, 64, true).expect("operation should succeed");
 ///
 /// // Non-parameterized windows
-/// let hamming = generate_window(WindowType::Hamming, 64, true).unwrap();
-/// let blackman = generate_window(WindowType::Blackman, 128, true).unwrap();
+/// let hamming = generate_window(WindowType::Hamming, 64, true).expect("operation should succeed");
+/// let blackman = generate_window(WindowType::Blackman, 128, true).expect("operation should succeed");
 /// ```
 pub fn generate_window(
     window_type: WindowType,

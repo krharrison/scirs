@@ -18,6 +18,13 @@ pub use attention::{
     batch_flash_attention, batch_multi_head_attention, batch_multi_query_attention,
 };
 
+// Batch BLAS-like operations
+pub mod operations;
+pub use operations::{
+    batch_cholesky, batch_det, batch_frobenius_norm, batch_inverse, batch_matmul_pairwise,
+    batch_solve, batch_solve_matrix, batch_trace, batch_transpose,
+};
+
 /// Perform matrix multiplication on a batch of matrices
 ///
 /// Computes a batch multiplication where the input represents multiple matrices

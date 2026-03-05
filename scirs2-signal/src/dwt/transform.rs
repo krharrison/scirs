@@ -28,7 +28,7 @@ use std::fmt::Debug;
 /// use scirs2_signal::dwt::{dwt_decompose, Wavelet};
 ///
 /// let signal = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
-/// let (approx, detail) = dwt_decompose(&signal, Wavelet::DB(4), None).unwrap();
+/// let (approx, detail) = dwt_decompose(&signal, Wavelet::DB(4), None).expect("operation should succeed");
 ///
 /// // Approximation and detail coefficients
 /// println!("Approximation: {:?}", approx);
@@ -121,10 +121,10 @@ where
 /// use scirs2_signal::dwt::{dwt_decompose, dwt_reconstruct, Wavelet};
 ///
 /// let signal = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
-/// let (approx, detail) = dwt_decompose(&signal, Wavelet::DB(4), None).unwrap();
+/// let (approx, detail) = dwt_decompose(&signal, Wavelet::DB(4), None).expect("operation should succeed");
 ///
 /// // Reconstruct the signal
-/// let reconstructed = dwt_reconstruct(&approx, &detail, Wavelet::DB(4)).unwrap();
+/// let reconstructed = dwt_reconstruct(&approx, &detail, Wavelet::DB(4)).expect("operation should succeed");
 ///
 /// // Basic test - reconstruction should succeed
 /// assert!(reconstructed.len() > 0);

@@ -39,7 +39,7 @@
 //!
 //! // Standardize data (Z-score normalization)
 //! let data = Array2::<f64>::zeros((100, 5));
-//! let normalized = normalize_array(&data, NormalizationMethod::ZScore, 0).unwrap();
+//! let normalized = normalize_array(&data, NormalizationMethod::ZScore, 0).expect("should succeed");
 //! ```
 //!
 //! ## 🔒 Version: 0.1.5 (January 15, 2026)
@@ -143,6 +143,9 @@ pub mod neuromorphic_adaptation;
 #[cfg(feature = "monitoring")]
 pub mod monitoring;
 
+/// Kernel methods (Kernel PCA, Kernel Ridge Regression, kernel functions)
+pub mod kernel;
+
 // Re-export important types and functions
 pub use decomposition::{DictionaryLearning, NMF};
 pub use encoding::{
@@ -164,8 +167,9 @@ pub use pipeline::{
     Transformer,
 };
 pub use reduction::{
-    trustworthiness, AffinityMethod, Isomap, SpectralEmbedding, TruncatedSVD, LDA, LLE, PCA, TSNE,
-    UMAP,
+    factor_analysis, scree_plot_data, trustworthiness, AffinityMethod, DiffusionMaps,
+    FactorAnalysis, FactorAnalysisResult, GraphMethod, Isomap, LaplacianEigenmaps, RotationMethod,
+    ScreePlotData, SpectralEmbedding, TruncatedSVD, LDA, LLE, PCA, TSNE, UMAP,
 };
 pub use scaling::{MaxAbsScaler, QuantileTransformer};
 pub use selection::{MutualInfoSelector, RecursiveFeatureElimination, VarianceThreshold};
@@ -259,6 +263,13 @@ pub use neuromorphic_adaptation::{
     AdvancedNeuromorphicMetrics, AdvancedNeuromorphicProcessor, NeuromorphicAdaptationNetwork,
     NeuromorphicMemorySystem, NeuromorphicTransformationSystem, SpikingNeuron, SystemState,
     TransformationEpisode,
+};
+
+// Kernel methods exports
+pub use kernel::{
+    center_kernel_matrix, cross_gram_matrix, estimate_rbf_gamma, gram_matrix,
+    is_positive_semidefinite, kernel_alignment, kernel_diagonal, kernel_eval, KernelPCA,
+    KernelRidgeRegression, KernelType,
 };
 
 // Production monitoring exports

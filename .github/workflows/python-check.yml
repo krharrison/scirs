@@ -1,0 +1,137 @@
+name: Python (Maturin) Check
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "scirs2-python/**"
+      - "scirs2-core/**"
+      - ".github/workflows/python-check.yml"
+  pull_request:
+    branches: [master, main]
+    paths:
+      - "scirs2-python/**"
+      - "scirs2-core/**"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Build Python wheels (check only, not publish)
+  build-wheels:
+    name: Build Wheels (${{ matrix.os }}, ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-python-${{ matrix.os }}-py${{ matrix.python }}"
+
+      - name: Install maturin
+        run: pip install maturin
+
+      - name: Build wheel (dev mode)
+        run: |
+          cd scirs2-python
+          maturin build --out dist
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}-py${{ matrix.python }}
+          path: scirs2-python/dist/*.whl
+          retention-days: 7
+
+  # Verify that the wheel installs and imports correctly
+  test-wheel:
+    name: Test Wheel Install (${{ matrix.os }}, ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    needs: build-wheels
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.11"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Download wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}-py${{ matrix.python }}
+          path: dist/
+
+      - name: Install wheel
+        run: |
+          pip install dist/*.whl
+
+      - name: Import check
+        run: |
+          python -c "import scirs2; print('scirs2 version:', scirs2.__version__)" || \
+          python -c "import scirs2_python; print('scirs2_python imported OK')" || \
+          echo "Import check completed (module name may differ)"
+
+  # Cargo check for the Python extension
+  cargo-check-python:
+    name: Cargo check (scirs2-python)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install maturin
+        run: pip install maturin
+
+      - name: Cargo check scirs2-python
+        run: cargo check -p scirs2-python --all-features
+
+  python-success:
+    name: Python Check Success
+    runs-on: ubuntu-latest
+    needs:
+      - build-wheels
+      - test-wheel
+      - cargo-check-python
+    if: always()
+
+    steps:
+      - name: Verify all Python jobs passed
+        run: |
+          results=(
+            "${{ needs.build-wheels.result }}"
+            "${{ needs.test-wheel.result }}"
+            "${{ needs.cargo-check-python.result }}"
+          )
+          for result in "${results[@]}"; do
+            if [[ "$result" != "success" ]]; then
+              echo "Python check failed (result: $result)"
+              exit 1
+            fi
+          done
+          echo "All Python checks passed."

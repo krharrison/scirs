@@ -1,141 +1,115 @@
-# SciRS2 Autograd - Production Status (v0.1.5)
+# scirs2-autograd TODO
 
-**stable Release - Stable with Platform Testing**
+## Status: v0.3.0 Released (February 26, 2026)
 
-This module provides robust automatic differentiation functionality comparable to PyTorch/TensorFlow's autograd systems, serving as a battle-tested building block for machine learning and scientific computing in Rust.
-
-⚠️ **SciRS2 POLICY Migration Status**: This module is currently being updated to follow the [SciRS2 POLICY](../SCIRS2_POLICY.md). Migration from direct `rand::` and `ndarray::` usage to scirs2-core abstractions is in progress.
-
-## Release Status: ✅ Production Ready
-
-**Test Results:** 404 passing tests, 0 failures, 15 ignored (development features)
-**Stability:** All core features implemented and stable
-**Performance:** Optimized with SIMD, parallel processing, and memory optimizations
-**Documentation:** Complete API documentation with examples
-**Ecosystem Consistency:** 🔄 SciRS2 POLICY implementation in progress
-
-## ✅ Implemented Production Features
+## v0.3.0 Completed
 
 ### Core Automatic Differentiation
-- **Tensor Operations:** Complete ndarray-based tensor system with broadcasting
-- **Computational Graph:** Dynamic graph construction with efficient memory management
-- **Gradient Computation:** Reverse-mode AD with numerical stability enhancements
-- **Higher-Order Derivatives:** Second and higher-order gradients fully supported
-- **Memory Optimization:** Gradient checkpointing, hooks, and memory pooling
+- Reverse-mode AD (VJP / backpropagation) via tape-based gradient accumulation
+- Forward-mode AD (JVP / Jacobian-vector products)
+- Dynamic computation graph construction
+- Lazy evaluation with graph-level optimizations (constant folding, CSE, loop fusion)
+- Higher-order derivatives: Hessian, Hessian-vector products
+- Second-order optimization support
 
-### Mathematical Operations
-- **Basic Arithmetic:** Add, subtract, multiply, divide with full broadcasting
-- **Linear Algebra:** Matrix multiplication, decompositions (QR, LU, SVD, Cholesky)
-- **Matrix Functions:** Inverse, determinant, exponential, logarithm, square root, power
-- **Matrix Norms:** Frobenius, spectral, nuclear norms with stable gradients
-- **Tensor Manipulation:** Reshape, slice, concatenate, pad, advanced indexing
+### Gradient Utilities
+- Finite difference numerical differentiation (forward, central, backward)
+- Richardson extrapolation for higher-order accuracy
+- Gradient checking / numerical verification
+- `numerical_diff.rs` module for standalone finite differences
 
-### Neural Network Operations
-- **Activation Functions:** ReLU variants, Sigmoid, Tanh, Softmax, Swish, GELU, Mish
-- **Loss Functions:** MSE, cross entropy, sparse categorical cross entropy
-- **Convolution:** 2D convolutions, transposed convolutions, max/average pooling
-- **Normalization:** Batch normalization and dropout functionality
-- **Linear Layers:** Fully connected layers with bias support
+### Memory Optimization
+- Gradient checkpointing (recompute-based; `checkpoint`, `adaptive_checkpoint`)
+- Checkpoint groups for multi-output operations (`CheckpointGroup`)
+- Checkpoint profiler (`CheckpointProfiler` with memory-saved tracking)
+- Memory pooling and in-place operations
 
-### Optimization Infrastructure
-- **Optimizers:** SGD, SGD with momentum, Adam, AdaGrad, AdamW
-- **Learning Rate Schedulers:** Exponential decay, step decay, cosine annealing
-- **Gradient Clipping:** Norm-based and value-based gradient clipping utilities
-- **Variable Management:** Namespaced variables with persistence support
+### Functional Transforms
+- `grad` - scalar gradient computation
+- `jacobian` - full Jacobian
+- `hessian` - second-order derivatives
+- `functional_transforms.rs`: vmap-like batching, compose, grad transform
 
-### Performance Optimizations
-- **SIMD Acceleration:** Vectorized operations for element-wise computations
-- **Parallel Processing:** Multi-threaded operations with work-stealing thread pool
-- **Memory Efficiency:** In-place operations, gradient checkpointing, memory pooling
-- **Graph Optimizations:** Constant folding, expression simplification, loop fusion
-- **Cache-Friendly Algorithms:** Optimized memory access patterns for large tensors
+### Implicit Differentiation
+- Implicit function theorem-based gradients (`implicit_diff.rs`)
+- Fixed-point iteration gradients
+- Support for bi-level optimization
 
-### Integration and Interoperability
-- **SciRS2 Ecosystem:** Seamless integration with scirs2-core, scirs2-linalg
-- **BLAS Support:** Optional BLAS backend acceleration (OpenBLAS, Intel MKL)
-- **Serialization:** Full tensor and model serialization/deserialization support
-- **Error Handling:** Comprehensive error types with detailed error messages
+### JVP / VJP
+- Explicit `jvp` (Jacobian-vector product, forward-mode)
+- Explicit `vjp` (vector-Jacobian product, reverse-mode)
+- `jvp_vjp.rs` module with composable interfaces
 
-## 🚀 Usage Examples
+### Differentiable Operations
+- Complete arithmetic with broadcasting (add, sub, mul, div, pow)
+- Linear algebra with gradients: matmul, inverse, determinant
+- Matrix decompositions with gradients: QR, SVD, Cholesky, LU
+- Matrix functions: exp, log, sqrt, power, matrix exponential
+- Activation functions: ReLU, Sigmoid, Tanh, Softmax, GELU, Swish, Mish
+- Loss functions: MSE, cross-entropy, sparse categorical cross-entropy
+- Convolution: Conv2D, transposed conv, max/avg pooling
+- Tensor manipulation: reshape, slice, concat, pad, advanced indexing
+- Reductions: sum, mean, max, min, variance
 
-### Basic Gradient Computation
-```rust
-use scirs2_autograd::{run, tensor_ops as T};
+### Mixed Precision
+- FP16 / FP32 mixed precision gradient computation (`mixed_precision.rs`)
+- Loss scaling for numeric stability
 
-run(|ctx| {
-    let x = ctx.placeholder("x", &[]);
-    let y = 2.0 * x * x + 3.0 * x + 1.0;
-    let grad = &T::grad(&[y], &[x])[0];
-    // Evaluates to 4x + 3
-});
-```
+### Lazy Evaluation
+- Deferred execution model (`lazy_eval.rs`)
+- JIT-like element-wise operation fusion (`jit_fusion.rs`)
 
-### Neural Network Training
-```rust
-use scirs2_autograd::{optimizers::adam::Adam, VariableEnvironment};
+### Optimizers
+- SGD (with momentum and Nesterov)
+- Adam, AdamW
+- AdaGrad, RMSprop
+- Plain optimizers API (`plain_optimizers.rs`)
+- Learning rate schedulers: step, exponential, cosine annealing
+- Gradient clipping (norm-based and value-based)
+- Namespace-based variable management
 
-let mut env = VariableEnvironment::new();
-// Define model parameters, optimizer, training loop
-// Full neural network implementation ready for production use
-```
+### Higher-Order AD
+- `higher_order_new.rs` and `higher_order_advanced.rs`
+- Efficient Hessian computation
+- Hessian-vector products for Newton-CG and trust-region methods
 
-## 📊 Testing and Validation
+### Debugging and Visualization
+- Computation graph visualization via DOT format (`graph_viz.rs`)
+- Gradient tape inspection (`tape/`)
+- NaN/Inf detection hooks (`debugging.rs`)
 
-- **Unit Tests:** 404 comprehensive tests covering all operations
-- **Gradient Verification:** Numerical gradient checking with finite differences
-- **Stability Testing:** Numerical stability framework with precision analysis
-- **Integration Tests:** End-to-end workflow validation
-- **Performance Benchmarks:** Memory usage and computation time analysis
+### Custom Gradients
+- User-defined gradient rules (`custom_grad.rs`, `custom_grad_advanced.rs`)
+- `diff_rules.rs` for registering custom derivative rules
 
-## ✅ Recent Fixes (v0.1.5)
+### Distributed Gradients
+- Gradient aggregation across workers (`distributed_grad.rs`)
+- All-reduce primitives
 
-### GitHub Issues Resolved
-- ✅ **Issue #98: Adam Optimizer Scalar/1×1 Parameter Handling** (Fixed 2026-01-25, Released v0.1.5)
-  - **Problem:** AdamOp::compute panicked with "index out of bounds" on scalar/1×1 parameters
-  - **Root Cause:** Code assumed scalars are 0-D arrays (shape `[]`), but some parameters are 1-element 1-D arrays (shape `[1]`)
-  - **Solution:** Added helper functions `is_scalar()` and `extract_scalar()` to handle both cases
-  - **Impact:** Adam optimizer now works with any parameter shape (scalars, vectors, matrices, bias terms)
-  - **Tests Added:**
-    - `test_adam_scalar_and_1x1_parameters()` - Tests 0-D, 1-element, and 1×1 cases
-    - Multiple optimization step validation
-  - **Files Modified:**
-    - `src/tensor_ops/gradient_descent_ops/adam.rs` (added helpers, fixed 4 locations)
-    - `src/integration/optim.rs` (enhanced documentation)
-    - `tests/functional_optimizer_tests.rs` (added regression test)
-  - **Reference:** https://github.com/cool-japan/scirs/issues/98
+## v0.4.0 Roadmap
 
-## 🔮 Future Roadmap (Post v1.0)
+### Source-to-Source Transformation
+- Source code transformation for AD (compile-time differentiation)
+- Operator overloading with compile-time graph construction
 
-### Planned Enhancements
-- **GPU Acceleration:** CUDA and OpenCL backend support for enhanced performance
-- **Advanced Automatic Differentiation:** Forward-mode AD, efficient Hessian computation
-- **JAX-Inspired Features:** Function transformations, vectorization, parallelization
-- **Distributed Training:** Multi-node computation and communication primitives
-- **Enhanced Interoperability:** Better integration with candle, burn, and ONNX ecosystems
+### XLA-Like Compilation
+- Computation graph lowering to an IR
+- XLA-style device placement and fusion
 
-### Performance Goals
-- **Hardware Optimization:** Specialized TPU and FPGA support
-- **Automatic Algorithm Selection:** Runtime optimization based on input characteristics
-- **Advanced Compilation:** JIT compilation and graph-level optimization improvements
+### Symbolic Differentiation
+- CAS-style symbolic derivative rules
+- Simplification of symbolic expressions before evaluation
 
-## 📝 Release Notes v0.1.5
+### Improved JIT
+- Cross-operation fusion across different op types
+- Profile-guided optimization for hot paths
 
-**This is Stable Release** - fully production-ready with comprehensive testing, optimization, and zero-warning code quality.
+### Sparse Gradients
+- Sparse tensor representation in the gradient tape
+- Efficient sparse-dense gradient accumulation
 
-### What's Stable
-- All automatic differentiation functionality
-- Complete linear algebra operations with gradients
-- Neural network layers and training infrastructure  
-- Optimization algorithms and learning rate schedulers
-- Memory management and performance optimizations
-- Integration with SciRS2 ecosystem
+## Known Issues / Technical Debt
 
-### Upgrade Path
-- Direct upgrade to v1.0.0 when released
-- Minimal breaking changes expected
-- Comprehensive migration guide will be provided
-
----
-
-**Ready for Production Use** ✅  
-For support and contributions, visit: https://github.com/cool-japan/scirs
+- Some gradient implementations for exotic matrix functions use approximate gradients; exact gradients tracked in issue backlog
+- The `jit_fusion.rs` module currently handles only element-wise ops; extension to reduction ops planned
+- `graph_viz.rs` DOT output works best for small graphs; large graph layout needs truncation heuristics

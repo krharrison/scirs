@@ -283,7 +283,7 @@ where
 
 /// Solve a linear system A * X = B for sparse matrices
 ///
-/// Note: This is a placeholder - in practice you'd use a more sophisticated solver
+/// Uses BiCGSTAB iterative solver column-by-column to solve AX = B.
 #[allow(dead_code)]
 fn sparse_solve<F>(a: &CsrMatrix<F>, b: &CsrMatrix<F>) -> SparseResult<CsrMatrix<F>>
 where

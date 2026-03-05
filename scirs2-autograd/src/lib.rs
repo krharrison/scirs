@@ -346,6 +346,7 @@ pub mod graph;
 pub mod high_performance;
 pub mod hooks;
 pub mod integration;
+pub mod memory_pool;
 pub mod ndarray_ext;
 pub mod op;
 pub mod optimization;
@@ -368,6 +369,22 @@ pub mod distributed;
 pub mod gpu;
 pub mod higher_order;
 pub mod symbolic;
+
+// v0.3.0 modules
+pub mod forward_mode;
+pub mod onnx;
+pub mod transforms;
+
+// v0.3.0 additional modules
+pub mod custom_gradient;
+pub mod gradient_accumulation;
+pub mod jacobian_ops;
+
+// v0.3.0 compiler-style optimisations and scheduling
+pub mod autodiff_enhanced;
+pub mod graph_transforms;
+pub mod profiling;
+pub mod scheduling;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::any::TypeId;
@@ -463,3 +480,86 @@ pub use crate::variable::{
 
 // Re-export functional optimizers and training utilities (Issue #94)
 pub use crate::optimizers::{FunctionalAdam, FunctionalOptimizer, FunctionalSGD};
+
+// Forward-mode AD public API (v0.3.0)
+pub use crate::forward_mode::{
+    gradient_forward, hessian, hessian_vector_product, jacobian_forward, jvp, DualNumber,
+};
+
+// JAX-inspired function transformations (v0.3.0)
+pub use crate::transforms::{
+    batched_value_and_grad, check_grad, compose, iterate, numerical_jacobian, pmap, scan,
+    stop_gradient, stop_gradient_1d, stop_gradient_dual, vmap, Checkpoint, JitHint,
+};
+// Custom gradient rules (v0.3.0)
+pub use crate::custom_gradient::{
+    custom_op, custom_unary_op, detach, gradient_reversal, scale_gradient, selective_stop_gradient,
+    CustomGradientOp, ScaleGradient, SelectiveStopGradient,
+};
+
+// Gradient accumulation (v0.3.0)
+pub use crate::gradient_accumulation::{
+    GradientAccumulator, GradientStats, VirtualBatchAccumulator,
+};
+
+// Higher-order derivative extensions (v0.3.0)
+pub use crate::higher_order::extensions::{
+    efficient_second_order_grad, fisher_diagonal, fisher_information, fisher_information_forward,
+    hessian_diagonal, hessian_diagonal_forward, laplacian, laplacian_forward,
+};
+
+// Jacobian operations (v0.3.0)
+pub use crate::jacobian_ops::{
+    batch_jacobian, jacobian_auto, jacobian_check, jacobian_diagonal, jacobian_reverse,
+    jvp_forward, jvp_graph, numerical_jacobian as numerical_jacobian_fd, vjp_multi, vjp_reverse,
+};
+
+// Graph visualization (v0.3.0)
+pub use crate::visualization::{
+    graph_summary, graph_to_dot, graph_to_json, graph_to_mermaid, GraphStats,
+};
+
+// Scheduling (v0.3.0)
+pub use crate::scheduling::{
+    build_memory_plan, critical_path, forward_schedule, level_decomposition,
+    memory_optimal_schedule, parallel_analysis, reverse_schedule, validate_schedule,
+    work_stealing_schedule, CriticalPath, MemoryPlan, ParallelAnalysis, Schedule,
+    ScheduleDirection, WorkStealingSchedule,
+};
+
+// Graph transforms (v0.3.0)
+pub use crate::graph_transforms::{
+    analyse_graph, detect_algebraic_simplifications, detect_cse, detect_fusions, find_dead_nodes,
+    find_foldable_constants, infer_shapes, AlgebraicSimplification, FusionGroup, FusionKind,
+    SimplificationRule, TransformReport,
+};
+
+// Autodiff enhancements (v0.3.0)
+pub use crate::autodiff_enhanced::{
+    binomial_checkpoint_plan, build_rematerialization_plan, plan_jacobian_computation,
+    select_jacobian_mode, solve_implicit_diff, sqrt_checkpoint_plan, uniform_checkpoint_plan,
+    CheckpointPlan, CheckpointStrategy, DiffRuleRegistry, ImplicitDiffConfig, ImplicitDiffResult,
+    JacobianMode, MixedModeJacobianPlan, RematerializationDecision, RematerializationPolicy,
+};
+
+// Profiling (v0.3.0)
+pub use crate::profiling::{
+    analyse_gradient_flow, classify_gradient, count_ops, estimate_bandwidth, estimate_flops,
+    graph_complexity, has_gradient_issues, profile_graph, total_flops, BandwidthEstimate,
+    EstimateConfidence, FlopEstimate, GradientFlowStats, GradientHealth, GradientThresholds,
+    GraphComplexity, OpCounts, OpTiming, OperationProfiler, ProfilingReport,
+};
+
+// Re-export transforms::grad and transforms::value_and_grad under qualified path
+// to avoid ambiguity with tensor_ops::grad
+pub mod jax {
+    //! JAX-style functional transformations re-exported for convenience.
+    //!
+    //! Use `scirs2_autograd::jax::grad` to get the JAX-style `grad` transform,
+    //! distinct from `tensor_ops::grad` which operates on the computation graph.
+    pub use crate::transforms::{
+        batched_value_and_grad, check_grad, compose, grad, grad_grad, iterate, jacobian,
+        numerical_jacobian, pmap, scan, stop_gradient, stop_gradient_1d, stop_gradient_dual,
+        value_and_grad, vmap, Checkpoint, JitHint,
+    };
+}

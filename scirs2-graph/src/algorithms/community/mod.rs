@@ -4,6 +4,7 @@
 
 // Community detection algorithm modules
 pub mod fluid;
+pub mod girvan_newman;
 pub mod hierarchical;
 pub mod infomap;
 pub mod label_propagation;
@@ -37,6 +38,11 @@ pub use louvain::louvain_communities_result;
 pub use modularity::{greedy_modularity_optimization, modularity_optimization};
 pub use modularity::{
     greedy_modularity_optimization_result, modularity, modularity_optimization_result,
+};
+
+pub use girvan_newman::{
+    girvan_newman_communities_result, girvan_newman_result, DendrogramLevel, GirvanNewmanConfig,
+    GirvanNewmanResult,
 };
 
 #[allow(deprecated)]

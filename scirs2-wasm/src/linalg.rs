@@ -2,7 +2,7 @@
 
 use crate::array::WasmArray;
 use crate::error::WasmError;
-use ndarray::Array2;
+use scirs2_core::ndarray::Array2;
 use wasm_bindgen::prelude::*;
 
 /// Compute the determinant of a square matrix

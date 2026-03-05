@@ -7,9 +7,13 @@ pub mod advanced_enhancement;
 pub mod advanced_tracking;
 pub mod brief;
 pub mod canny;
+pub mod corners;
 pub mod descriptor;
+pub mod descriptors;
+pub mod detectors;
 pub mod dog;
 pub mod fast;
+pub mod flow_unified;
 pub mod gabor;
 pub mod glcm;
 pub mod hog;
@@ -47,9 +51,15 @@ pub use advanced_tracking::{
 };
 pub use brief::*;
 pub use canny::*;
+pub use corners::{detect_corners, CornerDetectParams, CornerMethod, CornerPoint};
 pub use descriptor::*;
+pub use descriptors::{
+    compute_descriptors, match_unified_descriptors, DescriptorMethod, DescriptorParams,
+    UnifiedDescriptor,
+};
 pub use dog::*;
 pub use fast::*;
+pub use flow_unified::{calc_optical_flow, FlowMethod, FlowResult};
 pub use gabor::*;
 pub use glcm::*;
 pub use hog::*;
@@ -64,7 +74,10 @@ pub use matching::*;
 pub use mser::*;
 pub use neural_features::*;
 pub use nms::*;
-pub use optical_flow::{lucas_kanade_flow, visualize_flow, FlowVector, LucasKanadeParams};
+pub use optical_flow::{
+    horn_schunck_flow, lucas_kanade_flow, visualize_flow, FlowVector, HornSchunckParams,
+    LucasKanadeParams,
+};
 pub use optical_flow_advanced::*;
 pub use orb::*;
 pub use prewitt::*;

@@ -42,7 +42,7 @@ use std::fmt::Debug;
 /// let scales: Vec<f64> = (1..64).map(|i| 2.0_f64.powf(i as f64 / 8.0)).collect();
 ///
 /// // Compute scalogram with normalization
-/// let scalo = scalogram(&signal, |points, scale| morlet(points, 6.0, scale), &scales, Some(true)).unwrap();
+/// let scalo = scalogram(&signal, |points, scale| morlet(points, 6.0, scale), &scales, Some(true)).expect("operation should succeed");
 ///
 /// // The shape should match the expected dimensions
 /// assert_eq!(scalo.len(), scales.len());
@@ -131,7 +131,7 @@ where
 /// let scales: Vec<f64> = (1..32).map(|i| i as f64).collect();
 ///
 /// // Compute CWT magnitude
-/// let mag = cwt_magnitude(&signal, |points, scale| morlet(points, 6.0, scale), &scales, Some(false)).unwrap();
+/// let mag = cwt_magnitude(&signal, |points, scale| morlet(points, 6.0, scale), &scales, Some(false)).expect("operation should succeed");
 ///
 /// // Check dimensions
 /// assert_eq!(mag.len(), scales.len());
@@ -218,7 +218,7 @@ where
 /// let scales: Vec<f64> = (1..32).map(|i| i as f64).collect();
 ///
 /// // Compute CWT phase
-/// let phase = cwt_phase(&signal, |points, scale| morlet(points, 6.0, scale), &scales).unwrap();
+/// let phase = cwt_phase(&signal, |points, scale| morlet(points, 6.0, scale), &scales).expect("operation should succeed");
 ///
 /// // Check dimensions
 /// assert_eq!(phase.len(), scales.len());
@@ -282,7 +282,7 @@ where
 /// let central_freq = 0.85 / (2.0 * std::f64::consts::PI); // For Morlet with w0=6.0
 ///
 /// // Compute corresponding frequencies
-/// let freqs = scale_to_frequency(&scales, central_freq, dt).unwrap();
+/// let freqs = scale_to_frequency(&scales, central_freq, dt).expect("operation should succeed");
 ///
 /// // Should have same length as scales
 /// assert_eq!(freqs.len(), scales.len());

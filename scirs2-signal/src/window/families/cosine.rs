@@ -27,7 +27,7 @@ use std::f64::consts::PI;
 /// # Examples
 /// ```
 /// use scirs2_signal::window::families::cosine::hann;
-/// let window = hann(10, true).unwrap();
+/// let window = hann(10, true).expect("operation should succeed");
 /// assert_eq!(window.len(), 10);
 /// assert!((window[0] - 0.0).abs() < 1e-10); // Zero at endpoints
 /// ```
@@ -62,7 +62,7 @@ pub fn hann(m: usize, sym: bool) -> SignalResult<Vec<f64>> {
 /// # Examples
 /// ```
 /// use scirs2_signal::window::families::cosine::hamming;
-/// let window = hamming(10, true).unwrap();
+/// let window = hamming(10, true).expect("operation should succeed");
 /// assert_eq!(window.len(), 10);
 /// assert!(window[0] > 0.0); // Non-zero at endpoints
 /// ```
@@ -97,7 +97,7 @@ pub fn hamming(m: usize, sym: bool) -> SignalResult<Vec<f64>> {
 /// # Examples
 /// ```
 /// use scirs2_signal::window::families::cosine::blackman;
-/// let window = blackman(10, true).unwrap();
+/// let window = blackman(10, true).expect("operation should succeed");
 /// assert_eq!(window.len(), 10);
 /// ```
 pub fn blackman(m: usize, sym: bool) -> SignalResult<Vec<f64>> {
@@ -264,7 +264,7 @@ pub fn cosine(m: usize, sym: bool) -> SignalResult<Vec<f64>> {
 /// // Create a Hann window using generalized cosine
 /// use scirs2_signal::window::families::cosine::generalized_cosine;
 /// let coeffs = vec![0.5, -0.5]; // Hann coefficients
-/// let window = generalized_cosine(10, &coeffs, true).unwrap();
+/// let window = generalized_cosine(10, &coeffs, true).expect("operation should succeed");
 /// ```
 pub fn generalized_cosine(m: usize, coeffs: &[f64], sym: bool) -> SignalResult<Vec<f64>> {
     if coeffs.is_empty() {

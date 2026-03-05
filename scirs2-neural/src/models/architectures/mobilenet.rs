@@ -845,6 +845,11 @@ impl<F: Float + Debug + ScalarOperand + Send + Sync + NumAssign> MobileNet<F> {
         let config = MobileNetConfig::mobilenet_v3_large(input_channels, num_classes);
         Self::new(config)
     }
+
+    /// Get the model configuration
+    pub fn config(&self) -> &MobileNetConfig {
+        &self.config
+    }
 }
 impl<F: Float + Debug + ScalarOperand + Send + Sync + NumAssign> Layer<F> for MobileNet<F> {
     fn forward(&self, input: &Array<F, IxDyn>) -> Result<Array<F, IxDyn>> {

@@ -67,8 +67,8 @@ impl Coerce for AllowTypeChange {
 /// }
 ///
 /// Python::attach(|py| {
-///     let np = get_array_module(py).unwrap();
-///     let sum_up = wrap_pyfunction!(sum_up)(py).unwrap();
+///     let np = get_array_module(py).expect("numpy module available");
+///     let sum_up = wrap_pyfunction!(sum_up)(py).expect("function wrapping succeeds");
 ///
 ///     py_run!(py, np sum_up, r"assert sum_up(np.array([1., 2., 3.])) == 6.");
 ///     py_run!(py, np sum_up, r"assert sum_up((1., 2., 3.)) == 6.");
@@ -88,8 +88,8 @@ impl Coerce for AllowTypeChange {
 /// }
 ///
 /// Python::attach(|py| {
-///     let np = get_array_module(py).unwrap();
-///     let sum_up = wrap_pyfunction!(sum_up)(py).unwrap();
+///     let np = get_array_module(py).expect("numpy module available");
+///     let sum_up = wrap_pyfunction!(sum_up)(py).expect("function wrapping succeeds");
 ///
 ///     py_run!(py, np sum_up, r"assert sum_up((1., 2., 3.)) == 6");
 /// });
@@ -108,8 +108,8 @@ impl Coerce for AllowTypeChange {
 /// }
 ///
 /// Python::attach(|py| {
-///     let np = get_array_module(py).unwrap();
-///     let sum_up = wrap_pyfunction!(sum_up)(py).unwrap();
+///     let np = get_array_module(py).expect("numpy module available");
+///     let sum_up = wrap_pyfunction!(sum_up)(py).expect("function wrapping succeeds");
 ///
 ///     py_run!(py, np sum_up, r"assert sum_up((1.5, 2.5)) == 3");
 /// });

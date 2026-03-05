@@ -38,7 +38,7 @@ use std::f64::consts::PI;
 /// use scirs2_signal::parametric::{estimate_ma, MAMethod};
 ///
 /// let signal = Array1::from_vec(vec![1.0, 2.0, 1.5, 0.8, 1.2, 2.1, 1.8, 0.9]);
-/// let result = estimate_ma(&signal, 2, MAMethod::Innovations).unwrap();
+/// let result = estimate_ma(&signal, 2, MAMethod::Innovations).expect("operation should succeed");
 /// assert_eq!(result.ma_coeffs.len(), 3); // order + 1 coefficients
 /// ```
 #[allow(dead_code)]

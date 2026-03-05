@@ -56,8 +56,8 @@ pub fn filter_energy(filter: &[f64]) -> f64 {
 /// use scirs2_signal::dwt::{Wavelet, utils::check_perfect_reconstruction};
 ///
 /// let wavelet = Wavelet::Haar;
-/// let filters = wavelet.filters().unwrap();
-/// let is_perfect = check_perfect_reconstruction(&filters, Some(1e-10)).unwrap();
+/// let filters = wavelet.filters().expect("operation should succeed");
+/// let is_perfect = check_perfect_reconstruction(&filters, Some(1e-10)).expect("operation should succeed");
 /// assert!(is_perfect);
 /// ```
 #[allow(dead_code)]
@@ -133,7 +133,7 @@ pub fn check_perfect_reconstruction(
 /// use scirs2_signal::dwt::{Wavelet, utils::center_frequency};
 ///
 /// let wavelet = Wavelet::Haar;
-/// let filters = wavelet.filters().unwrap();
+/// let filters = wavelet.filters().expect("operation should succeed");
 /// let center_freq = center_frequency(&filters.dec_hi);
 /// // Haar wavelet highpass filter has center frequency close to 0.25
 /// assert!(((center_freq - 0.25) as f64).abs() < 0.1);
@@ -196,7 +196,7 @@ pub fn center_frequency(filter: &[f64]) -> f64 {
 /// use scirs2_signal::dwt::{Wavelet, utils::estimate_vanishing_moments};
 ///
 /// let wavelet = Wavelet::DB(4);
-/// let filters = wavelet.filters().unwrap();
+/// let filters = wavelet.filters().expect("operation should succeed");
 /// let moments = estimate_vanishing_moments(&filters.dec_hi, None);
 /// assert_eq!(moments, 4); // DB4 has 4 vanishing moments
 /// ```

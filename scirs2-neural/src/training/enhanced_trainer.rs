@@ -16,12 +16,16 @@ use crate::layers::{Layer, ParamLayer};
 use crate::losses::Loss;
 use crate::models::History;
 use crate::optimizers::Optimizer;
+use crate::training::checkpoint::{
+    CheckpointConfig, CheckpointManager, OptimizerCheckpointState, TrainingCheckpoint,
+};
 use scirs2_core::ndarray::{Array, IxDyn, ScalarOperand};
-use scirs2_core::numeric::{Float, FromPrimitive};
+use scirs2_core::numeric::{Float, FromPrimitive, ToPrimitive};
 use scirs2_core::random::seq::SliceRandom;
 use scirs2_core::NumAssign;
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 /// Type alias for a boxed dataset with Send + Sync bounds
@@ -56,6 +60,11 @@ pub struct EnhancedTrainingConfig {
     pub profiling: ProfilingConfig,
     /// Verbosity level (0: silent, 1: progress, 2: detailed)
     pub verbose: usize,
+    /// Checkpoint configuration (None = no checkpointing)
+    pub checkpoint_config: Option<CheckpointConfig>,
+    /// Path to a checkpoint directory to resume training from.
+    /// If set, training will start at the epoch recorded in the checkpoint.
+    pub resume_from: Option<PathBuf>,
 }
 
 impl Default for EnhancedTrainingConfig {
@@ -72,6 +81,8 @@ impl Default for EnhancedTrainingConfig {
             progress: ProgressConfig::default(),
             profiling: ProfilingConfig::default(),
             verbose: 1,
+            checkpoint_config: None,
+            resume_from: None,
         }
     }
 }
@@ -677,7 +688,7 @@ impl OptimizationAnalyzer {
 
 /// Enhanced trainer with comprehensive training features
 pub struct EnhancedTrainer<
-    F: Float + Debug + ScalarOperand + FromPrimitive + NumAssign + Send + Sync + 'static,
+    F: Float + Debug + ScalarOperand + FromPrimitive + ToPrimitive + NumAssign + Send + Sync + 'static,
 > {
     /// Training configuration
     config: EnhancedTrainingConfig,
@@ -689,19 +700,32 @@ pub struct EnhancedTrainer<
     profiling_results: ProfilingResults,
     /// Best model weights (for early stopping)
     best_weights: Option<Vec<Array<F, IxDyn>>>,
+    /// Checkpoint manager (instantiated if `config.checkpoint_config` is Some)
+    checkpoint_manager: Option<CheckpointManager<F>>,
 }
 
-impl<F: Float + Debug + ScalarOperand + FromPrimitive + NumAssign + Send + Sync + 'static>
-    EnhancedTrainer<F>
+impl<
+        F: Float
+            + Debug
+            + ScalarOperand
+            + FromPrimitive
+            + ToPrimitive
+            + NumAssign
+            + Send
+            + Sync
+            + 'static,
+    > EnhancedTrainer<F>
 {
     /// Create a new enhanced trainer
     pub fn new(config: EnhancedTrainingConfig) -> Self {
+        let checkpoint_manager = config.checkpoint_config.clone().map(CheckpointManager::new);
         Self {
             config,
             state: TrainingState::default(),
             callback_manager: CallbackManager::new(),
             profiling_results: ProfilingResults::new(),
             best_weights: None,
+            checkpoint_manager,
         }
     }
 
@@ -860,11 +884,65 @@ impl<F: Float + Debug + ScalarOperand + FromPrimitive + NumAssign + Send + Sync 
 
         self.state.total_batches = train_loader.num_batches();
 
+        // ── Resume from checkpoint ────────────────────────────────────────────
+        let resume_epoch = if let Some(ref resume_path) = self.config.resume_from.clone() {
+            match CheckpointManager::<F>::load(resume_path) {
+                Ok((ckpt_state, model_params)) => {
+                    // Restore model parameters from the checkpoint
+                    let params_vec: Vec<Array<F, IxDyn>> = model_params
+                        .parameters
+                        .iter()
+                        .filter_map(|(_, values, shape)| {
+                            let ix_shape = scirs2_core::ndarray::IxDyn(shape.as_slice());
+                            let f_vec: Vec<F> = values.iter().filter_map(|&v| F::from(v)).collect();
+                            if f_vec.len() != values.len() {
+                                return None;
+                            }
+                            Array::from_shape_vec(ix_shape, f_vec).ok()
+                        })
+                        .collect();
+                    if !params_vec.is_empty() {
+                        if let Err(e) = model.set_parameters(params_vec) {
+                            if self.config.verbose >= 1 {
+                                eprintln!("Warning: could not restore model parameters: {e}");
+                            }
+                        }
+                    }
+                    // Restore training state
+                    self.state.global_step = ckpt_state.step;
+                    if let Some(best) = ckpt_state.best_metric {
+                        if let Some(f_best) = F::from(best) {
+                            self.state.best_metric_value = Some(f_best);
+                        }
+                    }
+                    let resume_epoch = ckpt_state.epoch + 1; // start from next epoch
+                    if self.config.verbose >= 1 {
+                        println!(
+                            "Resumed from checkpoint at epoch {}, step {}",
+                            ckpt_state.epoch, ckpt_state.step
+                        );
+                    }
+                    resume_epoch
+                }
+                Err(e) => {
+                    if self.config.verbose >= 1 {
+                        eprintln!(
+                            "Warning: failed to load checkpoint from {:?}: {e}",
+                            resume_path
+                        );
+                    }
+                    0
+                }
+            }
+        } else {
+            0
+        };
+
         // Notify callbacks of training start
         self.callback_manager.on_train_begin()?;
 
-        // Training loop
-        for epoch in 0..self.config.epochs {
+        // Training loop — start from resume_epoch if resuming
+        for epoch in resume_epoch..self.config.epochs {
             if self.state.should_stop {
                 break;
             }
@@ -952,6 +1030,52 @@ impl<F: Float + Debug + ScalarOperand + FromPrimitive + NumAssign + Send + Sync 
             // Print progress
             if self.config.verbose >= 1 {
                 self.print_epoch_summary(epoch, train_loss, val_loss);
+            }
+
+            // ── Checkpoint saving ─────────────────────────────────────────────
+            if let Some(ref mut ckpt_mgr) = self.checkpoint_manager {
+                // Build model parameters snapshot via get_parameters()
+                let raw_params = model.get_parameters();
+                let mut named_params = crate::serialization::traits::NamedParameters::new();
+                for (idx, param) in raw_params.iter().enumerate() {
+                    let name = format!("param_{idx:04}");
+                    let flat: Vec<f64> = param.iter().filter_map(|v| v.to_f64()).collect();
+                    let shape: Vec<usize> = param.shape().to_vec();
+                    named_params.add(&name, flat, shape);
+                }
+
+                // Build epoch metrics as HashMap<String, F>
+                let epoch_metrics_f: HashMap<String, F> = self.state.epoch_metrics.clone();
+
+                // Build TrainingCheckpoint
+                let mut ckpt = TrainingCheckpoint::new(epoch, self.state.global_step, "model");
+                ckpt.best_metric = self.state.best_metric_value.and_then(|v| v.to_f64());
+                ckpt.total_epochs = Some(self.config.epochs);
+                ckpt.optimizer_state = OptimizerCheckpointState {
+                    optimizer_type: "Unknown".to_string(),
+                    learning_rate: self.state.current_lr.to_f64().unwrap_or(0.001),
+                    step: self.state.global_step,
+                    ..Default::default()
+                };
+                // Record epoch metrics in history
+                let metrics_f64: HashMap<String, f64> = epoch_metrics_f
+                    .iter()
+                    .filter_map(|(k, v)| v.to_f64().map(|fv| (k.clone(), fv)))
+                    .collect();
+                ckpt.metrics_history.push(metrics_f64);
+
+                match ckpt_mgr.save(&ckpt, &named_params, epoch, &epoch_metrics_f) {
+                    Ok(path) => {
+                        if self.config.verbose >= 2 {
+                            println!("Checkpoint saved to: {}", path.display());
+                        }
+                    }
+                    Err(e) => {
+                        if self.config.verbose >= 1 {
+                            eprintln!("Warning: checkpoint save failed at epoch {epoch}: {e}");
+                        }
+                    }
+                }
             }
         }
 

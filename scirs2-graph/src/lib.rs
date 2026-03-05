@@ -72,19 +72,29 @@ pub mod advanced;
 pub mod algorithms;
 pub mod attributes;
 pub mod base;
+pub mod compressed;
 pub mod embeddings;
 pub mod error;
 pub mod generators;
 pub mod graph_memory_profiler;
 pub mod io;
 pub mod layout;
+pub mod link_prediction;
 pub mod measures;
 pub mod memory;
 pub mod numerical_accuracy_validation;
+pub mod parallel_algorithms;
 pub mod performance;
 pub mod spectral;
+pub mod streaming;
 pub mod temporal;
+pub mod temporal_graph;
+pub mod temporal_interval;
 pub mod weighted;
+
+// SIMD-accelerated graph operations
+#[cfg(feature = "simd")]
+pub mod simd_ops;
 
 // Re-export stable APIs for 1.0
 pub use algorithms::{
@@ -100,6 +110,8 @@ pub use algorithms::{
     breadth_first_search,
     breadth_first_search_digraph,
     bridges,
+    // Flow algorithms - stable for 1.0
+    capacity_scaling_max_flow,
     center_nodes,
     closeness_centrality,
     complement,
@@ -113,20 +125,27 @@ pub use algorithms::{
     diameter,
     // Shortest path algorithms - stable for 1.0
     dijkstra_path,
-    // Flow algorithms - stable for 1.0
     dinic_max_flow,
+    dinic_max_flow_full,
     edge_subgraph,
+    edmonds_karp_max_flow,
     eigenvector_centrality,
     eulerian_type,
     floyd_warshall,
     floyd_warshall_digraph,
     fluid_communities_result,
+    ford_fulkerson_max_flow,
+    // Girvan-Newman community detection
+    girvan_newman_communities_result,
+    girvan_newman_result,
     greedy_coloring,
     greedy_modularity_optimization_result,
     hierarchical_communities_result,
+    hopcroft_karp,
     infomap_communities,
     is_bipartite,
 
+    isap_max_flow,
     // Similarity measures - stable for 1.0
     jaccard_similarity,
     k_core_decomposition,
@@ -142,19 +161,26 @@ pub use algorithms::{
     // Matching algorithms - stable for 1.0
     maximum_bipartite_matching,
     maximum_cardinality_matching,
+    min_cost_max_flow,
+    min_cost_max_flow_graph,
     minimum_cut,
 
     // Spanning tree algorithms - stable for 1.0
     minimum_spanning_tree,
 
+    minimum_st_cut,
     minimum_weight_bipartite_matching,
     modularity,
 
     modularity_optimization_result,
+    multi_commodity_flow,
+    multi_source_multi_sink_max_flow,
     pagerank,
+    parallel_max_flow,
     personalized_pagerank,
 
     push_relabel_max_flow,
+    push_relabel_max_flow_full,
     radius,
     random_walk,
     stable_marriage,
@@ -176,11 +202,19 @@ pub use algorithms::{
     BipartiteResult,
     CommunityResult,
     CommunityStructure,
+    CostEdge,
+    DendrogramLevel,
     EulerianType,
+    GirvanNewmanConfig,
+    GirvanNewmanResult,
     GraphColoring,
+    HopcroftKarpResult,
     InfomapResult,
+    MaxFlowResult,
     MaximumMatching,
+    MinCostFlowResult,
     MotifType,
+    MultiCommodityFlowResult,
 };
 
 // Parallel algorithms - stable for 1.0 when parallel feature is enabled
@@ -213,6 +247,29 @@ pub use algorithms::{
     has_hamiltonian_path,
 };
 
+// Advanced coloring algorithms
+pub use algorithms::coloring::{
+    chromatic_bounds, dsatur_coloring, edge_coloring, greedy_coloring_with_order, list_coloring,
+    verify_coloring, welsh_powell, ChromaticBounds, ColoringOrder, EdgeColoring, ListColoring,
+};
+
+// Advanced motif and subgraph analysis
+pub use algorithms::motifs::{
+    count_3node_motifs, count_4node_motifs, count_motif_frequencies, frequent_subgraph_mining,
+    graphlet_degree_distribution, sample_motif_frequencies, vf2_subgraph_isomorphism,
+    wl_subtree_kernel, FrequentPattern, GraphletDDResult, GraphletDegreeVector, VF2Result,
+    WLKernelResult,
+};
+
+// Link prediction algorithms
+pub use link_prediction::{
+    adamic_adar_all, adamic_adar_index, common_neighbors_all, common_neighbors_score, compute_auc,
+    evaluate_link_prediction, jaccard_coefficient, jaccard_coefficient_all, katz_similarity,
+    katz_similarity_all, preferential_attachment, preferential_attachment_all,
+    resource_allocation_all, resource_allocation_index, simrank, simrank_score,
+    LinkPredictionConfig, LinkPredictionEval, LinkScore,
+};
+
 // Core graph types - stable for 1.0
 pub use base::{
     BipartiteGraph, DiGraph, Edge, EdgeWeight, Graph, Hyperedge, Hypergraph, IndexType,
@@ -225,8 +282,9 @@ pub use error::{ErrorContext, GraphError, Result};
 // Graph generators - stable for 1.0
 pub use generators::{
     barabasi_albert_graph, complete_graph, cycle_graph, erdos_renyi_graph, grid_2d_graph,
-    grid_3d_graph, hexagonal_lattice_graph, path_graph, planted_partition_model, star_graph,
-    stochastic_block_model, triangular_lattice_graph, two_community_sbm, watts_strogatz_graph,
+    grid_3d_graph, hexagonal_lattice_graph, path_graph, planted_partition_model,
+    power_law_cluster_graph, random_geometric_graph, star_graph, stochastic_block_model,
+    triangular_lattice_graph, two_community_sbm, watts_strogatz_graph,
 };
 
 // Graph measures - stable for 1.0
@@ -269,15 +327,24 @@ pub use performance::{
 // I/O operations - stable for 1.0
 pub use io::*;
 
-// Experimental features - subject to change
+// Graph embedding algorithms
 pub use embeddings::{
-    DeepWalk, DeepWalkConfig, Embedding, EmbeddingModel, Node2Vec, Node2VecConfig, RandomWalk,
-    RandomWalkGenerator,
+    DeepWalk, DeepWalkConfig, DeepWalkMode, Embedding, EmbeddingModel, LINEConfig, LINEOrder,
+    Node2Vec, Node2VecConfig, RandomWalk, RandomWalkGenerator, SpectralEmbedding,
+    SpectralEmbeddingConfig, SpectralLaplacianType, LINE,
 };
 
 pub use layout::{circular_layout, hierarchical_layout, spectral_layout, spring_layout, Position};
 
+// Stream-model temporal graph (f64 timestamps, centrality, motifs, community)
 pub use temporal::{
+    count_temporal_triangles, evolutionary_clustering, temporal_betweenness, temporal_closeness,
+    temporal_motif_count, temporal_pagerank, DynamicCommunity, TemporalEdge as StreamTemporalEdge,
+    TemporalGraph as StreamTemporalGraph, TemporalMotifCounts,
+};
+
+// Interval-model temporal graph (generic typed nodes, TimeInstant/TimeInterval)
+pub use temporal_interval::{
     temporal_betweenness_centrality, temporal_reachability, TemporalGraph, TemporalPath,
     TimeInstant, TimeInterval,
 };
@@ -304,4 +371,26 @@ pub use numerical_accuracy_validation::{
     create_comprehensive_validation_suite, run_quick_validation, AdvancedNumericalValidator,
     ValidationAlgorithm, ValidationConfig, ValidationReport, ValidationResult,
     ValidationTolerances,
+};
+
+// Compressed sparse row graph representation
+pub use compressed::{AdjacencyList, CsrGraph, CsrGraphBuilder, NeighborIter};
+
+// Parallel graph algorithms on CSR graphs
+pub use parallel_algorithms::{
+    bfs, connected_components as csr_connected_components, pagerank as csr_pagerank,
+    triangle_count, BfsResult, ComponentsResult, PageRankConfig, PageRankResult,
+    TriangleCountResult,
+};
+
+#[cfg(feature = "parallel")]
+pub use parallel_algorithms::{
+    parallel_bfs, parallel_connected_components, parallel_pagerank, parallel_triangle_count,
+};
+
+// Streaming graph processing
+pub use streaming::{
+    DegreeDistribution, DoulionTriangleCounter, EvictionStrategy, MascotTriangleCounter,
+    MemoryBoundedConfig, MemoryBoundedProcessor, SlidingWindowGraph, StreamEdge, StreamEvent,
+    StreamOp, StreamingGraph, TriangleCounterStats,
 };

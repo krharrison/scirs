@@ -136,7 +136,10 @@ pub mod glove;
 
 // Re-export
 pub use fasttext::{FastText, FastTextConfig};
-pub use glove::GloVe;
+pub use glove::{
+    cosine_similarity as glove_cosine_similarity, CooccurrenceMatrix, GloVe, GloVeTrainer,
+    GloVeTrainerConfig,
+};
 
 use crate::error::{Result, TextError};
 use crate::tokenize::{Tokenizer, WordTokenizer};
@@ -148,6 +151,260 @@ use std::fmt::Debug;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
+
+// ─── WordEmbedding trait ─────────────────────────────────────────────────────
+
+/// Shared trait for word embedding models
+///
+/// Provides a common interface for querying word vectors, computing similarity,
+/// and solving analogies across different embedding implementations
+/// (Word2Vec, GloVe, FastText).
+pub trait WordEmbedding {
+    /// Get the embedding vector for a word
+    fn embedding(&self, word: &str) -> Result<Array1<f64>>;
+
+    /// Get the dimensionality of the embedding vectors
+    fn dimension(&self) -> usize;
+
+    /// Compute cosine similarity between two words
+    fn similarity(&self, word1: &str, word2: &str) -> Result<f64> {
+        let v1 = self.embedding(word1)?;
+        let v2 = self.embedding(word2)?;
+        Ok(embedding_cosine_similarity(&v1, &v2))
+    }
+
+    /// Find the top-N most similar words to the query word
+    fn find_similar(&self, word: &str, top_n: usize) -> Result<Vec<(String, f64)>>;
+
+    /// Solve the analogy: a is to b as c is to ?
+    fn solve_analogy(&self, a: &str, b: &str, c: &str, top_n: usize) -> Result<Vec<(String, f64)>>;
+
+    /// Get the number of words in the vocabulary
+    fn vocab_size(&self) -> usize;
+}
+
+/// Calculate cosine similarity between two embedding vectors
+pub fn embedding_cosine_similarity(a: &Array1<f64>, b: &Array1<f64>) -> f64 {
+    let dot_product: f64 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
+    let norm_a: f64 = a.iter().map(|x| x * x).sum::<f64>().sqrt();
+    let norm_b: f64 = b.iter().map(|x| x * x).sum::<f64>().sqrt();
+
+    if norm_a > 0.0 && norm_b > 0.0 {
+        dot_product / (norm_a * norm_b)
+    } else {
+        0.0
+    }
+}
+
+/// Compute pairwise cosine similarity matrix for a list of words
+pub fn pairwise_similarity(model: &dyn WordEmbedding, words: &[&str]) -> Result<Vec<Vec<f64>>> {
+    let vectors: Vec<Array1<f64>> = words
+        .iter()
+        .map(|&w| model.embedding(w))
+        .collect::<Result<Vec<_>>>()?;
+
+    let n = vectors.len();
+    let mut matrix = vec![vec![0.0; n]; n];
+
+    for i in 0..n {
+        for j in i..n {
+            let sim = embedding_cosine_similarity(&vectors[i], &vectors[j]);
+            matrix[i][j] = sim;
+            matrix[j][i] = sim;
+        }
+    }
+
+    Ok(matrix)
+}
+
+// ─── WordEmbedding implementations ──────────────────────────────────────────
+
+impl WordEmbedding for GloVe {
+    fn embedding(&self, word: &str) -> Result<Array1<f64>> {
+        self.get_word_vector(word)
+    }
+
+    fn dimension(&self) -> usize {
+        self.vector_size()
+    }
+
+    fn find_similar(&self, word: &str, top_n: usize) -> Result<Vec<(String, f64)>> {
+        self.most_similar(word, top_n)
+    }
+
+    fn solve_analogy(&self, a: &str, b: &str, c: &str, top_n: usize) -> Result<Vec<(String, f64)>> {
+        self.analogy(a, b, c, top_n)
+    }
+
+    fn vocab_size(&self) -> usize {
+        self.vocabulary_size()
+    }
+}
+
+impl WordEmbedding for FastText {
+    fn embedding(&self, word: &str) -> Result<Array1<f64>> {
+        self.get_word_vector(word)
+    }
+
+    fn dimension(&self) -> usize {
+        self.vector_size()
+    }
+
+    fn find_similar(&self, word: &str, top_n: usize) -> Result<Vec<(String, f64)>> {
+        self.most_similar(word, top_n)
+    }
+
+    fn solve_analogy(&self, a: &str, b: &str, c: &str, top_n: usize) -> Result<Vec<(String, f64)>> {
+        self.analogy(a, b, c, top_n)
+    }
+
+    fn vocab_size(&self) -> usize {
+        self.vocabulary_size()
+    }
+}
+
+// ─── Huffman Tree for Hierarchical Softmax ──────────────────────────────────
+
+/// A node in the Huffman tree used for hierarchical softmax
+#[derive(Debug, Clone)]
+struct HuffmanNode {
+    /// Index in vocabulary (for leaf nodes) or internal node id
+    id: usize,
+    /// Frequency (for building the tree)
+    frequency: usize,
+    /// Left child index in the nodes array
+    left: Option<usize>,
+    /// Right child index in the nodes array
+    right: Option<usize>,
+    /// Is this a leaf node?
+    is_leaf: bool,
+}
+
+/// Huffman tree for hierarchical softmax training
+#[derive(Debug, Clone)]
+struct HuffmanTree {
+    /// Huffman codes for each vocabulary word: sequence of 0/1 decisions
+    codes: Vec<Vec<u8>>,
+    /// Path of internal node indices for each vocabulary word
+    paths: Vec<Vec<usize>>,
+    /// Number of internal nodes
+    num_internal: usize,
+}
+
+impl HuffmanTree {
+    /// Build a Huffman tree from word frequencies
+    ///
+    /// Returns codes and paths for each word in the vocabulary.
+    fn build(frequencies: &[usize]) -> Result<Self> {
+        let vocab_size = frequencies.len();
+        if vocab_size == 0 {
+            return Err(TextError::EmbeddingError(
+                "Cannot build Huffman tree with empty vocabulary".into(),
+            ));
+        }
+        if vocab_size == 1 {
+            // Special case: single word
+            return Ok(Self {
+                codes: vec![vec![0]],
+                paths: vec![vec![0]],
+                num_internal: 1,
+            });
+        }
+
+        // Create leaf nodes
+        let mut nodes: Vec<HuffmanNode> = frequencies
+            .iter()
+            .enumerate()
+            .map(|(id, &freq)| HuffmanNode {
+                id,
+                frequency: freq.max(1), // Avoid zero frequency
+                left: None,
+                right: None,
+                is_leaf: true,
+            })
+            .collect();
+
+        // Priority queue simulation using a sorted list
+        // (index_in_nodes, frequency)
+        let mut queue: Vec<(usize, usize)> = nodes
+            .iter()
+            .enumerate()
+            .map(|(i, n)| (i, n.frequency))
+            .collect();
+        queue.sort_by(|a, b| b.1.cmp(&a.1)); // Sort descending (pop from end = min)
+
+        // Build the tree bottom-up
+        while queue.len() > 1 {
+            // Pop two smallest
+            let (idx1, freq1) = queue
+                .pop()
+                .ok_or_else(|| TextError::EmbeddingError("Queue empty".into()))?;
+            let (idx2, freq2) = queue
+                .pop()
+                .ok_or_else(|| TextError::EmbeddingError("Queue empty".into()))?;
+
+            let new_id = nodes.len();
+            let new_node = HuffmanNode {
+                id: new_id,
+                frequency: freq1 + freq2,
+                left: Some(idx1),
+                right: Some(idx2),
+                is_leaf: false,
+            };
+            nodes.push(new_node);
+
+            // Insert new node maintaining sorted order
+            let new_freq = freq1 + freq2;
+            let insert_pos = queue
+                .binary_search_by(|(_, f)| new_freq.cmp(f))
+                .unwrap_or_else(|pos| pos);
+            queue.insert(insert_pos, (new_id, new_freq));
+        }
+
+        // Traverse tree to assign codes and paths
+        let num_internal = nodes.len() - vocab_size;
+        let mut codes = vec![Vec::new(); vocab_size];
+        let mut paths = vec![Vec::new(); vocab_size];
+
+        // DFS traversal
+        let root_idx = nodes.len() - 1;
+        let mut stack: Vec<(usize, Vec<u8>, Vec<usize>)> = vec![(root_idx, Vec::new(), Vec::new())];
+
+        while let Some((node_idx, code, path)) = stack.pop() {
+            let node = &nodes[node_idx];
+
+            if node.is_leaf {
+                codes[node.id] = code;
+                paths[node.id] = path;
+            } else {
+                // Internal node index (0-based among internal nodes)
+                let internal_idx = node.id - vocab_size;
+
+                if let Some(left_idx) = node.left {
+                    let mut left_code = code.clone();
+                    left_code.push(0);
+                    let mut left_path = path.clone();
+                    left_path.push(internal_idx);
+                    stack.push((left_idx, left_code, left_path));
+                }
+
+                if let Some(right_idx) = node.right {
+                    let mut right_code = code.clone();
+                    right_code.push(1);
+                    let mut right_path = path.clone();
+                    right_path.push(internal_idx);
+                    stack.push((right_idx, right_code, right_path));
+                }
+            }
+        }
+
+        Ok(Self {
+            codes,
+            paths,
+            num_internal,
+        })
+    }
+}
 
 /// A simplified weighted sampling table
 #[derive(Debug, Clone)]
@@ -241,7 +498,7 @@ pub struct Word2VecConfig {
     pub subsample: f64,
     /// Batch size for training
     pub batch_size: usize,
-    /// Whether to use hierarchical softmax (not yet implemented)
+    /// Whether to use hierarchical softmax instead of negative sampling
     pub hierarchical_softmax: bool,
 }
 
@@ -284,6 +541,10 @@ pub struct Word2Vec {
     tokenizer: Box<dyn Tokenizer + Send + Sync>,
     /// Sampling table for negative sampling
     sampling_table: Option<SamplingTable>,
+    /// Huffman tree for hierarchical softmax
+    huffman_tree: Option<HuffmanTree>,
+    /// Hierarchical softmax parameter vectors (one per internal node)
+    hs_params: Option<Array2<f64>>,
     /// Current learning rate (gets updated during training)
     current_learning_rate: f64,
 }
@@ -296,6 +557,7 @@ impl Debug for Word2Vec {
             .field("input_embeddings", &self.input_embeddings)
             .field("output_embeddings", &self.output_embeddings)
             .field("sampling_table", &self.sampling_table)
+            .field("huffman_tree", &self.huffman_tree)
             .field("current_learning_rate", &self.current_learning_rate)
             .finish()
     }
@@ -310,9 +572,6 @@ impl Default for Word2Vec {
 
 impl Clone for Word2Vec {
     fn clone(&self) -> Self {
-        // Create a new tokenizer of the same type
-        // For simplicity, we always use WordTokenizer when cloning
-        // A more sophisticated solution would be to add a clone method to the Tokenizer trait
         let tokenizer: Box<dyn Tokenizer + Send + Sync> = Box::new(WordTokenizer::default());
 
         Self {
@@ -322,6 +581,8 @@ impl Clone for Word2Vec {
             output_embeddings: self.output_embeddings.clone(),
             tokenizer,
             sampling_table: self.sampling_table.clone(),
+            huffman_tree: self.huffman_tree.clone(),
+            hs_params: self.hs_params.clone(),
             current_learning_rate: self.current_learning_rate,
         }
     }
@@ -337,6 +598,8 @@ impl Word2Vec {
             output_embeddings: None,
             tokenizer: Box::new(WordTokenizer::default()),
             sampling_table: None,
+            huffman_tree: None,
+            hs_params: None,
             current_learning_rate: 0.025,
         }
     }
@@ -351,6 +614,8 @@ impl Word2Vec {
             output_embeddings: None,
             tokenizer: Box::new(WordTokenizer::default()),
             sampling_table: None,
+            huffman_tree: None,
+            hs_params: None,
             current_learning_rate: learning_rate,
         }
     }
@@ -469,6 +734,26 @@ impl Word2Vec {
         // Create sampling table for negative sampling
         self.create_sampling_table(&word_counts)?;
 
+        // Build Huffman tree for hierarchical softmax if configured
+        if self.config.hierarchical_softmax {
+            let frequencies: Vec<usize> = (0..vocab_size)
+                .map(|i| {
+                    self.vocabulary
+                        .get_token(i)
+                        .and_then(|word| word_counts.get(word).copied())
+                        .unwrap_or(1)
+                })
+                .collect();
+
+            let tree = HuffmanTree::build(&frequencies)?;
+            let num_internal = tree.num_internal;
+
+            // Initialize hierarchical softmax parameter vectors
+            let hs_params = Array2::zeros((num_internal, vector_size));
+            self.hs_params = Some(hs_params);
+            self.huffman_tree = Some(tree);
+        }
+
         Ok(())
     }
 
@@ -551,12 +836,25 @@ impl Word2Vec {
                 }
 
                 // Train on the sentence
-                match self.config.algorithm {
-                    Word2VecAlgorithm::CBOW => {
-                        self.train_cbow_sentence(&subsampled_sentence)?;
+                if self.config.hierarchical_softmax {
+                    // Use hierarchical softmax
+                    match self.config.algorithm {
+                        Word2VecAlgorithm::SkipGram => {
+                            self.train_skipgram_hs_sentence(&subsampled_sentence)?;
+                        }
+                        Word2VecAlgorithm::CBOW => {
+                            self.train_cbow_hs_sentence(&subsampled_sentence)?;
+                        }
                     }
-                    Word2VecAlgorithm::SkipGram => {
-                        self.train_skipgram_sentence(&subsampled_sentence)?;
+                } else {
+                    // Use negative sampling
+                    match self.config.algorithm {
+                        Word2VecAlgorithm::CBOW => {
+                            self.train_cbow_sentence(&subsampled_sentence)?;
+                        }
+                        Word2VecAlgorithm::SkipGram => {
+                            self.train_skipgram_sentence(&subsampled_sentence)?;
+                        }
                     }
                 }
             }
@@ -1060,6 +1358,212 @@ impl Word2Vec {
     pub fn get_subsampling_threshold(&self) -> f64 {
         self.config.subsample
     }
+
+    /// Check if hierarchical softmax is enabled
+    pub fn uses_hierarchical_softmax(&self) -> bool {
+        self.config.hierarchical_softmax
+    }
+
+    // ─── Hierarchical Softmax Training ──────────────────────────────────
+
+    /// Train Skip-gram with hierarchical softmax on a single sentence
+    fn train_skipgram_hs_sentence(&mut self, sentence: &[usize]) -> Result<()> {
+        if sentence.len() < 2 {
+            return Ok(());
+        }
+
+        let input_embeddings = self
+            .input_embeddings
+            .as_mut()
+            .ok_or_else(|| TextError::EmbeddingError("Input embeddings not initialized".into()))?;
+        let hs_params = self
+            .hs_params
+            .as_mut()
+            .ok_or_else(|| TextError::EmbeddingError("HS params not initialized".into()))?;
+        let tree = self
+            .huffman_tree
+            .as_ref()
+            .ok_or_else(|| TextError::EmbeddingError("Huffman tree not built".into()))?;
+
+        let vector_size = self.config.vector_size;
+        let window_size = self.config.window_size;
+        let lr = self.current_learning_rate;
+
+        let codes = tree.codes.clone();
+        let paths = tree.paths.clone();
+
+        let mut rng = scirs2_core::random::rng();
+
+        for pos in 0..sentence.len() {
+            let window = 1 + rng.random_range(0..window_size);
+            let target_word = sentence[pos];
+
+            for i in pos.saturating_sub(window)..=(pos + window).min(sentence.len() - 1) {
+                if i == pos {
+                    continue;
+                }
+
+                let context_word = sentence[i];
+                let code = &codes[context_word];
+                let path = &paths[context_word];
+
+                let mut grad_input = Array1::zeros(vector_size);
+
+                // Walk the Huffman tree path for the context word
+                for (step, (&node_idx, &label)) in path.iter().zip(code.iter()).enumerate() {
+                    if node_idx >= hs_params.nrows() {
+                        continue;
+                    }
+
+                    // Compute sigmoid(input_vec . hs_param)
+                    let input_vec = input_embeddings.row(target_word);
+                    let param_vec = hs_params.row(node_idx);
+
+                    let dot: f64 = input_vec
+                        .iter()
+                        .zip(param_vec.iter())
+                        .map(|(a, b)| a * b)
+                        .sum();
+                    let sigmoid = 1.0 / (1.0 + (-dot).exp());
+
+                    // gradient: (1 - label - sigmoid) * lr
+                    let target = if label == 0 { 1.0 } else { 0.0 };
+                    let gradient = (target - sigmoid) * lr;
+
+                    // Update gradient for input vector
+                    grad_input.scaled_add(gradient, &param_vec.to_owned());
+
+                    // Update HS parameter vector
+                    let input_owned = input_vec.to_owned();
+                    let mut param_mut = hs_params.row_mut(node_idx);
+                    param_mut.scaled_add(gradient, &input_owned);
+                }
+
+                // Update input embedding
+                let mut input_mut = input_embeddings.row_mut(target_word);
+                input_mut += &grad_input;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Train CBOW with hierarchical softmax on a single sentence
+    fn train_cbow_hs_sentence(&mut self, sentence: &[usize]) -> Result<()> {
+        if sentence.len() < 2 {
+            return Ok(());
+        }
+
+        let input_embeddings = self
+            .input_embeddings
+            .as_mut()
+            .ok_or_else(|| TextError::EmbeddingError("Input embeddings not initialized".into()))?;
+        let hs_params = self
+            .hs_params
+            .as_mut()
+            .ok_or_else(|| TextError::EmbeddingError("HS params not initialized".into()))?;
+        let tree = self
+            .huffman_tree
+            .as_ref()
+            .ok_or_else(|| TextError::EmbeddingError("Huffman tree not built".into()))?;
+
+        let vector_size = self.config.vector_size;
+        let window_size = self.config.window_size;
+        let lr = self.current_learning_rate;
+
+        let codes = tree.codes.clone();
+        let paths = tree.paths.clone();
+
+        let mut rng = scirs2_core::random::rng();
+
+        for pos in 0..sentence.len() {
+            let window = 1 + rng.random_range(0..window_size);
+            let target_word = sentence[pos];
+
+            // Collect context words
+            let mut context_words = Vec::new();
+            for i in pos.saturating_sub(window)..=(pos + window).min(sentence.len() - 1) {
+                if i != pos {
+                    context_words.push(sentence[i]);
+                }
+            }
+
+            if context_words.is_empty() {
+                continue;
+            }
+
+            // Average context word vectors
+            let mut context_avg = Array1::zeros(vector_size);
+            for &ctx_idx in &context_words {
+                context_avg += &input_embeddings.row(ctx_idx);
+            }
+            context_avg /= context_words.len() as f64;
+
+            // Walk Huffman path for target word
+            let code = &codes[target_word];
+            let path = &paths[target_word];
+
+            let mut grad_context = Array1::zeros(vector_size);
+
+            for (step, (&node_idx, &label)) in path.iter().zip(code.iter()).enumerate() {
+                if node_idx >= hs_params.nrows() {
+                    continue;
+                }
+
+                let param_vec = hs_params.row(node_idx);
+
+                let dot: f64 = context_avg
+                    .iter()
+                    .zip(param_vec.iter())
+                    .map(|(a, b)| a * b)
+                    .sum();
+                let sigmoid = 1.0 / (1.0 + (-dot).exp());
+
+                let target = if label == 0 { 1.0 } else { 0.0 };
+                let gradient = (target - sigmoid) * lr;
+
+                grad_context.scaled_add(gradient, &param_vec.to_owned());
+
+                // Update HS parameter
+                let ctx_owned = context_avg.clone();
+                let mut param_mut = hs_params.row_mut(node_idx);
+                param_mut.scaled_add(gradient, &ctx_owned);
+            }
+
+            // Distribute gradient back to context word input embeddings
+            let grad_per_word = &grad_context / context_words.len() as f64;
+            for &ctx_idx in &context_words {
+                let mut input_mut = input_embeddings.row_mut(ctx_idx);
+                input_mut += &grad_per_word;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+// ─── WordEmbedding trait implementation for Word2Vec ─────────────────────────
+
+impl WordEmbedding for Word2Vec {
+    fn embedding(&self, word: &str) -> Result<Array1<f64>> {
+        self.get_word_vector(word)
+    }
+
+    fn dimension(&self) -> usize {
+        self.vector_size()
+    }
+
+    fn find_similar(&self, word: &str, top_n: usize) -> Result<Vec<(String, f64)>> {
+        self.most_similar(word, top_n)
+    }
+
+    fn solve_analogy(&self, a: &str, b: &str, c: &str, top_n: usize) -> Result<Vec<(String, f64)>> {
+        self.analogy(a, b, c, top_n)
+    }
+
+    fn vocab_size(&self) -> usize {
+        self.vocabulary.len()
+    }
 }
 
 /// Calculate cosine similarity between two vectors
@@ -1164,5 +1668,172 @@ mod tests {
         assert!(result.is_ok());
         let vec = result.expect("Operation failed");
         assert_eq!(vec.len(), 10);
+    }
+
+    // ─── Hierarchical Softmax Tests ──────────────────────────────────
+
+    #[test]
+    fn test_huffman_tree_build() {
+        let frequencies = vec![5, 3, 8, 1, 2];
+        let tree = HuffmanTree::build(&frequencies).expect("Huffman build failed");
+
+        // Each word should have a code
+        assert_eq!(tree.codes.len(), 5);
+        assert_eq!(tree.paths.len(), 5);
+
+        // All codes should be non-empty
+        for code in &tree.codes {
+            assert!(!code.is_empty());
+        }
+
+        // Internal nodes = vocab_size - 1 (for a binary tree)
+        assert_eq!(tree.num_internal, 4);
+    }
+
+    #[test]
+    fn test_huffman_tree_single_word() {
+        let frequencies = vec![10];
+        let tree = HuffmanTree::build(&frequencies).expect("Huffman build failed");
+        assert_eq!(tree.codes.len(), 1);
+        assert_eq!(tree.paths.len(), 1);
+    }
+
+    #[test]
+    fn test_skipgram_hierarchical_softmax() {
+        let texts = [
+            "the quick brown fox jumps over the lazy dog",
+            "a quick brown fox jumps over a lazy dog",
+        ];
+
+        let config = Word2VecConfig {
+            vector_size: 10,
+            window_size: 2,
+            min_count: 1,
+            epochs: 3,
+            learning_rate: 0.025,
+            algorithm: Word2VecAlgorithm::SkipGram,
+            hierarchical_softmax: true,
+            ..Default::default()
+        };
+
+        let mut model = Word2Vec::with_config(config);
+        let result = model.train(&texts);
+        assert!(
+            result.is_ok(),
+            "HS skipgram training failed: {:?}",
+            result.err()
+        );
+
+        assert!(model.uses_hierarchical_softmax());
+
+        // Should produce valid word vectors
+        let vec = model.get_word_vector("fox");
+        assert!(vec.is_ok());
+        assert_eq!(vec.expect("get vec").len(), 10);
+    }
+
+    #[test]
+    fn test_cbow_hierarchical_softmax() {
+        let texts = [
+            "the quick brown fox jumps over the lazy dog",
+            "a quick brown fox jumps over a lazy dog",
+        ];
+
+        let config = Word2VecConfig {
+            vector_size: 10,
+            window_size: 2,
+            min_count: 1,
+            epochs: 3,
+            learning_rate: 0.025,
+            algorithm: Word2VecAlgorithm::CBOW,
+            hierarchical_softmax: true,
+            ..Default::default()
+        };
+
+        let mut model = Word2Vec::with_config(config);
+        let result = model.train(&texts);
+        assert!(
+            result.is_ok(),
+            "HS CBOW training failed: {:?}",
+            result.err()
+        );
+
+        let vec = model.get_word_vector("dog");
+        assert!(vec.is_ok());
+    }
+
+    // ─── WordEmbedding Trait Tests ──────────────────────────────────
+
+    #[test]
+    fn test_word_embedding_trait_word2vec() {
+        let texts = [
+            "the quick brown fox jumps over the lazy dog",
+            "a quick brown fox jumps over a lazy dog",
+        ];
+
+        let mut model = Word2Vec::new()
+            .with_vector_size(10)
+            .with_min_count(1)
+            .with_epochs(1);
+
+        model.train(&texts).expect("Training failed");
+
+        // Use via trait
+        let emb: &dyn WordEmbedding = &model;
+        assert_eq!(emb.dimension(), 10);
+        assert!(emb.vocab_size() > 0);
+
+        let vec = emb.embedding("fox");
+        assert!(vec.is_ok());
+
+        let sim = emb.similarity("fox", "dog");
+        assert!(sim.is_ok());
+        assert!(sim.expect("sim").is_finite());
+
+        let similar = emb.find_similar("fox", 2);
+        assert!(similar.is_ok());
+
+        let analogy = emb.solve_analogy("the", "fox", "dog", 2);
+        assert!(analogy.is_ok());
+    }
+
+    #[test]
+    fn test_embedding_cosine_similarity_fn() {
+        let a = Array1::from_vec(vec![1.0, 0.0]);
+        let b = Array1::from_vec(vec![0.0, 1.0]);
+        assert!((embedding_cosine_similarity(&a, &b) - 0.0).abs() < 1e-6);
+
+        let c = Array1::from_vec(vec![1.0, 1.0]);
+        let d = Array1::from_vec(vec![1.0, 1.0]);
+        assert!((embedding_cosine_similarity(&c, &d) - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_pairwise_similarity_fn() {
+        let texts = ["the quick brown fox", "the lazy brown dog"];
+
+        let mut model = Word2Vec::new()
+            .with_vector_size(10)
+            .with_min_count(1)
+            .with_epochs(1);
+        model.train(&texts).expect("Training failed");
+
+        let words = vec!["the", "fox", "dog"];
+        let matrix = pairwise_similarity(&model, &words).expect("pairwise failed");
+
+        assert_eq!(matrix.len(), 3);
+        assert_eq!(matrix[0].len(), 3);
+
+        // Diagonal should be 1.0
+        for i in 0..3 {
+            assert!((matrix[i][i] - 1.0).abs() < 1e-6);
+        }
+
+        // Symmetric
+        for i in 0..3 {
+            for j in 0..3 {
+                assert!((matrix[i][j] - matrix[j][i]).abs() < 1e-10);
+            }
+        }
     }
 }

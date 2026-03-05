@@ -108,7 +108,9 @@ pub mod error_wrappers;
 pub use error::{SpecialError, SpecialResult};
 
 // Modules
+pub mod advanced_performance_enhancement;
 mod airy;
+mod anger_weber;
 #[cfg(feature = "high-precision")]
 pub mod arbitrary_precision;
 #[cfg(feature = "gpu")]
@@ -170,11 +172,23 @@ mod wright;
 mod wright_bessel;
 mod wright_simplified;
 mod zeta;
+mod zeta_ext;
+
+// New SciPy parity modules
+mod clausen;
+mod debye;
+mod scipy_compat;
+mod spherical_bessel_extended;
 
 // Re-export common functions
 // Note: These functions require various trait bounds in their implementation,
 // including Float, FromPrimitive, Debug, AddAssign, etc.
+pub use advanced_performance_enhancement::{
+    benchmark_function, erf_advancedfast, gamma_advancedfast, gamma_array_advancedfast,
+    j0_advancedfast, PerformanceConfig, PerformanceMetrics,
+};
 pub use airy::{ai, ai_zeros, aie, aip, airye, bi, bi_zeros, bie, bip, itairy};
+pub use anger_weber::{anger_j, anger_weber, lommel_s1, lommel_s2, weber_e};
 // Complex Airy functions
 pub use airy::complex::{ai_complex, aip_complex, bi_complex, bip_complex};
 pub use bessel::{
@@ -346,7 +360,8 @@ pub use bessel::complex::{i0_complex, j0_complex, j1_complex, jn_complex, jv_com
 pub use erf::complex::{erf_complex, erfc_complex, erfcx_complex, faddeeva_complex};
 pub use hypergeometric::{hyp0f1, hyp1f1, hyp2f1, hyperu, ln_pochhammer, pochhammer};
 pub use hypergeometric_enhanced::{
-    hyp0f1_enhanced, hyp1f1_enhanced, hyp2f1_enhanced, hyp2f1_regularized,
+    hyp0f1_enhanced, hyp1f1_enhanced, hyp1f1_regularized, hyp2f1_enhanced, hyp2f1_regularized,
+    whittaker_m, whittaker_w,
 };
 pub use information_theory::{
     binary_entropy, cross_entropy, entr, entr_array, entropy, huber, huber_loss, kl_div,
@@ -373,6 +388,17 @@ pub use statistical::{
     sinc, sinc_array, softmax,
 };
 pub use struve::{it2_struve0, it_mod_struve0, it_struve0, mod_struve, struve};
+
+// New SciPy parity exports
+pub use clausen::clausen;
+pub use debye::{debye1, debye2, debye3, debye4, debye5};
+pub use scipy_compat::{
+    acosdg, asindg, atandg, bernoulli_poly, euler_poly, exp1, expn, loggamma_sign, multinomial,
+};
+pub use spherical_bessel_extended::{
+    riccati_jn, riccati_yn, spherical_in, spherical_in_derivative, spherical_kn,
+    spherical_kn_derivative,
+};
 pub use utility::{
     agm,
     // Basic functions
@@ -423,12 +449,23 @@ pub use wright_bessel::{
 };
 pub use wright_simplified::{wright_omega, wright_omega_real};
 pub use zeta::{hurwitz_zeta, zeta, zetac};
+pub use zeta_ext::{dirichlet_eta, lerch_phi, riemann_zeta, riemann_zeta_complex};
 
 // SIMD operations (when enabled)
 #[cfg(feature = "simd")]
 pub use simd_ops::{
     benchmark_simd_performance, erf_f32_simd, exp_f32_simd, gamma_f32_simd, gamma_f64_simd,
     j0_f32_simd, vectorized_special_ops,
+};
+
+// SIMD-accelerated batch operations (Phase 3.4)
+#[cfg(feature = "simd")]
+pub use simd_ops::{
+    batch_bessel_j0_f32, batch_bessel_j0_f64, batch_bessel_j1_f32, batch_bessel_j1_f64,
+    batch_bessel_y0_f32, batch_bessel_y0_f64, batch_bessel_y1_f32, batch_bessel_y1_f64,
+    batch_beta_f32, batch_beta_f64, batch_digamma_f32, batch_digamma_f64, batch_erf_f32,
+    batch_erf_f64, batch_erfc_f32, batch_erfc_f64, batch_gamma_f32, batch_gamma_f64,
+    batch_lgamma_f32, batch_lgamma_f64,
 };
 
 // Parallel operations (when enabled)

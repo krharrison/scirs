@@ -1,227 +1,395 @@
-# SciRS2 Optimization Module
+# scirs2-optimize
 
 [![crates.io](https://img.shields.io/crates/v/scirs2-optimize.svg)](https://crates.io/crates/scirs2-optimize)
-[[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)]](../LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-optimize)](https://docs.rs/scirs2-optimize)
 
-`scirs2-optimize` (v0.1.5) is a production-ready optimization library providing comprehensive algorithms for unconstrained and constrained optimization, least-squares problems, root finding, and global optimization. Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), it provides a high-performance Rust implementation of SciPy's optimization functionality with an ergonomic API, advanced features, excellent performance, and ecosystem consistency through scirs2-core abstractions.
+**Comprehensive optimization algorithms for Rust** — part of the [SciRS2](https://github.com/cool-japan/scirs) scientific computing ecosystem.
 
-## Features
+`scirs2-optimize` is a production-ready, pure-Rust optimization library providing classical numerical methods through state-of-the-art algorithms: mixed-integer programming, semidefinite and conic programming, NSGA-III multi-objective optimization, stochastic gradient methods with variance reduction, Bayesian optimization (constrained, multi-fidelity, transfer, warm-start), game-theoretic formulations, bilevel optimization, and combinatorial solvers.
 
-### 🚀 Core Optimization Methods
+---
 
-**Unconstrained Optimization**
-- Nelder-Mead simplex algorithm with adaptive parameters
-- BFGS and L-BFGS quasi-Newton methods
-- Powell's direction set method with line search
-- Conjugate Gradient with Polak-Ribière and Fletcher-Reeves variants
-- Full bounds support for all methods
+## Overview
 
-**Constrained Optimization**
-- SLSQP (Sequential Least Squares Programming)
-- Trust Region Constrained algorithm
-- Augmented Lagrangian methods
-- Advanced constraint handling
+Optimization problems appear across all of scientific computing: fitting models to data, engineering design, portfolio construction, neural network training, logistics scheduling, and mechanism design. `scirs2-optimize` covers:
 
-**Least Squares Optimization**
-- Levenberg-Marquardt with adaptive damping
-- Trust Region Reflective algorithm
-- Robust variants: Huber, Bisquare, Cauchy loss functions
-- Weighted, bounded, separable, and total least squares
+- **Continuous optimization**: unconstrained, constrained (equality, inequality, bounds), conic
+- **Discrete & combinatorial**: mixed-integer programming, branch-and-bound, dynamic programming
+- **Global optimization**: Bayesian optimization, DIRECT, differential evolution, metaheuristics
+- **Multi-objective**: NSGA-II, NSGA-III, scalarization, epsilon-constraint
+- **Stochastic & online**: SGD variants, Adam, variance reduction (SVRG, SARAH), schedules
+- **Structured problems**: game theory, bilevel, minimax, robust optimization, decomposition
 
-**Root Finding**
-- Hybrid methods (modified Powell)
-- Broyden's methods (Good and Bad variants)
-- Anderson acceleration for iterative methods
-- Krylov subspace methods (GMRES)
+---
 
-### 🌍 Global Optimization
+## Feature List (v0.3.0)
 
-**Metaheuristic Algorithms**
-- Differential Evolution with adaptive strategies
-- Particle Swarm Optimization
-- Simulated Annealing with adaptive cooling
-- Basin-hopping with local search
-- Dual Annealing combining fast and classical annealing
+### Unconstrained Optimization
+- Nelder-Mead simplex with adaptive parameter selection
+- BFGS and L-BFGS (limited-memory) quasi-Newton methods
+- L-BFGS-B: L-BFGS extended with bound constraints
+- Newton-CG (Hessian-free Newton with conjugate gradient inner loop)
+- Powell's direction set method with Brent line search
+- Conjugate Gradient (Polak-Ribiere, Fletcher-Reeves, Hestenes-Stiefel)
+- SR1 and DFP quasi-Newton updates
+- Hager-Zhang (CG_DESCENT) line search
 
-**Bayesian Optimization**
-- Gaussian Process surrogate models
-- Multiple acquisition functions (EI, LCB, PI)
-- Automatic hyperparameter tuning
-- Multi-start and clustering strategies
+### Constrained Optimization
+- SLSQP (Sequential Least Squares Programming) with active-set QP solver
+- SQP (Sequential Quadratic Programming) — enhanced with second-order corrections
+- Advanced SQP with exact second-order information and Hessian regularisation
+- Trust Region Constrained (TRCON) algorithm
+- Augmented Lagrangian methods with adaptive penalty
+- Penalty methods (quadratic penalty, barrier, log-barrier)
+- Epsilon-constraint method for generating Pareto fronts
 
-**Multi-objective Optimization**
-- NSGA-II for bi-objective problems
-- NSGA-III for many-objective problems
-- Scalarization methods (weighted sum, Tchebycheff, ε-constraint)
+### Conic & Convex Optimization
+- **Semidefinite Programming (SDP)**: ADMM and interior-point solver for SDP in standard and dual form; linear matrix inequalities (LMIs)
+- **Second-Order Cone Programming (SOCP)**: cone constraints via interior-point methods
+- **LP / QP interior point**: primal-dual path-following for linear and quadratic programs
+- Proximal gradient methods: gradient descent with proximal operator, ADMM, Douglas-Rachford splitting
+- Frank-Wolfe (conditional gradient) method for constrained convex problems
 
-### ⚡ Performance & Advanced Features
+### Mixed Integer Programming (MIP)
+- Branch and bound framework with LP relaxation at each node
+- Cutting plane methods: Gomory cuts, mixed-integer cuts
+- Branch and cut with presolve and integrality tightening
+- Heuristics: rounding, random rounding, feasibility pump
+- MILP formulations for standard combinatorial problems (knapsack, set cover, assignment)
 
-**High Performance Computing**
-- Parallel evaluation with configurable worker threads
-- SIMD-accelerated operations
-- Memory-efficient algorithms for large-scale problems
-- JIT compilation for performance-critical functions
+### Multi-Objective Optimization
+- NSGA-II: non-dominated sorting + crowding distance selection
+- NSGA-III: reference point-based selection for many-objective problems (4+ objectives)
+- MOEA/D: decomposition-based multi-objective EA
+- Weighted sum, Tchebycheff, and augmented Tchebycheff scalarisation
+- Epsilon-constraint with exact Pareto front enumeration
+- Pareto front approximation quality metrics (hypervolume, IGD, epsilon indicator)
 
-**Automatic Differentiation**
-- Forward-mode AD for gradient computation
-- Reverse-mode AD for high-dimensional problems
-- Sparse numerical differentiation
+### Global Optimization
+- DIRECT (Dividing RECTangles) deterministic global optimizer
+- DIRECT-L (locally biased DIRECT variant)
+- Multistart with clustering (systematic basin identification)
+- Simulated Annealing with adaptive cooling schedules (geometric, Cauchy, fast)
+- Basin-hopping with configurable local search
+- Dual Annealing (hybrid fast SA + classical SA)
 
-**Stochastic Optimization**
-- SGD variants with momentum and Nesterov acceleration
-- Adam, AdamW, RMSprop optimizers
-- Mini-batch processing for large datasets
-- Adaptive learning rate schedules
+### Metaheuristics
+- Differential Evolution (DE) with strategies: rand/1/bin, best/1/exp, current-to-best, JADE self-adaptation
+- Particle Swarm Optimization (PSO) with inertia weight and constriction factor variants
+- Ant Colony Optimization (ACO): AS, MMAS, ACS for combinatorial problems
+- Harmony Search (HS) with dynamic memory consideration and pitch adjustment rates
+- Simulated Annealing variants (fast SA, generalized SA)
 
-**Specialized Methods**
-- Async optimization for slow function evaluations
-- Sparse matrix optimization
-- Multi-start strategies with clustering
+### Bayesian Optimization
+- Gaussian Process surrogate model with SE, Matern 5/2, and ARD kernels
+- Acquisition functions: Expected Improvement (EI), Lower Confidence Bound (LCB), Probability of Improvement (PI), Thompson sampling
+- **Constrained Bayesian optimization**: handles unknown feasibility constraints via separate GP models for each constraint
+- **Multi-fidelity Bayesian optimization**: BOCA / MF-GP-UCB with fidelity-cost trade-off
+- **Transfer Bayesian optimization**: warm-starting from related tasks via task-adaptive priors (RGPE, TAF)
+- **Warm-start BO**: reuse of previous evaluations from prior runs
+- Hyperparameter optimization via marginal likelihood maximization
+- Parallel / batch acquisition (qEI, kriging believer, constant liar)
 
-## Installation
+### Stochastic Optimization
+- SGD with momentum (Polyak heavy ball), Nesterov Accelerated Gradient (NAG)
+- Adam, AdamW (decoupled weight decay), AMSGrad
+- RMSprop and Adadelta
+- **SVRG** (Stochastic Variance Reduced Gradient) for finite-sum problems
+- **SARAH / SPIDER** variance reduction with near-optimal convergence
+- **SARAH+** with automatic restart
+- Learning rate schedules: step decay, cosine annealing, cosine-with-warm-restarts (SGDR), cyclic LR, one-cycle, polynomial decay, warm-up linear
+- Mini-batch processing and gradient clipping (global norm, value)
 
-Add the following to your `Cargo.toml`:
+### Derivative-Free Optimization
+- Nelder-Mead and Powell as derivative-free fallbacks
+- COBYLA (Constrained Optimization BY Linear Approximation)
+- BOBYQA (Bound Optimization BY Quadratic Approximation)
+- NOMAD / MADS (Mesh Adaptive Direct Search) framework
+- Pattern search (coordinate search, Hooke-Jeeves)
 
-```toml
-[dependencies]
-scirs2-optimize = "0.1.5"
-```
+### Root Finding
+- Hybrid methods (modified Powell / hybrd)
+- Broyden's good and bad methods
+- Anderson acceleration for fixed-point iterations
+- Krylov subspace methods (GMRES-based)
+- Scalar root finding: Brent's method, Illinois algorithm, ridder's method, secant method
 
-For advanced features, enable optional feature flags:
+### Least Squares Optimization
+- Levenberg-Marquardt with adaptive damping and Jacobian scaling
+- Trust Region Reflective for bounded least squares
+- Robust variants: Huber, Bisquare (Tukey), Cauchy, Arctan loss functions
+- Weighted least squares, total least squares
+- Separable least squares (variable projection / VARPRO)
+- Bounded nonlinear least squares
 
-```toml
-[dependencies]
-scirs2-optimize = { version = "0.1.5", features = ["async"] }
-```
+### Game Theory & Equilibrium
+- Nash equilibrium computation: support enumeration (2-player zero-sum), linear complementarity (LCP), support enumeration (general sum)
+- Stackelberg equilibrium (bilevel leader-follower) via MPEC reformulation
+- Coarse correlated equilibrium (CCE) via linear programming
+- Regret minimisation (Hedge / multiplicative weights, CFR for extensive form)
+- Mechanism design utilities
+
+### Bilevel Optimization
+- KKT-based reformulation of bilevel to single-level (MPEC/MPCC)
+- Penalty-based bilevel method for nonconvex followers
+- Value function approach for bilevel with convex lower level
+- Iterative best response dynamics
+
+### Decomposition Methods
+- Benders decomposition for structured MIPs
+- Lagrangian relaxation with subgradient and bundle methods
+- Dantzig-Wolfe decomposition (column generation)
+- ADMM for distributed optimization
+- Alternating Direction Method of Multipliers with operator splitting
+
+### Minimax & Robust Optimization
+- Minimax problems: alternating gradient descent-ascent, extragradient, optimistic gradient
+- Distributionally robust optimization (DRO): Wasserstein ball, moment-based ambiguity sets
+- Robust linear programming with uncertain right-hand side and constraint matrix
+- Worst-case analysis via second-order cone reformulations
+
+### Combinatorial Optimization
+- Branch and bound with upper bounding heuristics
+- Dynamic programming (tabulation and memoization framework)
+- Knapsack (0-1, bounded, unbounded) via DP and LP relaxation
+- Traveling salesman problem (TSP): nearest-neighbor heuristic, 2-opt, 3-opt, Lin-Kernighan
+- Assignment problem (Hungarian algorithm)
+- Shortest path: Dijkstra, Bellman-Ford, Floyd-Warshall
+- Maximum matching (bipartite: Hungarian; general: Edmond's blossom)
+
+### Convex Optimization (Proximal Methods)
+- Proximal gradient descent (ISTA, FISTA)
+- Accelerated proximal gradient (APG) with restart
+- Proximal operators: L1, L2, Linf, nuclear norm, indicator functions
+- Primal-dual methods: Chambolle-Pock, split Bregman
+- Frank-Wolfe with linear minimisation oracle
+
+### Automatic & Numerical Differentiation
+- Forward-mode (dual numbers) for low-dimensional gradient computation
+- Reverse-mode AD via `scirs2-autograd` integration
+- Sparse numerical differentiation (Jacobian and Hessian with coloring)
+- Richardson extrapolation for high-accuracy finite differences
+- Complex-step differentiation for near-machine-precision gradients
+
+### Surrogate Modelling
+- Radial Basis Function (RBF) surrogate model (multiquadric, inverse-multiquadric, Gaussian, linear, cubic)
+- Polynomial surrogate (full factorial and sparse grid)
+- Kriging / GP surrogate with nugget estimation
+- Trust-region surrogate management (DYCORS, SRBF)
+
+---
 
 ## Quick Start
 
-### Basic Unconstrained Optimization
+```toml
+[dependencies]
+scirs2-optimize = "0.3.0"
+```
+
+### Unconstrained Minimisation (BFGS)
 
 ```rust
-use scirs2_optimize::prelude::*;
+use scirs2_optimize::minimize;
+use scirs2_optimize::unconstrained::UnconstrainedMethod;
 
-// Minimize the Rosenbrock function
 fn rosenbrock(x: &[f64]) -> f64 {
     let (a, b) = (1.0, 100.0);
     (a - x[0]).powi(2) + b * (x[1] - x[0].powi(2)).powi(2)
 }
 
-fn main() -> Result<(), OptimizeError> {
-    let result = minimize(rosenbrock, &[0.0, 0.0], UnconstrainedMethod::BFGS, None)?;
-    println!("Minimum at: {:?} with value: {:.6}", result.x, result.fun);
-    Ok(())
-}
+let result = minimize(rosenbrock, &[0.0, 0.0], UnconstrainedMethod::BFGS, None).unwrap();
+println!("Minimum at {:?}, f = {:.2e}", result.x, result.fun);
 ```
 
-### Global Optimization
+### Mixed Integer Programming
 
 ```rust
-use scirs2_optimize::prelude::*;
+use scirs2_optimize::mip::{MIP, Variable, VariableKind};
 
-fn main() -> Result<(), OptimizeError> {
-    // Find global minimum using Differential Evolution
-    let bounds = vec![(-5.0, 5.0), (-5.0, 5.0)];
-    let result = differential_evolution(rosenbrock, &bounds, None)?;
-    println!("Global minimum: {:?}", result.x);
-    Ok(())
-}
+let mut problem = MIP::new();
+let x = problem.add_variable(Variable::new(VariableKind::Binary));
+let y = problem.add_variable(Variable::new(VariableKind::Continuous { lo: 0.0, hi: 10.0 }));
+
+// Minimize -x - 2y subject to x + y <= 5
+problem.set_objective(vec![-1.0, -2.0]);
+problem.add_constraint(vec![1.0, 1.0], "<=", 5.0);
+
+let result = problem.solve().unwrap();
+println!("MIP optimum: x={}, y={:.2}", result.x[x], result.x[y]);
 ```
 
-### Robust Least Squares
+### NSGA-III Multi-Objective Optimisation
 
 ```rust
-use scirs2_optimize::prelude::*;
-use ndarray::Array1;
+use scirs2_optimize::multiobjective::{nsga3, NSGA3Config};
 
-fn residual(params: &[f64], data: &[f64]) -> Array1<f64> {
-    // Linear regression residuals
-    let n = data.len() / 2;
-    let (x_vals, y_vals) = data.split_at(n);
-    
-    Array1::from_iter((0..n).map(|i| 
-        y_vals[i] - (params[0] + params[1] * x_vals[i])
-    ))
-}
+// Minimise two conflicting objectives
+let objectives: Vec<Box<dyn Fn(&[f64]) -> f64>> = vec![
+    Box::new(|x| x[0]),
+    Box::new(|x| (1.0 - x[0].sqrt()) * x[0] + x[1]),
+];
 
-fn main() -> Result<(), OptimizeError> {
-    let data = vec![0., 1., 2., 3., 4., 0.1, 0.9, 2.1, 2.9, 10.0]; // with outlier
-    let result = robust_least_squares(
-        residual, &[0.0, 0.0], HuberLoss::new(1.0), None, &data, None
-    )?;
-    println!("Robust fit: intercept={:.3}, slope={:.3}", result.x[0], result.x[1]);
-    Ok(())
-}
+let config = NSGA3Config {
+    population_size: 100,
+    n_generations: 200,
+    bounds: vec![(0.0, 1.0), (0.0, 1.0)],
+    ..Default::default()
+};
+
+let pareto_front = nsga3(&objectives, config).unwrap();
+println!("Pareto front has {} points", pareto_front.len());
 ```
 
-### Bayesian Optimization
+### Constrained Bayesian Optimisation
 
 ```rust
-use scirs2_optimize::prelude::*;
+use scirs2_optimize::bayesian::constrained_bo::{ConstrainedBO, ConstrainedBOConfig};
 
-fn main() -> Result<(), OptimizeError> {
-    let space = Space::new(vec![
-        Parameter::Real { name: "x".to_string(), low: -5.0, high: 5.0 },
-        Parameter::Real { name: "y".to_string(), low: -5.0, high: 5.0 },
-    ]);
-    
-    let result = bayesian_optimization(rosenbrock, &space, None)?;
-    println!("Bayesian optimum: {:?}", result.x);
-    Ok(())
-}
+let config = ConstrainedBOConfig {
+    n_initial: 10,
+    n_iterations: 50,
+    bounds: vec![(-5.0, 5.0), (-5.0, 5.0)],
+    ..Default::default()
+};
+
+let mut bo = ConstrainedBO::new(config);
+
+// Objective and constraint (must be <= 0 for feasibility)
+let result = bo
+    .minimize(|x| x[0].powi(2) + x[1].powi(2))
+    .with_constraint(|x| x[0] + x[1] - 1.0)  // x + y <= 1
+    .run()
+    .unwrap();
+
+println!("Best feasible: {:?}", result.x);
 ```
 
-## Why Choose scirs2-optimize?
+### Stochastic Gradient Descent with Variance Reduction (SVRG)
 
-**🔒 Production Ready**
-- Stable API with comprehensive error handling
-- Extensive test coverage and numerical validation
-- Memory-safe implementation with zero-cost abstractions
+```rust
+use scirs2_optimize::stochastic::new_variance_reduction::{SVRG, SVRGConfig};
 
-**⚡ High Performance** 
-- SIMD-accelerated operations where applicable
-- Parallel evaluation support
-- Memory-efficient algorithms for large-scale problems
-- JIT compilation for critical performance paths
+let config = SVRGConfig {
+    learning_rate: 0.01,
+    inner_loop_size: 100,
+    max_epochs: 50,
+    ..Default::default()
+};
 
-**🧠 Intelligent Defaults**
-- Robust numerical stability safeguards
-- Adaptive parameters that work across problem types
-- Automatic algorithm selection helpers
+let mut optimizer = SVRG::new(config);
+optimizer.minimize(&finite_sum_gradient_fn, &mut params, n_samples).unwrap();
+```
 
-**🔧 Comprehensive Toolkit**
-- Complete SciPy optimize API coverage
-- Advanced methods beyond SciPy (Bayesian optimization, multi-objective)
-- Seamless integration with ndarray ecosystem
+### Semidefinite Programming
 
-**📊 Scientific Computing Focus**
-- IEEE 754 compliance and careful numerical handling
-- Extensive documentation with mathematical background
-- Benchmarked against reference implementations
+```rust
+use scirs2_optimize::conic::{SDP, SDPConstraint};
+use scirs2_core::ndarray::{array, Array2};
 
-## Algorithm Selection Guide
+// Maximise trace(C * X) subject to X >= 0 (PSD), trace(A_i * X) = b_i
+let c = array![[2.0, 0.5], [0.5, 1.0]];
+let mut sdp = SDP::new(c);
 
-| Problem Type | Recommended Method | Use Case |
-|--------------|-------------------|----------|
-| **Smooth unconstrained** | `BFGS`, `L-BFGS` | Fast convergence with gradients |
-| **Noisy/non-smooth** | `Nelder-Mead`, `Powell` | Derivative-free robust optimization |
-| **Large-scale** | `L-BFGS`, `CG` | Memory-efficient for high dimensions |
-| **Global minimum** | `DifferentialEvolution`, `BayesianOptimization` | Avoid local minima |
-| **With constraints** | `SLSQP`, `TrustConstr` | Handle complex constraint sets |
-| **Least squares** | `LevenbergMarquardt` | Nonlinear curve fitting |
-| **With outliers** | `HuberLoss`, `BisquareLoss` | Robust regression |
+sdp.add_equality_constraint(
+    array![[1.0, 0.0], [0.0, 0.0]],
+    1.0,
+);
+sdp.add_equality_constraint(
+    array![[0.0, 0.0], [0.0, 1.0]],
+    1.0,
+);
 
-## Integration & Ecosystem
+let result = sdp.solve().unwrap();
+println!("SDP optimal value: {:.4}", result.objective);
+```
 
-- **Zero-copy integration** with ndarray and nalgebra
-- **Feature flags** for optional dependencies (async, parallel, SIMD)
-- **Workspace compatibility** with other scirs2 modules
-- **Pure Rust implementation** with OxiBLAS (no system dependencies)
-- **C API bindings** available for integration with existing codebases
+### Nash Equilibrium
+
+```rust
+use scirs2_optimize::game_theory::{TwoPlayerGame, find_nash_equilibrium};
+use scirs2_core::ndarray::array;
+
+// Prisoner's Dilemma payoff matrix (row player)
+let payoffs_row = array![[-1.0, -3.0], [0.0, -2.0]];
+let payoffs_col = array![[-1.0, 0.0], [-3.0, -2.0]];
+
+let game = TwoPlayerGame::new(payoffs_row, payoffs_col);
+let nash = find_nash_equilibrium(&game).unwrap();
+println!("Nash equilibrium: row={:?}, col={:?}", nash.strategy_row, nash.strategy_col);
+```
+
+---
+
+## API Overview
+
+| Module | Description |
+|---|---|
+| `unconstrained` | Nelder-Mead, BFGS, L-BFGS, L-BFGS-B, Newton-CG, Powell, CG, SR1, DFP |
+| `constrained` | SLSQP, SQP, trust-region constrained, augmented Lagrangian, penalty |
+| `constrained::sqp_advanced` | SQP with second-order corrections |
+| `constrained::trust_constr_advanced` | Advanced trust-region constrained |
+| `constrained::epsilon_constraint` | Epsilon-constraint multi-objective |
+| `constrained::lp_qp_interior` | LP and QP interior-point |
+| `conic` | SDP and SOCP interior-point solvers |
+| `mip` | Mixed integer programming (branch and cut) |
+| `multiobjective` | NSGA-II, NSGA-III, MOEA/D, scalarisation |
+| `multi_objective::advanced` | Hypervolume computation, IGD, Pareto pruning |
+| `global` | DIRECT, DIRECT-L, dual annealing, basin-hopping |
+| `global::direct` | DIRECT algorithm implementation |
+| `global::multistart` | Clustering-based multistart |
+| `bayesian` | Gaussian Process BO with EI/LCB/PI/Thompson |
+| `bayesian::constrained_bo` | BO with unknown feasibility constraints |
+| `bayesian::multi_fidelity` | Multi-fidelity BO (BOCA/MF-GP-UCB) |
+| `bayesian::transfer_bo` | Transfer BO across related tasks |
+| `bayesian::warm_start` | Warm-start BO from prior evaluations |
+| `metaheuristics` | DE, PSO, SA |
+| `metaheuristics::aco` | Ant Colony Optimization |
+| `metaheuristics::de` | Differential Evolution (JADE) |
+| `metaheuristics::sa` | Simulated Annealing variants |
+| `metaheuristics::harmony` | Harmony Search |
+| `evolution` | Evolutionary algorithms framework |
+| `stochastic` | SGD, Adam, AdamW, RMSprop, Adadelta |
+| `stochastic::new_variance_reduction` | SVRG, SARAH, SPIDER |
+| `stochastic::schedules` | LR schedules (cosine, cyclic, one-cycle) |
+| `proximal` | ISTA, FISTA, ADMM, proximal operators |
+| `convex` | Frank-Wolfe, projected gradient, Chambolle-Pock |
+| `decomposition` | Benders, Lagrangian relaxation, Dantzig-Wolfe |
+| `bilevel` | KKT reformulation, penalty, value function approaches |
+| `minimax` | Alternating GDA, extragradient, optimistic GD |
+| `robust` | DRO (Wasserstein, moment), robust LP/QP |
+| `game_theory` | Nash, Stackelberg, CCE, regret minimisation |
+| `combinatorial` | Branch and bound, DP, TSP, knapsack, assignment |
+| `derivative_free` | COBYLA, BOBYQA, MADS, pattern search |
+| `surrogate` | RBF, polynomial, kriging surrogate models |
+| `hessian` | Hessian approximation and finite-difference utilities |
+| `line_search` | Wolfe, strong-Wolfe, Armijo, Hager-Zhang |
+| `least_squares` | Levenberg-Marquardt, TRR, robust variants |
+| `root_finding` | Hybrid, Broyden, Anderson acceleration, Krylov |
+| `scalar` | Brent, golden section, bounded scalar optimisation |
+
+---
+
+## Feature Flags
+
+| Flag | Description |
+|---|---|
+| `parallel` | Rayon parallel function evaluation |
+| `simd` | SIMD-accelerated linear algebra via `scirs2-core` |
+| `async` | Async function evaluation for expensive oracles |
+| `serde` | Serialization of results and configurations |
+
+Default features: none (pure Rust, no C/Fortran dependencies).
+
+---
+
+## Links
+
+- [SciRS2 project](https://github.com/cool-japan/scirs)
+- [docs.rs](https://docs.rs/scirs2-optimize)
+- [crates.io](https://crates.io/crates/scirs2-optimize)
+- [TODO.md](./TODO.md)
 
 ## License
 
-This project is Licensed under the Apache License 2.0. See LICENSE for details.
-
-You can choose to use either license. See the [LICENSE](../LICENSE) file for details.
+Apache License 2.0. See [LICENSE](../LICENSE) for details.

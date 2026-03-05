@@ -724,18 +724,245 @@ pub mod ndarray_linalg {
         fn eig(&self) -> Result<(Array1<Self::Elem>, Array2<Self::Elem>), LapackError>;
     }
 
-    // For Complex matrices, use general eigenvalue decomposition
-    // Note: General EVD for Complex returns complex eigenvalues and eigenvectors
-    // This is a simplified implementation - for production, would use eig_ndarray from oxiblas
+    // For general complex matrices use the complex QR algorithm (shifted QR iteration).
+    // The algorithm:
+    //  1. Reduce A to upper Hessenberg form H = Q^H A Q via Householder reflections.
+    //  2. Apply complex QR iteration with Wilkinson shifts on H until convergence.
+    //  3. Extract eigenvalues from the diagonal of the converged quasi-triangular form.
+    //  4. Compute right eigenvectors by back-substitution on the upper-triangular Schur form.
+    //  5. Transform eigenvectors back: X = Q * V.
     impl Eig for Array2<Complex<f64>> {
         type Elem = Complex<f64>;
 
-        #[inline]
         fn eig(&self) -> Result<(Array1<Complex<f64>>, Array2<Complex<f64>>), LapackError> {
-            // Fallback: Use eigh for now (assumes Hermitian)
-            // TODO: Implement proper general EVD in oxiblas-ndarray
-            let (eigenvalues_real, eigenvectors) = eig_hermitian_ndarray(self)?;
-            let eigenvalues = eigenvalues_real.mapv(|x| Complex::new(x, 0.0));
+            let (m, n) = self.dim();
+            if m != n {
+                return Err(LapackError::DimensionMismatch(
+                    "Matrix must be square for eigendecomposition".to_string(),
+                ));
+            }
+            if n == 0 {
+                return Ok((
+                    Array1::<Complex<f64>>::zeros(0),
+                    Array2::<Complex<f64>>::zeros((0, 0)),
+                ));
+            }
+            if n == 1 {
+                let eigenvalue = self[[0, 0]];
+                let eigenvector = Array2::from_elem((1, 1), Complex::new(1.0, 0.0));
+                return Ok((Array1::from_vec(vec![eigenvalue]), eigenvector));
+            }
+
+            // Step 1: Reduce to upper Hessenberg form via Householder reflections.
+            let mut h = self.clone();
+            let mut q = Array2::<Complex<f64>>::eye(n);
+
+            for col in 0..n.saturating_sub(2) {
+                let xlen = n - col - 1;
+                if xlen == 0 {
+                    continue;
+                }
+
+                let mut x: Vec<Complex<f64>> = (col + 1..n).map(|r| h[[r, col]]).collect();
+
+                let norm_x = x.iter().map(|v| v.norm_sqr()).sum::<f64>().sqrt();
+                if norm_x < 1e-300 {
+                    continue;
+                }
+
+                let phase = if x[0].norm() > 1e-300 {
+                    x[0] / x[0].norm()
+                } else {
+                    Complex::new(1.0, 0.0)
+                };
+                x[0] += phase * norm_x;
+
+                let norm_v = x.iter().map(|v| v.norm_sqr()).sum::<f64>().sqrt();
+                if norm_v < 1e-300 {
+                    continue;
+                }
+                let v: Vec<Complex<f64>> = x.iter().map(|vi| *vi / norm_v).collect();
+
+                // Apply (I - 2vv^H) from the left to H
+                for c in col..n {
+                    let dot: Complex<f64> = v
+                        .iter()
+                        .enumerate()
+                        .map(|(i, &vi)| vi.conj() * h[[col + 1 + i, c]])
+                        .sum();
+                    for (i, &vi) in v.iter().enumerate() {
+                        h[[col + 1 + i, c]] -= Complex::new(2.0, 0.0) * vi * dot;
+                    }
+                }
+
+                // Apply (I - 2vv^H) from the right to H
+                for r in 0..n {
+                    let dot: Complex<f64> = v
+                        .iter()
+                        .enumerate()
+                        .map(|(i, &vi)| h[[r, col + 1 + i]] * vi)
+                        .sum();
+                    for (i, &vi) in v.iter().enumerate() {
+                        h[[r, col + 1 + i]] -= Complex::new(2.0, 0.0) * dot * vi.conj();
+                    }
+                }
+
+                // Accumulate Q
+                for r in 0..n {
+                    let dot: Complex<f64> = v
+                        .iter()
+                        .enumerate()
+                        .map(|(i, &vi)| q[[r, col + 1 + i]] * vi)
+                        .sum();
+                    for (i, &vi) in v.iter().enumerate() {
+                        q[[r, col + 1 + i]] -= Complex::new(2.0, 0.0) * dot * vi.conj();
+                    }
+                }
+
+                // Zero subdiagonal entries below the first subdiagonal in column col
+                for r in col + 2..n {
+                    h[[r, col]] = Complex::new(0.0, 0.0);
+                }
+            }
+
+            // Step 2: Complex QR algorithm with Wilkinson shifts.
+            const MAX_ITER: usize = 30;
+            let mut p = n;
+
+            'outer: while p > 1 {
+                // Deflation check
+                let mut deflated = false;
+                for l in (1..p).rev() {
+                    let sub = h[[l, l - 1]].norm();
+                    let diag = h[[l - 1, l - 1]].norm() + h[[l, l]].norm();
+                    if sub <= 1e-14 * diag || sub <= f64::MIN_POSITIVE.sqrt() {
+                        h[[l, l - 1]] = Complex::new(0.0, 0.0);
+                        if l == p - 1 {
+                            p -= 1;
+                            deflated = true;
+                            break;
+                        }
+                    }
+                }
+                if deflated {
+                    continue 'outer;
+                }
+
+                let mut converged_inner = false;
+                for _iter in 0..MAX_ITER {
+                    // Wilkinson shift from bottom 2x2 block
+                    let a_sub = h[[p - 2, p - 2]];
+                    let b_sub = h[[p - 2, p - 1]];
+                    let c_sub = h[[p - 1, p - 2]];
+                    let d_sub = h[[p - 1, p - 1]];
+                    let tr = a_sub + d_sub;
+                    let det = a_sub * d_sub - b_sub * c_sub;
+                    let disc = (tr * tr - Complex::new(4.0, 0.0) * det).sqrt();
+                    let mu1 = (tr + disc) * Complex::new(0.5, 0.0);
+                    let mu2 = (tr - disc) * Complex::new(0.5, 0.0);
+                    let shift = if (mu1 - d_sub).norm() < (mu2 - d_sub).norm() {
+                        mu1
+                    } else {
+                        mu2
+                    };
+
+                    // One QR step with Givens rotations (preserves Hessenberg structure)
+                    for k in 0..p.saturating_sub(1) {
+                        let a_g = if k == 0 {
+                            h[[0, 0]] - shift
+                        } else {
+                            h[[k, k - 1]]
+                        };
+                        let b_g = h[[k + 1, k]];
+                        let r = (a_g.norm_sqr() + b_g.norm_sqr()).sqrt();
+                        if r < 1e-300 {
+                            continue;
+                        }
+                        let c = a_g / r;
+                        let s = b_g / r;
+
+                        // Apply from the left (rows k and k+1)
+                        let col_start = if k == 0 { 0 } else { k - 1 };
+                        for j in col_start..n {
+                            let t1 = c.conj() * h[[k, j]] + s.conj() * h[[k + 1, j]];
+                            let t2 = -s * h[[k, j]] + c * h[[k + 1, j]];
+                            h[[k, j]] = t1;
+                            h[[k + 1, j]] = t2;
+                        }
+
+                        // Apply from the right (cols k and k+1)
+                        let row_max = (k + 2).min(p);
+                        for i in 0..row_max {
+                            let t1 = h[[i, k]] * c + h[[i, k + 1]] * s;
+                            let t2 = h[[i, k]] * (-s.conj()) + h[[i, k + 1]] * c.conj();
+                            h[[i, k]] = t1;
+                            h[[i, k + 1]] = t2;
+                        }
+
+                        // Accumulate in Q
+                        for i in 0..n {
+                            let t1 = q[[i, k]] * c + q[[i, k + 1]] * s;
+                            let t2 = q[[i, k]] * (-s.conj()) + q[[i, k + 1]] * c.conj();
+                            q[[i, k]] = t1;
+                            q[[i, k + 1]] = t2;
+                        }
+                    }
+
+                    let sub_norm = h[[p - 1, p - 2]].norm();
+                    let diag_norm = h[[p - 2, p - 2]].norm() + h[[p - 1, p - 1]].norm();
+                    if sub_norm <= 1e-14 * diag_norm || sub_norm <= f64::MIN_POSITIVE.sqrt() {
+                        h[[p - 1, p - 2]] = Complex::new(0.0, 0.0);
+                        p -= 1;
+                        converged_inner = true;
+                        break;
+                    }
+                }
+
+                if !converged_inner {
+                    p -= 1; // Force deflation to avoid infinite loop
+                }
+            }
+
+            // Step 3: Extract eigenvalues from diagonal of the Schur form
+            let eigenvalues: Array1<Complex<f64>> = Array1::from_iter((0..n).map(|i| h[[i, i]]));
+
+            // Step 4: Compute right eigenvectors by back-substitution from the
+            // upper-triangular Schur form.
+            let mut vecs = Array2::<Complex<f64>>::zeros((n, n));
+            for ei in 0..n {
+                let lambda = eigenvalues[ei];
+                let mut v = vec![Complex::new(0.0, 0.0); n];
+                v[ei] = Complex::new(1.0, 0.0);
+
+                for row in (0..ei).rev() {
+                    let mut sum = Complex::new(0.0, 0.0);
+                    for col in row + 1..=ei {
+                        sum += h[[row, col]] * v[col];
+                    }
+                    let diag = h[[row, row]] - lambda;
+                    v[row] = if diag.norm() > 1e-14 {
+                        -sum / diag
+                    } else {
+                        Complex::new(0.0, 0.0)
+                    };
+                }
+
+                let norm = v.iter().map(|vi| vi.norm_sqr()).sum::<f64>().sqrt();
+                if norm > 1e-300 {
+                    for vi in &mut v {
+                        *vi /= norm;
+                    }
+                } else {
+                    v[ei] = Complex::new(1.0, 0.0);
+                }
+
+                for row in 0..n {
+                    vecs[[row, ei]] = v[row];
+                }
+            }
+
+            // Step 5: Transform eigenvectors back to original basis: X = Q * V
+            let eigenvectors = q.dot(&vecs);
             Ok((eigenvalues, eigenvectors))
         }
     }

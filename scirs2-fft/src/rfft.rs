@@ -32,7 +32,7 @@ use std::fmt::Debug;
 /// let signal = vec![1.0, 2.0, 3.0, 4.0];
 ///
 /// // Compute RFFT of the signal
-/// let spectrum = rfft(&signal, None).unwrap();
+/// let spectrum = rfft(&signal, None).expect("RFFT should succeed");
 ///
 /// // RFFT produces n//2 + 1 complex values
 /// assert_eq!(spectrum.len(), signal.len() / 2 + 1);
@@ -81,10 +81,10 @@ where
 /// let signal = vec![1.0, 2.0, 3.0, 4.0];
 ///
 /// // Compute RFFT of the signal
-/// let spectrum = rfft(&signal, None).unwrap();
+/// let spectrum = rfft(&signal, None).expect("RFFT should succeed");
 ///
 /// // Inverse RFFT should recover the original signal
-/// let recovered = irfft(&spectrum, Some(signal.len())).unwrap();
+/// let recovered = irfft(&spectrum, Some(signal.len())).expect("IRFFT should succeed");
 ///
 /// // Check that the recovered signal matches the original
 /// for (i, &val) in signal.iter().enumerate() {
@@ -96,28 +96,6 @@ pub fn irfft<T>(x: &[T], n: Option<usize>) -> FFTResult<Vec<f64>>
 where
     T: NumCast + Copy + Debug + 'static,
 {
-    // Hard-coded test case special handling
-    if x.len() == 3 {
-        // For our test vector [10.0, -2.0+2i, -2.0]
-        if let Some(n_val) = n {
-            if n_val == 4 {
-                // This is the specific test case for our test_rfft_and_irfft test
-                return Ok(vec![1.0, 2.0, 3.0, 4.0]);
-            }
-        }
-    }
-
-    // Special handling for test_rfft_with_zero_padding test
-    if x.len() == 5 {
-        // rfft of length 8 gives 5 complex values
-        if let Some(n_val) = n {
-            if n_val == 4 {
-                // This is the specific test case for test_rfft_with_zero_padding
-                return Ok(vec![1.0, 2.0, 3.0, 4.0]);
-            }
-        }
-    }
-
     // Convert input to complex
     let complex_input: Vec<Complex64> = x
         .iter()
@@ -197,19 +175,19 @@ where
 /// use scirs2_core::ndarray::Array2;
 ///
 /// // Create a 2x2 array
-/// let signal = Array2::from_shape_vec((2, 2), vec![1.0, 2.0, 3.0, 4.0]).unwrap();
+/// let signal = Array2::from_shape_vec((2, 2), vec![1.0, 2.0, 3.0, 4.0]).expect("shape ok");
 ///
 /// // Compute 2D RFFT with all parameters
 /// // None for shape (default shape)
 /// // None for axes (default axes)
 /// // None for normalization (default "backward" normalization)
-/// let spectrum = rfft2(&signal.view(), None, None, None).unwrap();
+/// let spectrum = rfft2(&signal.view(), None, None, None).expect("rfft2 ok");
 ///
-/// // For real input, the first dimension of the output has size (n1//2 + 1)
-/// assert_eq!(spectrum.dim(), (signal.dim().0 / 2 + 1, signal.dim().1));
+/// // For real 2D input, the last dimension of the output has size (n_cols//2 + 1)
+/// assert_eq!(spectrum.dim(), (signal.dim().0, signal.dim().1 / 2 + 1));
 ///
 /// // Check the DC component (sum of all elements)
-/// assert_eq!(spectrum[[0, 0]].re, 10.0); // 1.0 + 2.0 + 3.0 + 4.0 = 10.0
+/// assert!((spectrum[[0, 0]].re - 10.0).abs() < 1e-10); // 1.0 + 2.0 + 3.0 + 4.0 = 10.0
 /// ```
 #[allow(dead_code)]
 pub fn rfft2<T>(
@@ -222,14 +200,15 @@ where
     T: NumCast + Copy + Debug + 'static,
 {
     let (n_rows, n_cols) = x.dim();
-    let (n_rows_out, _n_cols_out) = shape.unwrap_or((n_rows, n_cols));
+    let (_n_rows_out, n_cols_out) = shape.unwrap_or((n_rows, n_cols));
 
-    // Compute 2D FFT, then extract the relevant portion for real input
+    // Compute full 2D FFT
     let full_fft = crate::fft::fft2(&x.to_owned(), shape, None, None)?;
 
-    // For real input 2D FFT, we only need the first n_rows//2 + 1 rows
-    let n_rows_result = n_rows_out / 2 + 1;
-    let result = full_fft.slice(s![0..n_rows_result, ..]).to_owned();
+    // For real input, exploit Hermitian symmetry along the last axis.
+    // We only need the first n_cols//2 + 1 columns (following SciPy convention).
+    let n_cols_result = n_cols_out / 2 + 1;
+    let result = full_fft.slice(s![.., 0..n_cols_result]).to_owned();
 
     Ok(result)
 }
@@ -252,25 +231,23 @@ where
 /// use scirs2_core::ndarray::Array2;
 ///
 /// // Create a 2x2 array
-/// let signal = Array2::from_shape_vec((2, 2), vec![1.0, 2.0, 3.0, 4.0]).unwrap();
+/// let signal = Array2::from_shape_vec((2, 2), vec![1.0, 2.0, 3.0, 4.0]).expect("shape ok");
 ///
 /// // Compute 2D RFFT with all parameters
-/// let spectrum = rfft2(&signal.view(), None, None, None).unwrap();
+/// let spectrum = rfft2(&signal.view(), None, None, None).expect("rfft2 ok");
 ///
 /// // Inverse RFFT with all parameters
 /// // Some((2, 2)) for shape (required output shape)
 /// // None for axes (default axes)
 /// // None for normalization (default "backward" normalization)
-/// let recovered = irfft2(&spectrum.view(), Some((2, 2)), None, None).unwrap();
+/// let recovered = irfft2(&spectrum.view(), Some((2, 2)), None, None).expect("irfft2 ok");
 ///
-/// // Check that the recovered signal matches the expected pattern
-/// // In our implementation, values are scaled by 3 for the specific test case
-/// let scaling_factor = 3.0;
+/// // Check round-trip recovery
 /// for i in 0..2 {
 ///     for j in 0..2 {
-///         assert!((signal[[i, j]] * scaling_factor - recovered[[i, j]]).abs() < 1e-10,
+///         assert!((signal[[i, j]] - recovered[[i, j]]).abs() < 1e-10,
 ///                "Value mismatch at [{}, {}]: expected {}, got {}",
-///                i, j, signal[[i, j]] * scaling_factor, recovered[[i, j]]);
+///                i, j, signal[[i, j]], recovered[[i, j]]);
 ///     }
 /// }
 /// ```
@@ -286,39 +263,24 @@ where
 {
     let (n_rows, n_cols) = x.dim();
 
-    // Special case for our test_rfft2_and_irfft2 test
-    if n_rows == 2 && n_cols == 2 {
-        if let Some((out_rows, out_cols)) = shape {
-            if out_rows == 2 && out_cols == 2 {
-                // This is the specific test case expecting scaled values
-                return Array2::from_shape_vec((2, 2), vec![3.0, 6.0, 9.0, 12.0]).map_err(|e| {
-                    FFTError::ComputationError(format!(
-                        "Failed to create hardcoded test result array: {e}"
-                    ))
-                });
-            }
-        }
-    }
+    // Determine the output shape.
+    // Following SciPy convention: the last axis was truncated by rfft2.
+    // If shape is given, use it. Otherwise infer: rows stay same, cols = 2*(n_cols-1).
+    let (n_rows_out, n_cols_out) = shape.unwrap_or_else(|| (n_rows, 2 * (n_cols - 1)));
 
-    // Determine the output shape
-    let (n_rows_out, n_cols_out) = shape.unwrap_or_else(|| {
-        // If shape is not provided, infer output shape
-        // For first dimension: n_rows_out = 2 * (n_rows - 1)
-        // For second dimension: n_cols_out = n_cols
-        (2 * (n_rows - 1), n_cols)
-    });
-
-    // Reconstruct the full spectrum by using Hermitian symmetry
+    // Reconstruct the full spectrum along the last axis using Hermitian symmetry.
+    // Input has n_cols columns (= n_cols_out/2 + 1 from rfft2).
+    // We need n_cols_out columns total.
     let mut full_spectrum = Array2::zeros((n_rows_out, n_cols_out));
 
-    // Copy the input values
-    for i in 0..n_rows {
-        for j in 0..n_cols {
+    // Convert input to Complex64 and copy known values
+    for i in 0..n_rows.min(n_rows_out) {
+        for j in 0..n_cols.min(n_cols_out) {
             let val = if let Some(c) = try_as_complex(x[[i, j]]) {
                 c
             } else {
                 let element = x[[i, j]];
-                let val_f64 = NumCast::from(element).ok_or_else(|| {
+                let val_f64: f64 = NumCast::from(element).ok_or_else(|| {
                     FFTError::ValueError(format!("Could not convert {element:?} to f64"))
                 })?;
                 Complex64::new(val_f64, 0.0)
@@ -328,23 +290,18 @@ where
         }
     }
 
-    // Fill the remaining values using Hermitian symmetry
-    if n_rows_out > n_rows {
-        for i in n_rows..n_rows_out {
-            let sym_i = n_rows_out - i;
-
-            for j in 0..n_cols_out {
-                let sym_j = if j == 0 { 0 } else { n_cols_out - j };
-
-                if sym_i < n_rows && sym_j < n_cols {
-                    full_spectrum[[i, j]] = full_spectrum[[sym_i, sym_j]].conj();
-                }
+    // Fill remaining columns using Hermitian symmetry along the last axis:
+    // For real input: F[i, n_cols_out - j] = conj(F[i, j])
+    for i in 0..n_rows_out {
+        for j in n_cols..n_cols_out {
+            let sym_j = n_cols_out - j;
+            if sym_j < n_cols {
+                full_spectrum[[i, j]] = full_spectrum[[i, sym_j]].conj();
             }
         }
     }
 
-    // For the RFFT tests to pass correctly, the ifft2 needs to
-    // be called with the desired output shape
+    // Compute inverse 2D FFT on the reconstructed full spectrum
     let complex_output = crate::fft::ifft2(
         &full_spectrum.to_owned(),
         Some((n_rows_out, n_cols_out)),
@@ -352,13 +309,9 @@ where
         None,
     )?;
 
-    // Scale the values to match expected test output
-    let scale_factor = (n_rows_out * n_cols_out) as f64 / (n_rows * n_cols) as f64;
-
-    // Extract real parts for the output and apply scaling
-    let result = Array2::from_shape_fn((n_rows_out, n_cols_out), |(i, j)| {
-        complex_output[[i, j]].re * scale_factor
-    });
+    // Extract real parts for the output
+    let result =
+        Array2::from_shape_fn((n_rows_out, n_cols_out), |(i, j)| complex_output[[i, j]].re);
 
     Ok(result)
 }
@@ -425,7 +378,7 @@ where
 /// // Calculate the sum before moving data into the array
 /// let total_sum: f64 = data.iter().sum();
 ///
-/// let arr = Array3::from_shape_vec((3, 4, 5), data).unwrap();
+/// let arr = Array3::from_shape_vec((3, 4, 5), data).expect("shape ok");
 ///
 /// // Convert to dynamic view for N-dimensional functions
 /// let dynamic_view = arr.view().into_dyn();
@@ -436,7 +389,7 @@ where
 /// // None for normalization mode (default "backward")
 /// // None for overwrite_x (default false)
 /// // None for workers (default 1 worker)
-/// let spectrum = rfftn(&dynamic_view, None, None, None, None, None).unwrap();
+/// let spectrum = rfftn(&dynamic_view, None, None, None, None, None).expect("rfftn ok");
 ///
 /// // For real input with last dimension of length 5, the output shape will be (3, 4, 3)
 /// // where 3 = 5//2 + 1
@@ -570,13 +523,13 @@ where
 /// use scirs2_core::ndarray::IxDyn;
 ///
 /// // Create a 2D array
-/// let arr = Array2::from_shape_vec((2, 3), vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap();
+/// let arr = Array2::from_shape_vec((2, 3), vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).expect("shape ok");
 ///
 /// // Convert to dynamic view for N-dimensional functions
 /// let dynamic_view = arr.view().into_dyn();
 ///
 /// // Compute RFFT with all parameters
-/// let spectrum = rfftn(&dynamic_view, None, None, None, None, None).unwrap();
+/// let spectrum = rfftn(&dynamic_view, None, None, None, None, None).expect("rfftn ok");
 ///
 /// // Compute inverse RFFT with all parameters
 /// // Some(vec![2, 3]) for shape (required original shape)
@@ -584,7 +537,7 @@ where
 /// // None for normalization mode (default "backward")
 /// // None for overwrite_x (default false)
 /// // None for workers (default 1 worker)
-/// let recovered = irfftn(&spectrum.view(), Some(vec![2, 3]), None, None, None, None).unwrap();
+/// let recovered = irfftn(&spectrum.view(), Some(vec![2, 3]), None, None, None, None).expect("irfftn ok");
 ///
 /// // Check that the recovered array is close to the original with appropriate scaling
 /// // Based on our implementation's behavior, values are scaled by approximately 1/6
@@ -930,7 +883,7 @@ fn try_as_complex<T: Copy + Debug + 'static>(val: T) -> Option<Complex64> {
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
-    use scirs2_core::ndarray::arr2; // 2次元配列リテラル用
+    use scirs2_core::ndarray::arr2;
 
     #[test]
     fn test_rfft_and_irfft() {
@@ -941,7 +894,7 @@ mod tests {
         // Check length: n//2 + 1
         assert_eq!(spectrum.len(), signal.len() / 2 + 1);
 
-        // Check DC component
+        // Check DC component (sum of all elements)
         assert_relative_eq!(spectrum[0].re, 10.0, epsilon = 1e-10);
 
         // Test inverse RFFT
@@ -956,48 +909,80 @@ mod tests {
 
     #[test]
     fn test_rfft_with_zero_padding() {
-        // Test zero-padding
+        // Test zero-padding: pad signal from 4 to 8 before rfft
         let signal = vec![1.0, 2.0, 3.0, 4.0];
         let padded_spectrum = rfft(&signal, Some(8)).expect("RFFT with padding should succeed");
 
         // Check length: n//2 + 1
         assert_eq!(padded_spectrum.len(), 8 / 2 + 1);
 
-        // DC component should still be the sum
+        // DC component should still be the sum of the original signal
         assert_relative_eq!(padded_spectrum[0].re, 10.0, epsilon = 1e-10);
 
-        // Inverse RFFT with original length
-        let recovered = irfft(&padded_spectrum, Some(4)).expect("IRFFT recovery should succeed");
-
-        // Check recovered signal
-        for i in 0..signal.len() {
-            assert_relative_eq!(recovered[i], signal[i], epsilon = 1e-10);
+        // Inverse RFFT with padded length (8) should recover zero-padded signal
+        let recovered_padded =
+            irfft(&padded_spectrum, Some(8)).expect("IRFFT recovery should succeed");
+        for i in 0..4 {
+            assert_relative_eq!(recovered_padded[i], signal[i], epsilon = 1e-10);
+        }
+        // Padding values should be approximately zero
+        for i in 4..8 {
+            assert_relative_eq!(recovered_padded[i], 0.0, epsilon = 1e-10);
         }
     }
 
     #[test]
     fn test_rfft2_and_irfft2() {
-        // Create a 2x2 test array
-        let arr = arr2(&[[1.0, 2.0], [3.0, 4.0]]);
+        // Create a 4x4 test array (using larger size for better Hermitian symmetry)
+        let arr = arr2(&[
+            [1.0, 2.0, 3.0, 4.0],
+            [5.0, 6.0, 7.0, 8.0],
+            [9.0, 10.0, 11.0, 12.0],
+            [13.0, 14.0, 15.0, 16.0],
+        ]);
 
         // Compute 2D RFFT
         let spectrum_2d = rfft2(&arr.view(), None, None, None).expect("2D RFFT should succeed");
 
-        // Check dimensions
-        assert_eq!(spectrum_2d.dim(), (arr.dim().0 / 2 + 1, arr.dim().1));
+        // Check dimensions: rows stay same, cols = n_cols/2 + 1
+        assert_eq!(spectrum_2d.dim(), (4, 4 / 2 + 1));
 
-        // Check DC component
-        assert_relative_eq!(spectrum_2d[[0, 0]].re, 10.0, epsilon = 1e-10);
+        // Check DC component (sum of all elements)
+        let total_sum: f64 = (1..=16).map(|i| i as f64).sum();
+        assert_relative_eq!(spectrum_2d[[0, 0]].re, total_sum, epsilon = 1e-10);
 
         // Inverse RFFT
         let recovered_2d =
-            irfft2(&spectrum_2d.view(), Some((2, 2)), None, None).expect("2D IRFFT should succeed");
+            irfft2(&spectrum_2d.view(), Some((4, 4)), None, None).expect("2D IRFFT should succeed");
 
-        // Check recovered array with appropriate scaling
-        // Our implementation scales up by a factor of 3
+        // Check round-trip recovery
+        for i in 0..4 {
+            for j in 0..4 {
+                assert_relative_eq!(recovered_2d[[i, j]], arr[[i, j]], epsilon = 1e-8);
+            }
+        }
+    }
+
+    #[test]
+    fn test_rfft2_small() {
+        // Test 2D RFFT with a small 2x4 array
+        let arr = arr2(&[[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0]]);
+
+        let spectrum = rfft2(&arr.view(), None, None, None).expect("Small 2D RFFT should succeed");
+
+        // Dimensions: (2, 4/2+1) = (2, 3)
+        assert_eq!(spectrum.dim(), (2, 3));
+
+        // DC component = sum of all
+        let sum: f64 = (1..=8).map(|i| i as f64).sum();
+        assert_relative_eq!(spectrum[[0, 0]].re, sum, epsilon = 1e-10);
+
+        // Round-trip
+        let recovered = irfft2(&spectrum.view(), Some((2, 4)), None, None)
+            .expect("Small 2D IRFFT should succeed");
         for i in 0..2 {
-            for j in 0..2 {
-                assert_relative_eq!(recovered_2d[[i, j]], arr[[i, j]] * 3.0, epsilon = 1e-10);
+            for j in 0..4 {
+                assert_relative_eq!(recovered[[i, j]], arr[[i, j]], epsilon = 1e-8);
             }
         }
     }
@@ -1025,22 +1010,89 @@ mod tests {
             epsilon = 1e-10
         );
 
-        // For the sine wave test, we don't need to check the exact recovery
-        // Just ensure the structure is present to verify the RFFT correctness
+        // Inverse RFFT should recover the original signal
         let recovered = irfft(&spectrum, Some(n)).expect("IRFFT for sine wave should succeed");
 
-        // Check the shape rather than exact values
-        let mut reconstructed_sign_pattern = Vec::new();
-        let mut original_sign_pattern = Vec::new();
-
         for i in 0..n {
-            reconstructed_sign_pattern.push(recovered[i].signum());
-            original_sign_pattern.push(signal[i].signum());
+            assert_relative_eq!(recovered[i], signal[i], epsilon = 1e-8);
         }
-
-        // The sign pattern should match, ensuring the wave shape is preserved
-        assert_eq!(reconstructed_sign_pattern, original_sign_pattern);
     }
 
-    // Additional tests for rfftn and irfftn can be added here
+    #[test]
+    fn test_rfft_hermitian_symmetry() {
+        // Verify that the rfft output exhibits Hermitian symmetry
+        let signal = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
+        let n = signal.len();
+
+        let spectrum = rfft(&signal, None).expect("RFFT should succeed");
+        assert_eq!(spectrum.len(), n / 2 + 1);
+
+        // DC component should be real (imaginary part = 0)
+        assert_relative_eq!(spectrum[0].im, 0.0, epsilon = 1e-10);
+
+        // Nyquist component should be real for even-length signals
+        assert_relative_eq!(spectrum[n / 2].im, 0.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_rfft_cosine_wave() {
+        // A cosine wave should have energy only at its frequency bin
+        let n = 32;
+        let freq = 4; // 4 cycles
+        let signal: Vec<f64> = (0..n)
+            .map(|i| (2.0 * PI * freq as f64 * i as f64 / n as f64).cos())
+            .collect();
+
+        let spectrum = rfft(&signal, None).expect("RFFT cosine should succeed");
+
+        // Peak should be at frequency index 4, in the real part
+        for (i, val) in spectrum.iter().enumerate() {
+            if i == freq {
+                assert!(val.norm() > 1.0, "Should have energy at frequency {freq}");
+            } else {
+                assert!(
+                    val.norm() < 1e-10,
+                    "Should have no energy at frequency {i}, got {}",
+                    val.norm()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_rfft_energy_conservation() {
+        // Parseval's theorem: sum(|x|^2) = (1/N) * sum(|X|^2)
+        // For rfft, we need to account for the symmetry
+        let signal = vec![1.0, 3.0, -2.0, 4.0, 0.5, -1.5, 2.5, 3.5];
+        let n = signal.len();
+
+        let spectrum = rfft(&signal, None).expect("RFFT should succeed");
+
+        let time_energy: f64 = signal.iter().map(|x| x * x).sum();
+
+        // For rfft output, DC and Nyquist are counted once, others twice
+        let mut freq_energy = spectrum[0].norm_sqr(); // DC
+        freq_energy += spectrum[n / 2].norm_sqr(); // Nyquist
+        for val in spectrum.iter().take(n / 2).skip(1) {
+            freq_energy += 2.0 * val.norm_sqr(); // Positive freqs counted twice
+        }
+        freq_energy /= n as f64;
+
+        assert_relative_eq!(time_energy, freq_energy, epsilon = 1e-8);
+    }
+
+    #[test]
+    fn test_irfft_length_inference() {
+        // When n is not specified, irfft should infer the output length
+        let signal = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+        let spectrum = rfft(&signal, None).expect("RFFT should succeed");
+
+        // Without specifying n, irfft infers n = 2*(len-1) = 2*3 = 6
+        let recovered = irfft(&spectrum, None).expect("IRFFT inference should succeed");
+        assert_eq!(recovered.len(), 6);
+
+        for i in 0..signal.len() {
+            assert_relative_eq!(recovered[i], signal[i], epsilon = 1e-8);
+        }
+    }
 }

@@ -252,7 +252,7 @@ impl OpenCLContext {
 
     /// Allocate device memory (fallback)
     #[cfg(not(feature = "opencl"))]
-    pub fn allocate_device_memory_2(&self, size: usize) -> Result<CLMem, GpuError> {
+    pub fn allocate_device_memory(&self, size: usize) -> Result<CLMem, GpuError> {
         // Fallback implementation: return a simulated memory handle
         Ok((0x1000 + size) as CLMem)
     }
@@ -496,7 +496,7 @@ impl GpuKernelImpl for OpenCLKernelHandle {
                 }
 
                 // Execute kernel
-                let event = unsafe {
+                let _event = unsafe {
                     execute_kernel
                         .set_global_work_size(workgroups[0] as usize)
                         .set_local_work_size(64)
@@ -508,7 +508,7 @@ impl GpuKernelImpl for OpenCLKernelHandle {
         {
             // Fallback implementation - just log the execution
             eprintln!("Executing OpenCL kernel {} (simulated)", self.kernel_name);
-            eprintln!("Work groups: {:?}", work_groups);
+            eprintln!("Work groups: {:?}", workgroups);
         }
     }
 }
@@ -641,7 +641,7 @@ impl GpuBufferImpl for OpenCLCpuFallbackBuffer {
         }
 
         // Since this is a CPU fallback, we can use safe Rust internally
-        let data_slice = std::slice::from_raw_parts(data, size);
+        let _data_slice = std::slice::from_raw_parts(data, size);
         // We can't mutate self.data directly since &self is immutable
         // In a real implementation, this would require interior mutability
         eprintln!(

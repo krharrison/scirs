@@ -1,151 +1,111 @@
 # scirs2-special TODO
 
-This module provides special functions similar to SciPy's special module.
+## v0.3.0 Completed
 
-## Production Status (v0.1.5) - Stable Release
+### Classical Special Functions
+- [x] Gamma: `gamma`, `log_gamma`, `digamma`, `trigamma`, `polygamma`, `beta`, `log_beta`
+- [x] Incomplete gamma: lower `gamma(a,x)`, upper `Gamma(a,x)`, regularized P and Q
+- [x] Incomplete beta `I_x(a,b)` and its inverse; `beta` function
+- [x] Factorial `n!`, log-factorial, binomial `C(n,k)`, Pochhammer symbol
+- [x] Error function `erf`, complementary `erfc`, scaled `erfcx`, imaginary `erfi`
+- [x] Dawson integral, inverse `erfinv`, inverse complementary `erfcinv`
+- [x] Bessel J_n (integer and real order), Y_n, I_n, K_n; spherical j_n, y_n; Hankel H_n^(1/2)
+- [x] Bessel function zeros (first n zeros of J_n, Y_n)
+- [x] Complete elliptic K(k), E(k), Pi(n,k); incomplete F, E, Pi; Carlson R_F/R_D/R_J/R_C
+- [x] Jacobi elliptic functions sn, cn, dn (12 variants)
+- [x] Orthogonal polynomials: Legendre P_n, associated P_n^m; Chebyshev T_n, U_n; Hermite H_n, He_n; Laguerre L_n, L_n^alpha; Gegenbauer C_n^lambda; Jacobi P_n^(alpha,beta); Zernike radial
+- [x] Airy Ai, Bi and derivatives; exponentially scaled; complex argument
+- [x] Hypergeometric: _0F_1, _1F_1 (Kummer), U (Tricomi), _2F_1 (Gauss) with analytic continuation; generalized _pF_q
+- [x] Riemann zeta, Hurwitz zeta, Dirichlet eta, Lerch transcendent, Lambert W (W_0 and W_{-1})
+- [x] Struve H_n and L_n with asymptotic expansions
+- [x] Kelvin functions ber, bei, ker, kei and derivatives
+- [x] Fresnel integrals S(x) and C(x), modulus and phase
+- [x] Parabolic cylinder D_n, U(a,x), V(a,x)
+- [x] Spheroidal wave functions: prolate and oblate, angular and radial
+- [x] Wright omega and Wright Bessel functions
+- [x] Coulomb wave functions: regular F_l, irregular G_l, Hankel H_l^+/-
+- [x] Logarithmic integral li(x), offset Li(x), exponential integrals Ei, E_n, E_1
 
-Following the [SciRS2 POLICY](../SCIRS2_POLICY.md), this module provides ecosystem consistency with comprehensive platform testing and reliability through scirs2-core abstractions.
+### Advanced Functions (v0.3.0 Additions)
+- [x] Mathieu functions: characteristic values a_r(q), b_r(q); even ce_r, odd se_r with Fourier coefficients; radial Mc_r, Ms_r; asymptotic expansions
+- [x] Real and complex spherical harmonics Y_l^m for arbitrary l, m
+- [x] Gaunt coefficients: triple-Y integrals
+- [x] Wigner 3-j symbols (Racah formula)
+- [x] Wigner 6-j symbols (Racah W-coefficients)
+- [x] Wigner 9-j symbols for compound coupling
+- [x] Clebsch-Gordan coefficients
+- [x] Jacobi theta functions theta_1 through theta_4; logarithmic derivatives
+- [x] Weierstrass P-function, zeta, sigma; elliptic invariants g2, g3; discriminant; j-invariant
+- [x] Parabolic cylinder extensions: non-integer n via Whittaker; asymptotic expansions for large |x|, |a|
+- [x] Fox H-function: general H_{p,q}^{m,n}; series and integral representations
+- [x] Appell F_1, F_2, F_3, F_4 hypergeometric functions
+- [x] Meixner-Pollaczek polynomials P_n^lambda(x; phi)
+- [x] Heun functions: general, confluent, double-confluent, biconfluent, triconfluent
+- [x] Polylogarithm Li_s(z) for complex s, z; Fermi-Dirac integrals; Bose-Einstein integrals; Clausen Cl_2
+- [x] Q-Gamma function Gamma_q; q-Pochhammer (a;q)_n and (a;q)_inf; q-binomial (Gaussian binomial); q-exponential e_q, E_q
+- [x] Q-Bessel functions of first and second kind
+- [x] Q-orthogonal polynomials: big/little q-Jacobi, q-Laguerre, q-Hermite, Askey-Wilson
+- [x] Number theory: Ramanujan tau, Euler totient phi, Jordan totient, Liouville lambda, von Mangoldt Lambda, Mobius mu, Mertens M, d(n), sigma_k(n), partition function p(n)
+- [x] Bell polynomials (complete and partial), Bernoulli/Euler numbers and polynomials
+- [x] Stirling numbers first and second kind; Lah numbers
+- [x] Information-theoretic: KL divergence, JS divergence, Shannon entropy, Renyi entropy, mutual information, cross-entropy, logistic, softmax, logsumexp
+- [x] Combinatorics extensions: Catalan, Narayana, Motzkin numbers; derangements; subfactorial
+- [x] Orthogonal polynomial extensions: Wilson, Racah, Askey-Wilson, dual Hahn, Krawtchouk, Meixner, Charlier
 
-### Core Infrastructure ⚠️ 
-- [x] Set up module structure with comprehensive organization
-- [x] Robust error handling with core integration
-- [⚠️] Testing framework in place but many tests need fixes (compilation issues resolved)
-- [x] Clean builds with zero warnings (fmt, clippy, build all pass)
-- [x] Memory-safe implementations with proper validation
+### Performance
+- [x] SIMD-accelerated array evaluation for gamma, erf, Bessel (via scirs2-core)
+- [x] Parallel Rayon-based batch evaluation for arrays > 1000 elements
+- [x] Lookup tables and rational approximations for critical hot paths
+- [x] Chunked processing for memory-efficient large array evaluation
 
-### Mathematical Functions (Production Ready) ✅
-- [x] **Bessel functions**: J₀/J₁/Jₙ, Y₀/Y₁/Yₙ, I₀/I₁/Iᵥ, K₀/K₁/Kᵥ, spherical variants
-- [x] **Gamma functions**: gamma, log_gamma, digamma, beta, incomplete variants
-- [x] **Error functions**: erf, erfc, erfinv, erfcinv, complex variants
-- [x] **Orthogonal polynomials**: Legendre, Chebyshev, Hermite, Laguerre, Gegenbauer, Jacobi
-- [x] **Airy functions**: Ai, Bi and their derivatives, complex support
-- [x] **Elliptic functions**: Complete/incomplete integrals, Jacobi elliptic functions
-- [x] **Hypergeometric functions**: 1F1, 2F1, Pochhammer symbol
-- [x] **Spherical harmonics**: Real and complex variants with proper normalization
-- [x] **Mathieu functions**: Characteristic values, even/odd functions, Fourier coefficients
-- [x] **Zeta functions**: Riemann zeta, Hurwitz zeta, Dirichlet eta
-- [x] **Kelvin functions**: ber, bei, ker, kei and their derivatives
-- [x] **Parabolic cylinder functions**: Weber functions with proper scaling
-- [x] **Lambert W function**: Real and complex branches
-- [x] **Struve functions**: H and L variants with asymptotic expansions
-- [x] **Fresnel integrals**: S(x) and C(x) with modulus and phase
-- [x] **Spheroidal wave functions**: Prolate/oblate, angular/radial functions
-- [x] **Wright functions**: Wright Omega, Wright Bessel functions
-- [x] **Coulomb functions**: Regular/irregular Coulomb wave functions
-- [x] **Logarithmic integral**: Li(x) and related exponential integrals
+## v0.4.0 Roadmap
 
-### Advanced Features (Production Ready) ✅
-- [x] **Array operations**: Vectorized operations for all functions
-- [x] **Complex number support**: Full complex arithmetic where applicable
-- [x] **Statistical functions**: Logistic, softmax, logsumexp, sinc functions
-- [x] **Combinatorial functions**: Factorials, binomial coefficients, Stirling numbers
-- [x] **Numerical precision**: Extended precision algorithms for edge cases
-- [x] **Performance optimizations**: Efficient algorithms with lookup tables
+### GPU-Accelerated Batch Evaluation
+- [ ] CUDA/ROCm kernels for batch gamma, erf, Bessel evaluation on GPU
+- [ ] WebGPU compute shaders for browser-based WASM deployment
+- [ ] Auto-dispatch: evaluate on GPU when array size exceeds configurable threshold
+- [ ] Mixed-precision: f16 accumulation with f32 correction for throughput-critical paths
 
-### Documentation & Examples ✅
-- [x] Comprehensive API documentation with mathematical references
-- [x] 32 working examples demonstrating all major function families
-- [x] Complex mathematical properties validation in tests
-- [x] Benchmarking infrastructure for performance monitoring
+### Symbolic Computation Interface
+- [ ] Symbolic representation of special functions as expression trees
+- [ ] Automatic differentiation of special functions: symbolic derivative rules
+- [ ] Series expansion engine: formal power series around regular and irregular points
+- [ ] Asymptotic expansion engine: automated derivation of leading-order terms
+- [ ] Connection formula generator: transformations between solution bases
 
-### Performance Optimizations
-- [x] **SIMD-accelerated operations**: Vectorized gamma, exponential, error, and Bessel functions
-- [x] **Parallel processing**: Multi-threaded implementations for large arrays (>1000 elements)
-- [x] **Adaptive processing**: Automatic selection of optimal algorithm based on array size and features
-- [x] **Combined SIMD+Parallel**: Hybrid approach for very large arrays (>10k elements)
-- [x] **Comprehensive benchmarking**: SciPy comparison suite with performance analysis
-- [x] **Performance demonstrations**: Examples showing up to 7x speedup for gamma functions
+### Extended Precision
+- [ ] Arbitrary-precision gamma, erf, Bessel via the `rug` MPFR backend (feature-gated)
+- [ ] Ball arithmetic for certified enclosure of function values
+- [ ] Validated numerics interface: output intervals guaranteed to contain the true value
+- [ ] Double-double (quad-double) precision for 30-60 decimal digits without MPFR overhead
 
-## Future Roadmap
+### New Function Families
+- [ ] Lame functions: solutions to Lame's equation on an ellipsoidal coordinate system
+- [ ] Spheroidal wave functions with full asymptotic transitions
+- [ ] Nield-Kuznetsov functions for gravity wave theory
+- [ ] Mathieu-Hill functions: generalized periodic Hill's equation solutions
+- [ ] Painleve transcendents: numerical solution with connection formulas
+- [ ] Elliptic modular functions: j-invariant, Dedekind eta, modular lambda
 
-### Performance & Optimization
-- [x] **Performance benchmarking against SciPy's special functions**: Comprehensive benchmark suite with Python comparison script
-- [x] **SIMD optimizations using scirs2-core features**: Optimized functions for f32/f64 arrays with up to 7x speedup
-- [x] **Parallel processing for large array operations**: Rayon-based parallel implementations for gamma and Bessel functions
-- [x] GPU acceleration for compute-intensive functions (infrastructure ready, kernels pending)
-- [x] Memory-efficient algorithms for large datasets (chunked processing implemented)
+### Number Theory Extensions
+- [ ] L-functions: Dirichlet L(s, chi) for primitive characters
+- [ ] Hecke L-functions and Maass forms
+- [ ] Elliptic curve L-functions (BSD conjecture numerics)
+- [ ] Dedekind zeta functions for number fields
+- [ ] Selberg zeta function for hyperbolic surfaces
 
-### Extended Functionality
-- [x] Arbitrary precision computation support (✅ Implemented with rug crate)
-- [x] Additional special functions for complete SciPy parity (✅ Added distributions, incomplete gamma, info theory, Bessel zeros, utility functions)
-- [x] **Advanced visualization tools and plotting integration** (✅ Implemented comprehensive plotting with plotters crate)
-- [x] Specialized physics and engineering function collections (✅ Added comprehensive physics_engineering module)
-- [x] Integration with statistical and probability distributions (✅ Added comprehensive distribution functions module)
+### Combinatorics and Algebra
+- [ ] Chromatic polynomial of graphs
+- [ ] Tutte polynomial of matroids
+- [ ] Schur polynomials and symmetric function bases (power-sum, monomial, elementary)
+- [ ] Clebsch-Gordan series for arbitrary Lie groups (SU(3), SO(5), etc.)
+- [ ] Hall polynomials for p-group extensions
 
-### API & Usability
-- [x] **Consistent error handling patterns across all functions** (✅ Implemented comprehensive error handling with context tracking)
-- [x] **Enhanced documentation with mathematical proofs and derivations** (✅ Enhanced statistical.rs and utility.rs modules with comprehensive mathematical foundations, proofs, and derivations)
-- [x] **Interactive examples and educational tutorials** (✅ Created comprehensive interactive statistical functions tutorial with mathematical proofs and experiments)
-- [x] Python interoperability for migration assistance (✅ Enhanced python_interop module with code translation)
-- [x] Domain-specific convenience functions (✅ Added bioinformatics, geophysics, chemistry, astronomy domains)
+## Known Issues
 
-### Quality Assurance
-- [x] **Extended property-based testing with QuickCheck-style tests** (✅ Implemented comprehensive property tests for all function families)
-- [x] **Numerical stability analysis for extreme parameter ranges** (✅ Implemented stability analysis with detailed reporting)
-- [x] **Cross-validation against multiple reference implementations** (✅ Implemented validation framework with SciPy, GSL, and MPFR references)
-- [x] **Performance regression testing in CI/CD pipeline** (✅ Comprehensive CI/CD script with baseline comparison, regression detection, and detailed reporting)
-
-## Current Status & Known Issues (v0.1.5)
-
-### Recently Fixed (Advanced Implementation - v0.1.5)
-- ✅ **Build System**: All Clippy warnings resolved, zero-warning builds achieved
-- ✅ **Core Library**: Compiles successfully with proper error handling
-- ✅ **Function Mapping**: Fixed function name mismatches (legendre_p → legendre, log_gamma → loggamma, etc.)
-- ✅ **Import Dependencies**: Resolved missing module imports and function paths
-- ✅ **Type Safety**: Fixed type inference issues in examples and tests
-
-### Advanced Mode Enhancements (Latest Session)
-- ✅ **Property-Based Testing**: Optimized quickcheck tests with configurable test intensity, reduced parameter ranges, and early termination patterns for 5x faster compilation
-- ✅ **Benchmarking Infrastructure**: Enhanced with numerical accuracy computation, comprehensive error handling, validation framework, and production-ready performance monitoring
-- ✅ **Documentation Enhancement**: Polished error handling documentation with detailed examples, mathematical context, and usage patterns for all public APIs
-- ✅ **GPU Acceleration**: Moved beyond experimental status with production-ready configuration, monitoring, validation functions, and comprehensive resource management
-- ✅ **Code Quality**: Achieved consistent formatting, resolved all clippy warnings, and established zero-warning policy compliance
-
-### Production-Ready Features (New)
-- ✅ **Adaptive Testing**: Environment-controlled test intensity (QUICK_TESTS=1 for development, COMPREHENSIVE_TESTS=1 for CI/CD)
-- ✅ **Numerical Validation**: Benchmarking now includes accuracy measurements against reference implementations
-- ✅ **GPU Production Config**: Comprehensive GPU configuration with memory limits, adaptive switching, and performance profiling
-- ✅ **Advanced Error Handling**: Detailed error categorization with examples and troubleshooting guidance
-- ✅ **Infrastructure Validation**: Built-in validation functions for production readiness assessment
-
-### Known Limitations & Future Work (Updated)
-- ✅ **Test Suite**: Performance-optimized with configurable test intensity
-- ✅ **Examples**: All compilation issues resolved 
-- ✅ **GPU Features**: Production-ready with comprehensive monitoring and configuration
-- ✅ **Performance**: Validated benchmarking infrastructure with accuracy measurements
-- 🔄 **SciPy Parity**: Not all SciPy convenience functions are fully implemented yet (ongoing)
-- ✅ **Documentation**: Comprehensive documentation for all public APIs and error handling
-
-## Next Steps (Priority Order)
-
-### High Priority (v0.1.5) - COMPLETED ✅
-1. ✅ **Test Stabilization**: Optimized property-based tests for faster compilation with configurable test intensity
-2. ✅ **Example Fixes**: Resolved all remaining example compilation errors
-3. ✅ **Documentation Polish**: Enhanced comprehensive documentation for all public APIs
-4. ✅ **Performance Validation**: Validated and enhanced benchmarking infrastructure with accuracy measurements
-
-### Medium Priority (v0.1.5) - COMPLETED ✅
-1. ✅ **GPU Enhancement**: Enhanced GPU acceleration features to production-ready status with comprehensive monitoring
-2. 🔄 **SciPy Completion**: Fill gaps in SciPy convenience function coverage (in progress)
-3. ✅ **Advanced Testing**: Implemented configurable cross-validation testing framework
-4. ✅ **CI/CD Integration**: Ready for full integration of performance regression testing
-
-### Current Priority (v0.1.5)
-1. **SciPy Parity Completion**: Complete implementation of remaining SciPy convenience functions
-2. **Performance Optimization**: Further optimize critical paths identified through benchmarking
-3. **Extended Validation**: Add more comprehensive numerical validation tests
-4. **Platform Testing**: Extensive testing across different platforms and GPU backends
-
-### Future Versions
-1. **Precision Enhancement**: Improve numerical stability for extreme parameter values
-2. **Python Interop**: Enhanced Python interoperability for migration assistance
-3. **Domain Extensions**: Specialized physics and engineering function collections
-
-## Migration Notes
-
-For users migrating from SciPy:
-- Function names and signatures closely match SciPy where possible
-- Complex number support is more consistent across function families
-- Error handling uses Rust's Result types instead of exceptions
-- Array operations leverage ndarray instead of NumPy arrays
-- Build system enforces zero warnings for maximum code quality
+- Appell F_2 convergence is slow near the boundary of its natural domain (|x| + |y| = 1); extrapolation via analytic continuation is planned.
+- Heun functions (general) use local power series and may fail to converge for large |z| or near Stokes lines; connection formula-based global evaluation is planned.
+- Fox H-function series representation is conditional on absolute convergence; the integral representation needed for the divergent-series regime is not yet implemented.
+- Q-Bessel functions for |q| close to 1 may exhibit numerical instability due to cancellation in the q-Pochhammer product; regularized representations are planned.
+- Wigner 9-j symbols for j > 30 may accumulate rounding errors; arbitrary-precision evaluation via the `rug` feature is recommended for high-j coupling.
+- Ramanujan tau function is computed via convolution of Fourier coefficients and is O(n log n); values up to n ~ 10^6 are practical on current hardware.

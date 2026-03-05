@@ -380,10 +380,15 @@ pub mod apiversioning;
 #[cfg(feature = "array")]
 pub mod array;
 pub mod array_protocol;
+#[cfg(feature = "arrow")]
+pub mod arrow_compat;
 #[cfg(feature = "types")]
 pub mod batch_conversions;
+/// Bioinformatics utilities: sequence analysis, alignment, statistics, phylogenetics.
+pub mod bioinformatics;
 #[cfg(feature = "cache")]
 pub mod cache;
+pub mod cache_ops;
 pub mod chunking;
 #[cfg(feature = "cloud")]
 pub mod cloud;
@@ -392,6 +397,15 @@ pub mod constants;
 pub mod distributed;
 pub mod ecosystem;
 pub mod error;
+pub mod out_of_core;
+pub mod streaming_stats;
+// Financial computing extensions (v0.3.0) — option pricing, fixed income, risk, portfolio analytics
+pub mod finance;
+// Computational physics tools (v0.3.0) — classical, thermodynamics, electrodynamics, quantum
+pub mod physics;
+// C ABI FFI module for calling SciRS2 from C, Julia, and other languages (v0.3.0)
+#[cfg(feature = "ffi")]
+pub mod ffi;
 // Cross-module integration framework (v0.2.0)
 #[cfg(feature = "gpu")]
 pub mod gpu;
@@ -428,6 +442,9 @@ pub mod python;
 #[cfg(feature = "random")]
 pub mod random;
 pub mod resource;
+// Cross-language serialization protocol for .scirs2 files (v0.3.0 Phase 9.2)
+#[cfg(feature = "serialization")]
+pub mod serialization;
 #[cfg(feature = "simd")]
 pub mod simd;
 pub mod simd_aligned;
@@ -446,6 +463,18 @@ pub mod ufuncs;
 pub mod units;
 pub mod utils;
 pub mod validation;
+
+// Data preprocessing, splitting, type conversions, and string processing (v0.3.0)
+pub mod data_split;
+pub mod preprocessing;
+pub mod string_ops;
+pub mod type_convert;
+
+// IDE integration: ergonomic builder patterns for array construction (v0.3.0)
+pub mod builders;
+
+// IDE integration: shorthand matrix/vector operations (v0.3.0)
+pub mod ops;
 
 // Embedded systems support (v0.2.0)
 #[cfg(feature = "embedded")]
@@ -485,6 +514,12 @@ pub mod tensor_cores;
 #[cfg(feature = "benchmarking")]
 pub mod benchmarking;
 
+// Lightweight benchmarking utilities (always available, no feature gate)
+pub mod bench_utils;
+
+// Progress tracking for iterative algorithms (always available, no feature gate)
+pub mod progress;
+
 // Re-exports
 #[cfg(feature = "cache")]
 pub use crate::cache::*;
@@ -495,6 +530,7 @@ pub use crate::cloud::{
     TransferOptions,
 };
 pub use crate::config::production as config_production;
+pub use crate::config::unified as config_unified;
 pub use crate::config::{get_config, get_config_value, set_config_value, Config, ConfigValue};
 pub use crate::constants::{math, physical, prefixes};
 #[allow(ambiguous_glob_reexports)]
@@ -530,6 +566,9 @@ pub use crate::memory::{
     track_deallocation, track_resize, BufferPool, ChunkProcessor, ChunkProcessor2D,
     GlobalBufferPool, ZeroCopyView,
 };
+
+#[cfg(feature = "mmap")]
+pub use crate::memory::{MmapArray, MmapElement, MmapError};
 // Legacy re-export from ndarray_ext (kept for backward compatibility)
 pub use crate::ndarray_ext::array as array_legacy;
 
@@ -672,6 +711,20 @@ pub use crate::validation::{
     check_finite, check_in_bounds, check_positive, checkarray_finite, checkshape,
 };
 pub use rand_chacha::{ChaCha12Rng, ChaCha20Rng, ChaCha8Rng};
+
+// ================================
+// IDE Integration: Builder Patterns
+// ================================
+
+// Re-export builders at crate root for ergonomic access
+pub use crate::builders::{ArrayBuilder, MatrixBuilder, VectorBuilder};
+
+// ================================
+// IDE Integration: Ergonomic Ops
+// ================================
+
+// Re-export matrix/vector ops at crate root for ergonomic access
+pub use crate::ops::{block_diag, dot as mat_dot, hstack, kron, outer, vstack};
 
 // ================================
 // Prelude Module

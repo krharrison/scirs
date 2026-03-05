@@ -104,8 +104,8 @@ impl Default for FilterStability {
 /// use scirs2_signal::filter::iir::butter;
 ///
 /// // Analyze a Butterworth filter
-/// let (b, a) = butter(4, 0.2, "lowpass").unwrap();
-/// let analysis = analyze_filter(&b, &a, Some(256)).unwrap();
+/// let (b, a) = butter(4, 0.2, "lowpass").expect("operation should succeed");
+/// let analysis = analyze_filter(&b, &a, Some(256)).expect("operation should succeed");
 ///
 /// println!("3dB cutoff: {:.3}", analysis.cutoff_3db);
 /// println!("Stopband attenuation: {:.1} dB", analysis.stopband_attenuation);
@@ -234,8 +234,8 @@ pub fn analyze_filter(
 /// use scirs2_signal::filter::iir::butter;
 ///
 /// // Check stability of a Butterworth filter
-/// let (b, a) = butter(4, 0.2, "lowpass").unwrap();
-/// let stability = check_filter_stability(&a).unwrap();
+/// let (b, a) = butter(4, 0.2, "lowpass").expect("operation should succeed");
+/// let stability = check_filter_stability(&a).expect("operation should succeed");
 ///
 /// println!("Filter is stable: {}", stability.is_stable);
 /// println!("Stability margin: {:.6}", stability.stability_margin);
@@ -297,9 +297,9 @@ pub fn check_filter_stability(a: &[f64]) -> SignalResult<FilterStability> {
 /// use scirs2_signal::filter::analysis::frequency_response;
 /// use scirs2_signal::filter::iir::butter;
 ///
-/// let (b, a) = butter(4, 0.2, "lowpass").unwrap();
+/// let (b, a) = butter(4, 0.2, "lowpass").expect("operation should succeed");
 /// let freqs = vec![0.0, 0.1, 0.2, 0.3, 0.4, 0.5];
-/// let (mag, phase) = frequency_response(&b, &a, &freqs).unwrap();
+/// let (mag, phase) = frequency_response(&b, &a, &freqs).expect("operation should succeed");
 /// ```
 #[allow(dead_code)]
 pub fn frequency_response(
@@ -352,8 +352,8 @@ pub fn frequency_response(
 /// use scirs2_signal::filter::analysis::find_poles_zeros;
 /// use scirs2_signal::filter::iir::butter;
 ///
-/// let (b, a) = butter(2, 0.3, "lowpass").unwrap();
-/// let (zeros, poles) = find_poles_zeros(&b, &a).unwrap();
+/// let (b, a) = butter(2, 0.3, "lowpass").expect("operation should succeed");
+/// let (zeros, poles) = find_poles_zeros(&b, &a).expect("operation should succeed");
 ///
 /// println!("Number of zeros: {}", zeros.len());
 /// println!("Number of poles: {}", poles.len());
@@ -398,8 +398,8 @@ pub fn find_poles_zeros(b: &[f64], a: &[f64]) -> SignalResult<(Vec<Complex64>, V
 /// use scirs2_signal::filter::analysis::compute_q_factor;
 /// use scirs2_signal::filter::iir::butter;
 ///
-/// let (b, a) = butter(4, 0.2, "lowpass").unwrap();
-/// let q = compute_q_factor(&b, &a, 512).unwrap();
+/// let (b, a) = butter(4, 0.2, "lowpass").expect("operation should succeed");
+/// let q = compute_q_factor(&b, &a, 512).expect("operation should succeed");
 /// println!("Q factor: {:.2}", q);
 /// ```
 #[allow(dead_code)]

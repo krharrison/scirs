@@ -895,9 +895,20 @@ where
     let degrees = graph.degree_vector();
 
     for _ in 0..max_iter {
-        let mut new_pagerank = Array1::<f64>::from_elem(n, (1.0 - damping) / n as f64);
+        // Compute dangling node contribution: sum of PageRank of nodes with degree 0
+        let mut dangling_sum = 0.0;
+        for (i, _) in graph.inner().node_indices().enumerate() {
+            if degrees[i] == 0 {
+                dangling_sum += pagerank[i];
+            }
+        }
+        // Dangling mass is redistributed uniformly to all nodes
+        let dangling_contrib = damping * dangling_sum / n as f64;
 
-        // Calculate PageRank contribution from each node
+        let mut new_pagerank =
+            Array1::<f64>::from_elem(n, (1.0 - damping) / n as f64 + dangling_contrib);
+
+        // Calculate PageRank contribution from each non-dangling node
         for (i, node_idx) in graph.inner().node_indices().enumerate() {
             let node_degree = degrees[i] as f64;
             if node_degree > 0.0 {

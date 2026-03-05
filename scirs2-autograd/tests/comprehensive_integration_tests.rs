@@ -14,7 +14,7 @@ use scirs2_autograd::optimization::{
 };
 use scirs2_autograd::parallel::{init_thread_pool_with_config, ThreadPoolConfig};
 use scirs2_autograd::tensor_ops as T;
-use scirs2_autograd::visualization::{GraphVisualizer, OutputFormat, VisualizationConfig};
+use scirs2_autograd::visualization::{OutputFormat, VisualizationConfig};
 use scirs2_core::ndarray::{Array, IxDyn};
 
 /// Test the complete Advanced feature integration pipeline
@@ -153,18 +153,17 @@ fn test_comprehensive_graph_visualization() {
     for format in output_formats {
         let config = VisualizationConfig {
             format,
-            showshapes: true,
+            show_shapes: true,
             show_operations: true,
             show_gradients: true,
             max_nodes: Some(100),
             show_values: false,
         };
 
-        let _visualizer = GraphVisualizer::<f32>::with_config(config);
-
-        // Test that visualizer can be created with each format
+        // Test that config can be created with each format
         // In practice, this would generate actual visualizations
-        println!("✅ Visualizer created for format {:?}", format);
+        println!("Config created for format {:?}", format);
+        let _ = config;
     }
 }
 

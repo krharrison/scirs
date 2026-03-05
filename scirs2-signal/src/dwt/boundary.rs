@@ -25,7 +25,7 @@ use crate::error::{SignalError, SignalResult};
 /// use scirs2_signal::dwt::extend_signal;
 ///
 /// let signal = vec![1.0, 2.0, 3.0, 4.0];
-/// let extended = extend_signal(&signal, 4, "symmetric").unwrap();
+/// let extended = extend_signal(&signal, 4, "symmetric").expect("operation should succeed");
 /// // Result will have padding before and after original signal
 /// ```
 #[allow(dead_code)]

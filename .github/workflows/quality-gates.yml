@@ -1,0 +1,247 @@
+name: Quality Gates
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # Security vulnerability audit
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+
+      - name: Run cargo-audit
+        run: cargo audit --deny warnings
+
+  # COOLJAPAN Pure Rust Policy enforcement
+  pure-rust-enforcement:
+    name: Pure Rust Policy Enforcement
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check for policy violations
+        run: |
+          echo "=== Checking Pure Rust Policy ==="
+
+          VIOLATIONS=0
+
+          # No openblas
+          if cargo tree --all-features 2>/dev/null | grep -i "\bopenblas\b"; then
+            echo "VIOLATION: openblas found - use OxiBLAS (oxiblas)"
+            VIOLATIONS=$((VIOLATIONS+1))
+          fi
+
+          # No bincode (use oxicode)
+          if cargo tree --all-features 2>/dev/null | grep -w "bincode"; then
+            echo "VIOLATION: bincode found - use oxicode"
+            VIOLATIONS=$((VIOLATIONS+1))
+          fi
+
+          # No zip crate (use oxiarc-archive)
+          if cargo tree --all-features 2>/dev/null | grep -w "^zip "; then
+            echo "VIOLATION: zip crate found - use oxiarc-archive"
+            VIOLATIONS=$((VIOLATIONS+1))
+          fi
+
+          # No rustfft (use oxifft)
+          if cargo tree --all-features 2>/dev/null | grep -w "^rustfft "; then
+            echo "VIOLATION: rustfft found - use OxiFFT"
+            VIOLATIONS=$((VIOLATIONS+1))
+          fi
+
+          if [ "$VIOLATIONS" -gt 0 ]; then
+            echo ""
+            echo "ERROR: $VIOLATIONS Pure Rust Policy violation(s) found"
+            exit 1
+          fi
+
+          echo "Pure Rust Policy: ALL CHECKS PASSED"
+
+  # MSRV check (Minimum Supported Rust Version)
+  msrv:
+    name: MSRV Check (Rust 1.75)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust 1.75.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.75.0"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-msrv-1.75"
+
+      - name: Check MSRV compatibility
+        run: cargo check --workspace --all-features
+
+  # Unused dependency detection
+  unused-deps:
+    name: Unused Dependencies (cargo-udeps)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Install cargo-udeps
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-udeps
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check for unused dependencies
+        run: cargo +nightly udeps --all-features --workspace || true
+        # Informational; do not fail CI on this
+
+  # Code statistics
+  code-stats:
+    name: Code Statistics (tokei)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tokei
+        uses: taiki-e/install-action@v2
+        with:
+          tool: tokei
+
+      - name: Generate code statistics
+        run: |
+          tokei /Users/runner/work/scirs/scirs || tokei .
+          tokei --output json . > /tmp/tokei_stats.json
+
+      - name: Upload stats
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-statistics
+          path: /tmp/tokei_stats.json
+          retention-days: 30
+
+  # License compliance
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-license
+        run: cargo install cargo-license --locked || true
+
+      - name: Generate license report
+        run: cargo license --all-features > /tmp/licenses.txt || true
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: /tmp/licenses.txt
+          retention-days: 30
+
+  # SciRS2 Dependency Policy Enforcement
+  # Detects direct use of rand::, ndarray::, ndarray_rand:: in non-core crates.
+  # All such functionality must flow through scirs2_core abstractions.
+  # See SCIRS2_POLICY.md for the full policy specification.
+  scirs2-policy-check:
+    name: SciRS2 Dependency Policy Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run shell-based policy checker
+        run: |
+          bash scripts/check_policy.sh --no-color
+        # The script exits 1 if any violations are found.
+
+      - name: Compile and run Rust-based policy linter
+        run: |
+          echo "=== Compiling Rust policy linter ==="
+          rustc -o /tmp/policy_check scripts/policy_check.rs
+
+          echo "=== Running Rust policy linter (text report) ==="
+          /tmp/policy_check --no-color
+
+          echo "=== Running Rust policy linter (JSON report) ==="
+          /tmp/policy_check --json > /tmp/policy_report.json
+          echo "JSON report saved to /tmp/policy_report.json"
+          cat /tmp/policy_report.json
+
+      - name: Upload policy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scirs2-policy-report
+          path: /tmp/policy_report.json
+          retention-days: 30
+
+  quality-gates-summary:
+    name: Quality Gates Summary
+    runs-on: ubuntu-latest
+    needs:
+      - security-audit
+      - pure-rust-enforcement
+      - scirs2-policy-check
+      - msrv
+      - unused-deps
+      - license-check
+    if: always()
+
+    steps:
+      - name: Check critical gates
+        run: |
+          # security-audit and pure-rust-enforcement are mandatory
+          if [[ "${{ needs.security-audit.result }}" != "success" ]]; then
+            echo "FAILED: security-audit"
+            exit 1
+          fi
+          if [[ "${{ needs.pure-rust-enforcement.result }}" != "success" ]]; then
+            echo "FAILED: pure-rust-enforcement"
+            exit 1
+          fi
+          if [[ "${{ needs.scirs2-policy-check.result }}" != "success" ]]; then
+            echo "FAILED: scirs2-policy-check"
+            echo "  One or more SciRS2 dependency policy violations were found."
+            echo "  Non-core crates must use scirs2_core::{random,ndarray} instead of"
+            echo "  direct rand::/ndarray::/ndarray_rand:: imports."
+            echo "  See SCIRS2_POLICY.md for details and scripts/scirs2-policy-refactor.sh to fix."
+            exit 1
+          fi
+          if [[ "${{ needs.msrv.result }}" != "success" ]]; then
+            echo "FAILED: msrv"
+            exit 1
+          fi
+          echo "All critical quality gates passed."

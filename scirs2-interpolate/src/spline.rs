@@ -54,17 +54,17 @@
 //! // Basic usage with natural boundary conditions
 //! let x = array![0.0, 1.0, 2.0, 3.0];
 //! let y = array![0.0, 1.0, 4.0, 9.0];
-//! let spline = CubicSpline::new(&x.view(), &y.view()).unwrap();
+//! let spline = CubicSpline::new(&x.view(), &y.view()).expect("doc example: should succeed");
 //!
 //! // Evaluate at a point
-//! let result = spline.evaluate(1.5).unwrap();
+//! let result = spline.evaluate(1.5).expect("doc example: should succeed");
 //!
 //! // Compute derivatives
-//! let derivative = spline.derivative(1.5).unwrap();
-//! let second_deriv = spline.derivative_n(1.5, 2).unwrap();
+//! let derivative = spline.derivative(1.5).expect("doc example: should succeed");
+//! let second_deriv = spline.derivative_n(1.5, 2).expect("doc example: should succeed");
 //!
 //! // Integration
-//! let integral = spline.integrate(0.5, 2.5).unwrap();
+//! let integral = spline.integrate(0.5, 2.5).expect("doc example: should succeed");
 //!
 //! // Advanced usage with builder pattern
 //! let spline = CubicSpline::builder()
@@ -72,7 +72,7 @@
 //!     .y(y.clone())
 //!     .boundary_condition(SplineBoundaryCondition::Clamped(0.0, 6.0))
 //!     .build()
-//!     .unwrap();
+//!     .expect("doc example: should succeed");
 //!
 //! // SciPy-compatible interface
 //! let spline = scirs2_interpolate::spline::cubic_spline_scipy(
@@ -81,7 +81,7 @@
 //!     "not-a-knot",
 //!     None,
 //!     false
-//! ).unwrap();
+//! ).expect("doc example: should succeed");
 //! ```
 //!
 //! ## Architecture

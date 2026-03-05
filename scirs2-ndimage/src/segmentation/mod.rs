@@ -14,7 +14,10 @@ mod watershed;
 pub use self::thresholding::{
     adaptive_threshold, otsu_threshold, threshold_binary, AdaptiveMethod,
 };
-pub use self::watershed::{marker_watershed, watershed};
+pub use self::watershed::{
+    marker_watershed, watershed, watershed_from_distance, watershed_with_config, WatershedConfig,
+    WatershedConnectivity,
+};
 
 // Advanced segmentation algorithms
 pub use self::active_contours::{

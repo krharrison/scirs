@@ -194,7 +194,7 @@ where
 /// let a = array![[2.0_f64, 0.0], [0.0, 3.0]];
 /// let result = special::signm(&a.view(), 20, 1e-10);
 /// assert!(result.is_ok());
-/// let sign_a = result.unwrap();
+/// let sign_a = result.expect("valid input");
 /// // All eigenvalues are positive, so sign(A) = I
 /// assert!((sign_a[[0, 0]] - 1.0).abs() < 1e-8);
 /// assert!((sign_a[[1, 1]] - 1.0).abs() < 1e-8);

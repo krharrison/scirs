@@ -1,13 +1,16 @@
 //! Expression simplification optimization
 //!
 //! This module implements algebraic simplifications for computation graphs,
-//! such as x + 0 → x, x * 1 → x, x - x → 0, etc.
+//! such as x + 0 -> x, x * 1 -> x, x - x -> 0, etc.
 
-use crate::Float;
+use super::{OptimizationError, SimplificationPattern};
 use crate::graph::{Graph, TensorID};
 use crate::tensor::TensorInternal;
-use super::{OptimizationError, SimplificationPattern};
-use std::collections::{HashMap, HashSet};
+use crate::Float;
+use std::collections::HashMap;
+
+/// Type alias for the transform function used in simplification rules.
+type TransformFn = Box<dyn Fn(&[TensorID]) -> Result<TensorID, OptimizationError>>;
 
 /// Expression simplifier
 pub struct ExpressionSimplifier<F: Float> {
@@ -34,71 +37,71 @@ impl<F: Float> ExpressionSimplifier<F> {
         self.add_rule(SimplificationRule::new(
             "add_zero",
             SimplificationPattern::AddZero,
-            |inputs| self.create_identity_replacement(inputs[0]),
+            create_identity_replacement,
         ));
 
         self.add_rule(SimplificationRule::new(
             "sub_zero",
             SimplificationPattern::SubZero,
-            |inputs| self.create_identity_replacement(inputs[0]),
+            create_identity_replacement,
         ));
 
         self.add_rule(SimplificationRule::new(
             "mul_one",
             SimplificationPattern::MulOne,
-            |inputs| self.create_identity_replacement(inputs[0]),
+            create_identity_replacement,
         ));
 
         self.add_rule(SimplificationRule::new(
             "div_one",
             SimplificationPattern::DivOne,
-            |inputs| self.create_identity_replacement(inputs[0]),
+            create_identity_replacement,
         ));
 
         // Zero rules
         self.add_rule(SimplificationRule::new(
             "mul_zero",
             SimplificationPattern::MulZero,
-            |_inputs| self.create_zero_replacement(),
+            |_inputs| create_zero_replacement(),
         ));
 
         // Self-operation rules
         self.add_rule(SimplificationRule::new(
             "sub_self",
             SimplificationPattern::SubSelf,
-            |_inputs| self.create_zero_replacement(),
+            |_inputs| create_zero_replacement(),
         ));
 
         self.add_rule(SimplificationRule::new(
             "div_self",
             SimplificationPattern::DivSelf,
-            |_inputs| self.create_one_replacement(),
+            |_inputs| create_one_replacement(),
         ));
 
         // Composite function rules
         self.add_rule(SimplificationRule::new(
             "log_exp",
             SimplificationPattern::LogExp,
-            |inputs| self.create_inner_replacement(inputs),
+            create_inner_replacement,
         ));
 
         self.add_rule(SimplificationRule::new(
             "exp_log",
             SimplificationPattern::ExpLog,
-            |inputs| self.create_inner_replacement(inputs),
+            create_inner_replacement,
         ));
 
         // Power rules
         self.add_rule(SimplificationRule::new(
             "pow_one",
             SimplificationPattern::PowOne,
-            |inputs| self.create_identity_replacement(inputs[0]),
+            create_identity_replacement,
         ));
 
         self.add_rule(SimplificationRule::new(
             "pow_zero",
             SimplificationPattern::PowZero,
-            |_inputs| self.create_one_replacement(),
+            |_inputs| create_one_replacement(),
         ));
     }
 
@@ -108,63 +111,86 @@ impl<F: Float> ExpressionSimplifier<F> {
     }
 
     /// Apply expression simplification to a graph
-    pub fn simplify_expressions(&mut self, graph: &mut Graph<F>) -> Result<usize, OptimizationError> {
+    pub fn simplify_expressions(
+        &mut self,
+        _graph: &mut Graph<F>,
+    ) -> Result<usize, OptimizationError> {
         let simplified_count = 0;
-        
+
         // Implementation would:
         // 1. Traverse all nodes in the graph
         // 2. For each node, check if it matches any simplification pattern
         // 3. Apply the corresponding rule to create a simplified version
         // 4. Replace the original node with the simplified version
         // 5. Update all references in the graph
-        
+
         Ok(simplified_count)
     }
 
     /// Check if a tensor matches any simplification pattern
-    pub fn find_applicable_rule(&self, _tensorinternal: &TensorInternal<F>) -> Option<&SimplificationRule<F>> {
+    pub(crate) fn find_applicable_rule(
+        &self,
+        _tensor_internal: &TensorInternal<F>,
+    ) -> Option<&SimplificationRule<F>> {
         // Check each rule to see if it applies to this tensor
-        for rule in &self.rules {
-            if rule.matches(_tensor_internal) {
-                return Some(rule);
-            }
-        }
-        None
+        self.rules
+            .iter()
+            .find(|&rule| rule.matches(_tensor_internal))
+            .map(|v| v as _)
     }
 
     /// Apply a specific rule to simplify a tensor
-    pub fn apply_rule(
-        self_rule: &SimplificationRule<F>, _tensor_internal: &TensorInternal<F>, graph: &mut Graph<F>,
+    pub(crate) fn apply_rule(
+        &self,
+        _rule: &SimplificationRule<F>,
+        _tensor_internal: &TensorInternal<F>,
+        _graph: &mut Graph<F>,
     ) -> Result<TensorID, OptimizationError> {
-        // Apply the _rule's transformation to create a new simplified tensor
-        Err(OptimizationError::InvalidOperation("Rule application not implemented".to_string()))
-    }
-
-    /// Create helper replacement tensors
-    fn create_identity_replacement(&self, input: TensorID) -> Result<TensorID, OptimizationError> {
-        // Return the input tensor as the replacement (identity)
-        Ok(input)
-    }
-
-    fn create_zero_replacement(&self) -> Result<TensorID, OptimizationError> {
-        // Create a constant zero tensor
-        Err(OptimizationError::InvalidOperation("Zero replacement not implemented".to_string()))
-    }
-
-    fn create_one_replacement(&self) -> Result<TensorID, OptimizationError> {
-        // Create a constant one tensor
-        Err(OptimizationError::InvalidOperation("One replacement not implemented".to_string()))
-    }
-
-    fn create_inner_replacement(&self, inputs: &[TensorID]) -> Result<TensorID, OptimizationError> {
-        // For patterns like log(exp(x)), return the inner argument x
-        Err(OptimizationError::InvalidOperation("Inner replacement not implemented".to_string()))
+        // Apply the rule's transformation to create a new simplified tensor
+        Err(OptimizationError::InvalidOperation(
+            "Rule application not implemented".to_string(),
+        ))
     }
 
     /// Clear the simplification cache
     pub fn clear_cache(&mut self) {
         self.cache.clear();
     }
+}
+
+/// Create an identity replacement (return the first input tensor)
+fn create_identity_replacement(inputs: &[TensorID]) -> Result<TensorID, OptimizationError> {
+    inputs.first().copied().ok_or_else(|| {
+        OptimizationError::InvalidOperation(
+            "Identity replacement requires at least one input".to_string(),
+        )
+    })
+}
+
+/// Create a zero replacement tensor
+fn create_zero_replacement() -> Result<TensorID, OptimizationError> {
+    // Create a constant zero tensor
+    Err(OptimizationError::InvalidOperation(
+        "Zero replacement not implemented".to_string(),
+    ))
+}
+
+/// Create a one replacement tensor
+fn create_one_replacement() -> Result<TensorID, OptimizationError> {
+    // Create a constant one tensor
+    Err(OptimizationError::InvalidOperation(
+        "One replacement not implemented".to_string(),
+    ))
+}
+
+/// Create an inner replacement (for patterns like log(exp(x)), return x)
+fn create_inner_replacement(inputs: &[TensorID]) -> Result<TensorID, OptimizationError> {
+    // For patterns like log(exp(x)), return the inner argument x
+    inputs.first().copied().ok_or_else(|| {
+        OptimizationError::InvalidOperation(
+            "Inner replacement requires at least one input".to_string(),
+        )
+    })
 }
 
 impl<F: Float> Default for ExpressionSimplifier<F> {
@@ -180,23 +206,22 @@ pub struct SimplificationRule<F: Float> {
     /// Pattern this rule matches
     pattern: SimplificationPattern,
     /// Function to apply the transformation
-    transform: Box<dyn Fn(&[*const Node<F>]) -> Result<*mut Node<F>, OptimizationError>>,
+    transform: TransformFn,
+    /// Phantom data for the Float type parameter
+    _phantom: std::marker::PhantomData<F>,
 }
 
 impl<F: Float> SimplificationRule<F> {
     /// Create a new simplification rule
-    pub fn new<Transform>(
-        name: &str,
-        pattern: SimplificationPattern,
-        transform: Transform,
-    ) -> Self
+    pub fn new<Transform>(name: &str, pattern: SimplificationPattern, transform: Transform) -> Self
     where
-        Transform: Fn(&[*const Node<F>]) -> Result<*mut Node<F>, OptimizationError> + 'static,
+        Transform: Fn(&[TensorID]) -> Result<TensorID, OptimizationError> + 'static,
     {
         Self {
             name: name.to_string(),
             pattern,
             transform: Box::new(transform),
+            _phantom: std::marker::PhantomData,
         }
     }
 
@@ -210,87 +235,87 @@ impl<F: Float> SimplificationRule<F> {
         self.pattern
     }
 
-    /// Check if this rule matches a node
-    pub fn matches(&self, node: &Node<F>) -> bool {
-        // Check if the _node's operation and structure matches this rule's pattern
+    /// Check if this rule matches a tensor internal node
+    pub(crate) fn matches(&self, _tensor_internal: &TensorInternal<F>) -> bool {
+        // Check if the tensor internal's operation and structure matches this rule's pattern
         match self.pattern {
-            SimplificationPattern::AddZero => self.matches_add_zero(_node),
-            SimplificationPattern::SubZero => self.matches_sub_zero(_node),
-            SimplificationPattern::MulOne => self.matches_mul_one(_node),
-            SimplificationPattern::DivOne => self.matches_div_one(_node),
-            SimplificationPattern::MulZero => self.matches_mul_zero(_node),
-            SimplificationPattern::SubSelf => self.matches_sub_self(_node),
-            SimplificationPattern::DivSelf => self.matches_div_self(_node),
-            SimplificationPattern::LogExp => self.matches_log_exp(_node),
-            SimplificationPattern::ExpLog => self.matches_exp_log(_node),
-            SimplificationPattern::SqrtSquare => self.matches_sqrt_square(_node),
-            SimplificationPattern::PowOne => self.matches_pow_one(_node),
-            SimplificationPattern::PowZero => self.matches_pow_zero(_node),
+            SimplificationPattern::AddZero => self.matches_add_zero(_tensor_internal),
+            SimplificationPattern::SubZero => self.matches_sub_zero(_tensor_internal),
+            SimplificationPattern::MulOne => self.matches_mul_one(_tensor_internal),
+            SimplificationPattern::DivOne => self.matches_div_one(_tensor_internal),
+            SimplificationPattern::MulZero => self.matches_mul_zero(_tensor_internal),
+            SimplificationPattern::SubSelf => self.matches_sub_self(_tensor_internal),
+            SimplificationPattern::DivSelf => self.matches_div_self(_tensor_internal),
+            SimplificationPattern::LogExp => self.matches_log_exp(_tensor_internal),
+            SimplificationPattern::ExpLog => self.matches_exp_log(_tensor_internal),
+            SimplificationPattern::SqrtSquare => self.matches_sqrt_square(_tensor_internal),
+            SimplificationPattern::PowOne => self.matches_pow_one(_tensor_internal),
+            SimplificationPattern::PowZero => self.matches_pow_zero(_tensor_internal),
         }
     }
 
-    /// Apply this rule to create a simplified node
-    pub fn apply(&self, inputs: &[*const Node<F>]) -> Result<*mut Node<F>, OptimizationError> {
+    /// Apply this rule to create a simplified tensor
+    pub fn apply(&self, inputs: &[TensorID]) -> Result<TensorID, OptimizationError> {
         (self.transform)(inputs)
     }
 
     // Pattern matching methods
-    fn matches_add_zero(&self, node: &Node<F>) -> bool {
+    fn matches_add_zero(&self, _tensor_internal: &TensorInternal<F>) -> bool {
         // Check if this is an Add operation with one operand being zero
         false
     }
 
-    fn matches_sub_zero(&self, node: &Node<F>) -> bool {
+    fn matches_sub_zero(&self, _tensor_internal: &TensorInternal<F>) -> bool {
         // Check if this is a Sub operation with the second operand being zero
         false
     }
 
-    fn matches_mul_one(&self, node: &Node<F>) -> bool {
+    fn matches_mul_one(&self, _tensor_internal: &TensorInternal<F>) -> bool {
         // Check if this is a Mul operation with one operand being one
         false
     }
 
-    fn matches_div_one(&self, node: &Node<F>) -> bool {
+    fn matches_div_one(&self, _tensor_internal: &TensorInternal<F>) -> bool {
         // Check if this is a Div operation with the second operand being one
         false
     }
 
-    fn matches_mul_zero(&self, node: &Node<F>) -> bool {
+    fn matches_mul_zero(&self, _tensor_internal: &TensorInternal<F>) -> bool {
         // Check if this is a Mul operation with one operand being zero
         false
     }
 
-    fn matches_sub_self(&self, node: &Node<F>) -> bool {
+    fn matches_sub_self(&self, _tensor_internal: &TensorInternal<F>) -> bool {
         // Check if this is a Sub operation with both operands being the same
         false
     }
 
-    fn matches_div_self(&self, node: &Node<F>) -> bool {
+    fn matches_div_self(&self, _tensor_internal: &TensorInternal<F>) -> bool {
         // Check if this is a Div operation with both operands being the same
         false
     }
 
-    fn matches_log_exp(&self, node: &Node<F>) -> bool {
+    fn matches_log_exp(&self, _tensor_internal: &TensorInternal<F>) -> bool {
         // Check if this is a Log operation applied to an Exp operation
         false
     }
 
-    fn matches_exp_log(&self, node: &Node<F>) -> bool {
+    fn matches_exp_log(&self, _tensor_internal: &TensorInternal<F>) -> bool {
         // Check if this is an Exp operation applied to a Log operation
         false
     }
 
-    fn matches_sqrt_square(&self, node: &Node<F>) -> bool {
+    fn matches_sqrt_square(&self, _tensor_internal: &TensorInternal<F>) -> bool {
         // Check if this is a Sqrt operation applied to a Square operation
         false
     }
 
-    fn matches_pow_one(&self, node: &Node<F>) -> bool {
+    fn matches_pow_one(&self, _tensor_internal: &TensorInternal<F>) -> bool {
         // Check if this is a Pow operation with exponent one
         false
     }
 
-    fn matches_pow_zero(&self, node: &Node<F>) -> bool {
+    fn matches_pow_zero(&self, _tensor_internal: &TensorInternal<F>) -> bool {
         // Check if this is a Pow operation with exponent zero
         false
     }
@@ -310,34 +335,46 @@ impl<F: Float> AlgebraicAnalyzer<F> {
     }
 
     /// Analyze an expression for simplification opportunities
-    pub fn analyze(&self, node: &Node<F>) -> Vec<SimplificationOpportunity> {
-        let mut opportunities = Vec::new();
-        
-        // Analyze the _node and its subgraph for various patterns:
+    pub(crate) fn analyze(
+        &self,
+        _tensor_internal: &TensorInternal<F>,
+    ) -> Vec<SimplificationOpportunity> {
+        let opportunities = Vec::new();
+
+        // Analyze the tensor and its subgraph for various patterns:
         // - Identity operations (x + 0, x * 1, etc.)
         // - Redundant operations (x - x, x / x, etc.)
         // - Composite functions that can be simplified
         // - Commutative/associative rearrangements
-        
+
         opportunities
     }
 
     /// Check for associative rearrangement opportunities
-    pub fn find_associative_opportunities(&self, node: &Node<F>) -> Vec<AssociativityPattern> {
+    pub(crate) fn find_associative_opportunities(
+        &self,
+        _tensor_internal: &TensorInternal<F>,
+    ) -> Vec<AssociativityPattern> {
         // Look for patterns like (a + b) + c that can be rearranged
         // for better constant folding or other optimizations
         Vec::new()
     }
 
     /// Check for commutative rearrangement opportunities
-    pub fn find_commutative_opportunities(&self, node: &Node<F>) -> Vec<CommutativityPattern> {
+    pub(crate) fn find_commutative_opportunities(
+        &self,
+        _tensor_internal: &TensorInternal<F>,
+    ) -> Vec<CommutativityPattern> {
         // Look for patterns where operands can be reordered
         // to enable other optimizations
         Vec::new()
     }
 
     /// Check for distributive law opportunities
-    pub fn find_distributive_opportunities(&self, node: &Node<F>) -> Vec<DistributivityPattern> {
+    pub(crate) fn find_distributive_opportunities(
+        &self,
+        _tensor_internal: &TensorInternal<F>,
+    ) -> Vec<DistributivityPattern> {
         // Look for patterns like a * (b + c) that can be expanded
         // or patterns like a*b + a*c that can be factored
         Vec::new()
@@ -391,9 +428,9 @@ pub struct DistributivityPattern {
 /// Types of distributive transformations
 #[derive(Debug, Clone, Copy)]
 pub enum DistributiveType {
-    /// Factor out common terms: a*b + a*c → a*(b + c)
+    /// Factor out common terms: a*b + a*c -> a*(b + c)
     Factor,
-    /// Expand: a*(b + c) → a*b + a*c
+    /// Expand: a*(b + c) -> a*b + a*c
     Expand,
 }
 
@@ -411,17 +448,26 @@ impl<F: Float> CanonicalFormConverter<F> {
     }
 
     /// Convert an expression to canonical form
-    pub fn canonicalize(&self, node: &Node<F>) -> Result<*mut Node<F>, OptimizationError> {
+    pub(crate) fn canonicalize(
+        &self,
+        _tensor_internal: &TensorInternal<F>,
+    ) -> Result<TensorID, OptimizationError> {
         // Convert expressions to a standard canonical form:
         // - Sort operands in a consistent order
         // - Normalize associative operations
         // - Apply standard algebraic transformations
-        
-        Err(OptimizationError::InvalidOperation("Canonicalization not implemented".to_string()))
+
+        Err(OptimizationError::InvalidOperation(
+            "Canonicalization not implemented".to_string(),
+        ))
     }
 
     /// Check if two expressions are equivalent in canonical form
-    pub fn are_equivalent(self_node1: &Node<F>, node2: &Node<F>) -> bool {
+    pub(crate) fn are_equivalent(
+        &self,
+        _node1: &TensorInternal<F>,
+        _node2: &TensorInternal<F>,
+    ) -> bool {
         // Compare the canonical forms of two expressions
         false
     }
@@ -434,7 +480,7 @@ impl<F: Float> Default for CanonicalFormConverter<F> {
 }
 
 /// Utility functions for expression simplification
-
+///
 /// Create common simplification patterns
 #[allow(dead_code)]
 pub fn create_standard_rules<F: Float>() -> Vec<SimplificationRule<F>> {
@@ -445,28 +491,29 @@ pub fn create_standard_rules<F: Float>() -> Vec<SimplificationRule<F>> {
 
 /// Check if an operation is commutative
 #[allow(dead_code)]
-pub fn is_commutative(_opname: &str) -> bool {
-    matches!(_op_name, "Add" | "Mul" | "Min" | "Max")
+pub fn is_commutative(op_name: &str) -> bool {
+    matches!(op_name, "Add" | "Mul" | "Min" | "Max")
 }
 
 /// Check if an operation is associative
 #[allow(dead_code)]
-pub fn is_associative(_opname: &str) -> bool {
-    matches!(_op_name, "Add" | "Mul" | "Min" | "Max")
+pub fn is_associative(op_name: &str) -> bool {
+    matches!(op_name, "Add" | "Mul" | "Min" | "Max")
 }
 
 /// Check if an operation has an identity element
 #[allow(dead_code)]
-pub fn has_identity(_opname: &str) -> bool {
-    matches!(_op_name, "Add" | "Mul")
+pub fn has_identity(op_name: &str) -> bool {
+    matches!(op_name, "Add" | "Mul")
 }
 
 /// Get the identity element for an operation
 #[allow(dead_code)]
-pub fn get_identity<F: Float>(_op, name: &str) -> Option<F> {
-    match _op_name {
+pub fn get_identity<F: Float>(op_name: &str) -> Option<F> {
+    match op_name {
         "Add" => Some(F::zero()),
-        "Mul" => Some(F::one(), _ => None,
+        "Mul" => Some(F::one()),
+        _ => None,
     }
 }
 
@@ -518,8 +565,11 @@ mod tests {
             description: "Remove addition of zero".to_string(),
             benefit: 1.0,
         };
-        
-        assert!(matches!(opportunity.pattern, SimplificationPattern::AddZero));
+
+        assert!(matches!(
+            opportunity.pattern,
+            SimplificationPattern::AddZero
+        ));
         assert_eq!(opportunity.benefit, 1.0);
     }
 
@@ -529,13 +579,19 @@ mod tests {
             transformation_type: DistributiveType::Factor,
             description: "Factor out common term".to_string(),
         };
-        
+
         let expand_pattern = DistributivityPattern {
             transformation_type: DistributiveType::Expand,
             description: "Expand distributive expression".to_string(),
         };
-        
-        assert!(matches!(factor_pattern.transformation_type, DistributiveType::Factor));
-        assert!(matches!(expand_pattern.transformation_type, DistributiveType::Expand));
+
+        assert!(matches!(
+            factor_pattern.transformation_type,
+            DistributiveType::Factor
+        ));
+        assert!(matches!(
+            expand_pattern.transformation_type,
+            DistributiveType::Expand
+        ));
     }
 }

@@ -68,9 +68,9 @@
 //!                      -0.0047, 0.0141, -0.0046, 0.0140, -0.0046, 0.0138, 0.0136, -0.0135, 0.0182, 0.0089];
 //!
 //! // Calculate basic technical indicators
-//! let sma_5 = sma(&prices, 5).unwrap();
-//! let ema_5 = ema(&prices, 0.2).unwrap();
-//! let rsi_14 = rsi(&prices, 14).unwrap();
+//! let sma_5 = sma(&prices, 5).expect("should succeed");
+//! let ema_5 = ema(&prices, 0.2).expect("should succeed");
+//! let rsi_14 = rsi(&prices, 14).expect("should succeed");
 //!
 //! // Estimate realized volatility
 //! let vol = realized_volatility(&returns);
@@ -92,15 +92,15 @@
 //!
 //! // Fit GARCH model for volatility forecasting
 //! let mut garch_model = GarchModel::new(GarchConfig::default());
-//! let garch_result = garch_model.fit(&returns_array).unwrap();
+//! let garch_result = garch_model.fit(&returns_array).expect("should succeed");
 //! println!("GARCH Log-likelihood: {:.2}", garch_result.log_likelihood);
 //!
 //! // Compare with high-frequency estimator (if OHLC data available)
 //! // let high = array![...]; let low = array![...]; let close = array![...]; let open = array![...];
-//! // let gk_vol = garman_klass_volatility(&high, &low, &close, &open).unwrap();
+//! // let gk_vol = garman_klass_volatility(&high, &low, &close, &open).expect("should succeed");
 //!
 //! // EWMA volatility (RiskMetrics approach)
-//! let ewma_vol = ewma_volatility(&returns_array, 0.94).unwrap();
+//! let ewma_vol = ewma_volatility(&returns_array, 0.94).expect("should succeed");
 //! println!("EWMA volatility: {:.4}", ewma_vol);
 //! ```
 //!
@@ -113,15 +113,15 @@
 //!
 //! // Calculate VaR and Expected Shortfall (use extended returns)
 //! let returns_array = scirs2_core::ndarray::array![0.02, -0.0049, 0.0148, -0.0049, 0.0146, 0.0144];
-//! let var_95 = var_historical(&returns_array, 0.95).unwrap();
-//! let es_95 = expected_shortfall(&returns_array, 0.95).unwrap();
+//! let var_95 = var_historical(&returns_array, 0.95).expect("should succeed");
+//! let es_95 = expected_shortfall(&returns_array, 0.95).expect("should succeed");
 //! println!("95% VaR: {:.4}, 95% ES: {:.4}", var_95, es_95);
 //!
 //! // Risk-adjusted performance metrics
 //! let risk_free_rate = 0.02;
 //! let periods_per_year = 252;
-//! let sharpe = sharpe_ratio(&returns_array, risk_free_rate, periods_per_year).unwrap();
-//! let sortino = sortino_ratio(&returns_array, risk_free_rate, periods_per_year).unwrap();
+//! let sharpe = sharpe_ratio(&returns_array, risk_free_rate, periods_per_year).expect("should succeed");
+//! let sortino = sortino_ratio(&returns_array, risk_free_rate, periods_per_year).expect("should succeed");
 //!
 //! // Drawdown analysis (extend prices for drawdown calculation)
 //! let extended_prices = (0..100).scan(100.0, |price, i| {
@@ -130,8 +130,8 @@
 //!     Some(*price)
 //! }).collect::<Vec<f64>>();
 //! let prices_array = scirs2_core::ndarray::Array1::from_vec(extended_prices);
-//! let max_dd = max_drawdown(&prices_array).unwrap();
-//! let calmar = calmar_ratio(&returns_array, &prices_array, periods_per_year).unwrap();
+//! let max_dd = max_drawdown(&prices_array).expect("should succeed");
+//! let calmar = calmar_ratio(&returns_array, &prices_array, periods_per_year).expect("should succeed");
 //!
 //! println!("Sharpe: {:.3}, Sortino: {:.3}, Calmar: {:.3}", sharpe, sortino, calmar);
 //! println!("Max Drawdown: {:.2}%", max_dd * 100.0);
@@ -149,16 +149,16 @@
 //! let asset_names = vec!["AAPL".to_string(), "GOOGL".to_string(), "MSFT".to_string()];
 //!
 //! // Prepare return matrix (rows: time, cols: assets)
-//! // let asset_returns = Array2::from_shape_vec((252, 3), return_data).unwrap();
+//! // let asset_returns = Array2::from_shape_vec((252, 3), return_data).expect("should succeed");
 //!
 //! // Risk parity portfolio
-//! // let correlation_matrix = calculate_correlation_matrix(&asset_returns).unwrap();
-//! // let risk_parity_weights = risk_parity_portfolio(&correlation_matrix).unwrap();
-//! // let portfolio = Portfolio::new(risk_parity_weights, asset_names.clone()).unwrap();
+//! // let correlation_matrix = calculate_correlation_matrix(&asset_returns).expect("should succeed");
+//! // let risk_parity_weights = risk_parity_portfolio(&correlation_matrix).expect("should succeed");
+//! // let portfolio = Portfolio::new(risk_parity_weights, asset_names.clone()).expect("should succeed");
 //!
 //! // Calculate portfolio performance
-//! // let portfolio_returns = calculate_portfolio_returns(&asset_returns, portfolio.weights()).unwrap();
-//! // let portfolio_metrics = calculate_portfolio_metrics(&portfolio_returns, &portfolio_prices, risk_free_rate, periods_per_year).unwrap();
+//! // let portfolio_returns = calculate_portfolio_returns(&asset_returns, portfolio.weights()).expect("should succeed");
+//! // let portfolio_metrics = calculate_portfolio_metrics(&portfolio_returns, &portfolio_prices, risk_free_rate, periods_per_year).expect("should succeed");
 //! ```
 //!
 //! ## 5. Derivative Pricing and Greeks Analysis
@@ -176,13 +176,13 @@
 //!
 //! // Price call and put options
 //! let call_price = black_scholes(spot_price, strike_price, time_to_expiry,
-//!                               risk_free_rate, volatility, true).unwrap();
+//!                               risk_free_rate, volatility, true).expect("should succeed");
 //! let put_price = black_scholes(spot_price, strike_price, time_to_expiry,
-//!                              risk_free_rate, volatility, false).unwrap();
+//!                              risk_free_rate, volatility, false).expect("should succeed");
 //!
 //! // Calculate Greeks for risk management
 //! let greeks = black_scholes_greeks(spot_price, strike_price, time_to_expiry,
-//!                                  risk_free_rate, volatility, true).unwrap();
+//!                                  risk_free_rate, volatility, true).expect("should succeed");
 //!
 //! println!("Call: ${:.2}, Put: ${:.2}", call_price, put_price);
 //! println!("Delta: {:.4}, Gamma: {:.6}, Vega: {:.4}", greeks.delta, greeks.gamma, greeks.vega);
@@ -205,15 +205,15 @@
 //! // Advanced technical indicators (use extended prices)
 //! let prices_array = scirs2_core::ndarray::array![100.0, 101.0, 102.0, 101.5, 103.0, 102.5, 104.0, 103.5, 105.0, 104.5, 106.0];
 //! let bb_conf = BollingerBandsConfig { period: 5, std_dev_multiplier: 2.0, ma_type: MovingAverageType::Simple };
-//! let bb_result = advanced_bollinger_bands(&prices_array, &bb_conf).unwrap();
+//! let bb_result = advanced_bollinger_bands(&prices_array, &bb_conf).expect("should succeed");
 //! println!("Bollinger Bands - Upper: {:.2}, Lower: {:.2}", bb_result.upper_band[0], bb_result.lower_band[0]);
 //!
 //! // Momentum and trend indicators
 //! let stoch_conf = StochasticConfig { k_period: 14, d_period: 3, d_smoothing: MovingAverageType::Simple };
-//! // let stoch_result = advanced_stochastic_oscillator(&high, &low, &close, &stoch_conf).unwrap();
+//! // let stoch_result = advanced_stochastic_oscillator(&high, &low, &close, &stoch_conf).expect("should succeed");
 //!
-//! // let adx_values = adx(&high, &low, &close, 14).unwrap();
-//! // let sar_values = parabolic_sar(&high, &low, 0.02, 0.2).unwrap();
+//! // let adx_values = adx(&high, &low, &close, 14).expect("should succeed");
+//! // let sar_values = parabolic_sar(&high, &low, 0.02, 0.2).expect("should succeed");
 //! ```
 //!
 //! # Integration with SciRS2 Ecosystem

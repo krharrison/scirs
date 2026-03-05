@@ -1047,6 +1047,25 @@ pub fn simd_dot_f64(a: &ArrayView1<f64>, b: &ArrayView1<f64>) -> f64 {
 
     let len = a.len();
 
+    // Ensure contiguous memory for SIMD operations.
+    // Column views from 2D arrays are strided and as_slice() returns None.
+    let a_buf: Vec<f64>;
+    let a_slice = match a.as_slice() {
+        Some(s) => s,
+        None => {
+            a_buf = a.iter().copied().collect();
+            &a_buf
+        }
+    };
+    let b_buf: Vec<f64>;
+    let b_slice = match b.as_slice() {
+        Some(s) => s,
+        None => {
+            b_buf = b.iter().copied().collect();
+            &b_buf
+        }
+    };
+
     #[cfg(target_arch = "x86_64")]
     {
         use std::arch::x86_64::*;
@@ -1056,15 +1075,10 @@ pub fn simd_dot_f64(a: &ArrayView1<f64>, b: &ArrayView1<f64>) -> f64 {
                 let mut sums = _mm256_setzero_pd();
                 let mut i = 0;
 
-                // Process 4 f64s at a time with AVX2
                 while i + 4 <= len {
-                    let a_slice = &a.as_slice().expect("Test operation failed")[i..i + 4];
-                    let b_slice = &b.as_slice().expect("Test operation failed")[i..i + 4];
+                    let a_vec = _mm256_loadu_pd(a_slice.as_ptr().add(i));
+                    let b_vec = _mm256_loadu_pd(b_slice.as_ptr().add(i));
 
-                    let a_vec = _mm256_loadu_pd(a_slice.as_ptr());
-                    let b_vec = _mm256_loadu_pd(b_slice.as_ptr());
-
-                    // Use FMA if available for better accuracy and performance
                     #[cfg(target_feature = "fma")]
                     {
                         sums = _mm256_fmadd_pd(a_vec, b_vec, sums);
@@ -1077,21 +1091,15 @@ pub fn simd_dot_f64(a: &ArrayView1<f64>, b: &ArrayView1<f64>) -> f64 {
                     i += 4;
                 }
 
-                // Horizontal sum of the AVX2 register (4 f64s)
-                // First, add high and low 128-bit halves
                 let high = _mm256_extractf128_pd(sums, 1);
                 let low = _mm256_castpd256_pd128(sums);
                 let sum128 = _mm_add_pd(low, high);
-
-                // Then add the two f64s in the 128-bit register
                 let high64 = _mm_unpackhi_pd(sum128, sum128);
                 let final_sum = _mm_add_sd(sum128, high64);
-
                 let mut result = _mm_cvtsd_f64(final_sum);
 
-                // Handle remaining elements
                 for j in i..len {
-                    result += a[j] * b[j];
+                    result += a_slice[j] * b_slice[j];
                 }
 
                 result
@@ -1101,52 +1109,42 @@ pub fn simd_dot_f64(a: &ArrayView1<f64>, b: &ArrayView1<f64>) -> f64 {
                 let mut sums = _mm_setzero_pd();
                 let mut i = 0;
 
-                // Process 2 f64s at a time with SSE2
                 while i + 2 <= len {
-                    let a_slice = &a.as_slice().expect("Test operation failed")[i..i + 2];
-                    let b_slice = &b.as_slice().expect("Test operation failed")[i..i + 2];
-
-                    let a_vec = _mm_loadu_pd(a_slice.as_ptr());
-                    let b_vec = _mm_loadu_pd(b_slice.as_ptr());
+                    let a_vec = _mm_loadu_pd(a_slice.as_ptr().add(i));
+                    let b_vec = _mm_loadu_pd(b_slice.as_ptr().add(i));
                     let product = _mm_mul_pd(a_vec, b_vec);
                     sums = _mm_add_pd(sums, product);
                     i += 2;
                 }
 
-                // Horizontal sum of the SSE2 register (2 f64s)
                 let high64 = _mm_unpackhi_pd(sums, sums);
                 let final_sum = _mm_add_sd(sums, high64);
-
                 let mut result = _mm_cvtsd_f64(final_sum);
 
-                // Handle remaining elements
                 for j in i..len {
-                    result += a[j] * b[j];
+                    result += a_slice[j] * b_slice[j];
                 }
 
                 result
             }
         } else {
-            // Fallback to scalar implementation with loop unrolling
             let mut sum0 = 0.0f64;
             let mut sum1 = 0.0f64;
             let mut sum2 = 0.0f64;
             let mut sum3 = 0.0f64;
             let mut i = 0;
 
-            // 4x loop unrolling for better ILP
             while i + 4 <= len {
-                sum0 += a[i] * b[i];
-                sum1 += a[i + 1] * b[i + 1];
-                sum2 += a[i + 2] * b[i + 2];
-                sum3 += a[i + 3] * b[i + 3];
+                sum0 += a_slice[i] * b_slice[i];
+                sum1 += a_slice[i + 1] * b_slice[i + 1];
+                sum2 += a_slice[i + 2] * b_slice[i + 2];
+                sum3 += a_slice[i + 3] * b_slice[i + 3];
                 i += 4;
             }
 
-            // Handle remaining elements
             let mut result = sum0 + sum1 + sum2 + sum3;
             for j in i..len {
-                result += a[j] * b[j];
+                result += a_slice[j] * b_slice[j];
             }
             result
         }
@@ -1161,49 +1159,37 @@ pub fn simd_dot_f64(a: &ArrayView1<f64>, b: &ArrayView1<f64>) -> f64 {
                 let mut sum_vec = vdupq_n_f64(0.0);
                 let mut i = 0;
 
-                // Process 2 f64s at a time with NEON
                 while i + 2 <= len {
-                    let a_slice = &a.as_slice().expect("Test operation failed")[i..i + 2];
-                    let b_slice = &b.as_slice().expect("Test operation failed")[i..i + 2];
-
-                    let a_vec = vld1q_f64(a_slice.as_ptr());
-                    let b_vec = vld1q_f64(b_slice.as_ptr());
-
-                    // Use FMA for better accuracy and performance
+                    let a_vec = vld1q_f64(a_slice.as_ptr().add(i));
+                    let b_vec = vld1q_f64(b_slice.as_ptr().add(i));
                     sum_vec = vfmaq_f64(sum_vec, a_vec, b_vec);
                     i += 2;
                 }
 
-                // Horizontal sum of NEON register (2 f64s)
-                // vpadd_f64 is not available in Rust's NEON bindings for f64
-                // Extract both lanes and add them
                 let low = vgetq_lane_f64(sum_vec, 0);
                 let high = vgetq_lane_f64(sum_vec, 1);
                 let mut result = low + high;
 
-                // Handle remaining elements
                 for j in i..len {
-                    result += a[j] * b[j];
+                    result += a_slice[j] * b_slice[j];
                 }
 
                 result
             }
         } else {
-            // Fallback to scalar implementation with loop unrolling
             let mut sum0 = 0.0f64;
             let mut sum1 = 0.0f64;
             let mut i = 0;
 
-            // 2x loop unrolling
             while i + 2 <= len {
-                sum0 += a[i] * b[i];
-                sum1 += a[i + 1] * b[i + 1];
+                sum0 += a_slice[i] * b_slice[i];
+                sum1 += a_slice[i + 1] * b_slice[i + 1];
                 i += 2;
             }
 
             let mut result = sum0 + sum1;
             for j in i..len {
-                result += a[j] * b[j];
+                result += a_slice[j] * b_slice[j];
             }
             result
         }
@@ -1211,26 +1197,23 @@ pub fn simd_dot_f64(a: &ArrayView1<f64>, b: &ArrayView1<f64>) -> f64 {
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
     {
-        // Fallback to scalar implementation with loop unrolling
         let mut sum0 = 0.0f64;
         let mut sum1 = 0.0f64;
         let mut sum2 = 0.0f64;
         let mut sum3 = 0.0f64;
         let mut i = 0;
 
-        // 4x loop unrolling for better ILP
         while i + 4 <= len {
-            sum0 += a[i] * b[i];
-            sum1 += a[i + 1] * b[i + 1];
-            sum2 += a[i + 2] * b[i + 2];
-            sum3 += a[i + 3] * b[i + 3];
+            sum0 += a_slice[i] * b_slice[i];
+            sum1 += a_slice[i + 1] * b_slice[i + 1];
+            sum2 += a_slice[i + 2] * b_slice[i + 2];
+            sum3 += a_slice[i + 3] * b_slice[i + 3];
             i += 4;
         }
 
-        // Handle remaining elements
         let mut result = sum0 + sum1 + sum2 + sum3;
         for j in i..len {
-            result += a[j] * b[j];
+            result += a_slice[j] * b_slice[j];
         }
         result
     }

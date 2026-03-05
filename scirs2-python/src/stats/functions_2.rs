@@ -8,10 +8,10 @@ use pyo3::types::{PyAny, PyDict};
 use scirs2_numpy::{PyArray1, PyArrayMethods};
 use scirs2_stats::tests::ttest::{ttest_rel, Alternative};
 use scirs2_stats::{
-    boxplot_stats, quartiles, quintiles, winsorized_mean, winsorized_variance,
-    QuantileInterpolation, mean_abs_deviation, median_abs_deviation, data_range,
-    coef_variation, gini_coefficient, entropy, kl_divergence, cross_entropy,
-    weighted_mean, moment, skewness_ci, kurtosis_ci,
+    boxplot_stats, coef_variation, cross_entropy, data_range, entropy, gini_coefficient,
+    kl_divergence, kurtosis_ci, mean_abs_deviation, median_abs_deviation, moment, quartiles,
+    quintiles, skewness_ci, weighted_mean, winsorized_mean, winsorized_variance,
+    QuantileInterpolation,
 };
 
 /// Paired (related samples) t-test.
@@ -44,14 +44,10 @@ pub fn ttest_rel_py(
         "less" => Alternative::Less,
         "greater" => Alternative::Greater,
         _ => {
-            return Err(
-                PyRuntimeError::new_err(
-                    format!(
-                        "Invalid alternative: {}. Use 'two-sided', 'less', or 'greater'",
-                        alternative
-                    ),
-                ),
-            );
+            return Err(PyRuntimeError::new_err(format!(
+                "Invalid alternative: {}. Use 'two-sided', 'less', or 'greater'",
+                alternative
+            )));
         }
     };
     let result = ttest_rel(&a_arr.view(), &b_arr.view(), alt, "omit")
@@ -69,7 +65,9 @@ pub fn skew_py(data: &Bound<'_, PyArray1<f64>>) -> PyResult<f64> {
     let arr = binding.as_array();
     let n = arr.len() as f64;
     if n < 3.0 {
-        return Err(PyRuntimeError::new_err("Need at least 3 data points for skewness"));
+        return Err(PyRuntimeError::new_err(
+            "Need at least 3 data points for skewness",
+        ));
     }
     let mean: f64 = arr.iter().sum::<f64>() / n;
     let m2: f64 = arr.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / n;
@@ -86,7 +84,9 @@ pub fn kurtosis_py(data: &Bound<'_, PyArray1<f64>>) -> PyResult<f64> {
     let arr = binding.as_array();
     let n = arr.len() as f64;
     if n < 4.0 {
-        return Err(PyRuntimeError::new_err("Need at least 4 data points for kurtosis"));
+        return Err(PyRuntimeError::new_err(
+            "Need at least 4 data points for kurtosis",
+        ));
     }
     let mean: f64 = arr.iter().sum::<f64>() / n;
     let m2: f64 = arr.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / n;
@@ -102,7 +102,9 @@ pub fn mode_py(data: &Bound<'_, PyArray1<f64>>) -> PyResult<f64> {
     let binding = data.readonly();
     let arr = binding.as_array();
     if arr.is_empty() {
-        return Err(PyRuntimeError::new_err("Cannot compute mode of empty array"));
+        return Err(PyRuntimeError::new_err(
+            "Cannot compute mode of empty array",
+        ));
     }
     let mut values: Vec<f64> = arr.iter().copied().collect();
     values.sort_by(|a, b| a.partial_cmp(b).expect("Operation failed"));
@@ -134,14 +136,14 @@ pub fn gmean_py(data: &Bound<'_, PyArray1<f64>>) -> PyResult<f64> {
     let arr = binding.as_array();
     let n = arr.len();
     if n == 0 {
-        return Err(
-            PyRuntimeError::new_err("Cannot compute geometric mean of empty array"),
-        );
+        return Err(PyRuntimeError::new_err(
+            "Cannot compute geometric mean of empty array",
+        ));
     }
     if arr.iter().any(|&x| x <= 0.0) {
-        return Err(
-            PyRuntimeError::new_err("Geometric mean requires all positive values"),
-        );
+        return Err(PyRuntimeError::new_err(
+            "Geometric mean requires all positive values",
+        ));
     }
     let log_sum: f64 = arr.iter().map(|x| x.ln()).sum();
     Ok((log_sum / n as f64).exp())
@@ -153,35 +155,30 @@ pub fn hmean_py(data: &Bound<'_, PyArray1<f64>>) -> PyResult<f64> {
     let arr = binding.as_array();
     let n = arr.len();
     if n == 0 {
-        return Err(
-            PyRuntimeError::new_err("Cannot compute harmonic mean of empty array"),
-        );
+        return Err(PyRuntimeError::new_err(
+            "Cannot compute harmonic mean of empty array",
+        ));
     }
     if arr.iter().any(|&x| x <= 0.0) {
-        return Err(
-            PyRuntimeError::new_err("Harmonic mean requires all positive values"),
-        );
+        return Err(PyRuntimeError::new_err(
+            "Harmonic mean requires all positive values",
+        ));
     }
     let reciprocal_sum: f64 = arr.iter().map(|x| 1.0 / x).sum();
     Ok(n as f64 / reciprocal_sum)
 }
 /// Z-score normalization
 #[pyfunction]
-pub fn zscore_py(
-    py: Python,
-    data: &Bound<'_, PyArray1<f64>>,
-) -> PyResult<Py<PyArray1<f64>>> {
+pub fn zscore_py(py: Python, data: &Bound<'_, PyArray1<f64>>) -> PyResult<Py<PyArray1<f64>>> {
     let binding = data.readonly();
     let arr = binding.as_array();
     let n = arr.len() as f64;
     let mean: f64 = arr.iter().sum::<f64>() / n;
     let std: f64 = (arr.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / n).sqrt();
     if std == 0.0 {
-        return Err(
-            PyRuntimeError::new_err(
-                "Standard deviation is zero, cannot compute z-scores",
-            ),
-        );
+        return Err(PyRuntimeError::new_err(
+            "Standard deviation is zero, cannot compute z-scores",
+        ));
     }
     let zscores: Vec<f64> = arr.iter().map(|x| (x - mean) / std).collect();
     Ok(PyArray1::from_vec(py, zscores).into())
@@ -205,9 +202,7 @@ pub fn mean_abs_deviation_py(
     let binding = data.readonly();
     let arr = binding.as_array();
     mean_abs_deviation(&arr.view(), center)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Mean absolute deviation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("Mean absolute deviation failed: {}", e)))
 }
 /// Median absolute deviation
 ///
@@ -231,9 +226,7 @@ pub fn median_abs_deviation_py(
     let binding = data.readonly();
     let arr = binding.as_array();
     median_abs_deviation(&arr.view(), center, scale)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Median absolute deviation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("Median absolute deviation failed: {}", e)))
 }
 /// Data range
 ///
@@ -249,9 +242,7 @@ pub fn data_range_py(data: &Bound<'_, PyArray1<f64>>) -> PyResult<f64> {
     let binding = data.readonly();
     let arr = binding.as_array();
     data_range(&arr.view())
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Data range calculation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("Data range calculation failed: {}", e)))
 }
 /// Coefficient of variation
 ///
@@ -269,10 +260,12 @@ pub fn data_range_py(data: &Bound<'_, PyArray1<f64>>) -> PyResult<f64> {
 pub fn coef_variation_py(data: &Bound<'_, PyArray1<f64>>, ddof: usize) -> PyResult<f64> {
     let binding = data.readonly();
     let arr = binding.as_array();
-    coef_variation(&arr.view(), ddof)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Coefficient of variation calculation failed: {}", e),
+    coef_variation(&arr.view(), ddof).map_err(|e| {
+        PyRuntimeError::new_err(format!(
+            "Coefficient of variation calculation failed: {}",
+            e
         ))
+    })
 }
 /// Gini coefficient
 ///
@@ -289,9 +282,7 @@ pub fn gini_coefficient_py(data: &Bound<'_, PyArray1<f64>>) -> PyResult<f64> {
     let binding = data.readonly();
     let arr = binding.as_array();
     gini_coefficient(&arr.view())
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Gini coefficient calculation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("Gini coefficient calculation failed: {}", e)))
 }
 /// Compute boxplot statistics (five-number summary + outliers)
 #[pyfunction]
@@ -303,12 +294,10 @@ pub fn boxplot_stats_py(
 ) -> PyResult<Py<PyAny>> {
     let binding = data.readonly();
     let arr = binding.as_array();
-    let (q1, median, q3, whislo, whishi, outliers) = boxplot_stats::<
-        f64,
-    >(&arr.view(), Some(whis), QuantileInterpolation::Linear)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Boxplot stats calculation failed: {}", e),
-        ))?;
+    let (q1, median, q3, whislo, whishi, outliers) =
+        boxplot_stats::<f64>(&arr.view(), Some(whis), QuantileInterpolation::Linear).map_err(
+            |e| PyRuntimeError::new_err(format!("Boxplot stats calculation failed: {}", e)),
+        )?;
     let dict = PyDict::new(py);
     dict.set_item("q1", q1)?;
     dict.set_item("median", median)?;
@@ -327,9 +316,7 @@ pub fn quartiles_py(
     let binding = data.readonly();
     let arr = binding.as_array();
     let result = quartiles::<f64>(&arr.view(), QuantileInterpolation::Linear)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Quartiles calculation failed: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("Quartiles calculation failed: {}", e)))?;
     Ok(PyArray1::from_vec(py, result.to_vec()).into())
 }
 /// Compute winsorized mean (robust mean)
@@ -339,9 +326,7 @@ pub fn winsorized_mean_py(data: &Bound<'_, PyArray1<f64>>, limits: f64) -> PyRes
     let binding = data.readonly();
     let arr = binding.as_array();
     winsorized_mean::<f64>(&arr.view(), limits)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Winsorized mean calculation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("Winsorized mean calculation failed: {}", e)))
 }
 /// Compute winsorized variance (robust variance)
 #[pyfunction]
@@ -353,10 +338,9 @@ pub fn winsorized_variance_py(
 ) -> PyResult<f64> {
     let binding = data.readonly();
     let arr = binding.as_array();
-    winsorized_variance::<f64>(&arr.view(), limits, ddof)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Winsorized variance calculation failed: {}", e),
-        ))
+    winsorized_variance::<f64>(&arr.view(), limits, ddof).map_err(|e| {
+        PyRuntimeError::new_err(format!("Winsorized variance calculation failed: {}", e))
+    })
 }
 /// Compute Shannon entropy of discrete data
 #[pyfunction]
@@ -365,9 +349,7 @@ pub fn entropy_py(data: &Bound<'_, PyArray1<i64>>, base: Option<f64>) -> PyResul
     let binding = data.readonly();
     let arr = binding.as_array();
     entropy::<i64>(&arr.view(), base)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Entropy calculation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("Entropy calculation failed: {}", e)))
 }
 /// Compute Kullback-Leibler divergence between two probability distributions
 #[pyfunction]
@@ -380,9 +362,7 @@ pub fn kl_divergence_py(
     let q_binding = q.readonly();
     let q_arr = q_binding.as_array();
     kl_divergence::<f64>(&p_arr.view(), &q_arr.view())
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("KL divergence calculation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("KL divergence calculation failed: {}", e)))
 }
 /// Compute cross-entropy between two probability distributions
 #[pyfunction]
@@ -395,9 +375,7 @@ pub fn cross_entropy_py(
     let q_binding = q.readonly();
     let q_arr = q_binding.as_array();
     cross_entropy::<f64>(&p_arr.view(), &q_arr.view())
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Cross-entropy calculation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("Cross-entropy calculation failed: {}", e)))
 }
 /// Compute weighted mean
 #[pyfunction]
@@ -410,24 +388,16 @@ pub fn weighted_mean_py(
     let weights_binding = weights.readonly();
     let weights_arr = weights_binding.as_array();
     weighted_mean::<f64>(&data_arr.view(), &weights_arr.view())
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Weighted mean calculation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("Weighted mean calculation failed: {}", e)))
 }
 /// Compute statistical moment
 #[pyfunction]
 #[pyo3(signature = (data, order, center = true))]
-pub fn moment_py(
-    data: &Bound<'_, PyArray1<f64>>,
-    order: usize,
-    center: bool,
-) -> PyResult<f64> {
+pub fn moment_py(data: &Bound<'_, PyArray1<f64>>, order: usize, center: bool) -> PyResult<f64> {
     let binding = data.readonly();
     let arr = binding.as_array();
     moment::<f64>(&arr.view(), order, center, None)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Moment calculation failed: {}", e),
-        ))
+        .map_err(|e| PyRuntimeError::new_err(format!("Moment calculation failed: {}", e)))
 }
 /// Compute quintiles (20th, 40th, 60th, 80th percentiles) of a dataset
 #[pyfunction]
@@ -435,9 +405,7 @@ pub fn quintiles_py(data: &Bound<'_, PyArray1<f64>>) -> PyResult<Py<PyArray1<f64
     let binding = data.readonly();
     let arr = binding.as_array();
     let result = quintiles::<f64>(&arr.view(), QuantileInterpolation::Linear)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Quintiles calculation failed: {}", e),
-        ))?;
+        .map_err(|e| PyRuntimeError::new_err(format!("Quintiles calculation failed: {}", e)))?;
     Ok(PyArray1::from_vec(data.py(), result.to_vec()).into())
 }
 /// Compute skewness with bootstrap confidence interval
@@ -455,12 +423,10 @@ pub fn skewness_ci_py(
 ) -> PyResult<Py<PyAny>> {
     let binding = data.readonly();
     let arr = binding.as_array();
-    let result = skewness_ci::<
-        f64,
-    >(&arr.view(), bias, Some(confidence), Some(n_bootstrap), seed)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Skewness CI calculation failed: {}", e),
-        ))?;
+    let result = skewness_ci::<f64>(&arr.view(), bias, Some(confidence), Some(n_bootstrap), seed)
+        .map_err(|e| {
+        PyRuntimeError::new_err(format!("Skewness CI calculation failed: {}", e))
+    })?;
     let dict = PyDict::new(py);
     dict.set_item("estimate", result.estimate)?;
     dict.set_item("lower", result.lower)?;
@@ -491,12 +457,15 @@ pub fn kurtosis_ci_py(
 ) -> PyResult<Py<PyAny>> {
     let binding = data.readonly();
     let arr = binding.as_array();
-    let result = kurtosis_ci::<
-        f64,
-    >(&arr.view(), fisher, bias, Some(confidence), Some(n_bootstrap), seed)
-        .map_err(|e| PyRuntimeError::new_err(
-            format!("Kurtosis CI calculation failed: {}", e),
-        ))?;
+    let result = kurtosis_ci::<f64>(
+        &arr.view(),
+        fisher,
+        bias,
+        Some(confidence),
+        Some(n_bootstrap),
+        seed,
+    )
+    .map_err(|e| PyRuntimeError::new_err(format!("Kurtosis CI calculation failed: {}", e)))?;
     let dict = PyDict::new(py);
     dict.set_item("estimate", result.estimate)?;
     dict.set_item("lower", result.lower)?;

@@ -23,7 +23,7 @@
 //!                          0.5 * (2.0 * std::f64::consts::PI * f2 * ti).sin());
 //!
 //! // Estimate AR parameters using Burg's method (order 10)
-//! let (ar_coeffs, reflection_coeffs, variance) = burg_method(&signal, 10).unwrap();
+//! let (ar_coeffs, reflection_coeffs, variance) = burg_method(&signal, 10).expect("operation should succeed");
 //!
 //! // Check that we got valid outputs
 //! assert_eq!(ar_coeffs.len(), 11); // order + 1 coefficients
@@ -59,7 +59,7 @@ use std::f64::consts::PI;
 /// let signal = Array1::from_vec(vec![1.0, 2.0, 3.0, 4.0, 3.0, 2.0, 1.0, 0.0, -1.0, -2.0]);
 /// let order = 4;
 /// let (ar_coeffs, reflection_coeffs, variance) =
-///     estimate_ar(&signal, order, ARMethod::Burg).unwrap();
+///     estimate_ar(&signal, order, ARMethod::Burg).expect("operation should succeed");
 /// ```
 pub fn estimate_ar(
     signal: &Array1<f64>,

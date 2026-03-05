@@ -20,9 +20,9 @@ use std::fmt::Debug;
 /// use scirs2_core::ndarray::Array1;
 /// use scirs2_neural::optimizers::{RAdam, Optimizer};
 /// // Create a simple RAdam optimizer with default parameters
-/// let mut radam = RAdam::<f64>::default_with_lr(0.001).unwrap();
+/// let mut radam = RAdam::<f64>::default_with_lr(0.001).expect("operation should succeed");
 /// // or with custom configuration
-/// let mut radam_custom = RAdam::new(0.001, 0.9, 0.999, 1e-8, 0.01).unwrap();
+/// let mut radam_custom = RAdam::new(0.001, 0.9, 0.999, 1e-8, 0.01).expect("operation should succeed");
 #[derive(Debug, Clone)]
 pub struct RAdam<F: Float + NumAssign + ScalarOperand + Debug> {
     /// Learning rate

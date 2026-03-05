@@ -18,7 +18,7 @@ use std::fmt::Debug;
 /// use scirs2_core::ndarray::Array1;
 /// use scirs2_neural::optimizers::{AdamW, Optimizer};
 /// // Create a simple AdamW optimizer with default parameters
-/// let mut adamw = AdamW::<f64>::default_with_lr(0.001).unwrap();
+/// let mut adamw = AdamW::<f64>::default_with_lr(0.001).expect("operation should succeed");
 /// // or with custom configuration
 /// let mut adamw_custom = AdamW::new(0.001, 0.9, 0.999, 1e-8, 0.01);
 #[derive(Debug, Clone)]

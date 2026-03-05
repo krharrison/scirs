@@ -5,14 +5,14 @@ use scirs2_numpy::{IntoPyArray, PyArray2, PyArray3, PyArrayMethods};
 use scirs2_vision::error::VisionError;
 
 // Import vision functions
+use image::{DynamicImage, GrayImage, ImageBuffer, Luma, Rgb};
+use scirs2_vision::feature::canny::{canny, PreprocessMode};
 use scirs2_vision::{
     bilateral_filter, clahe, detect_and_compute, equalize_histogram, find_homography,
-    gaussian_blur, harris_corners, laplacian_edges, labels_to_color_image, median_filter,
+    gaussian_blur, harris_corners, labels_to_color_image, laplacian_edges, median_filter,
     normalize_brightness, prewitt_edges, rgb_to_grayscale, rgb_to_hsv, sobel_edges, unsharp_mask,
     watershed,
 };
-use scirs2_vision::feature::canny::{canny, PreprocessMode};
-use image::{DynamicImage, GrayImage, ImageBuffer, Luma, Rgb};
 
 // ============================================================================
 // Helper Functions: NumPy ↔ DynamicImage conversion
@@ -85,8 +85,7 @@ fn rgb_image_to_numpy(py: Python, img: &DynamicImage) -> Py<PyArray3<u8>> {
     let rgb = img.to_rgb8();
     let (width, height) = rgb.dimensions();
 
-    let mut array =
-        scirs2_core::ndarray::Array3::zeros((height as usize, width as usize, 3));
+    let mut array = scirs2_core::ndarray::Array3::zeros((height as usize, width as usize, 3));
     for y in 0..height {
         for x in 0..width {
             let pixel = rgb.get_pixel(x, y);
@@ -233,7 +232,10 @@ fn equalize_histogram_py(
     })?;
 
     let equalized = equalize_histogram(&img).map_err(|e| {
-        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Histogram equalization error: {}", e))
+        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+            "Histogram equalization error: {}",
+            e
+        ))
     })?;
 
     Ok(gray_image_to_numpy(py, &equalized))
@@ -261,7 +263,10 @@ fn normalize_brightness_py(
     })?;
 
     let normalized = normalize_brightness(&img, min_out, max_out).map_err(|e| {
-        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Normalize brightness error: {}", e))
+        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+            "Normalize brightness error: {}",
+            e
+        ))
     })?;
 
     Ok(gray_image_to_numpy(py, &normalized))
@@ -333,10 +338,7 @@ fn rgb_to_grayscale_py(
 /// Returns:
 ///     np.ndarray: HSV image (3D uint8 array with shape (H, W, 3))
 #[pyfunction]
-fn rgb_to_hsv_py(
-    py: Python,
-    image: &Bound<'_, PyArray3<u8>>,
-) -> PyResult<Py<PyArray3<u8>>> {
+fn rgb_to_hsv_py(py: Python, image: &Bound<'_, PyArray3<u8>>) -> PyResult<Py<PyArray3<u8>>> {
     let img = numpy_to_rgb_image(image).map_err(|e| {
         PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Image conversion error: {}", e))
     })?;
@@ -579,7 +581,8 @@ fn watershed_py(
         PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Image conversion error: {}", e))
     })?;
 
-    let marker_array = markers.map(|m: &Bound<'_, PyArray2<u32>>| m.readonly().as_array().to_owned());
+    let marker_array =
+        markers.map(|m: &Bound<'_, PyArray2<u32>>| m.readonly().as_array().to_owned());
 
     let labels = watershed(&img, marker_array.as_ref(), connectivity).map_err(|e| {
         PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Watershed error: {}", e))
@@ -633,9 +636,12 @@ fn find_homography_py(
     threshold: f64,
     confidence: f64,
 ) -> PyResult<(Py<PyArray2<f64>>, Vec<bool>)> {
-    let (h, inliers) = find_homography(&src_points, &dst_points, threshold, confidence)
-        .map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Find homography error: {}", e))
+    let (h, inliers) =
+        find_homography(&src_points, &dst_points, threshold, confidence).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                "Find homography error: {}",
+                e
+            ))
         })?;
 
     // h is a Homography struct with a matrix field
