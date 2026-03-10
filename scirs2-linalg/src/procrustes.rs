@@ -179,11 +179,11 @@ pub struct ExtendedProcrustesResult<F> {
 /// use scirs2_core::ndarray::array;
 /// use scirs2_linalg::procrustes::extended_procrustes;
 ///
-/// let a = array![[2.0, 0.0], [0.0, 2.0], [2.0, 2.0]];
-/// let b = array![[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]];
+/// let a = array![[2.0_f64, 0.0], [0.0, 2.0], [2.0, 2.0]];
+/// let b = array![[1.0_f64, 0.0], [0.0, 1.0], [1.0, 1.0]];
 /// let res = extended_procrustes(&a.view(), &b.view()).expect("failed");
 /// // scale should be approximately 2.0
-/// assert!((res.scale - 2.0).abs() < 0.5);
+/// assert!((res.scale - 2.0_f64).abs() < 0.5);
 /// ```
 pub fn extended_procrustes<F: ProcFloat>(
     a: &ArrayView2<F>,

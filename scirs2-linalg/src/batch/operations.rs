@@ -367,13 +367,13 @@ where
 /// use scirs2_linalg::batch::batch_trace;
 ///
 /// let a = Array3::from_shape_vec((2, 2, 2), vec![
-///     1.0, 2.0, 3.0, 4.0,  // trace = 1+4 = 5
+///     1.0_f64, 2.0, 3.0, 4.0,  // trace = 1+4 = 5
 ///     5.0, 6.0, 7.0, 8.0,  // trace = 5+8 = 13
 /// ]).expect("shape");
 ///
 /// let traces = batch_trace(&a.view()).expect("ok");
-/// assert!((traces[0] - 5.0).abs() < 1e-10);
-/// assert!((traces[1] - 13.0).abs() < 1e-10);
+/// assert!((traces[0] - 5.0_f64).abs() < 1e-10);
+/// assert!((traces[1] - 13.0_f64).abs() < 1e-10);
 /// ```
 pub fn batch_trace<F>(batch_a: &ArrayView3<F>) -> LinalgResult<Array1<F>>
 where
@@ -419,11 +419,11 @@ where
 /// use scirs2_linalg::batch::batch_frobenius_norm;
 ///
 /// let a = Array3::from_shape_vec((1, 2, 2), vec![
-///     3.0, 4.0, 0.0, 0.0,
+///     3.0_f64, 4.0, 0.0, 0.0,
 /// ]).expect("shape");
 ///
 /// let norms = batch_frobenius_norm(&a.view()).expect("ok");
-/// assert!((norms[0] - 5.0).abs() < 1e-10);
+/// assert!((norms[0] - 5.0_f64).abs() < 1e-10);
 /// ```
 pub fn batch_frobenius_norm<F>(batch_a: &ArrayView3<F>) -> LinalgResult<Array1<F>>
 where
@@ -509,11 +509,11 @@ where
 /// use scirs2_linalg::batch::batch_cholesky;
 ///
 /// let a = Array3::from_shape_vec((1, 2, 2), vec![
-///     4.0, 2.0, 2.0, 3.0,
+///     4.0_f64, 2.0, 2.0, 3.0,
 /// ]).expect("shape");
 ///
 /// let l = batch_cholesky(&a.view()).expect("ok");
-/// assert!((l[[0, 0, 0]] - 2.0).abs() < 1e-10);
+/// assert!((l[[0, 0, 0]] - 2.0_f64).abs() < 1e-10);
 /// ```
 pub fn batch_cholesky<F>(batch_a: &ArrayView3<F>) -> LinalgResult<Array3<F>>
 where

@@ -112,8 +112,8 @@ Compare results using:
 Track performance over time:
 ```bash
 # Save baseline
-cargo bench -p scirs2-datasets --features benchmarks -- --save-baseline v0.2.0
+cargo bench -p scirs2-datasets --features benchmarks -- --save-baseline v0.3.1
 
 # Compare against baseline
-cargo bench -p scirs2-datasets --features benchmarks -- --baseline v0.2.0
+cargo bench -p scirs2-datasets --features benchmarks -- --baseline v0.3.1
 ```

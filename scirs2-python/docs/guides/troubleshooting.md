@@ -17,7 +17,7 @@ print(f"scirs2 location: {scirs2.__file__}")
 
 Expected output:
 ```
-scirs2 version: 0.2.0
+scirs2 version: 0.3.1
 scirs2 location: /path/to/site-packages/scirs2...
 ```
 
@@ -527,7 +527,7 @@ Include this information:
 Title: skew_py raises TypeError with 2D array
 
 Environment:
-- scirs2: 0.2.0
+- scirs2: 0.3.1
 - Python: 3.11.5
 - NumPy: 1.24.3
 - OS: macOS 14.0 (Apple Silicon)

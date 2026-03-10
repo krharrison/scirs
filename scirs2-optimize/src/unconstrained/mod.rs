@@ -6,6 +6,23 @@ use crate::error::OptimizeError;
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1};
 use std::fmt;
 
+/// Method for computing the Jacobian (gradient) of the objective function
+pub enum Jacobian<'a> {
+    /// Compute gradient using finite differences
+    FiniteDiff,
+    /// User-provided gradient function
+    Function(Box<dyn Fn(&ArrayView1<f64>) -> Array1<f64> + 'a>),
+}
+
+impl<'a> std::fmt::Debug for Jacobian<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Jacobian::FiniteDiff => write!(f, "Jacobian::FiniteDiff"),
+            Jacobian::Function(_) => write!(f, "Jacobian::Function(<function>)"),
+        }
+    }
+}
+
 // Sub-modules
 pub mod adaptive_convergence;
 pub mod advanced_line_search;
@@ -44,12 +61,14 @@ pub use advanced_line_search::{
     advanced_line_search, create_non_monotone_state, AdvancedLineSearchOptions,
     InterpolationStrategy, LineSearchMethod, LineSearchResult, LineSearchStats,
 };
-pub use bfgs::{minimize_bfgs, minimize_bfgs_no_grad};
+pub use bfgs::{minimize_bfgs, minimize_bfgs_no_grad, minimize_bfgs_with_jacobian};
 pub use callback_diagnostics::{
     minimize_with_diagnostics, optimize_with_diagnostics, CallbackInfo, CallbackResult,
     DiagnosticOptimizer, OptimizationCallback,
 };
-pub use conjugate_gradient::minimize_conjugate_gradient;
+pub use conjugate_gradient::{
+    minimize_conjugate_gradient, minimize_conjugate_gradient_with_jacobian,
+};
 pub use convergence_diagnostics::{
     ConvergenceDiagnostics, DiagnosticCollector, DiagnosticOptions, DiagnosticWarning,
     ExportFormat, IterationDiagnostic, LineSearchDiagnostic, PerformanceMetrics, ProblemAnalysis,
@@ -314,7 +333,10 @@ where
 
     // Check initial point feasibility if bounds are provided
     if let Some(ref bounds) = options.bounds {
-        if !bounds.is_feasible(x0.as_slice().expect("Operation failed")) {
+        let x0_slice = x0.as_slice().ok_or_else(|| {
+            OptimizeError::ComputationError("Failed to get slice for feasibility check".to_string())
+        })?;
+        if !bounds.is_feasible(x0_slice) {
             return Err(OptimizeError::ValueError(
                 "Initial point is not feasible".to_string(),
             ));

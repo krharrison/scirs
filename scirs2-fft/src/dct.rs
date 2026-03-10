@@ -1472,7 +1472,7 @@ mod tests {
     #[test]
     fn test_dct2_fft_roundtrip() {
         // Test DCT-II -> IDCT-II round-trip via FFT
-        let signal = vec![3.14, 2.71, 1.41, 1.73, 0.577, 2.30];
+        let signal = vec![3.15, 2.71, 1.41, 1.73, 0.577, 2.30];
 
         let coeffs = dct2_fft(&signal, Some("ortho")).expect("DCT-II FFT forward failed");
         let recovered = idct2_fft(&coeffs, Some("ortho")).expect("IDCT-II FFT inverse failed");

@@ -68,7 +68,7 @@ mod tests {
         let _ = std::fs::create_dir_all(&dir);
         let path = dir.join("test_f64.npy");
 
-        let data = vec![1.0, 2.5, 3.14, -0.5, 100.0];
+        let data = vec![1.0, 2.5, std::f64::consts::PI, -0.5, 100.0];
         write_npy_f64(&path, &data).expect("Failed to write");
 
         let array = read_npy(&path).expect("Failed to read");
@@ -87,7 +87,7 @@ mod tests {
         let _ = std::fs::create_dir_all(&dir);
         let path = dir.join("test_f32.npy");
 
-        let data = vec![1.0f32, 2.5, 3.14, -0.5];
+        let data = vec![1.0f32, 2.5, std::f32::consts::PI, -0.5];
         write_npy_f32(&path, &data).expect("Failed to write");
 
         let array = read_npy(&path).expect("Failed to read");

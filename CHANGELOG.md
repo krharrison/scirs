@@ -5,6 +5,49 @@ All notable changes to the SciRS2 project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-03-09
+
+### Bug Fixes
+
+#### scirs2-signal - Parks-McClellan Remez FIR Filter (Fixes #115)
+- **Fixed off-by-one in extremal frequency count**: Alternation theorem requires `r = M + 2` extremal frequencies; old code used `M + 1`, causing degenerate polynomial interpolation instead of equiripple design
+- **Fixed wrong values fed to barycentric interpolator**: Error was computed using raw desired values `D(ω)` instead of equiripple-adjusted values `E_i = D_i − (−1)^i · δ / W_i`
+- **Fixed incorrect FIR tap extraction**: Replaced ad-hoc formula with correct inverse DCT-I on evenly-spaced nodes, producing proper symmetric coefficients
+- Replaced `solve_linear_system` with `compute_barycentric_weights`, `barycentric_eval`, and `delta_numerator_denominator` helpers
+- Added relative convergence check for Remez exchange iterations
+- Weight parameter now accepts either one weight per band or one per band edge (averaged)
+
+#### scirs2-stats - Student's t Distribution CDF/PPF (Fixes #114)
+- **Fixed fundamentally broken CDF**: Replaced Cauchy-like formula `½ + atan(t/√ν)/π` (only correct for df=1) with the correct regularized incomplete beta function `I_{ν/(ν+t²)}(ν/2, ½)` via `statrs::function::beta::beta_reg`
+- **Fixed PPF using hardcoded lookup tables**: Replaced df=5 lookup tables and rough normal approximation with exact inversion via `statrs::function::beta::inv_beta_reg`
+- Removed broken `regularized_beta` helper and deleted dead-code duplicate `t.rs`
+- Tests now assert against `scipy.stats.t` values at 1e-6 precision with CDF/PPF round-trip verification
+
+#### scirs2-special / scirs2-interpolate - Spherical Harmonics Overflow (Fixes #113)
+- **Fixed NaN/inf for large l, m**: Replaced separate computation of `P_m^m ∼ (2m-1)!!` (overflows f64 at m≥151) and `K_m^m ∼ 1/√(2m)!` (underflows to 0) with `normalized_assoc_legendre` — a fully-normalized recurrence where each seed factor ≤ 1, preventing overflow at any m
+- Added `x.clamp(-1.0, 1.0)` guard on `cos(θ)` for floating-point rounding at poles
+- Same fix applied to `real_sph_harm` in scirs2-interpolate via `normalized_legendre_cs` (includes Condon-Shortley phase)
+- Removed dead `normk` function from scirs2-interpolate
+
+### Added
+
+#### scirs2-interpolate - ExtrapolateMode::Nearest (PR #111)
+- Added `Nearest` variant to the N-dimensional `ExtrapolateMode` enum that clamps out-of-range query coordinates to the grid boundary before interpolating
+- Updated all downstream match arms in `boundarymode`, `hermite`, `multiscale`, and `tension` modules
+- `MultiscaleBSpline` properly clamps inputs in `evaluate()` and `derivative()` methods (not just mapping to BSpline Extrapolate mode)
+
+#### scirs2-interpolate - PCHIP Polynomial Continuation (PR #112)
+- Added `PchipExtrapolateMode` enum with `Linear` (default, stable) and `Polynomial` (scipy-compatible cubic continuation) variants
+- `Interp1d(Pchip, Extrapolate)` now uses polynomial continuation matching `scipy.interpolate.PchipInterpolator(extrapolate=True)`
+- Cached `PchipInterpolator` in `Interp1d` struct to avoid per-call derivative recomputation
+
+#### scirs2-optimize - User-Provided Jacobian Support (Fixes #109, PR #110)
+- Added `Jacobian` enum with `FiniteDiff` and `Function(Box<dyn Fn>)` variants for user-provided analytical gradients
+- Added `minimize_bfgs_with_jacobian()` and `minimize_conjugate_gradient_with_jacobian()` APIs
+- Refactored BFGS and CG implementations to share a single core with the Jacobian parameter (zero code duplication)
+- Added `compute_gradient_with_jacobian()` utility in unconstrained utils
+- Eliminated `.expect()` calls in production code (replaced with proper `?` error propagation)
+
 ## [0.3.0] - 2026-03-05
 
 ### Major Release - Massive Feature Expansion Across All Crates

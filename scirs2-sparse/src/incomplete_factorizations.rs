@@ -1184,7 +1184,7 @@ mod tests {
         let z = ilu.apply(&r).expect("apply");
 
         // Az should be closer to r than just r itself would suggest
-        let az: Vec<f64> = spmv(&a, &z.as_slice().expect("slice"));
+        let az: Vec<f64> = spmv(&a, z.as_slice().expect("slice"));
         let residual: f64 = r
             .iter()
             .zip(az.iter())

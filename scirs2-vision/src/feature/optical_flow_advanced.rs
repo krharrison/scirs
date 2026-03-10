@@ -143,13 +143,12 @@ impl Default for TVL1Params {
 /// use scirs2_vision::feature::optical_flow_advanced::{farneback_flow, FarnebackParams};
 /// use image::open;
 ///
-/// # fn main() -> scirs2_vision::error::Result<()> {
-/// let frame1 = open("frame1.jpg")?;
-/// let frame2 = open("frame2.jpg")?;
-/// let flow = farneback_flow(&frame1, &frame2, &FarnebackParams::default())?;
-/// println!("Flow computed with magnitude max: {:?}", flow.magnitude().iter().fold(0.0f32, |a, &b| a.max(b)));
-/// # Ok(())
-/// # }
+/// fn main() {
+///     let frame1 = open("frame1.jpg").expect("frame1.jpg");
+///     let frame2 = open("frame2.jpg").expect("frame2.jpg");
+///     let flow = farneback_flow(&frame1, &frame2, &FarnebackParams::default()).expect("flow");
+///     println!("Flow computed with magnitude max: {:?}", flow.magnitude().iter().fold(0.0f32, |a, &b| a.max(b)));
+/// }
 /// ```
 pub fn farneback_flow(
     img1: &DynamicImage,

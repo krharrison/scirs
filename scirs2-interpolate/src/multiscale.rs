@@ -142,10 +142,14 @@ impl<
         // Import the correct ExtrapolateMode from bspline module
         use crate::bspline::ExtrapolateMode as BSplineExtrapolateMode;
 
-        // Convert our ExtrapolateMode to BSpline's ExtrapolateMode
+        // Convert our ExtrapolateMode to BSpline's ExtrapolateMode.
+        // For Nearest mode, we map to Extrapolate so the BSpline won't error;
+        // actual clamping is handled in evaluate() and derivative() before
+        // values reach the BSpline.
         let bspline_extrapolate = match extrapolate {
             ExtrapolateMode::Error => BSplineExtrapolateMode::Error,
             ExtrapolateMode::Extrapolate => BSplineExtrapolateMode::Extrapolate,
+            ExtrapolateMode::Nearest => BSplineExtrapolateMode::Extrapolate,
             ExtrapolateMode::Nan => BSplineExtrapolateMode::Nan,
         };
 
@@ -244,11 +248,14 @@ impl<
 
         // Create a new refined B-spline with the expanded knot vector
 
-        // Convert our ExtrapolateMode to BSpline's ExtrapolateMode
+        // Convert our ExtrapolateMode to BSpline's ExtrapolateMode.
+        // For Nearest mode, we map to Extrapolate so the BSpline won't error;
+        // actual clamping is handled in evaluate() and derivative().
         use crate::bspline::ExtrapolateMode as BSplineExtrapolateMode;
         let bspline_extrapolate = match self.extrapolate {
             ExtrapolateMode::Error => BSplineExtrapolateMode::Error,
             ExtrapolateMode::Extrapolate => BSplineExtrapolateMode::Extrapolate,
+            ExtrapolateMode::Nearest => BSplineExtrapolateMode::Extrapolate,
             ExtrapolateMode::Nan => BSplineExtrapolateMode::Nan,
         };
 
@@ -425,8 +432,17 @@ impl<
         let n_points = xnew.len();
         let mut result = Array1::zeros(n_points);
 
+        let x_lo = self.x[0];
+        let x_hi = self.x[self.x.len() - 1];
+
         for i in 0..n_points {
-            result[i] = self.levels[self.active_level].evaluate(xnew[i])?;
+            // For Nearest mode, clamp x to the data domain before evaluating
+            let xi = if self.extrapolate == ExtrapolateMode::Nearest {
+                xnew[i].max(x_lo).min(x_hi)
+            } else {
+                xnew[i]
+            };
+            result[i] = self.levels[self.active_level].evaluate(xi)?;
         }
 
         Ok(result)
@@ -458,8 +474,17 @@ impl<
         let n_points = xnew.len();
         let mut result = Array1::zeros(n_points);
 
+        let x_lo = self.x[0];
+        let x_hi = self.x[self.x.len() - 1];
+
         for i in 0..n_points {
-            result[i] = self.levels[self.active_level].derivative(xnew[i], deriv_order)?;
+            // For Nearest mode, clamp x to the data domain before evaluating
+            let xi = if self.extrapolate == ExtrapolateMode::Nearest {
+                xnew[i].max(x_lo).min(x_hi)
+            } else {
+                xnew[i]
+            };
+            result[i] = self.levels[self.active_level].derivative(xi, deriv_order)?;
         }
 
         Ok(result)

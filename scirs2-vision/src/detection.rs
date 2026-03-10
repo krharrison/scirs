@@ -1092,7 +1092,7 @@ mod tests {
         let a = DetectionBox::new(0.0, 0.0, 1.0, 1.0);
         let b = DetectionBox::new(100.0, 100.0, 101.0, 101.0);
         let val = a.giou(&b);
-        assert!(val >= -1.0 && val <= 1.0);
+        assert!((-1.0..=1.0).contains(&val));
     }
 
     #[test]

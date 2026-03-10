@@ -695,7 +695,7 @@ mod tests {
         // Verify by checking normal equations: A^T A x ≈ A^T b
         let dense = mat.to_dense();
         let mut ata = vec![vec![0.0; 2]; 2];
-        let mut atb = vec![0.0; 2];
+        let mut atb = [0.0; 2];
         for i in 0..4 {
             for j in 0..2 {
                 atb[j] += dense[i][j] * b[i];

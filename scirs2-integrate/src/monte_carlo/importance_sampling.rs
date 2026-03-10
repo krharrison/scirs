@@ -139,6 +139,7 @@ pub fn effective_sample_size(weights: &[f64]) -> f64 {
 /// use scirs2_integrate::monte_carlo::importance_sampling::importance_sampling_integral;
 /// use scirs2_core::ndarray::{Array1, ArrayView1};
 /// use scirs2_core::random::prelude::*;
+/// use scirs2_core::random::Distribution;
 /// use std::f64::consts::PI;
 ///
 /// // Integrate exp(-x²) over ℝ using N(0,1) as proposal.
@@ -298,6 +299,7 @@ where
 /// use scirs2_integrate::monte_carlo::importance_sampling::self_normalized_is;
 /// use scirs2_core::ndarray::{Array1, ArrayView1};
 /// use scirs2_core::random::prelude::*;
+/// use scirs2_core::random::Distribution;
 /// use std::f64::consts::PI;
 ///
 /// // Estimate E[x²] under N(1, 0.5²) using N(0,1) as proposal.

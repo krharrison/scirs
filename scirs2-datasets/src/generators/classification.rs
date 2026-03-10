@@ -625,7 +625,7 @@ mod tests {
         assert_eq!(target.len(), 200);
         // All labels should be in [0, 3)
         for &val in target.iter() {
-            assert!(val >= 0.0 && val < 3.0, "Invalid class label: {val}");
+            assert!((0.0..3.0).contains(&val), "Invalid class label: {val}");
         }
     }
 

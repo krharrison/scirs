@@ -376,7 +376,7 @@ mod tests {
         write_jsonl(&batch1, &path).expect("write batch1 failed");
 
         // Append second batch
-        let batch2 = vec![Point {
+        let batch2 = [Point {
             x: 1.0,
             y: 1.0,
             label: "Unit".to_string(),

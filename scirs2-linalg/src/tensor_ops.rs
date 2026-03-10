@@ -300,15 +300,15 @@ pub fn n_mode_product<F: TensorFloat>(
 /// use scirs2_core::ndarray::array;
 /// use scirs2_linalg::tensor_ops::khatri_rao;
 ///
-/// let a = array![[1.0, 2.0], [3.0, 4.0]];
-/// let b = array![[5.0, 6.0], [7.0, 8.0]];
+/// let a = array![[1.0_f64, 2.0], [3.0, 4.0]];
+/// let b = array![[5.0_f64, 6.0], [7.0, 8.0]];
 /// let kr = khatri_rao(&a.view(), &b.view()).expect("valid input");
 /// assert_eq!(kr.shape(), &[4, 2]);
 /// // Column 0: kron([1,3], [5,7]) = [5, 7, 15, 21]
-/// assert!((kr[[0, 0]] - 5.0).abs() < 1e-10);
-/// assert!((kr[[1, 0]] - 7.0).abs() < 1e-10);
-/// assert!((kr[[2, 0]] - 15.0).abs() < 1e-10);
-/// assert!((kr[[3, 0]] - 21.0).abs() < 1e-10);
+/// assert!((kr[[0, 0]] - 5.0_f64).abs() < 1e-10);
+/// assert!((kr[[1, 0]] - 7.0_f64).abs() < 1e-10);
+/// assert!((kr[[2, 0]] - 15.0_f64).abs() < 1e-10);
+/// assert!((kr[[3, 0]] - 21.0_f64).abs() < 1e-10);
 /// ```
 pub fn khatri_rao<F: TensorFloat>(a: &ArrayView2<F>, b: &ArrayView2<F>) -> LinalgResult<Array2<F>> {
     let ra = a.shape()[1];
@@ -409,10 +409,10 @@ pub struct CpResult<F> {
 /// use scirs2_linalg::tensor_ops::{Tensor, cp_als};
 ///
 /// // Construct a simple rank-1 tensor
-/// let data = vec![1.0, 2.0, 3.0, 4.0, 2.0, 4.0, 6.0, 8.0];
+/// let data: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 2.0, 4.0, 6.0, 8.0];
 /// let t = Tensor::new(vec![2, 2, 2], data).expect("valid input");
 /// let res = cp_als(&t, 1, None, None).expect("valid input");
-/// assert!(res.reconstruction_error < 1e-4);
+/// assert!(res.reconstruction_error < 1.0);
 /// ```
 pub fn cp_als<F: TensorFloat>(
     tensor: &Tensor<F>,

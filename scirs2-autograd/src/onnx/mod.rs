@@ -326,8 +326,8 @@ mod tests {
         assert_eq!(attr_int.as_int(), Some(42));
         assert_eq!(attr_int.as_float(), None);
 
-        let attr_float = OnnxAttribute::Float(3.14);
-        assert_eq!(attr_float.as_float(), Some(3.14));
+        let attr_float = OnnxAttribute::Float(2.5);
+        assert_eq!(attr_float.as_float(), Some(2.5));
 
         let attr_str = OnnxAttribute::String("hello".to_string());
         assert_eq!(attr_str.as_string(), Some("hello"));
@@ -373,7 +373,7 @@ mod tests {
         assert_eq!(map.get("beta").and_then(|a| a.as_float()), Some(0.5));
         assert_eq!(map.get("transA").and_then(|a| a.as_int()), Some(1));
         // transB should not be in map since it's 0 (default)
-        assert!(map.get("transB").is_none());
+        assert!(!map.contains_key("transB"));
     }
 
     #[test]

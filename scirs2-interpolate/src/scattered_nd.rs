@@ -35,23 +35,23 @@
 //!
 //! // 2D scattered data: z = x + y
 //! let points = Array2::from_shape_vec((4, 2), vec![
-//!     0.0, 0.0,
+//!     0.0_f64, 0.0,
 //!     1.0, 0.0,
 //!     0.0, 1.0,
 //!     1.0, 1.0,
 //! ]).expect("valid shape");
-//! let values = Array1::from_vec(vec![0.0, 1.0, 1.0, 2.0]);
+//! let values = Array1::from_vec(vec![0.0_f64, 1.0, 1.0, 2.0]);
 //!
 //! let interp = ScatteredNdInterpolator::new(
 //!     points,
 //!     values,
-//!     ScatteredNdMethod::Shepard { power: 2.0 },
+//!     ScatteredNdMethod::Shepard { power: 2.0_f64 },
 //!     DistanceMetric::Euclidean,
 //! ).expect("valid interpolator");
 //!
-//! let query = Array1::from_vec(vec![0.5, 0.5]);
+//! let query = Array1::from_vec(vec![0.5_f64, 0.5]);
 //! let result = interp.evaluate_point(&query.view()).expect("valid evaluation");
-//! assert!((result - 1.0).abs() < 0.5); // Should be close to 1.0
+//! assert!((result - 1.0_f64).abs() < 0.5); // Should be close to 1.0
 //! ```
 
 use crate::error::{InterpolateError, InterpolateResult};

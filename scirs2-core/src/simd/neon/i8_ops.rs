@@ -449,7 +449,7 @@ mod tests {
         // Values that survive a round-trip at scale=0.01 with zero_point=0.
         let scale = 0.01_f32;
         let zp = 0_i8;
-        let src: Vec<f32> = [-1.27, -0.5, 0.0, 0.5, 1.27].iter().map(|&x| x).collect();
+        let src: Vec<f32> = [-1.27_f32, -0.5, 0.0, 0.5, 1.27].to_vec();
         let mut quantized = vec![0_i8; src.len()];
         let mut recovered = vec![0.0_f32; src.len()];
         neon_quantize_f32_to_i8(&src, scale, zp, &mut quantized);

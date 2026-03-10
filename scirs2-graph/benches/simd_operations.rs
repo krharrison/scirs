@@ -6,30 +6,39 @@
 //! - Matrix-vector products
 //! - Graph traversal operations
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use scirs2_core::ndarray::{Array1, Array2};
 use scirs2_graph::error::Result;
-use scirs2_graph::{
-    cycle_graph, erdos_renyi_graph, star_graph, DiGraph, Graph, LaplacianType, Node,
-};
+use scirs2_graph::spectral::LaplacianType;
+use scirs2_graph::{cycle_graph, erdos_renyi_graph, star_graph, DiGraph, Graph, Node};
+use std::hint::black_box;
 
 #[cfg(feature = "simd")]
 use scirs2_graph::simd_ops::{SimdAdjacency, SimdPageRank, SimdSpectral};
 
 // Helper to create test graphs of various sizes
 fn create_test_graphs(size: usize) -> Vec<Graph<usize, f64>> {
+    use scirs2_core::random::rngs::StdRng;
+    use scirs2_core::random::SeedableRng;
+    let mut rng = StdRng::seed_from_u64(42);
+    let n = size.max(3);
     vec![
-        cycle_graph(size),
-        star_graph(size),
-        erdos_renyi_graph(size, 0.1, Some(42)),
+        cycle_graph(n).expect("failed to create cycle graph"),
+        star_graph(n).expect("failed to create star graph"),
+        erdos_renyi_graph(n, 0.1, &mut rng).expect("failed to create erdos_renyi graph"),
     ]
 }
 
 // Helper to create directed test graphs
 fn create_test_digraphs(size: usize) -> Vec<DiGraph<usize, f64>> {
-    vec![DiGraph::from_edges(
-        (0..size - 1).map(|i| (i, i + 1, 1.0)).collect::<Vec<_>>(),
-    )]
+    let mut g = DiGraph::<usize, f64>::new();
+    for i in 0..size {
+        g.add_node(i);
+    }
+    for i in 0..size.saturating_sub(1) {
+        let _ = g.add_edge(i, i + 1, 1.0);
+    }
+    vec![g]
 }
 
 // Benchmark PageRank computation
@@ -65,7 +74,10 @@ fn bench_pagerank(c: &mut Criterion) {
                 }
 
                 b.iter(|| {
-                    black_box(SimdPageRank::compute_pagerank(&transition, 0.85, 1e-6, 100).unwrap())
+                    black_box(
+                        SimdPageRank::compute_pagerank(&transition, 0.85, 1e-6, 100)
+                            .expect("pagerank failed"),
+                    )
                 });
             });
         }
@@ -105,25 +117,39 @@ fn bench_laplacian(c: &mut Criterion) {
         {
             group.bench_with_input(BenchmarkId::new("simd_standard", size), size, |b, _| {
                 b.iter(|| {
-                    black_box(SimdSpectral::standard_laplacian(&adj_f64, &degrees_f64).unwrap())
+                    black_box(
+                        SimdSpectral::standard_laplacian(&adj_f64, &degrees_f64)
+                            .expect("standard_laplacian failed"),
+                    )
                 });
             });
 
             group.bench_with_input(BenchmarkId::new("simd_normalized", size), size, |b, _| {
                 b.iter(|| {
-                    black_box(SimdSpectral::normalized_laplacian(&adj_f64, &degrees_f64).unwrap())
+                    black_box(
+                        SimdSpectral::normalized_laplacian(&adj_f64, &degrees_f64)
+                            .expect("normalized_laplacian failed"),
+                    )
                 });
             });
 
             group.bench_with_input(BenchmarkId::new("simd_random_walk", size), size, |b, _| {
                 b.iter(|| {
-                    black_box(SimdSpectral::random_walk_laplacian(&adj_f64, &degrees_f64).unwrap())
+                    black_box(
+                        SimdSpectral::random_walk_laplacian(&adj_f64, &degrees_f64)
+                            .expect("random_walk_laplacian failed"),
+                    )
                 });
             });
         }
 
         group.bench_with_input(BenchmarkId::new("standard", size), size, |b, _| {
-            b.iter(|| black_box(scirs2_graph::laplacian(graph, LaplacianType::Standard).unwrap()));
+            b.iter(|| {
+                black_box(
+                    scirs2_graph::laplacian(graph, LaplacianType::Standard)
+                        .expect("laplacian failed"),
+                )
+            });
         });
     }
 
@@ -150,7 +176,11 @@ fn bench_matvec(c: &mut Criterion) {
         let vector = Array1::from_elem(*size, 1.0);
 
         group.bench_with_input(BenchmarkId::new("simd", size), size, |b, _| {
-            b.iter(|| black_box(SimdAdjacency::dense_matvec(&matrix, &vector).unwrap()));
+            b.iter(|| {
+                black_box(
+                    SimdAdjacency::dense_matvec(&matrix, &vector).expect("dense_matvec failed"),
+                )
+            });
         });
 
         group.bench_with_input(BenchmarkId::new("standard", size), size, |b, _| {
@@ -186,7 +216,10 @@ fn bench_power_iteration(c: &mut Criterion) {
 
         group.bench_with_input(BenchmarkId::new("simd", size), size, |b, _| {
             b.iter(|| {
-                black_box(SimdSpectral::power_iteration(&matrix, &initial, 50, 1e-10).unwrap())
+                black_box(
+                    SimdSpectral::power_iteration(&matrix, &initial, 50, 1e-10)
+                        .expect("power_iteration failed"),
+                )
             });
         });
     }
@@ -228,7 +261,7 @@ fn bench_sparse_matvec(c: &mut Criterion) {
             b.iter(|| {
                 black_box(
                     SimdAdjacency::sparse_csr_matvec(&row_ptr, &col_idx, &values, &x, *size)
-                        .unwrap(),
+                        .expect("sparse_csr_matvec failed"),
                 )
             });
         });

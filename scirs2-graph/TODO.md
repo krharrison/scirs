@@ -1,8 +1,8 @@
 # scirs2-graph TODO
 
-## Status: v0.3.0 Released (February 26, 2026)
+## Status: v0.3.1 Released (March 9, 2026)
 
-## v0.3.0 Completed
+## v0.3.1 Completed
 
 ### Community Detection
 - Louvain method (modularity optimization)

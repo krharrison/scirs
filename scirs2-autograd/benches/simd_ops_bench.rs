@@ -265,9 +265,6 @@ fn bench_reduction_mean(c: &mut Criterion) {
                     let x_vec: Vec<f32> = (0..size).map(|i| (i as f32) * 0.1).collect();
                     let x = ag::tensor_ops::convert_to_tensor(Array1::from_vec(x_vec), ctx);
 
-                    #[cfg(feature = "simd")]
-                    let result = ag::tensor_ops::simd_ops::simd_reduction_mean(&x);
-                    #[cfg(not(feature = "simd"))]
                     let result = ag::tensor_ops::mean_all(x);
 
                     black_box(result.eval(ctx).expect("Operation failed"));
@@ -291,10 +288,7 @@ fn bench_reduction_max(c: &mut Criterion) {
                     let x_vec: Vec<f32> = (0..size).map(|i| (i as f32) * 0.1).collect();
                     let x = ag::tensor_ops::convert_to_tensor(Array1::from_vec(x_vec), ctx);
 
-                    #[cfg(feature = "simd")]
-                    let result = ag::tensor_ops::simd_ops::simd_reduction_max(&x);
-                    #[cfg(not(feature = "simd"))]
-                    let result = ag::tensor_ops::reduce_max(&x, &[], false);
+                    let result = ag::tensor_ops::reduce_max(x, &[0i32; 0], false);
 
                     black_box(result.eval(ctx).expect("Operation failed"));
                 });
@@ -317,10 +311,7 @@ fn bench_reduction_min(c: &mut Criterion) {
                     let x_vec: Vec<f32> = (0..size).map(|i| (i as f32) * 0.1).collect();
                     let x = ag::tensor_ops::convert_to_tensor(Array1::from_vec(x_vec), ctx);
 
-                    #[cfg(feature = "simd")]
-                    let result = ag::tensor_ops::simd_ops::simd_reduction_min(&x);
-                    #[cfg(not(feature = "simd"))]
-                    let result = ag::tensor_ops::reduce_min(&x, &[], false);
+                    let result = ag::tensor_ops::reduce_min(x, &[0i32; 0], false);
 
                     black_box(result.eval(ctx).expect("Operation failed"));
                 });

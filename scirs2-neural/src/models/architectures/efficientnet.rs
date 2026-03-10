@@ -992,7 +992,7 @@ mod tests {
 
     #[test]
     fn test_efficientnet_all_variants() {
-        let configs = vec![
+        let configs = [
             EfficientNetConfig::efficientnet_b0(3, 10),
             EfficientNetConfig::efficientnet_b1(3, 10),
             EfficientNetConfig::efficientnet_b2(3, 10),

@@ -35,6 +35,7 @@ use std::fmt::Debug;
 ///
 /// ```
 /// use scirs2_signal::multitaper::coherence;
+/// use std::f64::consts::PI;
 ///
 /// // Generate two related signals
 /// let n = 1024;
@@ -47,7 +48,7 @@ use std::fmt::Debug;
 /// let signal1: Vec<f64> = t.iter()
 ///     .map(|&ti| (2.0 * PI * 10.0 * ti).sin() + 0.1 * rng.random_range(0.0..1.0))
 ///     .collect();
-///     
+///
 /// // Signal 2: 10 Hz cosine (highly coherent with signal1 at 10 Hz)
 /// let signal2: Vec<f64> = t.iter()
 ///     .map(|&ti| (2.0 * PI * 10.0 * ti).cos() + 0.1 * rng.random_range(0.0..1.0))
@@ -67,7 +68,7 @@ use std::fmt::Debug;
 /// // Coherence should be high near 10 Hz
 /// let f10_idx = freqs.iter().enumerate()
 ///     .min_by(|(_, a), (_, b)| ((*a) - 10.0).abs().partial_cmp(&((*b) - 10.0).abs()).expect("operation should succeed"))
-///     .map(|(idx_)| idx)
+///     .map(|(idx, _)| idx)
 ///     .expect("operation should succeed");
 /// assert!(coh[f10_idx] >= 0.0); // Coherence should be non-negative
 /// ```
@@ -256,6 +257,7 @@ where
 /// ```
 /// use scirs2_signal::multitaper::multitaper_filtfilt;
 /// use scirs2_signal::filter::butter;
+/// use std::f64::consts::PI;
 ///
 /// // Generate a test signal (sinusoid with noise)
 /// let n = 1000;

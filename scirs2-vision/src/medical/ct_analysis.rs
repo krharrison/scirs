@@ -615,8 +615,8 @@ mod tests {
         let total: f64 = stats.tissue_fractions.values().sum();
         // Total fraction can exceed 1.0 because ranges overlap (Blood ⊂ SoftTissue)
         // but each individual fraction must be in [0, 1]
-        for (_, &f) in &stats.tissue_fractions {
-            assert!(f >= 0.0 && f <= 1.0, "fraction out of range: {f}");
+        for &f in stats.tissue_fractions.values() {
+            assert!((0.0..=1.0).contains(&f), "fraction out of range: {f}");
         }
         // SoftTissue fraction should be 1.0 since all pixels are 50 HU
         let st = stats

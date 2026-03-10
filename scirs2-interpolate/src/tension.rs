@@ -286,6 +286,11 @@ impl<T: Float + std::fmt::Display + FromPrimitive> TensionSpline<T> {
                     let idx = if xval < self.x[0] { 0 } else { n - 2 };
                     return self.evaluate_segment(idx, xval);
                 }
+                ExtrapolateMode::Nearest => {
+                    // Clamp to domain boundary and evaluate there
+                    let clamped = xval.max(self.x[0]).min(self.x[n - 1]);
+                    return self.evaluate_single(clamped);
+                }
                 ExtrapolateMode::Error => {
                     return Err(InterpolateError::OutOfBounds(format!(
                         "x value {} is outside the interpolation range [{}, {}]",
@@ -386,6 +391,11 @@ impl<T: Float + std::fmt::Display + FromPrimitive> TensionSpline<T> {
                     // Allow extrapolation - use nearest segment
                     let idx = if xval < self.x[0] { 0 } else { n - 2 };
                     return self.derivative_segment(deriv_order, idx, xval);
+                }
+                ExtrapolateMode::Nearest => {
+                    // Clamp to domain boundary and evaluate derivative there
+                    let clamped = xval.max(self.x[0]).min(self.x[n - 1]);
+                    return self.derivative_single(deriv_order, clamped);
                 }
                 ExtrapolateMode::Error => {
                     return Err(InterpolateError::OutOfBounds(format!(

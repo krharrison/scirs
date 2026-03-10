@@ -193,9 +193,11 @@ impl ParallelPipeline {
                                 target: item.target,
                             };
 
+                            // Increment before sending so the counter is visible
+                            // to the receiver once it drains the result
+                            items_processed.fetch_add(1, Ordering::Release);
                             // Send result (ignore errors as receiver might be dropped)
                             let _ = output.send(result);
-                            items_processed.fetch_add(1, Ordering::Relaxed);
                         }
                         Err(_) => {
                             // On error, pass through original data
@@ -312,7 +314,7 @@ impl ParallelPipeline {
 
     /// Get number of items processed
     pub fn items_processed(&self) -> usize {
-        self.items_processed.load(Ordering::Relaxed)
+        self.items_processed.load(Ordering::Acquire)
     }
 
     /// Stop the pipeline gracefully

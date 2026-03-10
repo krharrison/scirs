@@ -709,7 +709,7 @@ where
 /// # Examples
 /// ```
 /// use scirs2_special::whittaker_m;
-/// let result = whittaker_m(0.5, 0.5, 1.0).expect("failed");
+/// let result: f64 = whittaker_m(0.5_f64, 0.5, 1.0).expect("failed");
 /// assert!(result.is_finite());
 /// ```
 #[allow(dead_code)]
@@ -758,7 +758,7 @@ where
 /// # Examples
 /// ```
 /// use scirs2_special::whittaker_w;
-/// let result = whittaker_w(0.5, 0.5, 1.0).expect("failed");
+/// let result: f64 = whittaker_w(0.5_f64, 0.5, 1.0).expect("failed");
 /// assert!(result.is_finite());
 /// ```
 #[allow(dead_code)]

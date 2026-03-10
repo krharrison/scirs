@@ -326,8 +326,9 @@ pub use ellipsoidal::{
     ellip_normal,
 };
 pub use elliptic::{
-    ellipe, ellipeinc, ellipj, ellipk, ellipkinc, ellipkm1, elliptic_e, elliptic_e_inc, elliptic_f,
-    elliptic_k, elliptic_pi, jacobi_cn, jacobi_dn, jacobi_sn,
+    complete_elliptic_pi, ellipe, ellipeinc, ellipj, ellipk, ellipkinc, ellipkm1, elliptic_e,
+    elliptic_e_inc, elliptic_f, elliptic_k, elliptic_nome, elliptic_pi, jacobi_cn, jacobi_dn,
+    jacobi_sn, weierstrass_p, weierstrass_p_prime, weierstrass_sigma, weierstrass_zeta,
 };
 pub use fresnel::{
     fresnel, fresnel_complex, fresnelc, fresnels, mod_fresnel_plus, mod_fresnelminus,
@@ -378,7 +379,10 @@ pub use orthogonal::{
     legendre_assoc,
 };
 pub use parabolic::{pbdv, pbdv_seq, pbvv, pbvv_seq, pbwa};
-pub use spherical_harmonics::{sph_harm, sph_harm_complex};
+pub use spherical_harmonics::{
+    solid_harmonic_irregular, solid_harmonic_regular, sph_harm, sph_harm_complex,
+    sph_harm_cos_angle, sph_harm_normalization,
+};
 pub use spheroidal::{
     obl_ang1, obl_cv, obl_cv_seq, obl_rad1, obl_rad2, pro_ang1, pro_cv, pro_cv_seq, pro_rad1,
     pro_rad2,

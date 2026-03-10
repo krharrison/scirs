@@ -26,7 +26,7 @@
 //!
 //! ```rust
 //! use scirs2_signal::wpt_enhanced::{
-//!     WaveletPacketTree, CostFunction, best_basis_selection
+//!     WaveletPacketTree, CostFunction
 //! };
 //! use scirs2_signal::dwt::Wavelet;
 //!

@@ -345,7 +345,7 @@ mod tests {
         let mut buf = GrayImage::new(40, 40);
         for y in 0..40u32 {
             for x in 0..40u32 {
-                let val = if x >= 10 && x < 30 && y >= 10 && y < 30 {
+                let val = if (10..30).contains(&x) && (10..30).contains(&y) {
                     200u8
                 } else {
                     30u8

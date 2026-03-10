@@ -76,9 +76,9 @@ pub fn hamming_distance(s1: &[u8], s2: &[u8]) -> CoreResult<usize> {
 /// // p=0 → d=0
 /// assert!((jukes_cantor_distance(0.0).expect("should succeed") - 0.0).abs() < 1e-10);
 ///
-/// // p=0.1 → d ≈ 0.1075
+/// // p=0.1 → d ≈ 0.10733 (-3/4 * ln(1 - 4/3 * 0.1))
 /// let d = jukes_cantor_distance(0.1).expect("should succeed");
-/// assert!((d - 0.10748).abs() < 1e-4);
+/// assert!((d - 0.10733).abs() < 1e-4);
 /// ```
 pub fn jukes_cantor_distance(p: f64) -> CoreResult<f64> {
     if p.is_nan() || p < 0.0 || p >= 0.75 {

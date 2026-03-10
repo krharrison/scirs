@@ -257,6 +257,7 @@ fn gamma_nll(data: &[f64], alpha: f64, beta: f64) -> f64 {
     } else {
         // Lanczos approximation (7 terms)
         let g = 7.0_f64;
+        #[allow(clippy::excessive_precision)]
         let c = [
             0.999999999999997,
             57.156235665862925,

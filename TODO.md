@@ -1,10 +1,10 @@
 # SciRS2 Development Roadmap
 
-**Current Version**: 0.3.0 (Released: February 26, 2026)
-**Status**: Production Ready — All 19,644 tests passing (100% pass rate)
-**Scale**: 2,584,620 lines of Rust, 6,660 source files, 45+ workspace crates
+**Current Version**: 0.3.1 (Released: March 9, 2026)
+**Status**: Production Ready — All 19,685 tests passing (100% pass rate)
+**Scale**: 2,586,887 lines of Rust, 6,660 source files, 45+ workspace crates
 
-This document tracks the development roadmap for SciRS2. Completed items in v0.3.0 are documented here for historical reference; the active roadmap is the v0.4.0 section.
+This document tracks the development roadmap for SciRS2. Completed items in v0.3.1 are documented here for historical reference; the active roadmap is the v0.4.0 section.
 
 ---
 
@@ -43,13 +43,13 @@ This document tracks the development roadmap for SciRS2. Completed items in v0.3
 
 ---
 
-## v0.3.0 — RELEASED (February 26, 2026)
+## v0.3.1 — RELEASED (March 9, 2026)
 
 ### Release Statistics
-- 19,644 tests — 100% pass rate (72% increase from v0.2.0's ~11,400)
-- 2,584,620 lines of Rust (35% increase from ~1.9M)
+- 19,685 tests — 100% pass rate (72% increase from v0.2.0's ~11,400)
+- 2,586,887 lines of Rust (35% increase from ~1.9M)
 - 6,660 source files, 45+ workspace crates
-- 0 compilation errors, 0 test failures (165 skipped by design)
+- 0 compilation errors, 0 test failures (166 skipped by design)
 - 0 unwrap() in new code — no-unwrap policy enforced throughout
 
 ### Completed — scirs2-neural
@@ -300,7 +300,7 @@ This document tracks the development roadmap for SciRS2. Completed items in v0.3
 - [x] Discourse analysis: RST, discourse relation detection
 - [x] Knowledge graphs: triple extraction, relation classification, entity linking
 
-### Bug Fixes Completed in v0.3.0
+### Bug Fixes Completed in v0.3.1
 - [x] Bicubic Hermite matrix transpose — incorrect transpose in tensor product kernel construction
 - [x] Lanczos QL eigensolver — rewrote tqli with proper implicit shifted QL and deflation
 - [x] Bartels-Stewart Sylvester solver — fixed 2x2 Schur block handling for quasi-triangular forms
@@ -479,7 +479,7 @@ This document tracks the development roadmap for SciRS2. Completed items in v0.3
 ### Current CI Infrastructure
 - Pure Rust toolchain with cargo-nextest
 - Zero warnings enforcement (clippy + rustc)
-- Comprehensive test coverage (19,644 tests)
+- Comprehensive test coverage (19,685 tests)
 - No-unwrap policy enforced in code review
 
 ### Planned CI Enhancements
@@ -541,6 +541,6 @@ All development must adhere to the following policies:
 
 ---
 
-**Last Updated**: February 26, 2026
-**Branch**: 0.3.0 (release day)
-**Status**: v0.3.0 released — v0.4.0 planning phase
+**Last Updated**: March 10, 2026
+**Branch**: 0.3.1
+**Status**: v0.3.1 released — v0.4.0 planning phase

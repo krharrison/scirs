@@ -16,7 +16,7 @@ fn main() {
     let numtaps = 65;
     let bands = vec![0.0, 0.3, 0.35, 1.0]; // Passband: 0-0.3, Stopband: 0.35-1.0
     let desired = vec![1.0, 1.0, 0.0, 0.0];
-    let weights = vec![1.0, 1.0, 10.0, 10.0]; // Emphasize stopband attenuation
+    let weights = vec![1.0, 10.0]; // Per-band: passband weight=1, stopband weight=10
 
     let h_lp = remez(numtaps, &bands, &desired, Some(&weights), None, None)
         .expect("Test: operation failed");
@@ -41,19 +41,19 @@ fn main() {
     );
     println!(
         "  f=0.15:  |H(f)| = {:.4} dB",
-        20.0 * h_fft[(0.15 * nfft as f64) as usize].norm().log10()
+        20.0 * h_fft[(0.15 * nfft as f64 / 2.0) as usize].norm().log10()
     );
     println!(
         "  f=0.3:   |H(f)| = {:.4} dB",
-        20.0 * h_fft[(0.3 * nfft as f64) as usize].norm().log10()
+        20.0 * h_fft[(0.3 * nfft as f64 / 2.0) as usize].norm().log10()
     );
     println!(
         "  f=0.35:  |H(f)| = {:.4} dB",
-        20.0 * h_fft[(0.35 * nfft as f64) as usize].norm().log10()
+        20.0 * h_fft[(0.35 * nfft as f64 / 2.0) as usize].norm().log10()
     );
     println!(
         "  f=0.5:   |H(f)| = {:.4} dB",
-        20.0 * h_fft[(0.5 * nfft as f64) as usize].norm().log10()
+        20.0 * h_fft[(0.5 * nfft as f64 / 2.0) as usize].norm().log10()
     );
 
     // Example 2: Bandpass filter
@@ -63,7 +63,7 @@ fn main() {
     let numtaps = 101;
     let bands = vec![0.0, 0.2, 0.25, 0.45, 0.5, 1.0];
     let desired = vec![0.0, 0.0, 1.0, 1.0, 0.0, 0.0];
-    let weights = vec![10.0, 10.0, 1.0, 1.0, 10.0, 10.0]; // Emphasize rejection bands
+    let weights = vec![10.0, 1.0, 10.0]; // Per-band: stopband, passband, stopband
 
     let h_bp = remez(numtaps, &bands, &desired, Some(&weights), None, None)
         .expect("Test: operation failed");

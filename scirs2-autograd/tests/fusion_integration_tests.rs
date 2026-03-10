@@ -530,7 +530,10 @@ fn test_softmax_large_values() {
     // Check all values are finite
     for &v in output.iter() {
         assert!(v.is_finite(), "softmax output should be finite");
-        assert!(v >= 0.0 && v <= 1.0, "softmax output should be in [0,1]");
+        assert!(
+            (0.0..=1.0).contains(&v),
+            "softmax output should be in [0,1]"
+        );
     }
 
     // Each row should sum to 1.0

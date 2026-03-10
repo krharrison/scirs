@@ -32,12 +32,12 @@
 //!
 //! // Scattered 2D data: z = x + y
 //! let points = Array2::from_shape_vec((4, 2), vec![
-//!     0.0, 0.0,
+//!     0.0_f64, 0.0,
 //!     1.0, 0.0,
 //!     0.0, 1.0,
 //!     1.0, 1.0,
 //! ]).expect("valid shape");
-//! let values = Array1::from_vec(vec![0.0, 1.0, 1.0, 2.0]);
+//! let values = Array1::from_vec(vec![0.0_f64, 1.0, 1.0, 2.0]);
 //!
 //! let interp = TriangulationInterpolator::new(
 //!     points,
@@ -45,8 +45,8 @@
 //!     TriangulationMethod::Linear,
 //! ).expect("valid");
 //!
-//! let result = interp.evaluate_point(0.5, 0.5).expect("valid");
-//! assert!((result - 1.0).abs() < 1e-10);
+//! let result = interp.evaluate_point(0.5_f64, 0.5).expect("valid");
+//! assert!((result - 1.0_f64).abs() < 1e-10);
 //! ```
 
 use crate::error::{InterpolateError, InterpolateResult};

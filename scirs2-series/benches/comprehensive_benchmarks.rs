@@ -32,7 +32,6 @@ use scirs2_series::{
     quantum_forecasting::{QuantumEnsemble, QuantumEnsembleMethod, QuantumNeuralNetwork},
     regression::TimeSeriesRegression,
     sarima_models,
-    state_space::KalmanFilter,
     streaming::StreamingAnalyzer,
     transformations::BoxCoxTransform,
     trends,

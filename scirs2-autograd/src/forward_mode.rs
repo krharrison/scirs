@@ -1226,7 +1226,7 @@ mod tests {
         let x = Array1::from(vec![1.0_f64, 2.0]);
         let v = Array1::from(vec![1.0_f64, 2.0]);
 
-        let h_mat = hessian(f.clone(), &x);
+        let h_mat = hessian(f, &x);
         let hvp = hessian_vector_product(f, &x, &v);
 
         // Manual: H = [[2, 5], [5, 4]]  H*[1,2] = [2+10, 5+8] = [12, 13]

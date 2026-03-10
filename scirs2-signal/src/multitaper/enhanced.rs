@@ -106,7 +106,7 @@ impl Default for MultitaperConfig {
 ///
 /// ```
 /// use scirs2_signal::multitaper::enhanced::{enhanced_pmtm, MultitaperConfig};
-///
+/// use std::f64::consts::PI;
 ///
 /// // Generate test signal
 /// let n = 1024;

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides comprehensive performance characteristics, benchmarking results, and known limitations for SciRS2 Core (scirs2-core) version 0.1.0. This information is critical for understanding performance expectations, optimization opportunities, and deployment considerations.
+This document provides comprehensive performance characteristics, benchmarking results, and known limitations for SciRS2 Core (scirs2-core) version 0.3.1. This information is critical for understanding performance expectations, optimization opportunities, and deployment considerations.
 
 ## Table of Contents
 

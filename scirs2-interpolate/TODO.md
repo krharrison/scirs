@@ -1,6 +1,6 @@
 # scirs2-interpolate TODO
 
-## v0.3.0 Completed
+## v0.3.1 Completed
 
 ### 1D Interpolation
 - [x] Linear and nearest-neighbor interpolation with boundary handling
@@ -55,7 +55,7 @@
 - [x] Ball tree for metric-space nearest-neighbor queries
 - [x] Cache-aware memory access patterns in hot paths
 
-### Bug Fixes (v0.3.0)
+### Bug Fixes (v0.3.1)
 - [x] PCHIP extrapolation: switched to linear extension at endpoints to avoid polynomial blow-up (issue #96)
 - [x] Bicubic Hermite: corrected 4x4 Hermite matrix transpose
 - [x] CubicSpline boundary condition: fixed not-a-knot third-derivative condition

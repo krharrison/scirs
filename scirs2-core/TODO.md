@@ -1,6 +1,6 @@
 # scirs2-core Development TODO
 
-## v0.3.0 — COMPLETED
+## v0.3.1 — COMPLETED
 
 ### Work-Stealing Scheduler and Parallel Iterators
 - Work-stealing deque with Chase-Lev algorithm

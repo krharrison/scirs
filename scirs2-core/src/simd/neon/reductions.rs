@@ -553,9 +553,9 @@ mod tests {
 
     #[test]
     fn test_min_f64_basic() {
-        let a = vec![3.14_f64, 2.71, 1.41, 1.73];
+        let a = vec![5.67_f64, 4.56, 1.23, 8.90];
         let result = neon_min_f64(&a);
-        assert!((result - 1.41).abs() < 1e-6, "expected ~1.41, got {result}");
+        assert!((result - 1.23).abs() < 1e-6, "expected ~1.23, got {result}");
     }
 
     #[test]

@@ -412,7 +412,13 @@ mod tests {
         (0..rows)
             .map(|r| {
                 (0..cols)
-                    .map(|c| if (r / sq + c / sq) % 2 == 0 { 1.0 } else { 0.0 })
+                    .map(|c| {
+                        if (r / sq + c / sq).is_multiple_of(2) {
+                            1.0
+                        } else {
+                            0.0
+                        }
+                    })
                     .collect()
             })
             .collect()

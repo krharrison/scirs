@@ -31,11 +31,11 @@
 //! };
 //!
 //! // Create a 2D grid with non-uniform spacing
-//! let x = Array1::from_vec(vec![0.0, 0.5, 1.0, 2.0]);
-//! let y = Array1::from_vec(vec![0.0, 1.0, 3.0]);
+//! let x = Array1::from_vec(vec![0.0_f64, 0.5, 1.0, 2.0]);
+//! let y = Array1::from_vec(vec![0.0_f64, 1.0, 3.0]);
 //!
 //! // Values: z = x * y
-//! let mut values = Array::zeros(IxDyn(&[4, 3]));
+//! let mut values: scirs2_core::ndarray::Array<f64, IxDyn> = Array::zeros(IxDyn(&[4, 3]));
 //! for i in 0..4 {
 //!     for j in 0..3 {
 //!         values[[i, j].as_slice()] = x[i] * y[j];
@@ -48,9 +48,9 @@
 //!     TensorProductMethod::Multilinear,
 //! ).expect("valid interpolator");
 //!
-//! let result = interp.evaluate_point(&[0.75, 2.0]).expect("valid");
+//! let result = interp.evaluate_point(&[0.75_f64, 2.0]).expect("valid");
 //! // At (0.75, 2.0): 0.75 * 2.0 = 1.5
-//! assert!((result - 1.5).abs() < 0.01);
+//! assert!((result - 1.5_f64).abs() < 0.01);
 //! ```
 
 pub mod bicubic;

@@ -690,9 +690,9 @@ mod tests {
 
     #[test]
     fn test_sparse_diags() {
-        let main = vec![2.0f64, 2.0, 2.0];
-        let upper = vec![-1.0f64, -1.0];
-        let lower = vec![-1.0f64, -1.0];
+        let main = [2.0f64, 2.0, 2.0];
+        let upper = [-1.0f64, -1.0];
+        let lower = [-1.0f64, -1.0];
 
         let a =
             sparse_diags(&[&lower[..], &main[..], &upper[..]], &[-1, 0, 1], (3, 3)).expect("diags");

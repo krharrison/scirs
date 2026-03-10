@@ -353,7 +353,8 @@ mod tests {
     #[test]
     fn test_ipc_stream_roundtrip() {
         let batch = make_test_batch();
-        let bytes = record_batch_to_ipc_stream(&[batch.clone()]).expect("serialize failed");
+        let bytes =
+            record_batch_to_ipc_stream(std::slice::from_ref(&batch)).expect("serialize failed");
         let recovered = ipc_stream_to_record_batches(&bytes).expect("deserialize failed");
 
         assert_eq!(recovered.len(), 1);
@@ -385,7 +386,8 @@ mod tests {
     #[test]
     fn test_ipc_file_roundtrip() {
         let batch = make_test_batch();
-        let bytes = record_batch_to_ipc_file(&[batch.clone()]).expect("serialize failed");
+        let bytes =
+            record_batch_to_ipc_file(std::slice::from_ref(&batch)).expect("serialize failed");
         let recovered = ipc_file_to_record_batches(&bytes).expect("deserialize failed");
 
         assert_eq!(recovered.len(), 1);
@@ -423,7 +425,7 @@ mod tests {
         let tmp_dir = std::env::temp_dir();
         let path = tmp_dir.join("scirs2_arrow_test_ipc.arrow");
 
-        write_ipc_file(&path, &[batch.clone()]).expect("write failed");
+        write_ipc_file(&path, std::slice::from_ref(&batch)).expect("write failed");
         let recovered = read_ipc_file(&path).expect("read failed");
 
         assert_eq!(recovered.len(), 1);
@@ -440,7 +442,7 @@ mod tests {
         let tmp_dir = std::env::temp_dir();
         let path = tmp_dir.join("scirs2_arrow_test_ipc_stream.arrows");
 
-        write_ipc_stream_file(&path, &[batch.clone()]).expect("write failed");
+        write_ipc_stream_file(&path, std::slice::from_ref(&batch)).expect("write failed");
         let recovered = read_ipc_stream_file(&path).expect("read failed");
 
         assert_eq!(recovered.len(), 1);
@@ -461,7 +463,7 @@ mod tests {
         let tmp_dir = std::env::temp_dir();
         let path = tmp_dir.join("scirs2_arrow_test_mmap.arrow");
 
-        write_ipc_file(&path, &[batch.clone()]).expect("write failed");
+        write_ipc_file(&path, std::slice::from_ref(&batch)).expect("write failed");
 
         let reader = mmap_read_ipc_file(&path).expect("mmap open failed");
         assert_eq!(reader.num_batches(), 1);

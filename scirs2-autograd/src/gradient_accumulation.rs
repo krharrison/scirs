@@ -767,7 +767,7 @@ mod tests {
         let mut accum = GradientAccumulator::<f64>::with_config(2, false, 1.0, None);
 
         let grad = arr1(&[2.0, 4.0]).into_dyn();
-        accum.accumulate(&[grad.clone()]);
+        accum.accumulate(std::slice::from_ref(&grad));
         accum.accumulate(&[grad]);
 
         // Without averaging, we get the raw sum

@@ -408,7 +408,7 @@ mod tests {
         // Without noise, all values should be in [-amplitude, amplitude]
         for &val in target.iter() {
             assert!(
-                val >= -3.0 - 1e-10 && val <= 3.0 + 1e-10,
+                (-3.0 - 1e-10..=3.0 + 1e-10).contains(&val),
                 "Value {val} out of range"
             );
         }
@@ -605,7 +605,7 @@ mod tests {
         // All values should be in [-amplitude, amplitude]
         for &val in target.iter() {
             assert!(
-                val >= -2.0 - 1e-10 && val <= 2.0 + 1e-10,
+                (-2.0 - 1e-10..=2.0 + 1e-10).contains(&val),
                 "Value {val} out of range [-2, 2]"
             );
         }

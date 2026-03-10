@@ -2,21 +2,25 @@
 
 use crate::error::OptimizeError;
 use crate::unconstrained::result::OptimizeResult;
-use crate::unconstrained::utils::{array_diff_norm, check_convergence, finite_difference_gradient};
-use crate::unconstrained::{Bounds, Options};
+use crate::unconstrained::utils::{
+    array_diff_norm, check_convergence, compute_gradient_with_jacobian, finite_difference_gradient,
+};
+use crate::unconstrained::{Bounds, Jacobian, Options};
 use scirs2_core::ndarray::{Array1, ArrayView1};
 
-/// Implements the Conjugate Gradient method for unconstrained optimization with optional bounds support
+/// Implements the Conjugate Gradient method with optional bounds support and a `Jacobian` enum
+/// for gradient computation.
+///
+/// This is the core implementation. `minimize_conjugate_gradient` delegates to this function.
 #[allow(dead_code)]
-pub fn minimize_conjugate_gradient<F, G, S>(
+pub fn minimize_conjugate_gradient_with_jacobian<F, S>(
     mut fun: F,
-    grad: Option<G>,
     x0: Array1<f64>,
+    jacobian: Option<&Jacobian<'_>>,
     options: &Options,
 ) -> Result<OptimizeResult<S>, OptimizeError>
 where
     F: FnMut(&ArrayView1<f64>) -> S + Clone,
-    G: Fn(&ArrayView1<f64>) -> Array1<f64>,
     S: Into<f64> + Clone,
 {
     // Get options or use defaults
@@ -32,16 +36,24 @@ where
 
     // Ensure initial point is within bounds
     if let Some(bounds) = bounds {
-        bounds.project(x.as_slice_mut().expect("Operation failed"));
+        let slice = x.as_slice_mut().ok_or_else(|| {
+            OptimizeError::ComputationError(
+                "Failed to get mutable slice for bounds projection".to_string(),
+            )
+        })?;
+        bounds.project(slice);
     }
 
     let mut f = fun(&x.view()).into();
 
-    // Calculate initial gradient using user-provided function or finite differences
-    let mut g = if let Some(ref grad_fn) = grad {
-        grad_fn(&x.view())
-    } else {
-        finite_difference_gradient(&mut fun, &x.view(), eps)?
+    // Calculate initial gradient
+    let mut nfev: usize = 1; // count the initial f evaluation
+    let mut g = match jacobian {
+        Some(jac) => compute_gradient_with_jacobian(&mut fun, &x.view(), jac, eps, &mut nfev)?,
+        None => {
+            nfev += n;
+            finite_difference_gradient(&mut fun, &x.view(), eps)?
+        }
     };
 
     // Initialize search direction as projected steepest descent
@@ -54,7 +66,6 @@ where
 
     // Counters
     let mut iter = 0;
-    let mut nfev = if grad.is_some() { 1 } else { 1 + n }; // Initial evaluation plus gradient calculations (if using FD)
 
     while iter < max_iter {
         // Check convergence on gradient
@@ -76,7 +87,12 @@ where
 
         // Ensure we're within bounds (should be a no-op if line_search_cg respected bounds)
         if let Some(bounds) = bounds {
-            bounds.project(x_new.as_slice_mut().expect("Operation failed"));
+            let slice = x_new.as_slice_mut().ok_or_else(|| {
+                OptimizeError::ComputationError(
+                    "Failed to get mutable slice for bounds projection".to_string(),
+                )
+            })?;
+            bounds.project(slice);
         }
 
         // Check if the step actually moved the point
@@ -87,13 +103,16 @@ where
             break;
         }
 
-        // Compute new gradient using user-provided function or finite differences
-        let g_new = if let Some(ref grad_fn) = grad {
-            grad_fn(&x_new.view())
-        } else {
-            let g = finite_difference_gradient(&mut fun, &x_new.view(), eps)?;
-            nfev += n;
-            g
+        // Compute new gradient
+        let g_new = match jacobian {
+            Some(jac) => {
+                compute_gradient_with_jacobian(&mut fun, &x_new.view(), jac, eps, &mut nfev)?
+            }
+            None => {
+                let g_fd = finite_difference_gradient(&mut fun, &x_new.view(), eps)?;
+                nfev += n;
+                g_fd
+            }
         };
 
         // Check convergence on function value
@@ -157,7 +176,12 @@ where
 
     // Final check for bounds
     if let Some(bounds) = bounds {
-        bounds.project(x.as_slice_mut().expect("Operation failed"));
+        let slice = x.as_slice_mut().ok_or_else(|| {
+            OptimizeError::ComputationError(
+                "Failed to get mutable slice for bounds projection".to_string(),
+            )
+        })?;
+        bounds.project(slice);
     }
 
     // Use original function for final value
@@ -179,6 +203,26 @@ where
         jacobian: Some(g),
         hessian: None,
     })
+}
+
+/// Implements the Conjugate Gradient method for unconstrained optimization with optional bounds support.
+///
+/// This is the legacy API. It delegates to `minimize_conjugate_gradient_with_jacobian` internally,
+/// converting the `Option<G>` gradient function to a `Jacobian` enum.
+#[allow(dead_code)]
+pub fn minimize_conjugate_gradient<F, G, S>(
+    fun: F,
+    grad: Option<G>,
+    x0: Array1<f64>,
+    options: &Options,
+) -> Result<OptimizeResult<S>, OptimizeError>
+where
+    F: FnMut(&ArrayView1<f64>) -> S + Clone,
+    G: Fn(&ArrayView1<f64>) -> Array1<f64>,
+    S: Into<f64> + Clone,
+{
+    let jac = grad.map(|g| Jacobian::Function(Box::new(g)));
+    minimize_conjugate_gradient_with_jacobian(fun, x0, jac.as_ref(), options)
 }
 
 /// Project search direction to respect bounds
@@ -240,9 +284,11 @@ where
     let mut f_line = |alpha: f64| {
         let mut x_new = x + alpha * direction;
 
-        // Project onto bounds (if needed, should be a no-op if we calculated bounds correctly)
+        // Project onto bounds (if needed)
         if let Some(bounds) = bounds {
-            bounds.project(x_new.as_slice_mut().expect("Operation failed"));
+            if let Some(slice) = x_new.as_slice_mut() {
+                bounds.project(slice);
+            }
         }
 
         *nfev += 1;
@@ -280,11 +326,11 @@ pub fn compute_line_bounds(
     direction: &Array1<f64>,
     bounds: Option<&Bounds>,
 ) -> (f64, f64) {
-    if bounds.is_none() {
-        return (f64::NEG_INFINITY, f64::INFINITY);
-    }
+    let bounds = match bounds {
+        Some(b) => b,
+        None => return (f64::NEG_INFINITY, f64::INFINITY),
+    };
 
-    let bounds = bounds.expect("Operation failed");
     let mut a_min = f64::NEG_INFINITY;
     let mut a_max = f64::INFINITY;
 
@@ -328,6 +374,7 @@ pub fn compute_line_bounds(
 mod tests {
     use super::*;
     use approx::assert_abs_diff_eq;
+    use scirs2_core::ndarray::array;
 
     #[test]
     fn test_cg_quadratic() {
@@ -342,7 +389,7 @@ mod tests {
             x0,
             &options,
         )
-        .expect("Operation failed");
+        .expect("test: cg quadratic");
 
         assert!(result.success);
         assert_abs_diff_eq!(result.x[0], 0.0, epsilon = 1e-4);
@@ -367,7 +414,7 @@ mod tests {
             x0,
             &options,
         )
-        .expect("Operation failed");
+        .expect("test: cg rosenbrock");
 
         assert!(result.success);
         // Rosenbrock is difficult for CG, accept if we get reasonably close
@@ -402,7 +449,7 @@ mod tests {
             x0,
             &options,
         )
-        .expect("Operation failed");
+        .expect("test: cg with bounds");
 
         assert!(result.success);
         // The optimal point (2, 3) is outside the bounds, so we should get (1, 1)
@@ -419,7 +466,28 @@ mod tests {
         let x0 = Array1::from_vec(vec![2.0, 1.0]);
         let options = Options::default();
         let result = minimize_conjugate_gradient(fun, Some(grad_fn), x0, &options)
-            .expect("Operation failed");
+            .expect("test: cg analytic grad");
+        assert!(result.success);
+        assert_abs_diff_eq!(result.x[0], 0.0, epsilon = 1e-4);
+        assert_abs_diff_eq!(result.x[1], 0.0, epsilon = 1e-4);
+    }
+
+    #[test]
+    fn test_cg_with_user_jacobian() {
+        // Simple quadratic with Jacobian enum
+        let fun = |x: &ArrayView1<f64>| -> f64 { x[0].powi(2) + 4.0 * x[1].powi(2) };
+
+        let jac = Jacobian::Function(Box::new(|x: &ArrayView1<f64>| {
+            array![2.0 * x[0], 8.0 * x[1]]
+        }));
+
+        let x0 = Array1::from_vec(vec![2.0, 1.0]);
+        let options = Options::default();
+
+        let result: OptimizeResult<f64> =
+            minimize_conjugate_gradient_with_jacobian(fun, x0, Some(&jac), &options)
+                .expect("test: cg with jacobian");
+
         assert!(result.success);
         assert_abs_diff_eq!(result.x[0], 0.0, epsilon = 1e-4);
         assert_abs_diff_eq!(result.x[1], 0.0, epsilon = 1e-4);

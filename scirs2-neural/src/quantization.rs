@@ -803,8 +803,10 @@ mod tests {
 
     #[test]
     fn test_asymmetric_quantization() {
-        let mut config = QuantizationConfig::default();
-        config.scheme = QuantizationScheme::Asymmetric;
+        let config = QuantizationConfig {
+            scheme: QuantizationScheme::Asymmetric,
+            ..Default::default()
+        };
         let tensor = array![[0.0_f32, 1.0], [2.0, 3.0]].into_dyn();
         let quantized = QuantizedTensor::from_float(&tensor, &config).expect("Test: quantization");
         assert!(quantized.params.zero_point != 0);
@@ -884,8 +886,10 @@ mod tests {
 
     #[test]
     fn test_power_of_two_quantization() {
-        let mut config = QuantizationConfig::default();
-        config.scheme = QuantizationScheme::PowerOfTwo;
+        let config = QuantizationConfig {
+            scheme: QuantizationScheme::PowerOfTwo,
+            ..Default::default()
+        };
         let tensor = random_f32_array(10, 10).into_dyn();
         let quantized = QuantizedTensor::from_float(&tensor, &config).expect("Test: quantization");
         let scale_log2 = quantized.params.scale.log2();

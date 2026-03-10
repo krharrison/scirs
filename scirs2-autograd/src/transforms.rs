@@ -1231,7 +1231,8 @@ mod tests {
 
     #[test]
     fn test_scan_transforms() {
-        let transforms: Vec<Box<dyn Fn(&Array1<f64>) -> Array1<f64>>> = vec![
+        type TransformFn = Box<dyn Fn(&Array1<f64>) -> Array1<f64>>;
+        let transforms: Vec<TransformFn> = vec![
             Box::new(|x: &Array1<f64>| x.mapv(|v| v + 1.0)),
             Box::new(|x: &Array1<f64>| x.mapv(|v| v * 2.0)),
             Box::new(|x: &Array1<f64>| x.mapv(|v| v - 3.0)),
@@ -1366,10 +1367,10 @@ mod tests {
 
         let x = Array1::from(vec![2.0, 1.0]);
 
-        let vg = value_and_grad(func.clone());
+        let vg = value_and_grad(func);
         let (val, g) = vg(&x);
 
-        let grad_f = grad(func.clone());
+        let grad_f = grad(func);
         let g2 = grad_f(&x);
 
         // Evaluate value separately

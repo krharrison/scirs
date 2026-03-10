@@ -525,7 +525,7 @@ mod tests {
     #[test]
     fn test_scale_f32_matches_fallback() {
         let a: Vec<f32> = (0..17).map(|i| i as f32 - 8.0).collect();
-        let scale = 3.14_f32;
+        let scale = 1.23_f32;
         let mut out_fallback = vec![0.0_f32; 17];
         let mut out_neon = vec![0.0_f32; 17];
         fallback_scale_f32(&a, scale, &mut out_fallback);

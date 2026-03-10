@@ -3,6 +3,7 @@
 [![crates.io](https://img.shields.io/crates/v/scirs2-vision.svg)](https://crates.io/crates/scirs2-vision)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-vision)](https://docs.rs/scirs2-vision)
+[![Version](https://img.shields.io/badge/version-0.3.1-green)]()
 
 **scirs2-vision** is the computer vision crate for the [SciRS2](https://github.com/cool-japan/scirs) scientific computing library. It provides comprehensive tools for feature detection, image segmentation, geometric transformations, stereo vision, 3D reconstruction, object detection, video processing, and camera calibration with APIs familiar to users of OpenCV and scikit-image.
 
@@ -18,7 +19,7 @@ Use scirs2-vision when you need to:
 - Perform object detection and face detection
 - Apply style transfer or image quality enhancement
 
-## Features (v0.3.0)
+## Features (v0.3.1)
 
 ### Feature Detection and Description
 - **Edge Detection**: Sobel, Canny, Prewitt, Laplacian, Laplacian of Gaussian (LoG)
@@ -118,14 +119,14 @@ Use scirs2-vision when you need to:
 
 ```toml
 [dependencies]
-scirs2-vision = "0.3.0"
+scirs2-vision = "0.3.1"
 ```
 
 For parallel processing:
 
 ```toml
 [dependencies]
-scirs2-vision = { version = "0.3.0", features = ["parallel"] }
+scirs2-vision = { version = "0.3.1", features = ["parallel"] }
 ```
 
 ## Quick Start
@@ -314,3 +315,7 @@ Full API reference: [docs.rs/scirs2-vision](https://docs.rs/scirs2-vision)
 ## License
 
 Licensed under the Apache License 2.0. See [LICENSE](../LICENSE) for details.
+
+## Authors
+
+COOLJAPAN OU (Team KitaSan)

@@ -492,7 +492,7 @@ mod tests {
     #[test]
     fn test_sve_scale_f32_matches_scalar() {
         let a: Vec<f32> = (0..17).map(|i| i as f32 - 8.0).collect();
-        let scale = 2.71828_f32;
+        let scale = 1.23456_f32;
         let mut ref_out = vec![0.0_f32; 17];
         let mut simd_out = vec![0.0_f32; 17];
         scalar_scale_f32(&a, scale, &mut ref_out);

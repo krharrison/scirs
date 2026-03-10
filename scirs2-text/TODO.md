@@ -1,8 +1,8 @@
 # scirs2-text TODO
 
-## Status: v0.3.0 Released (February 26, 2026)
+## Status: v0.3.1 Released (March 9, 2026)
 
-## v0.3.0 Completed
+## v0.3.1 Completed
 
 ### Core Tokenization
 - [x] `WordTokenizer` - Unicode-aware word tokenization, configurable lowercase
@@ -58,7 +58,7 @@
 - [x] Standard types: PER, ORG, LOC, DATE, TIME, MONEY, PERCENT
 - [x] Entity span detection with start/end offsets
 
-### Advanced NLP (New in v0.3.0)
+### Advanced NLP (New in v0.3.1)
 - [x] `coreference` - Mention detection and coreference clustering
 - [x] `dependency` - Arc-factored dependency graph construction
 - [x] `discourse` - Discourse analysis and RST primitives
@@ -175,7 +175,7 @@
 
 ## Known Issues
 
-- The `MultinomialNaiveBayes` import was previously duplicated in `text_classification.rs`; resolved in v0.3.0.
+- The `MultinomialNaiveBayes` import was previously duplicated in `text_classification.rs`; resolved in v0.3.1.
 - LDA coherence computation uses the corpus vocabulary; very small corpora may produce unreliable scores — document minimum corpus size recommendations.
 - `abstractive_summary.rs` provides primitives only; full abstractive summarization requires a neural sequence-to-sequence model from `scirs2-neural`.
 - Word2Vec training convergence depends heavily on `min_count` and corpus size; add validation warnings for very small corpora.

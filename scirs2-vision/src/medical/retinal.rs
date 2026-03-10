@@ -547,8 +547,8 @@ mod tests {
         let (row, col, radius) = result.expect("Has disc");
         assert!(radius > 0.0, "radius must be positive");
         // Centre should be roughly in the bright region
-        assert!(row >= 5.0 && row < 25.0, "row={row}");
-        assert!(col >= 5.0 && col < 25.0, "col={col}");
+        assert!((5.0..25.0).contains(&row), "row={row}");
+        assert!((5.0..25.0).contains(&col), "col={col}");
     }
 
     // ── preprocess_retinal ───────────────────────────────────────────────────
@@ -584,7 +584,7 @@ mod tests {
         let out = preprocess_retinal(img.view(), 2.0, (4, 4)).expect("Should succeed");
         assert_eq!(out.dim(), (16, 16));
         for &v in out.iter() {
-            assert!(v >= 0.0 && v <= 1.0, "output out of range: {v}");
+            assert!((0.0..=1.0).contains(&v), "output out of range: {v}");
         }
     }
 

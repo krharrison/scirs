@@ -827,7 +827,7 @@ mod tests {
         let mut rng = scirs2_core::random::rng();
 
         // Sample many times and check distribution is roughly correct
-        let mut counts = vec![0u32; 4];
+        let mut counts = [0u32; 4];
         let n_samples = 10000;
         for _ in 0..n_samples {
             let idx = table.sample(&mut rng);

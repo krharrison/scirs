@@ -1100,7 +1100,7 @@ mod tests {
     fn test_lz4_compression_roundtrip() {
         let tmp = std::env::temp_dir().join("scirs2_test_lz4.scirs2");
         // Highly compressible data: a constant array
-        let original = Array1::<f32>::from_elem(1000, 3.14159_f32).into_dyn();
+        let original = Array1::<f32>::from_elem(1000, 1.23456_f32).into_dyn();
 
         let result = save_array(&tmp, &original, CompressionType::Lz4);
         match result {

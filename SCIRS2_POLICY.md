@@ -45,9 +45,9 @@ The scirs2-core crate serves as the central hub for all common functionality, op
 - **Version Control**: Only core manages external dependency versions
 - **Type Safety**: Prevents mixing external types with SciRS2 types
 
-## Pure Rust Migration (v0.1.5)
+## Pure Rust Migration (v0.3.1)
 
-**Major architectural changes in v0.1.5 (December 2025):**
+**Major architectural changes in v0.3.1 (December 2025):**
 
 ### OxiBLAS Migration - Pure Rust BLAS/LAPACK
 
@@ -59,9 +59,9 @@ The scirs2-core crate serves as the central hub for all common functionality, op
 - ❌ `netlib-src` - Netlib reference implementation
 
 **ADDED Dependencies:**
-- ✅ `oxiblas-ndarray` v0.1.5+ - Pure Rust ndarray integration
-- ✅ `oxiblas-blas` v0.1.5+ - Pure Rust BLAS implementation
-- ✅ `oxiblas-lapack` v0.1.5+ - Pure Rust LAPACK implementation (supports Complex<f64>)
+- ✅ `oxiblas-ndarray` v0.3.1+ - Pure Rust ndarray integration
+- ✅ `oxiblas-blas` v0.3.1+ - Pure Rust BLAS implementation
+- ✅ `oxiblas-lapack` v0.3.1+ - Pure Rust LAPACK implementation (supports Complex<f64>)
 
 **Benefits:**
 - 🚀 **Zero System Dependencies** - No need to install OpenBLAS, MKL, or system BLAS
@@ -76,7 +76,7 @@ The scirs2-core crate serves as the central hub for all common functionality, op
 - ❌ `bincode` - Generic binary serialization
 
 **ADDED Dependencies (COOLJAPAN Policy):**
-- ✅ `oxicode` v0.1.5+ - SIMD-optimized binary serialization
+- ✅ `oxicode` v0.3.1+ - SIMD-optimized binary serialization
 - ✅ `oxicode_derive` - Derive macros for custom types
 
 **Benefits:**
@@ -110,15 +110,15 @@ ndarray = { workspace = true }           # ❌ Use scirs2-core instead
 ndarray-rand = { workspace = true }      # ❌ Use scirs2-core instead
 ndarray-stats = { workspace = true }     # ❌ Use scirs2-core instead
 ndarray-npy = { workspace = true }       # ❌ Use scirs2-core instead
-ndarray-linalg = { workspace = true }    # ❌ REMOVED v0.1.5 - scirs2-linalg independent implementation
+ndarray-linalg = { workspace = true }    # ❌ REMOVED v0.3.1 - scirs2-linalg independent implementation
 num-traits = { workspace = true }        # ❌ Use scirs2-core instead
 num-complex = { workspace = true }       # ❌ Use scirs2-core instead
 num-integer = { workspace = true }       # ❌ Use scirs2-core instead
 nalgebra = { workspace = true }          # ❌ Use scirs2-core instead
-bincode = { workspace = true }           # ❌ REMOVED v0.1.5 - Use oxicode instead (COOLJAPAN Policy)
-openblas-src = { workspace = true }      # ❌ REMOVED v0.1.5 - Use OxiBLAS instead
-blas-src = { workspace = true }          # ❌ REMOVED v0.1.5 - Use OxiBLAS instead
-lapack-src = { workspace = true }        # ❌ REMOVED v0.1.5 - Use OxiBLAS instead
+bincode = { workspace = true }           # ❌ REMOVED v0.3.1 - Use oxicode instead (COOLJAPAN Policy)
+openblas-src = { workspace = true }      # ❌ REMOVED v0.3.1 - Use OxiBLAS instead
+blas-src = { workspace = true }          # ❌ REMOVED v0.3.1 - Use OxiBLAS instead
+lapack-src = { workspace = true }        # ❌ REMOVED v0.3.1 - Use OxiBLAS instead
 ```
 
 #### Required Core Dependency in Cargo.toml:
@@ -157,7 +157,7 @@ use scirs2_core::random::*;           // Complete rand + rand_distr functionalit
 use scirs2_core::ndarray::*;          // Complete ndarray ecosystem
 // Includes: Array, Array1, Array2, ArrayView, array!, s!, azip! macros
 // Includes: ndarray-rand, ndarray-stats, ndarray-npy when array feature enabled
-// NOTE: ndarray-linalg removed v0.1.5 - scirs2-linalg provides independent implementation
+// NOTE: ndarray-linalg removed v0.3.1 - scirs2-linalg provides independent implementation
 
 // === Numerical Traits ===
 use scirs2_core::numeric::*;          // num-traits, num-complex, num-integer
@@ -186,7 +186,7 @@ use scirs2_core::linalg::*;           // Linear algebra (nalgebra when needed)
 | `num-complex` | `scirs2_core::numeric` | Complex numbers |
 | `num-integer` | `scirs2_core::numeric` | Integer traits |
 | `nalgebra` | `scirs2_core::linalg` | When needed |
-| `oxiblas-*` | `scirs2_core::linalg` | Pure Rust BLAS/LAPACK (v0.1.5+) |
+| `oxiblas-*` | `scirs2_core::linalg` | Pure Rust BLAS/LAPACK (v0.3.1+) |
 | ~~`bincode`~~ | N/A | **REPLACED** by `oxicode` (SIMD-optimized) |
 | `oxicode` | Direct usage | COOLJAPAN Policy - Pure Rust serialization |
 ```
@@ -230,7 +230,7 @@ let mut rng = thread_rng();
 let arr = array![[1, 2], [3, 4]];
 let slice = arr.slice(s![.., 0]);
 
-// ✅ Correct - SciRS2-Core unified abstractions (v0.1.5+)
+// ✅ Correct - SciRS2-Core unified abstractions (v0.3.1+)
 use scirs2_core::random::*;
 use scirs2_core::ndarray::*;
 
@@ -242,7 +242,7 @@ let slice = arr.slice(s![.., 0]);  // s! macro works
 
 ## Migration Strategy
 
-### For v0.1.5 and Beyond
+### For v0.3.1 and Beyond
 
 1. **Phase 1**: Document policy (✅ Completed - This document)
 2. **Phase 2**: Systematic refactoring of all non-core code (✅ Completed - All 23 crates)
@@ -385,13 +385,13 @@ scirs2-core = { workspace = true, features = ["parallel"] }
 
 ### Supported BLAS Backends
 
-**v0.1.5+ (Current):**
+**v0.3.1+ (Current):**
 - **All Platforms: OxiBLAS (Pure Rust BLAS/LAPACK)** - Default and recommended
   - No system dependencies required
   - Cross-compilation friendly
   - Complete Rust ecosystem integration
 
-**Legacy (Removed in v0.1.5):**
+**Legacy (Removed in v0.3.1):**
 - ~~macOS: Accelerate Framework~~ **REMOVED**
 - ~~Linux/Windows: OpenBLAS~~ **REMOVED**
 - ~~Intel MKL~~ **REMOVED**
@@ -400,7 +400,7 @@ scirs2-core = { workspace = true, features = ["parallel"] }
 ### Module Dependencies
 
 ```toml
-# CORRECT - Module Cargo.toml (v0.1.5+)
+# CORRECT - Module Cargo.toml (v0.3.1+)
 [dependencies]
 scirs2-core = { workspace = true, features = ["linalg"] }
 # OxiBLAS accessed through scirs2-core/linalg feature
@@ -686,17 +686,17 @@ By following these policies, we achieve:
 7. **Version Control**: Simplified dependency management
 8. **Type Safety**: Consistent types across the ecosystem
 
-## Recent Enhancements (v0.1.5)
+## Recent Enhancements (v0.3.1)
 
 ### Stable Core Abstractions
-As of v0.1.5, `scirs2_core::random` provides:
+As of v0.3.1, `scirs2_core::random` provides:
 - ✅ All `rand_distr` distributions (Beta, Cauchy, ChiSquared, FisherF, LogNormal, StudentT, Weibull, etc.)
 - ✅ Unified distribution interface with enhanced sampling
 - ✅ Full compatibility with ToRSh and other ecosystem projects
 - ✅ Production-ready stability and performance
 
 ### Unified NDArray Module
-As of v0.1.5, `scirs2_core::ndarray` provides:
+As of v0.3.1, `scirs2_core::ndarray` provides:
 - ✅ Complete ndarray functionality including all macros (`array!`, `s!`, `azip!`)
 - ✅ All array types, views, and operations
 - ✅ Single unified import point for all array operations
@@ -723,11 +723,11 @@ Remember: When in doubt, use the core abstractions!
 
 ## Policy Version
 - **Version**: 3.0.0 (Enhanced - Dependency Management)
-- **Effective Date**: SciRS2 v0.1.5
+- **Effective Date**: SciRS2 v0.3.1
 - **Last Updated**: 2025-12-29
 - **Status**: Active - Migration Complete
 
-## Current Status (v0.1.5)
+## Current Status (v0.3.1)
 
 ### Policy Compliance Audit
 
@@ -737,12 +737,12 @@ Remember: When in doubt, use the core abstractions!
 
 ### Migration Roadmap
 
-#### Phase 1: Core Infrastructure (v0.1.5) ✅
+#### Phase 1: Core Infrastructure (v0.3.1) ✅
 1. ✅ Enhanced `scirs2-core::ndarray` with full ecosystem (array feature)
 2. ✅ Policy documentation updated with Cargo.toml guidelines
 3. ✅ Dependency mapping table completed
 
-#### Phase 2: High Priority Crates (v0.1.5) ✅
+#### Phase 2: High Priority Crates (v0.3.1) ✅
 1. ✅ scirs2-linalg - Linear algebra foundation
 2. ✅ scirs2-stats - Statistical computing foundation
 3. ✅ scirs2-ndimage - Image processing foundation
@@ -750,14 +750,14 @@ Remember: When in doubt, use the core abstractions!
 5. ✅ scirs2-integrate - Integration and ODEs
 6. ✅ scirs2-interpolate - Interpolation methods
 
-#### Phase 3: Core Numerical Modules (v0.1.5) ✅
+#### Phase 3: Core Numerical Modules (v0.3.1) ✅
 7. ✅ scirs2-special - Special functions
 8. ✅ scirs2-fft - Fast Fourier Transform
 9. ✅ scirs2-signal - Signal processing
 10. ✅ scirs2-sparse - Sparse matrices
 11. ✅ scirs2-spatial - Spatial algorithms
 
-#### Phase 4: Advanced & ML Modules (v0.1.5) ✅
+#### Phase 4: Advanced & ML Modules (v0.3.1) ✅
 12. ✅ scirs2-cluster - Clustering algorithms
 13. ✅ scirs2-io - Input/output utilities
 14. ✅ scirs2-datasets - Sample datasets
@@ -771,11 +771,11 @@ Remember: When in doubt, use the core abstractions!
 22. ✅ scirs2-series - Time series analysis
 23. ✅ scirs2 - Main integration crate
 
-**Status**: All 23 crates are now POLICY-compliant (100% complete as of v0.1.5)
+**Status**: All 23 crates are now POLICY-compliant (100% complete as of v0.3.1)
 
 ### Enforcement Strategy
 
-Starting from v0.1.5:
+Starting from v0.3.1:
 1. **New Code**: Must follow policy from day one
 2. **Existing Code**: Gradual migration with priority order
 3. **CI Checks**: Automated policy compliance checks (planned)

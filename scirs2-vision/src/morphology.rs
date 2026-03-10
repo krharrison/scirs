@@ -675,6 +675,7 @@ mod tests {
         let img = bright_square(24, 4, 20);
         let k = rect_kernel(3, 3);
 
+        #[allow(clippy::type_complexity)]
         let ops: Vec<(&str, Box<dyn Fn() -> Result<Array2<u8>>>)> = vec![
             ("erode", Box::new(|| erode(&img, &k))),
             ("dilate", Box::new(|| dilate(&img, &k))),

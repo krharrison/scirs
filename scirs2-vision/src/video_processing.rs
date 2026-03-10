@@ -475,7 +475,8 @@ mod tests {
     #[test]
     fn temporal_median_filter_single_frame() {
         let f = rgb_frame(4, 4, 0.7);
-        let out = temporal_median_filter(&[f.clone()], 1).expect("median filter failed");
+        let out =
+            temporal_median_filter(std::slice::from_ref(&f), 1).expect("median filter failed");
         for &v in out.iter() {
             assert!((v - 0.7).abs() < 1e-10);
         }

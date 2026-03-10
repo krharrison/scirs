@@ -1662,6 +1662,6 @@ mod tests {
         };
         let result = iram(&a, &config, None).expect("iram harmonic");
         // Should still find eigenvalues
-        assert!(result.eigenvalues.len() > 0);
+        assert!(!result.eigenvalues.is_empty());
     }
 }

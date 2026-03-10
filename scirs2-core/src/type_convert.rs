@@ -340,8 +340,8 @@ pub fn complex_f64_to_f32(arr: &Array1<Complex<f64>>) -> Array1<Complex<f32>> {
 /// ```
 /// use scirs2_core::type_convert::round_to_decimals;
 ///
-/// assert!((round_to_decimals(3.14159, 2) - 3.14).abs() < 1e-12);
-/// assert!((round_to_decimals(3.14159, 4) - 3.1416).abs() < 1e-12);
+/// assert!((round_to_decimals(1.23456_f64, 2) - 1.23_f64).abs() < 1e-12_f64);
+/// assert!((round_to_decimals(1.23456_f64, 4) - 1.2346_f64).abs() < 1e-12_f64);
 /// ```
 pub fn round_to_decimals<F: Float + FromPrimitive>(value: F, decimals: u32) -> F {
     let factor = F::from_f64(10.0f64.powi(decimals as i32)).unwrap_or_else(F::one);
@@ -355,8 +355,8 @@ pub fn round_to_decimals<F: Float + FromPrimitive>(value: F, decimals: u32) -> F
 /// ```
 /// use scirs2_core::type_convert::round_to_sigfigs;
 ///
-/// assert!((round_to_sigfigs(12345.6789, 3) - 12300.0).abs() < 1e-6);
-/// assert!((round_to_sigfigs(0.0012345, 2) - 0.0012).abs() < 1e-8);
+/// assert!((round_to_sigfigs(12345.6789_f64, 3) - 12300.0_f64).abs() < 1e-6_f64);
+/// assert!((round_to_sigfigs(0.0012345_f64, 2) - 0.0012_f64).abs() < 1e-8_f64);
 /// ```
 pub fn round_to_sigfigs<F: Float + FromPrimitive>(value: F, sigfigs: u32) -> F {
     if value.is_zero() || value.is_nan() || value.is_infinite() {
@@ -730,9 +730,9 @@ mod tests {
 
     #[test]
     fn test_round_to_decimals() {
-        assert!((round_to_decimals(3.14159, 2) - 3.14).abs() < 1e-12);
-        assert!((round_to_decimals(3.14159, 4) - 3.1416).abs() < 1e-12);
-        assert!((round_to_decimals(3.14159, 0) - 3.0).abs() < 1e-12);
+        assert!((round_to_decimals(1.23456, 2) - 1.23).abs() < 1e-12);
+        assert!((round_to_decimals(1.23456, 4) - 1.2346).abs() < 1e-12);
+        assert!((round_to_decimals(1.23456, 0) - 1.0).abs() < 1e-12);
     }
 
     #[test]
@@ -756,14 +756,14 @@ mod tests {
 
     #[test]
     fn test_truncate_to_decimals() {
-        assert!((truncate_to_decimals(3.149, 2) - 3.14).abs() < 1e-12);
-        assert!((truncate_to_decimals(-3.149, 2) - (-3.14)).abs() < 1e-12);
+        assert!((truncate_to_decimals(1.239, 2) - 1.23).abs() < 1e-12);
+        assert!((truncate_to_decimals(-1.239, 2) - (-1.23)).abs() < 1e-12);
     }
 
     #[test]
     fn test_ceil_floor_to_decimals() {
-        assert!((ceil_to_decimals(3.141, 2) - 3.15).abs() < 1e-12);
-        assert!((floor_to_decimals(3.149, 2) - 3.14).abs() < 1e-12);
+        assert!((ceil_to_decimals(1.234, 2) - 1.24).abs() < 1e-12);
+        assert!((floor_to_decimals(1.239, 2) - 1.23).abs() < 1e-12);
     }
 
     #[test]

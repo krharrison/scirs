@@ -1,8 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use scirs2_autograd::memory_pool::{
-    global_buffer_pool_f64, global_gradient_pool_f64, global_pool, ArenaAllocator, BufferPool,
-    GradientPool, PooledArray, TensorPool,
-};
+use scirs2_autograd::memory_pool::{global_pool, PooledArray, TensorPool};
 use scirs2_autograd::ndarray_ext::NdArray;
 use scirs2_core::ndarray;
 
@@ -40,49 +37,6 @@ fn bench_allocation_strategies(c: &mut Criterion) {
                 });
             },
         );
-
-        // BufferPool allocation.
-        group.bench_with_input(
-            BenchmarkId::new("buffer_pool", &shape_str),
-            shape,
-            |b, shape| {
-                let pool = global_buffer_pool_f64();
-                let num_elements = shape.iter().product();
-                b.iter(|| {
-                    let _buf = pool.acquire(num_elements);
-                    black_box(_buf);
-                });
-            },
-        );
-
-        // GradientPool allocation.
-        group.bench_with_input(
-            BenchmarkId::new("gradient_pool", &shape_str),
-            shape,
-            |b, shape| {
-                let pool = global_gradient_pool_f64();
-                b.iter(|| {
-                    let _grad = pool.acquire_gradient(shape);
-                    black_box(_grad);
-                });
-            },
-        );
-
-        // ArenaAllocator.
-        group.bench_with_input(
-            BenchmarkId::new("arena_alloc", &shape_str),
-            shape,
-            |b, shape| {
-                b.iter_batched(
-                    || ArenaAllocator::<f64>::new(),
-                    |arena| {
-                        let _t = arena.alloc(shape);
-                        black_box(_t);
-                    },
-                    criterion::BatchSize::SmallInput,
-                );
-            },
-        );
     }
 
     group.finish();
@@ -111,24 +65,6 @@ fn bench_reuse_performance(c: &mut Criterion) {
                 let buf: PooledArray<f64> = pool.acquire(&shape);
                 black_box(&buf);
                 drop(buf);
-            }
-        });
-    });
-
-    // GradientPool with warm cache.
-    group.bench_function("gradient_pool_warm", |b| {
-        let pool = GradientPool::<f64>::new();
-        // Pre-warm.
-        for _ in 0..10 {
-            let grad = pool.acquire_gradient(&shape);
-            pool.release_gradient(grad);
-        }
-
-        b.iter(|| {
-            for _ in 0..num_iterations {
-                let grad = pool.acquire_gradient(&shape);
-                black_box(&grad);
-                pool.release_gradient(grad);
             }
         });
     });
@@ -171,22 +107,19 @@ fn bench_gradient_accumulation(c: &mut Criterion) {
             },
         );
 
-        // With GradientPool.
+        // With TensorPool.
         group.bench_with_input(
-            BenchmarkId::new("gradient_pool", &shape_str),
+            BenchmarkId::new("tensor_pool", &shape_str),
             shape,
             |b, shape| {
-                let pool = GradientPool::<f64>::new();
+                let pool = TensorPool::new();
                 b.iter(|| {
                     let mut grads = Vec::with_capacity(10);
                     for _ in 0..10 {
-                        let grad = pool.acquire_gradient(shape);
+                        let grad: PooledArray<f64> = pool.acquire(shape);
                         grads.push(grad);
                     }
-                    // Release all at once.
-                    for grad in grads {
-                        pool.release_gradient(grad);
-                    }
+                    black_box(grads);
                 });
             },
         );
@@ -228,17 +161,6 @@ fn bench_memory_pressure(c: &mut Criterion) {
         });
     });
 
-    // Arena allocator (batch deallocation).
-    group.bench_function("arena_pressure", |b| {
-        b.iter(|| {
-            let arena = ArenaAllocator::<f64>::new();
-            for _ in 0..n_allocs {
-                let _t = arena.alloc(&shape);
-            }
-            black_box(arena);
-        });
-    });
-
     group.finish();
 }
 
@@ -255,19 +177,6 @@ fn bench_stats_overhead(c: &mut Criterion) {
     group.bench_function("tensor_pool_stats", |b| {
         b.iter(|| {
             let stats = pool.stats();
-            black_box(stats);
-        });
-    });
-
-    let grad_pool = GradientPool::<f64>::new();
-    for _ in 0..100 {
-        let grad = grad_pool.acquire_gradient(&[128, 128]);
-        grad_pool.release_gradient(grad);
-    }
-
-    group.bench_function("gradient_pool_stats", |b| {
-        b.iter(|| {
-            let stats = grad_pool.stats();
             black_box(stats);
         });
     });

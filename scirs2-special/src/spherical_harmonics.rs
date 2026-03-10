@@ -59,19 +59,9 @@ where
     let cos_theta = theta.cos();
     let x = cos_theta.to_f64().unwrap_or(0.0);
 
-    // Compute P_l^{|m|}(cos theta) using standard recurrence with Condon-Shortley phase
-    let plm = associated_legendre_for_sph(l, m_abs, x);
-    let plm_f = F::from(plm).unwrap_or(F::zero());
-
-    // Compute normalization: K_l^m = sqrt((2l+1)/(4pi) * (l-|m|)!/(l+|m|)!)
-    let mut fact_ratio = 1.0_f64;
-    if m_abs > 0 {
-        for i in (l - m_abs + 1)..=(l + m_abs) {
-            fact_ratio /= i as f64;
-        }
-    }
-    let norm = ((2.0 * l as f64 + 1.0) / (4.0 * std::f64::consts::PI) * fact_ratio).sqrt();
-    let norm_f = F::from(norm).unwrap_or(F::zero());
+    // Compute K_l^|m| * P_l^|m|(cos theta) directly via fully-normalized recurrence
+    let bar_plm = normalized_assoc_legendre(l, m_abs, x);
+    let bar_plm_f = F::from(bar_plm).unwrap_or(F::zero());
 
     // Compute angular part for real spherical harmonics
     let angular_part: F;
@@ -89,54 +79,72 @@ where
         }
     }
 
-    Ok(norm_f * plm_f * angular_part)
+    Ok(bar_plm_f * angular_part)
 }
 
-/// Compute the associated Legendre function P_l^m(x) WITHOUT Condon-Shortley phase.
+/// Compute K_l^m * P_l^m(x) directly via fully-normalized recurrence.
 ///
-/// Uses upward recurrence starting from P_m^m.
-/// The Condon-Shortley phase (-1)^m is NOT included, i.e.,
-/// P_m^m(x) = (2m-1)!! * (1-x^2)^(m/2) (always non-negative at m=l).
+/// Returns `bar_P_l^m(x) = K_l^m * P_l^m(x)` where
+/// `K_l^m = sqrt((2l+1)/(4π) * (l-m)!/(l+m)!)`.
 ///
-/// This convention is used for real spherical harmonics where the standard
-/// definition gives Y_1^1(theta, phi) = sqrt(3/(4pi)) * sin(theta) * cos(phi) > 0.
-fn associated_legendre_for_sph(l: usize, m: usize, x: f64) -> f64 {
+/// NO Condon-Shortley phase is included (same convention as the old
+/// `associated_legendre_for_sph`).
+///
+/// The key advantage of this formulation is that it avoids computing
+/// the un-normalised P_l^m and the normalization constant separately,
+/// which would overflow for large l=m (e.g., l=m=150 at theta=PI).
+/// Instead, each factor in the seed product is ≤ 1, preventing overflow.
+fn normalized_assoc_legendre(l: usize, m: usize, x: f64) -> f64 {
     if m > l {
         return 0.0;
     }
 
-    // Start with P_m^m = (2m-1)!! * (1-x^2)^(m/2)
-    // Note: no (-1)^m factor (Condon-Shortley phase excluded)
-    let mut pmm = 1.0;
-    if m > 0 {
-        let somx2 = ((1.0 - x) * (1.0 + x)).sqrt();
-        let mut fact = 1.0;
-        for _i in 1..=m {
-            pmm *= fact * somx2;
-            fact += 2.0;
-        }
+    let x = x.clamp(-1.0, 1.0);
+    let sin_theta = ((1.0 - x) * (1.0 + x)).sqrt();
+
+    // Seed: bar_P_m^m = sqrt(1/(4π)) * prod_{k=1}^{m} sqrt((2k-1)/(2k)) * sin_theta^m * sqrt(2m+1)
+    // Each factor sqrt((2k-1)/(2k)) <= 1, so no overflow.
+    let inv_4pi = 1.0 / (4.0 * std::f64::consts::PI);
+    let mut bar_pmm = inv_4pi.sqrt(); // sqrt(1/(4π))
+    for k in 1..=m {
+        let k_f = k as f64;
+        bar_pmm *= ((2.0 * k_f - 1.0) / (2.0 * k_f)).sqrt() * sin_theta;
     }
+    bar_pmm *= ((2 * m + 1) as f64).sqrt();
 
     if l == m {
-        return pmm;
+        return bar_pmm;
     }
 
-    // Compute P_{m+1}^m = x * (2m+1) * P_m^m
-    let mut pmmp1 = x * (2 * m + 1) as f64 * pmm;
+    // bar_P_{m+1}^m = sqrt(2m+3) * x * bar_P_m^m
+    let mut bar_pm1 = ((2 * m + 3) as f64).sqrt() * x * bar_pmm;
 
     if l == m + 1 {
-        return pmmp1;
+        return bar_pm1;
     }
 
-    // Upward recurrence: (l-m)*P_l^m = (2l-1)*x*P_{l-1}^m - (l+m-1)*P_{l-2}^m
-    let mut result = 0.0;
+    // Three-term recurrence for ll >= m+2:
+    // alpha_ll = sqrt((4*ll^2 - 1) / (ll^2 - m^2))
+    // beta_ll  = sqrt((2*ll+1)*(ll+m-1)*(ll-m-1) / ((2*ll-3)*(ll^2 - m^2)))
+    // bar_P_ll^m = alpha_ll * x * bar_P_{ll-1}^m - beta_ll * bar_P_{ll-2}^m
+    let mut bar_prev2 = bar_pmm;
+    let mut bar_prev1 = bar_pm1;
+    let mut bar_cur = 0.0;
+    let m2 = (m * m) as f64;
     for ll in (m + 2)..=l {
-        result = (x * (2 * ll - 1) as f64 * pmmp1 - (ll + m - 1) as f64 * pmm) / (ll - m) as f64;
-        pmm = pmmp1;
-        pmmp1 = result;
+        let ll_f = ll as f64;
+        let ll2 = ll_f * ll_f;
+        let denom = ll2 - m2;
+        let alpha = ((4.0 * ll2 - 1.0) / denom).sqrt();
+        let beta = ((2.0 * ll_f + 1.0) * (ll_f + m as f64 - 1.0) * (ll_f - m as f64 - 1.0)
+            / ((2.0 * ll_f - 3.0) * denom))
+            .sqrt();
+        bar_cur = alpha * x * bar_prev1 - beta * bar_prev2;
+        bar_prev2 = bar_prev1;
+        bar_prev1 = bar_cur;
     }
 
-    result
+    bar_cur
 }
 
 /// Computes the value of the complex spherical harmonic Y_l^m(θ, φ) function.
@@ -189,19 +197,9 @@ where
     let cos_theta = theta.cos();
     let x = cos_theta.to_f64().unwrap_or(0.0);
 
-    // Compute P_l^|m|(cos theta) WITHOUT Condon-Shortley phase
-    let plm = associated_legendre_for_sph(l, m_abs, x);
-    let plm_f = F::from(plm).unwrap_or(F::zero());
-
-    // Compute normalization: K_l^m = sqrt((2l+1)/(4pi) * (l-|m|)!/(l+|m|)!)
-    let mut fact_ratio = 1.0_f64;
-    if m_abs > 0 {
-        for i in (l - m_abs + 1)..=(l + m_abs) {
-            fact_ratio /= i as f64;
-        }
-    }
-    let norm = ((2.0 * l as f64 + 1.0) / (4.0 * std::f64::consts::PI) * fact_ratio).sqrt();
-    let norm_f = F::from(norm).unwrap_or(F::zero());
+    // Compute K_l^|m| * P_l^|m|(cos theta) directly via fully-normalized recurrence
+    let bar_plm = normalized_assoc_legendre(l, m_abs, x);
+    let bar_plm_f = F::from(bar_plm).unwrap_or(F::zero());
 
     // Physics convention: Y_l^m = (-1)^m * K_l^m * P_l^|m|(cos theta) * e^{im*phi}
     // The (-1)^m is the Condon-Shortley phase applied to the spherical harmonic
@@ -230,14 +228,11 @@ where
     let sin_m_phi = m_phi.sin();
 
     let amplitude = if m >= 0 {
-        cs_phase * norm_f * plm_f
+        cs_phase * bar_plm_f
     } else {
-        // Y_l^{-|m|} = (-1)^|m| * conj(Y_l^{|m|})
-        // = (-1)^|m| * (-1)^|m| * K * P * e^{-i|m|phi}
-        // = (-1)^{2|m|} * K * P * e^{-i|m|phi}  = K * P * e^{-i|m|phi}
-        // But e^{im*phi} with m negative already gives e^{-i|m|phi}
-        // So amplitude is just K * P (no CS phase for negative m)
-        norm_f * plm_f
+        // Y_l^{-|m|} = K * P * e^{-i|m|phi}
+        // e^{im*phi} with m negative already gives e^{-i|m|phi}
+        bar_plm_f
     };
 
     let real_part = amplitude * cos_m_phi;
@@ -660,5 +655,74 @@ mod tests {
                 .expect("failed");
         assert_relative_eq!(p_val, 1.0, epsilon = 1e-10);
         assert_relative_eq!(sum_val, 1.0, epsilon = 1e-4);
+    }
+
+    // ====== Overflow regression tests (PR #119) ======
+
+    #[test]
+    fn test_sph_harm_pi_theta_finite() {
+        // All (l,m) pairs from the issue report should return finite values at theta=PI
+        let pairs = [
+            (1, 0),
+            (1, 1),
+            (2, 0),
+            (2, 1),
+            (2, 2),
+            (5, 3),
+            (10, 5),
+            (10, 10),
+            (20, 15),
+            (50, 50),
+            (100, 100),
+            (150, 150),
+        ];
+        for (l, m) in pairs {
+            let val: f64 = sph_harm(l, m, PI, 0.0).expect("sph_harm failed");
+            assert!(
+                val.is_finite(),
+                "sph_harm({l},{m},PI,0) = {val} is not finite"
+            );
+        }
+    }
+
+    #[test]
+    fn test_sph_harm_large_l_eq_m_finite() {
+        // l=m at theta=PI/2 — the old code would overflow for large l=m
+        let large_lm = [100, 130, 150, 151, 152, 200, 250, 500];
+        for l in large_lm {
+            let val: f64 = sph_harm(l, l as i32, PI / 2.0, 0.0).expect("sph_harm failed");
+            assert!(
+                val.is_finite(),
+                "sph_harm({l},{l},PI/2,0) = {val} is not finite"
+            );
+        }
+    }
+
+    #[test]
+    fn test_sph_harm_correctness_after_fix() {
+        // Spot-check analytical values after the overflow fix
+
+        // Y_0^0 = 1/(2*sqrt(PI))
+        let y00: f64 = sph_harm(0, 0, 1.0, 0.0).expect("failed");
+        assert_relative_eq!(y00, 0.5 / PI.sqrt(), epsilon = 1e-10);
+
+        // Y_1^0(theta, phi) = sqrt(3/(4*PI)) * cos(theta)
+        let theta = PI / 4.0;
+        let y10: f64 = sph_harm(1, 0, theta, 0.0).expect("failed");
+        let expected_y10 = (3.0 / (4.0 * PI)).sqrt() * theta.cos();
+        assert_relative_eq!(y10, expected_y10, epsilon = 1e-10);
+
+        // Y_1^1(theta, phi) = -sqrt(3/(4*PI)) * sin(theta) * cos(phi) (real form with sqrt2)
+        // Real convention: sqrt2 * K_1^1 * P_1^1(cos theta) * cos(phi)
+        // K_1^1 = sqrt(3/(8*PI)), P_1^1(x) = sin(theta) (no CS phase)
+        // => sqrt(2) * sqrt(3/(8*PI)) * sin(theta) * cos(phi)
+        let y11: f64 = sph_harm(1, 1, PI / 2.0, 0.0).expect("failed");
+        let expected_y11 = SQRT_2 * (3.0 / (8.0 * PI)).sqrt() * 1.0 * 1.0;
+        assert_relative_eq!(y11, expected_y11, epsilon = 1e-10);
+
+        // Y_2^0(theta=0) = sqrt(5/(16*PI)) * (3*1 - 1) = sqrt(5/(16*PI)) * 2
+        let y20: f64 = sph_harm(2, 0, 0.0, 0.0).expect("failed");
+        let expected_y20 = (5.0 / (16.0 * PI)).sqrt() * 2.0;
+        assert_relative_eq!(y20, expected_y20, epsilon = 1e-10);
     }
 }

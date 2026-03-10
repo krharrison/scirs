@@ -488,7 +488,7 @@ print(f"  Kurtosis: {kurtosis:.4f} (scirs2)")
 
 ## Conclusion
 
-**SciRS2-Python v0.2.0 is**:
+**SciRS2-Python v0.3.1 is**:
 - ✅ **Production-ready** for: Complex statistics on small-medium data
 - ⚠️ **Use with caution** for: Basic statistics, medium-large data
 - ❌ **NOT recommended** for: Linear algebra, FFT, large-scale numerical computing
@@ -512,4 +512,4 @@ print(f"  Kurtosis: {kurtosis:.4f} (scirs2)")
 
 **Last Updated**: 2025-12-29
 **Benchmark Version**: Phase 4 (79 tests)
-**scirs2-python Version**: 0.1.0
+**scirs2-python Version**: 0.3.1

@@ -1,4 +1,4 @@
-# scirs2-spatial v0.2.0 Enhancements
+# scirs2-spatial v0.3.0 Enhancements
 
 **Release Date**: February 8, 2026
 **Status**: Feature Complete ✅
@@ -226,7 +226,7 @@ Version 0.2.0 represents a major enhancement to scirs2-spatial, adding critical 
 
 ## 📈 SciPy Parity Analysis
 
-| Feature | SciPy | scirs2-spatial v0.2.0 | Status |
+| Feature | SciPy | scirs2-spatial v0.3.0 | Status |
 |---------|-------|----------------------|--------|
 | Distance metrics | 20+ functions | 20+ functions | ✅ Complete |
 | KD-Tree | `scipy.spatial.KDTree` | `KDTree` | ✅ Complete |
@@ -320,7 +320,7 @@ All new modules include:
 | distance_transform | 8 | 2 | 10 |
 | projections | 8 | 3 | 11 |
 | **Previous modules** | 575 | - | 575 |
-| **Total v0.2.0** | **599** | **7** | **606** |
+| **Total v0.3.0** | **599** | **7** | **606** |
 
 ## 🎓 Usage Examples
 
@@ -384,14 +384,14 @@ let (lat, lon) = utm_to_geographic(easting, northing, zone)?;
 let (x, y) = geographic_to_web_mercator(40.7128, -74.0060)?;
 ```
 
-## 🔄 Migration from v0.1.5
+## 🔄 Migration from v0.3.0
 
 **Breaking Changes**: None
 **Deprecations**: None
 **New Features**: Additive only
 
 **Migration Steps**:
-1. Update `Cargo.toml`: `scirs2-spatial = "0.2.0"`
+1. Update `Cargo.toml`: `scirs2-spatial = "0.3.0"`
 2. Add new imports as needed:
    ```rust
    use scirs2_spatial::{
@@ -424,7 +424,7 @@ Potential enhancements for future releases:
 
 **Testing**: Property-based testing with proptest framework
 
-## 🏆 v0.2.0 Achievement Summary
+## 🏆 v0.3.0 Achievement Summary
 
 ✅ **3 major new modules** (1,500+ LOC)
 ✅ **20+ new public functions**

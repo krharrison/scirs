@@ -526,12 +526,11 @@ impl SurfDetector {
 /// use scirs2_vision::feature::surf::{detect_surf, SurfConfig};
 /// use image::open;
 ///
-/// # fn main() -> scirs2_vision::error::Result<()> {
-/// let img = open("image.jpg")?;
-/// let keypoints = detect_surf(&img, &SurfConfig::default())?;
-/// println!("Detected {} SURF keypoints", keypoints.len());
-/// # Ok(())
-/// # }
+/// fn main() {
+///     let img = open("image.jpg").expect("image.jpg");
+///     let keypoints = detect_surf(&img, &SurfConfig::default()).expect("surf");
+///     println!("Detected {} SURF keypoints", keypoints.len());
+/// }
 /// ```
 pub fn detect_surf(img: &DynamicImage, config: &SurfConfig) -> Result<Vec<SurfKeyPoint>> {
     let detector = SurfDetector::new(config.clone());

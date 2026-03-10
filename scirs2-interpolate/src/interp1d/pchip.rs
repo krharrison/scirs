@@ -8,6 +8,19 @@ use scirs2_core::ndarray::{Array1, ArrayView1};
 use scirs2_core::numeric::{Float, FromPrimitive};
 use std::fmt::Debug;
 
+/// Strategy for PCHIP extrapolation outside the data range.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum PchipExtrapolateMode {
+    /// Linear extension using the endpoint derivative (bounded growth, stable
+    /// for far extrapolation). This is the default.
+    #[default]
+    Linear,
+    /// Hermite polynomial continuation of the boundary segment. Matches
+    /// `scipy.interpolate.PchipInterpolator(extrapolate=True)` but can grow
+    /// cubically for points far from the data range.
+    Polynomial,
+}
+
 /// PCHIP (Piecewise Cubic Hermite Interpolating Polynomial) interpolator
 ///
 /// This interpolator preserves monotonicity in the interpolation data and does
@@ -32,6 +45,8 @@ pub struct PchipInterpolator<F: Float> {
     derivatives: Array1<F>,
     /// Extrapolation mode
     extrapolate: bool,
+    /// Extrapolation strategy (linear vs polynomial continuation)
+    extrapolate_mode: PchipExtrapolateMode,
 }
 
 impl<F: Float + FromPrimitive + Debug> PchipInterpolator<F> {
@@ -107,7 +122,18 @@ impl<F: Float + FromPrimitive + Debug> PchipInterpolator<F> {
             y: y_arr,
             derivatives,
             extrapolate,
+            extrapolate_mode: PchipExtrapolateMode::Linear,
         })
+    }
+
+    /// Set the extrapolation mode (builder pattern).
+    ///
+    /// # Arguments
+    ///
+    /// * `mode` - The extrapolation strategy to use
+    pub fn with_extrapolate_mode(mut self, mode: PchipExtrapolateMode) -> Self {
+        self.extrapolate_mode = mode;
+        self
     }
 
     /// Evaluate the interpolation at the given point
@@ -135,34 +161,41 @@ impl<F: Float + FromPrimitive + Debug> PchipInterpolator<F> {
             ));
         }
 
-        // Handle extrapolation with linear extension using endpoint derivatives
-        if is_extrapolating {
+        // Handle linear extrapolation mode
+        if is_extrapolating && self.extrapolate_mode == PchipExtrapolateMode::Linear {
             if xnew < self.x[0] {
-                // Linear extrapolation below the data range
                 let dx = xnew - self.x[0];
                 return Ok(self.y[0] + self.derivatives[0] * dx);
             } else {
-                // Linear extrapolation above the data range
                 let dx = xnew - self.x[n - 1];
                 return Ok(self.y[n - 1] + self.derivatives[n - 1] * dx);
             }
         }
 
-        // Special case: xnew is exactly at a knot point
-        for i in 0..n {
-            if xnew == self.x[i] {
-                return Ok(self.y[i]);
-            }
+        // Special case: xnew is exactly the last point (non-extrapolating)
+        if !is_extrapolating && xnew == self.x[n - 1] {
+            return Ok(self.y[n - 1]);
         }
 
-        // Find index of segment containing xnew
-        let mut idx = 0;
-        for i in 0..n - 1 {
-            if xnew >= self.x[i] && xnew <= self.x[i + 1] {
-                idx = i;
-                break;
+        // Find the segment index
+        let idx = if is_extrapolating {
+            // Polynomial extrapolation: use boundary segment
+            if xnew < self.x[0] {
+                0
+            } else {
+                n - 2
             }
-        }
+        } else {
+            // In-bounds: binary/linear search
+            let mut seg = 0;
+            for i in 0..n - 1 {
+                if xnew >= self.x[i] && xnew <= self.x[i + 1] {
+                    seg = i;
+                    break;
+                }
+            }
+            seg
+        };
 
         // Get coordinates and derivatives for the segment
         let x1 = self.x[idx];
@@ -173,6 +206,7 @@ impl<F: Float + FromPrimitive + Debug> PchipInterpolator<F> {
         let d2 = self.derivatives[idx + 1];
 
         // Normalized position within the interval [x1, x2]
+        // For polynomial extrapolation t may be outside [0,1]
         let h = x2 - x1;
         let t = (xnew - x1) / h;
 

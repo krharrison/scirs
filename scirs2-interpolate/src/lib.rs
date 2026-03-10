@@ -611,6 +611,7 @@ pub use interp1d::{
     MonotonicInterpolator,
     // Monotonic interpolation methods
     MonotonicMethod,
+    PchipExtrapolateMode,
     PchipInterpolator,
 };
 pub use interpnd::{

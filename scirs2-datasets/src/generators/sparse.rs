@@ -466,7 +466,7 @@ mod tests {
         let eps = 1e-14;
         for i in 0..n {
             for j in 0..n {
-                let diff = if i >= j { i - j } else { j - i };
+                let diff = i.abs_diff(j);
                 if diff > bw {
                     assert!(
                         ds.data[[i, j]].abs() < eps,

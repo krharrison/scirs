@@ -873,7 +873,7 @@ mod tests {
         assert!((self_score - 1.0).abs() < 1e-6);
 
         // Structural similarity should be non-negative
-        for (_, &score) in &scores {
+        for &score in scores.values() {
             assert!(score >= -1e-6);
         }
         Ok(())

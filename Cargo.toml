@@ -64,7 +64,7 @@ android_min_api = 21
 supported_architectures = ["aarch64", "armv7"]
 
 [workspace.package]
-version = "0.3.0"  # scirs2 0.3.0
+version = "0.3.1"  # scirs2 0.3.1
 edition = "2021"
 authors = ["COOLJAPAN OU (Team KitaSan)"]
 description = "A Rust port of SciPy with AI/ML extensions - Scientific Computing and AI Library"
@@ -122,7 +122,7 @@ chrono = "0.4.44"
 # extension-module should be enabled only in actual Python extension module crates
 pyo3 = { version = "0.27.2", default-features = false, features = ["macros"] }
 numpy = { version = "0.27.1" }  # Keep for non-SciRS2 compatibility
-scirs2-numpy = { version = "0.3.0", path = "./scirs2-numpy" }  # SciRS2 fork with ndarray 0.17
+scirs2-numpy = { version = "0.3.1", path = "./scirs2-numpy" }  # SciRS2 fork with ndarray 0.17
 
 # Linear algebra and math (heavy dependencies - minimize features)
 nalgebra = { version = "0.34.1", default-features = false }
@@ -134,13 +134,13 @@ sprs = { version = "0.11.4", default-features = false }
 oxifft = { version = "0.1.3" }
 
 # OxiBLAS - Pure Rust BLAS/LAPACK implementation (replaces OpenBLAS)
-# Using crates.io 0.1 series for stable releases
-oxiblas = { version = "0.1.2", features = ["parallel"] }
-oxiblas-ndarray = { version = "0.1.2" }
-oxiblas-blas = { version = "0.1.2" }
-oxiblas-lapack = { version = "0.1.2" }
-oxiblas-core = { version = "0.1.2" }
-oxiblas-matrix = { version = "0.1.2" }
+# Using crates.io 0.2 series for stable releases
+oxiblas = { version = "0.2.0", features = ["parallel"] }
+oxiblas-ndarray = { version = "0.2.0" }
+oxiblas-blas = { version = "0.2.0" }
+oxiblas-lapack = { version = "0.2.0" }
+oxiblas-core = { version = "0.2.0" }
+oxiblas-matrix = { version = "0.2.0" }
 
 # DEPRECATED: OpenBLAS dependencies - replaced by OxiBLAS
 # ndarray-linalg = { version = "0.18.0", default-features = false }
@@ -159,7 +159,7 @@ image-025 = { package = "image", version = "0.25.9", features = ["jpeg", "png", 
 flate2 = "1.1"
 blake3 = "1.8.3"
 regex = "1.12.3"
-libc = "0.2.182"
+libc = "0.2.183"
 cached = "0.56.0"
 byteorder = "1.5"
 rmp-serde = "1.3"
@@ -192,8 +192,8 @@ uuid = { version = "1.21.0", features = ["v4"] }
 rustc-hash = "2.1.1"
 matrixmultiply = "0.3.10"
 num = "0.4.3"
-special = "0.11.4"
-special-11 = { package = "special", version = "0.11.4" }
+special = "0.13.0"
+special-11 = { package = "special", version = "0.13.0" }
 unicode-normalization = "0.1"
 unicode-segmentation = "1.12"
 lazy_static = "1.5"
@@ -211,12 +211,12 @@ memmap2 = { version = "0.9.10" }
 bytemuck = { version = "1.25", features = ["derive"] }
 snap = { version = "1.1.1" }
 brotli = { version = "8.0.2" }
-cranelift-module = { version = "0.127.3" }
-cranelift-jit = { version = "0.127.3" }
-cranelift-frontend = { version = "0.127.3" }
-plotly = { version = "0.13.5" }
+cranelift-module = { version = "0.129.1" }
+cranelift-jit = { version = "0.129.1" }
+cranelift-frontend = { version = "0.129.1" }
+plotly = { version = "0.14.1" }
 plotters = { version = "0.3.7" }
-reqwest = { version = "0.12", features = ["blocking", "json"] }
+reqwest = { version = "0.13", features = ["blocking", "json"] }
 
 # Math libraries
 libm = "0.2"
@@ -233,13 +233,13 @@ critical-section = { version = "1.2.0", default-features = false }
 # Platform-specific embedded support
 cortex-m = { version = "0.7.7", default-features = false }
 cortex-m-rt = { version = "0.7.5" }
-riscv = { version = "0.11.1", default-features = false }
+riscv = { version = "0.15.0", default-features = false }
 riscv-rt = { version = "0.17.1" }
 # Atomic operations for embedded
 atomic-polyfill = { version = "1.0.3", default-features = false }
 portable-atomic = { version = "1.13.1", default-features = false }
 # Memory allocation for alloc feature
-embedded-alloc = { version = "0.6.0" }
+embedded-alloc = { version = "0.7.0" }
 linked_list_allocator = { version = "0.10.5" }
 netcdf3 = "0.6.0"
 sobol = "1.0.2"
@@ -292,7 +292,7 @@ objc2-metal-performance-shaders-graph = "0.3.2"  # MPSGraph for high-performance
 opencl3 = { version = "0.12" }
 wgpu = { version = "27.0" }
 pollster = { version = "0.4" }
-cudarc = { version = "0.18", features = ["cuda-12000"] }
+cudarc = { version = "0.19", features = ["cuda-12000"] }
 
 
 # Development and testing additions
@@ -372,37 +372,37 @@ pyo3-async-runtimes = { version = "0.27.0", default-features = false, features =
 # Python integration (optional)
 
 # Base scirs2 crates
-scirs2-core = { version = "0.3.0", path = "./scirs2-core", default-features = false }
-scirs2 = { version = "0.3.0", path = "./scirs2", default-features = false }
-scirs2-linalg = { version = "0.3.0", path = "./scirs2-linalg", default-features = false }
-scirs2-integrate = { version = "0.3.0", path = "./scirs2-integrate", default-features = false }
-scirs2-interpolate = { version = "0.3.0", path = "./scirs2-interpolate", default-features = false }
-scirs2-optimize = { version = "0.3.0", path = "./scirs2-optimize", default-features = false }
-scirs2-fft = { version = "0.3.0", path = "./scirs2-fft", default-features = false }
-scirs2-stats = { version = "0.3.0", path = "./scirs2-stats", default-features = false }
-scirs2-special = { version = "0.3.0", path = "./scirs2-special", default-features = false }
-scirs2-signal = { version = "0.3.0", path = "./scirs2-signal", default-features = false }
-scirs2-sparse = { version = "0.3.0", path = "./scirs2-sparse" }
-scirs2-spatial = { version = "0.3.0", path = "./scirs2-spatial" }
+scirs2-core = { version = "0.3.1", path = "./scirs2-core", default-features = false }
+scirs2 = { version = "0.3.1", path = "./scirs2", default-features = false }
+scirs2-linalg = { version = "0.3.1", path = "./scirs2-linalg", default-features = false }
+scirs2-integrate = { version = "0.3.1", path = "./scirs2-integrate", default-features = false }
+scirs2-interpolate = { version = "0.3.1", path = "./scirs2-interpolate", default-features = false }
+scirs2-optimize = { version = "0.3.1", path = "./scirs2-optimize", default-features = false }
+scirs2-fft = { version = "0.3.1", path = "./scirs2-fft", default-features = false }
+scirs2-stats = { version = "0.3.1", path = "./scirs2-stats", default-features = false }
+scirs2-special = { version = "0.3.1", path = "./scirs2-special", default-features = false }
+scirs2-signal = { version = "0.3.1", path = "./scirs2-signal", default-features = false }
+scirs2-sparse = { version = "0.3.1", path = "./scirs2-sparse" }
+scirs2-spatial = { version = "0.3.1", path = "./scirs2-spatial" }
 
 # Advanced modules
-scirs2-cluster = { version = "0.3.0", path = "./scirs2-cluster" }
-scirs2-ndimage = { version = "0.3.0", path = "./scirs2-ndimage" }
-scirs2-io = { version = "0.3.0", path = "./scirs2-io" }
-scirs2-datasets = { version = "0.3.0", path = "./scirs2-datasets", default-features = false }
+scirs2-cluster = { version = "0.3.1", path = "./scirs2-cluster" }
+scirs2-ndimage = { version = "0.3.1", path = "./scirs2-ndimage" }
+scirs2-io = { version = "0.3.1", path = "./scirs2-io" }
+scirs2-datasets = { version = "0.3.1", path = "./scirs2-datasets", default-features = false }
 
 # AI/ML modules
-scirs2-neural = { version = "0.3.0", path = "./scirs2-neural" }
+scirs2-neural = { version = "0.3.1", path = "./scirs2-neural" }
 # scirs2-optim moved to independent OptiRS project
-scirs2-graph = { version = "0.3.0", path = "./scirs2-graph" }
-scirs2-transform = { version = "0.3.0", path = "./scirs2-transform" }
-scirs2-metrics = { version = "0.3.0", path = "./scirs2-metrics", default-features = false }
-scirs2-text = { version = "0.3.0", path = "./scirs2-text" }
-scirs2-vision = { version = "0.3.0", path = "./scirs2-vision" }
-scirs2-series = { version = "0.3.0", path = "./scirs2-series" }
-scirs2-autograd = { version = "0.3.0", path = "./scirs2-autograd" }
-scirs2-wasm = { version = "0.3.0", path = "./scirs2-wasm" }  # WebAssembly bindings
-scirs2-python = { version = "0.3.0", path = "./scirs2-python" }  # Python bindings
+scirs2-graph = { version = "0.3.1", path = "./scirs2-graph" }
+scirs2-transform = { version = "0.3.1", path = "./scirs2-transform" }
+scirs2-metrics = { version = "0.3.1", path = "./scirs2-metrics", default-features = false }
+scirs2-text = { version = "0.3.1", path = "./scirs2-text" }
+scirs2-vision = { version = "0.3.1", path = "./scirs2-vision" }
+scirs2-series = { version = "0.3.1", path = "./scirs2-series" }
+scirs2-autograd = { version = "0.3.1", path = "./scirs2-autograd" }
+scirs2-wasm = { version = "0.3.1", path = "./scirs2-wasm" }  # WebAssembly bindings
+scirs2-python = { version = "0.3.1", path = "./scirs2-python" }  # Python bindings
 
 
 [profile.release]

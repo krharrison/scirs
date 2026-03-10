@@ -1,6 +1,6 @@
 # scirs2-integrate TODO
 
-## v0.3.0 Completed
+## v0.3.1 Completed
 
 ### Quadrature
 - [x] Adaptive 1D quadrature: `quad`, `dblquad`, `tplquad`, `nquad`

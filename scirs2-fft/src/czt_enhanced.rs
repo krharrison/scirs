@@ -721,7 +721,7 @@ mod tests {
         assert_eq!(result.len(), 4); // len(a) + len(b) - 1
 
         // Expected: [1*4, 1*5+2*4, 2*5+3*4, 3*5] = [4, 13, 22, 15]
-        let expected = vec![4.0, 13.0, 22.0, 15.0];
+        let expected = [4.0, 13.0, 22.0, 15.0];
         for (i, (&r, &e)) in result.iter().zip(expected.iter()).enumerate() {
             assert_abs_diff_eq!(r, e, epsilon = 1e-8,);
         }

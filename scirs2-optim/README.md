@@ -1,38 +1,38 @@
-# ⚠️ MOVED: scirs2-optim → OptiRS
+# MOVED: scirs2-optim -> OptiRS
 
 This module has been **moved to an independent project**.
 
-## 🔄 Migration Guide
+## Migration Guide
 
 ### Old (scirs2-optim)
 ```toml
 [dependencies]
-scirs2-optim = "0.1.5"  # ❌ No longer available
+scirs2-optim = "0.3.1"  # No longer available
 ```
 
 ### New (OptiRS)
 ```toml
 [dependencies]
-optirs = "0.1.0"  # ✅ New independent project
+optirs = "0.3.1"  # New independent project
 # Or specific modules:
-optirs-core = "0.1.0"
-optirs-gpu = { version = "0.1.0", features = ["cuda"] }
-optirs-learned = "0.1.0"
-optirs-nas = "0.1.0"
+optirs-core = "0.3.1"
+optirs-gpu = { version = "0.3.1", features = ["cuda"] }
+optirs-learned = "0.3.1"
+optirs-nas = "0.3.1"
 ```
 
-## 📍 New Location
+## New Location
 
 **OptiRS Project**: [`https://github.com/cool-japan/optirs`](https://github.com/cool-japan/optirs)
 
-## 🎯 Why the Move?
+## Why the Move?
 
 - **Focus**: Dedicated optimization research and development
 - **Performance**: Specialized hardware acceleration (GPU/TPU)
 - **Modularity**: Use only the components you need
 - **Independence**: Faster release cycles for ML optimization advances
 
-## 📦 What's in OptiRS?
+## What's in OptiRS?
 
 - **`optirs-core`**: Basic optimizers (SGD, Adam, etc.), schedulers, regularizers
 - **`optirs-gpu`**: Multi-GPU optimization, CUDA/Metal/OpenCL/WebGPU
@@ -41,7 +41,7 @@ optirs-nas = "0.1.0"
 - **`optirs-nas`**: Neural Architecture Search algorithms
 - **`optirs-bench`**: Performance analysis and benchmarking tools
 
-## 🚀 Quick Start with OptiRS
+## Quick Start with OptiRS
 
 ```rust
 use optirs::prelude::*;
@@ -55,7 +55,7 @@ let gradients = Array2::zeros((10, 10));
 let updated_params = optimizer.step(&gradients)?;
 ```
 
-## 📚 Documentation
+## Documentation
 
 Full documentation and examples are available in the OptiRS repository.
 
@@ -64,5 +64,5 @@ Full documentation and examples are available in the OptiRS repository.
 **For SciRS2 core scientific computing**, continue using:
 ```toml
 [dependencies]
-scirs2 = "0.1.5"  # Scientific computing without optimization
+scirs2 = "0.3.1"  # Scientific computing without optimization
 ```

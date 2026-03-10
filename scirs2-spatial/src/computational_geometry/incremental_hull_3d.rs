@@ -24,7 +24,7 @@
 //!     [1.0, 0.0, 0.0],
 //!     [0.0, 1.0, 0.0],
 //!     [0.0, 0.0, 1.0],
-//!     [0.5, 0.5, 0.5], // interior point
+//!     [0.1, 0.1, 0.1], // interior point
 //! ];
 //!
 //! let hull = IncrementalHull3D::new(&points).expect("Operation failed");
@@ -733,16 +733,16 @@ mod tests {
     #[test]
     fn test_many_points() {
         // Points on a sphere - hull should use all of them
-        let mut points = Vec::new();
-        // 6 points: axis-aligned extremes of unit sphere
-        points.push([1.0, 0.0, 0.0]);
-        points.push([-1.0, 0.0, 0.0]);
-        points.push([0.0, 1.0, 0.0]);
-        points.push([0.0, -1.0, 0.0]);
-        points.push([0.0, 0.0, 1.0]);
-        points.push([0.0, 0.0, -1.0]);
-        // Add interior point
-        points.push([0.0, 0.0, 0.0]);
+        // 6 points: axis-aligned extremes of unit sphere, plus interior point
+        let points = vec![
+            [1.0, 0.0, 0.0],
+            [-1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [0.0, 0.0, 1.0],
+            [0.0, 0.0, -1.0],
+            [0.0, 0.0, 0.0],
+        ];
 
         let hull = IncrementalHull3D::new(&points).expect("Operation failed");
         assert_eq!(hull.num_vertices(), 6); // Only the 6 extremes

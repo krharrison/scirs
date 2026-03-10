@@ -327,6 +327,12 @@ pub fn simd_sub_f64(a: &ArrayView1<f64>, b: &ArrayView1<f64>) -> Array1<f64> {
     assert_eq!(a.len(), b.len(), "Arrays must have the same length");
 
     let len = a.len();
+
+    // Fall back to scalar subtraction if arrays are non-contiguous (e.g. column slices)
+    if a.as_slice().is_none() || b.as_slice().is_none() {
+        return (a - b).to_owned();
+    }
+
     let mut result = Vec::with_capacity(len);
 
     #[cfg(target_arch = "x86_64")]
@@ -437,6 +443,11 @@ pub fn simd_sub_f64(a: &ArrayView1<f64>, b: &ArrayView1<f64>) -> Array1<f64> {
 #[allow(dead_code)]
 pub fn simd_mul_f32(a: &ArrayView1<f32>, b: &ArrayView1<f32>) -> Array1<f32> {
     assert_eq!(a.len(), b.len(), "Arrays must have the same length");
+
+    // Fall back to scalar for non-contiguous arrays (e.g. column slices)
+    if a.as_slice().is_none() || b.as_slice().is_none() {
+        return (a * b).to_owned();
+    }
 
     let len = a.len();
     let mut result = Vec::with_capacity(len);
@@ -550,6 +561,11 @@ pub fn simd_mul_f32(a: &ArrayView1<f32>, b: &ArrayView1<f32>) -> Array1<f32> {
 pub fn simd_mul_f64(a: &ArrayView1<f64>, b: &ArrayView1<f64>) -> Array1<f64> {
     assert_eq!(a.len(), b.len(), "Arrays must have the same length");
 
+    // Fall back to scalar for non-contiguous arrays (e.g. column slices)
+    if a.as_slice().is_none() || b.as_slice().is_none() {
+        return (a * b).to_owned();
+    }
+
     let len = a.len();
     let mut result = Vec::with_capacity(len);
 
@@ -661,6 +677,11 @@ pub fn simd_mul_f64(a: &ArrayView1<f64>, b: &ArrayView1<f64>) -> Array1<f64> {
 #[allow(dead_code)]
 pub fn simd_div_f32(a: &ArrayView1<f32>, b: &ArrayView1<f32>) -> Array1<f32> {
     assert_eq!(a.len(), b.len(), "Arrays must have the same length");
+
+    // Fall back to scalar for non-contiguous arrays (e.g. column slices)
+    if a.as_slice().is_none() || b.as_slice().is_none() {
+        return (a / b).to_owned();
+    }
 
     let len = a.len();
     let mut result = Vec::with_capacity(len);
@@ -774,6 +795,11 @@ pub fn simd_div_f32(a: &ArrayView1<f32>, b: &ArrayView1<f32>) -> Array1<f32> {
 pub fn simd_div_f64(a: &ArrayView1<f64>, b: &ArrayView1<f64>) -> Array1<f64> {
     assert_eq!(a.len(), b.len(), "Arrays must have the same length");
 
+    // Fall back to scalar for non-contiguous arrays (e.g. column slices)
+    if a.as_slice().is_none() || b.as_slice().is_none() {
+        return (a / b).to_owned();
+    }
+
     let len = a.len();
     let mut result = Vec::with_capacity(len);
 
@@ -885,6 +911,11 @@ pub fn simd_div_f64(a: &ArrayView1<f64>, b: &ArrayView1<f64>) -> Array1<f64> {
 #[allow(dead_code)]
 pub fn simd_dot_f32(a: &ArrayView1<f32>, b: &ArrayView1<f32>) -> f32 {
     assert_eq!(a.len(), b.len(), "Arrays must have the same length");
+
+    // Fall back to scalar for non-contiguous arrays (e.g. column slices)
+    if a.as_slice().is_none() || b.as_slice().is_none() {
+        return a.iter().zip(b.iter()).map(|(&x, &y)| x * y).sum();
+    }
 
     let len = a.len();
 

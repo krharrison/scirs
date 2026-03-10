@@ -1739,7 +1739,7 @@ mod tests {
                 .run();
 
             // d(sum(x+y))/dx = [1,1,1,1], d(sum(x+y))/dy = [1,1,1,1]
-            if let Some(Ok(dx)) = results.get(0) {
+            if let Some(Ok(dx)) = results.first() {
                 if let Some(dx_slice) = dx.as_slice() {
                     assert_approx_eq_f64(dx_slice, &[1.0, 1.0, 1.0, 1.0], 1e-10);
                 }
@@ -1774,7 +1774,7 @@ mod tests {
                 .run();
 
             // d(sum(x*y))/dx = y, d(sum(x*y))/dy = x
-            if let Some(Ok(dx)) = results.get(0) {
+            if let Some(Ok(dx)) = results.first() {
                 if let Some(dx_slice) = dx.as_slice() {
                     assert_approx_eq_f64(dx_slice, &[5.0, 6.0, 7.0, 8.0], 1e-10);
                 }

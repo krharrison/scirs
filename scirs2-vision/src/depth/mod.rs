@@ -714,9 +714,9 @@ mod tests {
     fn test_relative_depth_from_gradients_edge() {
         // An edge image: left half = 0, right half = 1
         let mut image = vec![vec![0.0f64; 10]; 10];
-        for r in 0..10 {
-            for c in 5..10 {
-                image[r][c] = 1.0;
+        for row in image.iter_mut().take(10) {
+            for cell in row.iter_mut().skip(5).take(5) {
+                *cell = 1.0;
             }
         }
         let depth = relative_depth_from_gradients(&image);

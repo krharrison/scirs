@@ -346,7 +346,7 @@ mod tests {
         let mut buf = image::RgbImage::new(20, 20);
         for y in 0..20u32 {
             for x in 0..20u32 {
-                let is_center = x >= 5 && x < 15 && y >= 5 && y < 15;
+                let is_center = (5..15).contains(&x) && (5..15).contains(&y);
                 let color = if is_center {
                     [220u8, 220, 220]
                 } else {

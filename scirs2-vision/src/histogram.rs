@@ -1112,7 +1112,7 @@ mod tests {
         let t = otsu_threshold(&img);
         // Threshold should fall between the two peaks (inclusive bounds)
         assert!(
-            t >= 50 && t <= 200,
+            (50..=200).contains(&t),
             "Otsu threshold {t} not between 50 and 200"
         );
     }
@@ -1122,7 +1122,7 @@ mod tests {
         let img = make_bimodal_image(100, 10);
         let (binary, threshold) = binarize_otsu(&img).expect("binarize should succeed");
         assert!(
-            threshold >= 50 && threshold <= 200,
+            (50..=200).contains(&threshold),
             "Threshold {threshold} not in [50, 200]"
         );
         let gray = binary.to_luma8();

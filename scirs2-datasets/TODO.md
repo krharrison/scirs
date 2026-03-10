@@ -1,8 +1,8 @@
 # scirs2-datasets TODO
 
-## Status: v0.3.0 Released (February 26, 2026)
+## Status: v0.3.1 Released (March 9, 2026)
 
-## v0.3.0 Completed
+## v0.3.1 Completed
 
 ### Classic Toy Datasets
 - [x] `load_iris` - 150 samples, 4 features, 3 classes
@@ -26,7 +26,7 @@
 - [x] `make_arima_series` - ARIMA process generation
 - [x] Reproducible results via seed parameter throughout
 
-### Specialized Benchmarks (New in v0.3.0)
+### Specialized Benchmarks (New in v0.3.1)
 - [x] `graph_datasets` - Cora, Citeseer, PROTEINS graph datasets
 - [x] `graph_benchmarks` - GNN benchmark suite
 - [x] `image_datasets` - MNIST-like, CIFAR-10 format (synthetic)

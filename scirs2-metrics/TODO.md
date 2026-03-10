@@ -1,8 +1,8 @@
 # scirs2-metrics TODO
 
-## Status: v0.3.0 Released (February 26, 2026)
+## Status: v0.3.1 Released (March 9, 2026)
 
-## v0.3.0 Completed
+## v0.3.1 Completed
 
 ### Classification Metrics
 - [x] `accuracy_score` with sample weighting
@@ -52,7 +52,7 @@
 - [x] Label ranking average precision (LRAP)
 - [x] `ir_metrics` module: comprehensive IR evaluation
 
-### Object Detection Metrics (New in v0.3.0)
+### Object Detection Metrics (New in v0.3.1)
 - [x] `iou_score` for axis-aligned bounding boxes
 - [x] `average_precision` at IoU threshold
 - [x] `compute_map` (mAP) with configurable IoU thresholds
@@ -61,14 +61,14 @@
 - [x] COCO-style mAP@[0.5:0.95] evaluation
 - [x] Per-class AP breakdown
 
-### Generative Model Evaluation (New in v0.3.0)
+### Generative Model Evaluation (New in v0.3.1)
 - [x] Fréchet Inception Distance (FID)
 - [x] Inception Score (IS)
 - [x] Precision and Recall for generative models
 - [x] Maximum Mean Discrepancy (MMD)
 - [x] Kernel-based evaluation metrics
 
-### Segmentation Metrics (New in v0.3.0)
+### Segmentation Metrics (New in v0.3.1)
 - [x] Pixel accuracy, mean pixel accuracy
 - [x] Per-class IoU, mean IoU (mIoU)
 - [x] Dice coefficient, Jaccard index

@@ -115,7 +115,7 @@ pub struct POTResult {
 /// use scirs2_stats::extreme_value::pot_module::extract_exceedances;
 /// let data = vec![1.0, 3.0, 5.0, 2.0, 7.0];
 /// let exc = extract_exceedances(&data, 2.5);
-/// assert_eq!(exc.len(), 2); // 3.0 and 5.0 and 7.0 -> 0.5, 2.5, 4.5
+/// assert_eq!(exc.len(), 3); // 3.0, 5.0 and 7.0 -> 0.5, 2.5, 4.5
 /// ```
 pub fn extract_exceedances(data: &[f64], threshold: f64) -> Vec<f64> {
     data.iter()

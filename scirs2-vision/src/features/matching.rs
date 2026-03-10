@@ -624,7 +624,7 @@ mod tests {
 
     #[test]
     fn test_binary_brute_force() {
-        let d: Vec<OrbLikeDescriptor> = (0..4).map(|i| make_orb_desc(i)).collect();
+        let d: Vec<OrbLikeDescriptor> = (0..4).map(make_orb_desc).collect();
         let matches = match_binary_descriptors(&d, &d, &MatchMethod::BruteForce)
             .expect("match_binary_descriptors should succeed");
         for (i, j, dist) in &matches {

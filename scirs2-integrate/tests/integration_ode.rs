@@ -120,8 +120,8 @@ fn test_bdf_stiff_ode_versus_rk45() {
     let t_end = 1.0_f64;
     let y0 = Array1::from_vec(vec![1.0_f64]);
 
-    let result_bdf = solve_ivp(f.clone(), [0.0_f64, t_end], y0.clone(), Some(opts_bdf))
-        .expect("BDF solve failed");
+    let result_bdf =
+        solve_ivp(f, [0.0_f64, t_end], y0.clone(), Some(opts_bdf)).expect("BDF solve failed");
     let result_rk = solve_ivp(f, [0.0_f64, t_end], y0, Some(opts_rk)).expect("RK45 solve failed");
 
     assert!(result_bdf.success, "BDF did not converge");
@@ -414,8 +414,8 @@ fn test_rk4_vs_rk45_smooth_ode_agreement() {
 
     let y0 = Array1::from_vec(vec![0.0_f64]);
 
-    let res_rk4 = solve_ivp(f.clone(), [0.0_f64, t_end], y0.clone(), Some(opts_rk4))
-        .expect("RK4 solve failed");
+    let res_rk4 =
+        solve_ivp(f, [0.0_f64, t_end], y0.clone(), Some(opts_rk4)).expect("RK4 solve failed");
     let res_rk45 =
         solve_ivp(f, [0.0_f64, t_end], y0, Some(opts_rk45)).expect("RK45 smooth ODE solve failed");
 

@@ -40,6 +40,7 @@ pub type MultitaperResult = (Vec<f64>, Vec<f64>, Option<Array2<f64>>, Option<Arr
 ///
 /// ```
 /// use scirs2_signal::multitaper::pmtm;
+/// use std::f64::consts::PI;
 ///
 /// // Generate a test signal (sinusoid with noise)
 /// let n = 1024;
@@ -244,6 +245,7 @@ where
 ///
 /// ```
 /// use scirs2_signal::multitaper::multitaper_spectrogram;
+/// use std::f64::consts::PI;
 ///
 /// // Generate a test signal with changing frequency
 /// let n = 2000;

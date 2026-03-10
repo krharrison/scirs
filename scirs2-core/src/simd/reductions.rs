@@ -11,6 +11,11 @@ pub fn simd_sum_f32(input: &ArrayView1<f32>) -> f32 {
         return 0.0;
     }
 
+    // Fall back to scalar sum if the array is not contiguous (e.g. column slices)
+    if input.as_slice().is_none() {
+        return input.iter().copied().sum();
+    }
+
     #[cfg(target_arch = "x86_64")]
     {
         use std::arch::x86_64::*;
@@ -148,6 +153,11 @@ pub fn simd_sum_f64(input: &ArrayView1<f64>) -> f64 {
     let len = input.len();
     if len == 0 {
         return 0.0;
+    }
+
+    // Fall back to scalar sum if the array is not contiguous (e.g. column slices)
+    if input.as_slice().is_none() {
+        return input.iter().copied().sum();
     }
 
     #[cfg(target_arch = "x86_64")]
@@ -309,6 +319,17 @@ pub fn simd_variance_f32(input: &ArrayView1<f32>) -> f32 {
         return f32::NAN;
     }
 
+    // Fall back to scalar for non-contiguous arrays (e.g. column slices)
+    if input.as_slice().is_none() {
+        let mean = input.iter().copied().sum::<f32>() / len as f32;
+        return input
+            .iter()
+            .copied()
+            .map(|x| (x - mean) * (x - mean))
+            .sum::<f32>()
+            / (len - 1) as f32;
+    }
+
     let mean = simd_mean_f32(input);
 
     #[cfg(target_arch = "x86_64")]
@@ -423,6 +444,17 @@ pub fn simd_variance_f64(input: &ArrayView1<f64>) -> f64 {
     let len = input.len();
     if len < 2 {
         return f64::NAN;
+    }
+
+    // Fall back to scalar for non-contiguous arrays (e.g. column slices)
+    if input.as_slice().is_none() {
+        let mean = input.iter().copied().sum::<f64>() / len as f64;
+        return input
+            .iter()
+            .copied()
+            .map(|x| (x - mean) * (x - mean))
+            .sum::<f64>()
+            / (len - 1) as f64;
     }
 
     let mean = simd_mean_f64(input);
@@ -544,6 +576,11 @@ pub fn simd_min_f32(input: &ArrayView1<f32>) -> f32 {
     let len = input.len();
     if len == 0 {
         return f32::INFINITY;
+    }
+
+    // Fall back to scalar for non-contiguous arrays (e.g. column slices)
+    if input.as_slice().is_none() {
+        return input.iter().copied().fold(f32::INFINITY, f32::min);
     }
 
     #[cfg(target_arch = "x86_64")]
@@ -687,6 +724,11 @@ pub fn simd_min_f64(input: &ArrayView1<f64>) -> f64 {
         return f64::INFINITY;
     }
 
+    // Fall back to scalar for non-contiguous arrays (e.g. column slices)
+    if input.as_slice().is_none() {
+        return input.iter().copied().fold(f64::INFINITY, f64::min);
+    }
+
     #[cfg(target_arch = "x86_64")]
     {
         use std::arch::x86_64::*;
@@ -819,6 +861,11 @@ pub fn simd_max_f32(input: &ArrayView1<f32>) -> f32 {
     let len = input.len();
     if len == 0 {
         return f32::NEG_INFINITY;
+    }
+
+    // Fall back to scalar for non-contiguous arrays (e.g. column slices)
+    if input.as_slice().is_none() {
+        return input.iter().copied().fold(f32::NEG_INFINITY, f32::max);
     }
 
     #[cfg(target_arch = "x86_64")]
@@ -959,6 +1006,11 @@ pub fn simd_max_f64(input: &ArrayView1<f64>) -> f64 {
     let len = input.len();
     if len == 0 {
         return f64::NEG_INFINITY;
+    }
+
+    // Fall back to scalar for non-contiguous arrays (e.g. column slices)
+    if input.as_slice().is_none() {
+        return input.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     }
 
     #[cfg(target_arch = "x86_64")]

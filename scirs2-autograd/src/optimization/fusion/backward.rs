@@ -380,7 +380,7 @@ mod tests {
             .expect("backward should succeed");
 
         // Gradient should be masked by ReLU: only first element has gradient
-        assert!(grads.grad_x.shape() == &[1, 2]);
+        assert!(grads.grad_x.shape() == [1, 2]);
     }
 
     #[test]

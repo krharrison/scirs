@@ -98,6 +98,42 @@
 //! # }
 //! ```
 //!
+//! ### Optimization with User-Provided Jacobian (Gradient)
+//!
+//! Supply an analytic gradient via the `Jacobian` enum for faster, more accurate convergence:
+//!
+//! ```rust
+//! use scirs2_optimize::unconstrained::{Options, minimize_bfgs_with_jacobian};
+//! use scirs2_optimize::Jacobian;
+//! use scirs2_core::ndarray::{array, Array1, ArrayView1};
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! // Rosenbrock function
+//! let rosenbrock = |x: &ArrayView1<f64>| -> f64 {
+//!     (1.0 - x[0]).powi(2) + 100.0 * (x[1] - x[0].powi(2)).powi(2)
+//! };
+//!
+//! // Analytic gradient of Rosenbrock
+//! let jac = Jacobian::Function(Box::new(|x: &ArrayView1<f64>| {
+//!     array![
+//!         -2.0 * (1.0 - x[0]) - 400.0 * x[0] * (x[1] - x[0].powi(2)),
+//!         200.0 * (x[1] - x[0].powi(2))
+//!     ]
+//! }));
+//!
+//! let x0 = Array1::from_vec(vec![0.0, 0.0]);
+//! let mut options = Options::default();
+//! options.max_iter = 2000;
+//!
+//! let result: scirs2_optimize::unconstrained::OptimizeResult<f64> =
+//!     minimize_bfgs_with_jacobian(rosenbrock, x0, Some(&jac), &options)?;
+//!
+//! assert!(result.success);
+//! println!("Minimum at: ({:.4}, {:.4})", result.x[0], result.x[1]);
+//! # Ok(())
+//! # }
+//! ```
+//!
 //! ### Robust Least Squares
 //!
 //! Fit data with outliers using robust loss functions:
@@ -514,7 +550,7 @@ pub use streaming::{
 };
 pub use unconstrained::{
     cauchy_point, dogleg_step, minimize, solve_trust_subproblem, trust_region_minimize, Bounds,
-    TrustRegionConfig, TrustRegionResult,
+    Jacobian, TrustRegionConfig, TrustRegionResult,
 };
 pub use unified_pipeline::{
     presets as unified_presets, UnifiedOptimizationConfig, UnifiedOptimizationResults,
@@ -646,7 +682,7 @@ pub mod prelude {
     };
     pub use crate::unconstrained::{
         cauchy_point, dogleg_step, minimize, solve_trust_subproblem, trust_region_minimize, Bounds,
-        Method as UnconstrainedMethod, Options, TrustRegionConfig, TrustRegionResult,
+        Jacobian, Method as UnconstrainedMethod, Options, TrustRegionConfig, TrustRegionResult,
     };
     pub use crate::unified_pipeline::{
         presets as unified_presets, UnifiedOptimizationConfig, UnifiedOptimizationResults,

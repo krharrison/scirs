@@ -70,9 +70,9 @@ impl<T> MatEqFloat for T where
 /// use scirs2_core::ndarray::array;
 /// use scirs2_linalg::matrix_equations::solve_sylvester;
 ///
-/// let a = array![[1.0, 0.0], [0.0, 2.0]];
-/// let b = array![[-3.0, 0.0], [0.0, -4.0]];
-/// let c = array![[1.0, 2.0], [3.0, 4.0]];
+/// let a = array![[1.0_f64, 0.0], [0.0, 2.0]];
+/// let b = array![[-3.0_f64, 0.0], [0.0, -4.0]];
+/// let c = array![[1.0_f64, 2.0], [3.0, 4.0]];
 /// let x = solve_sylvester(&a.view(), &b.view(), &c.view()).expect("solve failed");
 ///
 /// // Verify AX + XB = C
@@ -160,8 +160,8 @@ pub fn solve_sylvester<A: MatEqFloat>(
 /// use scirs2_core::ndarray::array;
 /// use scirs2_linalg::matrix_equations::solve_continuous_lyapunov;
 ///
-/// let a = array![[-1.0, 0.5], [0.0, -2.0]];
-/// let q = array![[1.0, 0.0], [0.0, 1.0]];
+/// let a = array![[-1.0_f64, 0.5], [0.0, -2.0]];
+/// let q = array![[1.0_f64, 0.0], [0.0, 1.0]];
 /// let x = solve_continuous_lyapunov(&a.view(), &q.view()).expect("solve failed");
 ///
 /// // Verify AX + XA^T = Q
@@ -207,8 +207,8 @@ pub fn solve_continuous_lyapunov<A: MatEqFloat>(
 /// use scirs2_core::ndarray::array;
 /// use scirs2_linalg::matrix_equations::solve_discrete_lyapunov;
 ///
-/// let a = array![[0.5, 0.1], [0.0, 0.6]];
-/// let q = array![[1.0, 0.0], [0.0, 1.0]];
+/// let a = array![[0.5_f64, 0.1], [0.0, 0.6]];
+/// let q = array![[1.0_f64, 0.0], [0.0, 1.0]];
 /// let x = solve_discrete_lyapunov(&a.view(), &q.view()).expect("solve failed");
 ///
 /// // Verify AXA^T - X + Q = 0
@@ -317,9 +317,9 @@ fn solve_discrete_lyapunov_bilinear<A: MatEqFloat>(
 /// use scirs2_core::ndarray::array;
 /// use scirs2_linalg::matrix_equations::solve_stein;
 ///
-/// let a = array![[0.3, 0.1], [0.0, 0.4]];
-/// let b = array![[0.2, 0.0], [0.1, 0.3]];
-/// let c = array![[1.0, 0.5], [0.5, 1.0]];
+/// let a = array![[0.3_f64, 0.1], [0.0, 0.4]];
+/// let b = array![[0.2_f64, 0.0], [0.1, 0.3]];
+/// let c = array![[1.0_f64, 0.5], [0.5, 1.0]];
 /// let x = solve_stein(&a.view(), &b.view(), &c.view()).expect("solve failed");
 ///
 /// // Verify X - AXB = C

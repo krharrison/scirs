@@ -939,7 +939,7 @@ mod tests {
         // lanczos() returns all computed eigenvalues from the Krylov subspace;
         // callers use process_eigenvalue_selection to narrow down to k.
         assert!(
-            result.eigenvalues.len() >= 1,
+            !result.eigenvalues.is_empty(),
             "expected at least 1 eigenvalue, got {}",
             result.eigenvalues.len()
         );

@@ -545,7 +545,7 @@ mod tests {
         let mut img = image::RgbImage::new(20, 20);
         for y in 0..20u32 {
             for x in 0..20u32 {
-                let is_center = x >= 5 && x < 15 && y >= 5 && y < 15;
+                let is_center = (5..15).contains(&x) && (5..15).contains(&y);
                 let color = if is_center {
                     [220u8, 220, 220] // Bright foreground
                 } else {
@@ -592,7 +592,7 @@ mod tests {
         // Mark center as probable foreground, rest as background
         for y in 0..20 {
             for x in 0..20 {
-                let is_center = x >= 5 && x < 15 && y >= 5 && y < 15;
+                let is_center = (5..15).contains(&x) && (5..15).contains(&y);
                 mask[[y, x]] = if is_center {
                     GrabCutMask::ProbableForeground as u8
                 } else {
@@ -620,7 +620,9 @@ mod tests {
 
     #[test]
     fn test_grabcut_mask_to_image() {
-        let mask = Array2::from_shape_fn((10, 10), |(y, x)| y >= 3 && y < 7 && x >= 3 && x < 7);
+        let mask = Array2::from_shape_fn((10, 10), |(y, x)| {
+            (3..7).contains(&y) && (3..7).contains(&x)
+        });
         let img = grabcut_mask_to_image(&mask);
         assert_eq!(img.dimensions(), (10, 10));
 
@@ -631,7 +633,9 @@ mod tests {
     #[test]
     fn test_apply_foreground_mask() {
         let img = create_fg_bg_image();
-        let mask = Array2::from_shape_fn((20, 20), |(y, x)| y >= 5 && y < 15 && x >= 5 && x < 15);
+        let mask = Array2::from_shape_fn((20, 20), |(y, x)| {
+            (5..15).contains(&y) && (5..15).contains(&x)
+        });
 
         let result =
             apply_foreground_mask(&img, &mask, None).expect("apply_foreground_mask failed");

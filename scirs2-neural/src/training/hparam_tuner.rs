@@ -766,8 +766,8 @@ mod tests {
 
     #[test]
     fn test_hparam_value_conversions() {
-        let f = HParamValue::Float(3.14);
-        assert!((f.as_float().expect("float") - 3.14).abs() < 1e-10);
+        let f = HParamValue::Float(2.72);
+        assert!((f.as_float().expect("float") - 2.72).abs() < 1e-10);
         assert!(f.as_str().is_none());
 
         let i = HParamValue::Int(42);
@@ -779,12 +779,12 @@ mod tests {
         assert!(s.as_int().is_none());
 
         let b = HParamValue::Bool(true);
-        assert_eq!(b.as_bool().expect("bool"), true);
+        assert!(b.as_bool().expect("bool"));
     }
 
     #[test]
     fn test_hparam_value_display() {
-        assert!(format!("{}", HParamValue::Float(3.14)).contains("3.14"));
+        assert!(format!("{}", HParamValue::Float(2.72)).contains("2.72"));
         assert_eq!(format!("{}", HParamValue::Int(42)), "42");
         assert_eq!(format!("{}", HParamValue::Str("hi".into())), "hi");
         assert_eq!(format!("{}", HParamValue::Bool(true)), "true");
@@ -798,21 +798,21 @@ mod tests {
         for _ in 0..100 {
             let v = uniform.sample(&mut rng);
             let f = v.as_float().expect("float");
-            assert!(f >= 0.0 && f < 1.0);
+            assert!((0.0..1.0).contains(&f));
         }
 
         let log_uniform = HParamSpace::log_uniform("lr", 1e-5, 1e-1);
         for _ in 0..100 {
             let v = log_uniform.sample(&mut rng);
             let f = v.as_float().expect("float");
-            assert!(f >= 1e-5 && f <= 1e-1);
+            assert!((1e-5..=1e-1).contains(&f));
         }
 
         let int_range = HParamSpace::int_range("n", 1, 10);
         for _ in 0..100 {
             let v = int_range.sample(&mut rng);
             let i = v.as_int().expect("int");
-            assert!(i >= 1 && i <= 10);
+            assert!((1..=10).contains(&i));
         }
 
         let choice = HParamSpace::choice(

@@ -111,7 +111,7 @@ fn optimize_portfolio(
     // We work around the capture problem by embedding target_return and mu in a thread_local.
     std::thread_local! {
         static MU_TARGET: std::cell::RefCell<(Vec<f64>, f64)> =
-            std::cell::RefCell::new((Vec::new(), 0.0));
+            const { std::cell::RefCell::new((Vec::new(), 0.0)) };
     }
     MU_TARGET.with(|cell| {
         *cell.borrow_mut() = (mu_for_closure.clone(), target_return);
@@ -130,7 +130,8 @@ fn optimize_portfolio(
     //    We encode all non-negativity via a single inequality function min(w) ≥ 0.
     let nonneg_con: fn(&[f64]) -> f64 = |w| w.iter().cloned().fold(f64::INFINITY, f64::min);
 
-    let constraints: Vec<Constraint<fn(&[f64]) -> f64>> = vec![
+    type ConFn = fn(&[f64]) -> f64;
+    let constraints: Vec<Constraint<ConFn>> = vec![
         Constraint {
             fun: eq_con,
             kind: ConstraintKind::Equality,
@@ -189,10 +190,7 @@ fn main() {
     let n_points = 8usize;
 
     println!("--- Efficient Frontier ---");
-    println!(
-        "{:>14}  {:>14}  {}",
-        "Target Return", "Port. Vol", "Weights"
-    );
+    println!("{:>14}  {:>14}  Weights", "Target Return", "Port. Vol");
     println!("{}", "-".repeat(72));
 
     for k in 0..n_points {
@@ -223,7 +221,8 @@ fn main() {
     let obj_mv = move |w: &[f64]| portfolio_variance(w, &cov_mv);
     let eq_mv: fn(&[f64]) -> f64 = |w| w.iter().sum::<f64>() - 1.0;
     let nn_mv: fn(&[f64]) -> f64 = |w| w.iter().cloned().fold(f64::INFINITY, f64::min);
-    let cons_mv: Vec<Constraint<fn(&[f64]) -> f64>> = vec![
+    type ConFnMv = fn(&[f64]) -> f64;
+    let cons_mv: Vec<Constraint<ConFnMv>> = vec![
         Constraint {
             fun: eq_mv,
             kind: ConstraintKind::Equality,

@@ -470,18 +470,21 @@ mod tests {
     #[test]
     fn test_romberg_power_of_two_check() {
         // 4 intervals => 5 points => 2^2 + 1  -- valid
-        assert!((4 & (4 - 1)) == 0); // power of 2
+        // 4 intervals => 5 points => 2^2 + 1  -- valid (power of 2)
+        let four_intervals: usize = 4;
+        assert_eq!(four_intervals & (four_intervals - 1), 0);
 
         // 3 intervals => not power of 2
-        assert!((3 & (3 - 1)) != 0);
+        let three_intervals: usize = 3;
+        assert_ne!(three_intervals & (three_intervals - 1), 0);
     }
 
     #[test]
     fn test_trapezoid_logic() {
         // Integrate y = x from 0 to 1 with uniform spacing
         // Expected result: 0.5
-        let x = vec![0.0, 0.25, 0.5, 0.75, 1.0];
-        let y = vec![0.0, 0.25, 0.5, 0.75, 1.0];
+        let x = [0.0, 0.25, 0.5, 0.75, 1.0];
+        let y = [0.0, 0.25, 0.5, 0.75, 1.0];
 
         let mut integral = 0.0;
         for i in 0..y.len() - 1 {
@@ -529,8 +532,8 @@ mod tests {
     #[test]
     fn test_cumulative_trapezoid_logic() {
         // Integrate y = 1 from 0 to 4, cumulative result should be [1, 2, 3, 4]
-        let x = vec![0.0, 1.0, 2.0, 3.0, 4.0];
-        let y = vec![1.0, 1.0, 1.0, 1.0, 1.0];
+        let x = [0.0, 1.0, 2.0, 3.0, 4.0];
+        let y = [1.0, 1.0, 1.0, 1.0, 1.0];
 
         let n = y.len();
         let mut result = Vec::with_capacity(n - 1);
@@ -557,7 +560,7 @@ mod tests {
     fn test_romberg_logic() {
         // Integrate y = x from 0 to 1, dx = 0.25, 5 points (2^2 + 1)
         // Expected: 0.5
-        let y = vec![0.0, 0.25, 0.5, 0.75, 1.0];
+        let y = [0.0, 0.25, 0.5, 0.75, 1.0];
         let dx = 0.25;
         let n = y.len();
         let intervals = n - 1; // 4

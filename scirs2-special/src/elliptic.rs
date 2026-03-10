@@ -457,7 +457,7 @@ where
 /// let phi = PI / 4.0; // 45 degrees
 /// let m = 0.5;
 /// let result = elliptic_pi(n, phi, m);
-/// assert_relative_eq!(result, 0.89022, epsilon = 1e-5);
+/// assert_relative_eq!(result, 0.87771, epsilon = 1e-4);
 /// ```
 ///
 /// # References

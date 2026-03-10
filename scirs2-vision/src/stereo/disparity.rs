@@ -590,7 +590,7 @@ mod tests {
         dm.set(1, 1, 4.0);
         let depth = dm.to_depth(0.1, 500.0);
         // depth = 0.1 * 500 / 4 = 12.5
-        assert!((depth[1 * 4 + 1] - 12.5).abs() < 1e-4, "depth={}", depth[5]);
+        assert!((depth[4 + 1] - 12.5).abs() < 1e-4, "depth={}", depth[5]);
         // Zero-disparity pixel → depth 0.
         assert_eq!(depth[0], 0.0);
     }

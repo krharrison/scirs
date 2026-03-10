@@ -4,11 +4,11 @@ build-backend = "maturin"
 
 [project]
 name = "scirs2"
-version = "0.3.0"
+version = "0.3.1"
 description = "SciRS2: A comprehensive scientific computing library in Rust - Python bindings (SciPy alternative) with async support and pandas integration"
 readme = "README.md"
 requires-python = ">=3.8"
-license = { text = "MIT OR Apache-2.0" }
+license = { text = "Apache-2.0" }
 keywords = ["scientific", "numpy", "scipy", "machine-learning", "statistics"]
 authors = [
     { name = "COOLJAPAN OU", email = "contact@cooljapan.tech" }
@@ -17,7 +17,6 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Rust",
     "Programming Language :: Python :: 3",

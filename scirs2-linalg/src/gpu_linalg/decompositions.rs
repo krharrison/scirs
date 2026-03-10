@@ -1266,54 +1266,45 @@ mod tests {
 
     #[test]
     fn test_gpu_qr_with_cpu_context() {
-        match GpuContext::new(GpuBackend::Cpu) {
-            Ok(gpu_ctx) => {
-                let a = array![[1.0_f64, 2.0], [3.0, 4.0]];
-                let factors = gpu_qr(Some(&gpu_ctx), &a.view()).expect("QR with ctx failed");
-                let qr_product = factors.q.dot(&factors.r);
-                for i in 0..2 {
-                    for j in 0..2 {
-                        assert_relative_eq!(qr_product[[i, j]], a[[i, j]], epsilon = 1e-10);
-                    }
+        if let Ok(gpu_ctx) = GpuContext::new(GpuBackend::Cpu) {
+            let a = array![[1.0_f64, 2.0], [3.0, 4.0]];
+            let factors = gpu_qr(Some(&gpu_ctx), &a.view()).expect("QR with ctx failed");
+            let qr_product = factors.q.dot(&factors.r);
+            for i in 0..2 {
+                for j in 0..2 {
+                    assert_relative_eq!(qr_product[[i, j]], a[[i, j]], epsilon = 1e-10);
                 }
             }
-            Err(_) => {}
         }
     }
 
     #[test]
     fn test_gpu_cholesky_with_cpu_context() {
-        match GpuContext::new(GpuBackend::Cpu) {
-            Ok(gpu_ctx) => {
-                let a = array![[4.0_f64, 2.0], [2.0, 5.0]];
-                let factors =
-                    gpu_cholesky(Some(&gpu_ctx), &a.view()).expect("Cholesky with ctx failed");
-                let llt = factors.l.dot(&factors.l.t());
-                for i in 0..2 {
-                    for j in 0..2 {
-                        assert_relative_eq!(llt[[i, j]], a[[i, j]], epsilon = 1e-10);
-                    }
+        if let Ok(gpu_ctx) = GpuContext::new(GpuBackend::Cpu) {
+            let a = array![[4.0_f64, 2.0], [2.0, 5.0]];
+            let factors =
+                gpu_cholesky(Some(&gpu_ctx), &a.view()).expect("Cholesky with ctx failed");
+            let llt = factors.l.dot(&factors.l.t());
+            for i in 0..2 {
+                for j in 0..2 {
+                    assert_relative_eq!(llt[[i, j]], a[[i, j]], epsilon = 1e-10);
                 }
             }
-            Err(_) => {}
         }
     }
 
     #[test]
     fn test_gpu_svd_with_cpu_context() {
-        match GpuContext::new(GpuBackend::Cpu) {
-            Ok(gpu_ctx) => {
-                let a = array![[1.0_f64, 0.0], [0.0, 2.0]];
-                let factors = gpu_svd(Some(&gpu_ctx), &a.view()).expect("SVD with ctx failed");
-                let s_diag = Array2::from_diag(&factors.s);
-                let usv = factors.u.dot(&s_diag).dot(&factors.vt);
-                for i in 0..2 {
-                    for j in 0..2 {
-                        assert_relative_eq!(usv[[i, j]], a[[i, j]], epsilon = 1e-8);
-                    }
+        if let Ok(gpu_ctx) = GpuContext::new(GpuBackend::Cpu) {
+            let a = array![[1.0_f64, 0.0], [0.0, 2.0]];
+            let factors = gpu_svd(Some(&gpu_ctx), &a.view()).expect("SVD with ctx failed");
+            let s_diag = Array2::from_diag(&factors.s);
+            let usv = factors.u.dot(&s_diag).dot(&factors.vt);
+            for i in 0..2 {
+                for j in 0..2 {
+                    assert_relative_eq!(usv[[i, j]], a[[i, j]], epsilon = 1e-8);
                 }
             }
-            Err(_) => {}
         }
     }
 }

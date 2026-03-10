@@ -710,8 +710,8 @@ mod tests {
 
     #[test]
     fn test_vector_full() {
-        let v = VectorBuilder::full(4, 3.14_f64);
-        assert!(v.iter().all(|&x| (x - 3.14).abs() < 1e-12));
+        let v = VectorBuilder::full(4, 1.23_f64);
+        assert!(v.iter().all(|&x| (x - 1.23).abs() < 1e-12));
     }
 
     #[test]

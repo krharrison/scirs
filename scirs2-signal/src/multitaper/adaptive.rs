@@ -34,6 +34,7 @@ use std::fmt::Debug;
 ///
 /// ```
 /// use scirs2_signal::multitaper::adaptive_psd;
+/// use std::f64::consts::PI;
 ///
 /// // Generate a test signal (sinusoid with noise)
 /// let n = 1024;

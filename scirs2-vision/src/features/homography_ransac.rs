@@ -920,13 +920,13 @@ mod tests {
 
         // H · H^{-1} ≈ I
         let prod = crate::features::homography_ransac::mat3x3_mul(&h.data, &hi.data);
-        for i in 0..3 {
-            for j in 0..3 {
+        for (i, row) in prod.iter().enumerate() {
+            for (j, &val) in row.iter().enumerate() {
                 let expected = if i == j { 1.0 } else { 0.0 };
                 assert!(
-                    (prod[i][j] - expected).abs() < 1e-8,
+                    (val - expected).abs() < 1e-8,
                     "H·H^-1 [{i}][{j}] = {} expected {expected}",
-                    prod[i][j]
+                    val
                 );
             }
         }

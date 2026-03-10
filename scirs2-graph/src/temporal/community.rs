@@ -414,7 +414,7 @@ mod tests {
         let stability = dyn_com.temporal_stability();
         // With high smoothness, stability should be reasonably high
         assert!(
-            stability >= 0.0 && stability <= 1.0,
+            (0.0..=1.0).contains(&stability),
             "stability should be in [0,1], got {stability}"
         );
     }

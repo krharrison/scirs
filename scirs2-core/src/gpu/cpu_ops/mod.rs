@@ -1269,7 +1269,7 @@ mod tests {
         // GELU(-1.0) ~= -0.1587
         let data: Vec<f32> = vec![-1.0];
         let result = gelu_cpu(&data);
-        let expected = -1.0 * 0.5 * (1.0 + erf_f64(-1.0 / std::f64::consts::SQRT_2));
+        let expected = -0.5 * (1.0 + erf_f64(-1.0 / std::f64::consts::SQRT_2));
         assert!((result[0] as f64 - expected).abs() < 1e-4);
     }
 

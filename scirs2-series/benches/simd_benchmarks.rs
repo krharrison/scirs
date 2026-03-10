@@ -2,8 +2,9 @@
 //!
 //! Benchmarks comparing SIMD vs scalar implementations to demonstrate speedup.
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use scirs2_core::ndarray::Array1;
+use std::hint::black_box;
 
 #[cfg(feature = "simd")]
 use scirs2_series::simd_ops::*;
@@ -89,7 +90,10 @@ fn bench_differencing(c: &mut Criterion) {
         #[cfg(feature = "simd")]
         group.bench_with_input(BenchmarkId::new("simd", size), size, |b, _| {
             b.iter(|| {
-                black_box(simd_difference_f64(black_box(&data.view()), 1).unwrap());
+                black_box(
+                    simd_difference_f64(black_box(&data.view()), 1)
+                        .expect("simd_difference_f64 failed"),
+                );
             });
         });
     }
@@ -118,7 +122,8 @@ fn bench_seasonal_differencing(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("simd", size), size, |b, _| {
             b.iter(|| {
                 black_box(
-                    simd_seasonal_difference_f64(black_box(&data.view()), period, 1).unwrap(),
+                    simd_seasonal_difference_f64(black_box(&data.view()), period, 1)
+                        .expect("simd_seasonal_difference_f64 failed"),
                 );
             });
         });
@@ -148,7 +153,8 @@ fn bench_autocorrelation(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("simd", size), size, |b, _| {
             b.iter(|| {
                 black_box(
-                    simd_autocorrelation_f64(black_box(&data.view()), Some(max_lag)).unwrap(),
+                    simd_autocorrelation_f64(black_box(&data.view()), Some(max_lag))
+                        .expect("simd_autocorrelation_f64 failed"),
                 );
             });
         });
@@ -170,7 +176,10 @@ fn bench_moving_mean(c: &mut Criterion) {
         #[cfg(feature = "simd")]
         group.bench_with_input(BenchmarkId::new("simd", size), size, |b, _| {
             b.iter(|| {
-                black_box(simd_moving_mean_f64(black_box(&data.view()), window).unwrap());
+                black_box(
+                    simd_moving_mean_f64(black_box(&data.view()), window)
+                        .expect("simd_moving_mean_f64 failed"),
+                );
             });
         });
     }
@@ -194,7 +203,7 @@ fn bench_convolution(c: &mut Criterion) {
             b.iter(|| {
                 black_box(
                     simd_convolve_f64(black_box(&signal.view()), black_box(&kernel.view()))
-                        .unwrap(),
+                        .expect("simd_convolve_f64 failed"),
                 );
             });
         });
@@ -216,7 +225,10 @@ fn bench_seasonal_means(c: &mut Criterion) {
         #[cfg(feature = "simd")]
         group.bench_with_input(BenchmarkId::new("simd", size), size, |b, _| {
             b.iter(|| {
-                black_box(simd_seasonal_means_f64(black_box(&data.view()), period).unwrap());
+                black_box(
+                    simd_seasonal_means_f64(black_box(&data.view()), period)
+                        .expect("simd_seasonal_means_f64 failed"),
+                );
             });
         });
     }
@@ -238,7 +250,8 @@ fn bench_ema(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("simd", size), size, |b, _| {
             b.iter(|| {
                 black_box(
-                    simd_exponential_moving_average_f64(black_box(&data.view()), alpha).unwrap(),
+                    simd_exponential_moving_average_f64(black_box(&data.view()), alpha)
+                        .expect("simd_exponential_moving_average_f64 failed"),
                 );
             });
         });

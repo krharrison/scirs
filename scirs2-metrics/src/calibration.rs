@@ -778,7 +778,7 @@ mod tests {
         let y_true = vec![0.0, 0.0, 1.0, 1.0];
         let y_prob_matrix = vec![0.8, 0.2, 0.7, 0.3, 0.3, 0.7, 0.2, 0.8];
         let ece = classwise_ece(&y_true, &y_prob_matrix, 2, 5).expect("should succeed");
-        assert!(ece >= 0.0 && ece <= 1.0);
+        assert!((0.0..=1.0).contains(&ece));
     }
 
     #[test]

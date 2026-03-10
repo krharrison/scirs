@@ -62,7 +62,7 @@ mod tests {
         let path = dir.join("all_types.scircol");
 
         let table = ColumnarTable::from_columns(vec![
-            Column::float64("f64_col", vec![1.0, 2.5, 3.14, -0.5, 100.0]),
+            Column::float64("f64_col", vec![1.0, 2.5, std::f64::consts::PI, -0.5, 100.0]),
             Column::int64("i64_col", vec![10, 20, 30, 40, 50]),
             Column::string(
                 "str_col",
@@ -85,7 +85,7 @@ mod tests {
         assert_eq!(loaded.num_columns(), 4);
 
         let f64_data = loaded.get_f64("f64_col").expect("Failed to get f64");
-        assert!((f64_data[2] - 3.14).abs() < 1e-10);
+        assert!((f64_data[2] - std::f64::consts::PI).abs() < 1e-10);
 
         let i64_data = loaded.get_i64("i64_col").expect("Failed to get i64");
         assert_eq!(i64_data[3], 40);
@@ -107,16 +107,11 @@ mod tests {
         let path = dir.join("rle.scircol");
 
         // Create data with lots of runs
-        let mut values = Vec::new();
-        for _ in 0..100 {
-            values.push(1.0);
-        }
-        for _ in 0..100 {
-            values.push(2.0);
-        }
-        for _ in 0..100 {
-            values.push(3.0);
-        }
+        let values: Vec<f64> = [1.0f64; 100]
+            .into_iter()
+            .chain([2.0f64; 100])
+            .chain([3.0f64; 100])
+            .collect();
 
         let table = ColumnarTable::from_columns(vec![Column::float64("runs", values.clone())])
             .expect("Failed to create table");

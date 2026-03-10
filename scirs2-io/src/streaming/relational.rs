@@ -972,7 +972,7 @@ mod tests {
         let input_path = temp.join("sort_test_input.jsonl");
         let output_path = temp.join("sort_test_output.jsonl");
 
-        let lines = vec![r#"{"v": 3}"#, r#"{"v": 1}"#, r#"{"v": 2}"#];
+        let lines = [r#"{"v": 3}"#, r#"{"v": 1}"#, r#"{"v": 2}"#];
         fs::write(&input_path, lines.join("\n")).expect("write");
 
         let count = sort_jsonl_file(

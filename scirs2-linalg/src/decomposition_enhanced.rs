@@ -815,7 +815,7 @@ mod tests {
         // For equal matrices, the generalized singular values (alpha/beta) should be ~1
         // So alpha/beta ~ 1, meaning alpha ~ beta ~ 1/sqrt(2)
         // But due to stacking [A;B] the decomposition may differ slightly
-        assert!(result.alpha.len() > 0);
+        assert!(!result.alpha.is_empty());
     }
 
     #[test]
@@ -868,7 +868,7 @@ mod tests {
         let a = array![[1.0_f64, 2.0, 3.0], [4.0, 5.0, 6.0]];
         let b = array![[7.0_f64, 8.0, 9.0]];
         let result = generalized_svd(&a.view(), &b.view()).expect("ok");
-        assert!(result.alpha.len() > 0);
+        assert!(!result.alpha.is_empty());
     }
 
     #[test]

@@ -1419,7 +1419,7 @@ mod tests {
         let result = vf2_subgraph_isomorphism(&pattern, &target, 0);
         assert!(result.is_match);
         // Multiple matches possible
-        assert!(result.mappings.len() >= 1);
+        assert!(!result.mappings.is_empty());
         Ok(())
     }
 

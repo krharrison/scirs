@@ -27,7 +27,9 @@ pub enum ExtrapolateMode {
     Nan,
     /// Raise an error for points outside the interpolation domain
     Error,
-    /// Extrapolate based on the nearest edge points
+    /// Clamp out-of-range coordinates to the grid boundary before interpolating
+    Nearest,
+    /// Extrapolate beyond the grid using the boundary cell's slope
     Extrapolate,
 }
 
@@ -248,7 +250,7 @@ impl<F: crate::traits::InterpolationFloat> RegularGridInterpolator<F> {
         let mut weights = Vec::with_capacity(self.points.len());
 
         for (dim, dim_points) in self.points.iter().enumerate() {
-            let x = point[dim];
+            let mut x = point[dim];
 
             // Check if point is outside the domain
             if x < dim_points[0] || x > dim_points[dim_points.len() - 1] {
@@ -265,8 +267,11 @@ impl<F: crate::traits::InterpolationFloat> RegularGridInterpolator<F> {
                     ExtrapolateMode::Nan => {
                         return Ok(F::nan());
                     }
-                    // For extrapolate and constant modes, we'll find the nearest edge
-                    _ => {}
+                    ExtrapolateMode::Nearest => {
+                        // Clamp to grid boundary
+                        x = x.max(dim_points[0]).min(dim_points[dim_points.len() - 1]);
+                    }
+                    ExtrapolateMode::Extrapolate => {}
                 }
             }
 

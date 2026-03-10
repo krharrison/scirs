@@ -809,7 +809,7 @@ mod tests {
 
     #[test]
     fn test_fast_dct2_ortho_roundtrip() {
-        let signal = vec![3.14, 2.71, 1.41, 1.73, 0.577, 2.30];
+        let signal = vec![3.15, 2.71, 1.41, 1.73, 0.577, 2.30];
 
         let coeffs = fast_dct2(&signal, Some("ortho")).expect("Forward should succeed");
         let recovered = fast_dct3(&coeffs, Some("ortho")).expect("Inverse should succeed");

@@ -2,6 +2,15 @@
 //!
 //! 🤖 Generated with [SplitRS](https://github.com/cool-japan/splitrs)
 
+/// Number of f64 elements that fit in a typical L1 cache (32 KiB / 8 bytes).
+pub const SIMD_BATCH_L1_F64: usize = 4_096;
+
+/// Number of f64 elements that fit in a typical L2 cache (512 KiB / 8 bytes).
+pub const SIMD_BATCH_L2_F64: usize = 65_536;
+
+/// Number of f64 elements that fit in a typical L3 cache (8 MiB / 8 bytes).
+pub const SIMD_BATCH_L3_F64: usize = 1_048_576;
+
 /// Platform capability detection
 #[derive(Debug, Clone, Copy)]
 pub struct PlatformCapabilities {

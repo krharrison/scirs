@@ -1109,7 +1109,7 @@ mod tests {
         let result = pipe.apply(&images).expect("apply failed");
         for &v in result.iter() {
             assert!(
-                v >= 0.0 - 1e-12 && v <= 1.0 + 1e-12,
+                (0.0 - 1e-12..=1.0 + 1e-12).contains(&v),
                 "ColorJitter should clamp to [0,1], got {v}"
             );
         }

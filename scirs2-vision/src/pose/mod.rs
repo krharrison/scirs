@@ -1102,10 +1102,10 @@ mod tests {
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
             [1.0, 2.0, 3.0],
         );
-        let comp = compose_transforms(id.clone(), t.clone());
+        let comp = compose_transforms(id, t);
         assert!((comp.1[0] - 1.0).abs() < 1e-12);
         assert!((comp.1[1] - 2.0).abs() < 1e-12);
-        let comp2 = compose_transforms(t.clone(), id);
+        let comp2 = compose_transforms(t, id);
         assert!((comp2.1[0] - 1.0).abs() < 1e-12);
     }
 

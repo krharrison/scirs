@@ -819,11 +819,10 @@ mod tests {
         let flow = horn_schunck_flow(&img1, &img2, &params).expect("HS flow failed");
         assert_eq!(flow.dim(), (32, 32));
 
-        // In the interior, there should be some positive horizontal flow
+        // We just check it ran and produced finite output
         let center = &flow[[16, 16]];
-        // We just check it ran and produced non-trivial output
         assert!(
-            center.u.abs() > 0.0 || center.v.abs() > 0.0 || true,
+            center.u.is_finite() && center.v.is_finite(),
             "Flow should be computed"
         );
     }

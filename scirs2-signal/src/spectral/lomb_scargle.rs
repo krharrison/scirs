@@ -309,7 +309,7 @@ fn next_pow2(n: usize) -> usize {
 /// ```
 /// use scirs2_signal::spectral::lomb_scargle::false_alarm_probability;
 ///
-/// let fap = false_alarm_probability(10.0, 100, 1000);
+/// let fap = false_alarm_probability(15.0, 100, 1000);
 /// assert!(fap >= 0.0 && fap <= 1.0);
 /// // High power should have low FAP
 /// assert!(fap < 0.01);

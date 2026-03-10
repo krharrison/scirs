@@ -1,6 +1,6 @@
 # scirs2-special TODO
 
-## v0.3.0 Completed
+## v0.3.1 Completed
 
 ### Classical Special Functions
 - [x] Gamma: `gamma`, `log_gamma`, `digamma`, `trigamma`, `polygamma`, `beta`, `log_beta`
@@ -26,7 +26,7 @@
 - [x] Coulomb wave functions: regular F_l, irregular G_l, Hankel H_l^+/-
 - [x] Logarithmic integral li(x), offset Li(x), exponential integrals Ei, E_n, E_1
 
-### Advanced Functions (v0.3.0 Additions)
+### Advanced Functions (v0.3.1 Additions)
 - [x] Mathieu functions: characteristic values a_r(q), b_r(q); even ce_r, odd se_r with Fourier coefficients; radial Mc_r, Ms_r; asymptotic expansions
 - [x] Real and complex spherical harmonics Y_l^m for arbitrary l, m
 - [x] Gaunt coefficients: triple-Y integrals

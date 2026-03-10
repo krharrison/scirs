@@ -157,22 +157,22 @@ impl SimpleCnn {
         }
         // FC1
         let flat_len = conv1.len();
-        let mut fc1 = vec![0.0_f32; 16];
-        for j in 0..16usize {
+        let mut fc1 = [0.0_f32; 16];
+        for (j, fc1_j) in fc1.iter_mut().enumerate() {
             let mut s = self.b_fc1[j];
-            for k in 0..flat_len {
-                s += conv1[k] * self.w_fc1[[k, j]];
+            for (k, &c) in conv1.iter().enumerate().take(flat_len) {
+                s += c * self.w_fc1[[k, j]];
             }
-            fc1[j] = relu(s);
+            *fc1_j = relu(s);
         }
         // FC2
         let mut logits = vec![0.0_f32; self.n_classes];
-        for j in 0..self.n_classes {
+        for (j, logit_j) in logits.iter_mut().enumerate() {
             let mut s = self.b_fc2[j];
-            for k in 0..16usize {
-                s += fc1[k] * self.w_fc2[[k, j]];
+            for (k, &f) in fc1.iter().enumerate() {
+                s += f * self.w_fc2[[k, j]];
             }
-            logits[j] = s;
+            *logit_j = s;
         }
         let probs = softmax(&logits);
         (conv1, probs)
@@ -213,45 +213,45 @@ impl SimpleCnn {
                 d_logits[c] -= labels[[i, c]];
             }
             // Grad FC2
-            let mut fc1_acts = vec![0.0_f32; 16];
-            for j in 0..16usize {
+            let mut fc1_acts = [0.0_f32; 16];
+            for (j, fc1_act_j) in fc1_acts.iter_mut().enumerate() {
                 let mut s = self.b_fc1[j];
-                for k in 0..flat {
-                    s += conv1[k] * self.w_fc1[[k, j]];
+                for (k, &c) in conv1.iter().enumerate().take(flat) {
+                    s += c * self.w_fc1[[k, j]];
                 }
-                fc1_acts[j] = relu(s);
+                *fc1_act_j = relu(s);
             }
-            for j in 0..self.n_classes {
-                gb_f2[j] += d_logits[j] / batch;
-                for k in 0..16usize {
-                    gw_f2[[k, j]] += d_logits[j] * fc1_acts[k] / batch;
+            for (j, &dl_j) in d_logits.iter().enumerate() {
+                gb_f2[j] += dl_j / batch;
+                for (k, &fa_k) in fc1_acts.iter().enumerate() {
+                    gw_f2[[k, j]] += dl_j * fa_k / batch;
                 }
             }
             // Backprop to FC1
-            let mut d_fc1 = vec![0.0_f32; 16];
-            for k in 0..16usize {
-                for j in 0..self.n_classes {
-                    d_fc1[k] += d_logits[j] * self.w_fc2[[k, j]];
+            let mut d_fc1 = [0.0_f32; 16];
+            for (k, d_fc1_k) in d_fc1.iter_mut().enumerate() {
+                for (j, &dl_j) in d_logits.iter().enumerate() {
+                    *d_fc1_k += dl_j * self.w_fc2[[k, j]];
                 }
                 // ReLU gate
                 let pre: f32 = {
                     let mut s = self.b_fc1[k];
-                    for m in 0..flat {
-                        s += conv1[m] * self.w_fc1[[m, k]];
+                    for (m, &c) in conv1.iter().enumerate().take(flat) {
+                        s += c * self.w_fc1[[m, k]];
                     }
                     s
                 };
-                d_fc1[k] *= if pre > 0.0 { 1.0 } else { 0.0 };
-                gb_f1[k] += d_fc1[k] / batch;
-                for m in 0..flat {
-                    gw_f1[[m, k]] += d_fc1[k] * conv1[m] / batch;
+                *d_fc1_k *= if pre > 0.0 { 1.0 } else { 0.0 };
+                gb_f1[k] += *d_fc1_k / batch;
+                for (m, &c) in conv1.iter().enumerate().take(flat) {
+                    gw_f1[[m, k]] += *d_fc1_k * c / batch;
                 }
             }
             // Backprop to Conv1
             let mut d_conv1 = vec![0.0_f32; flat];
-            for m in 0..flat {
-                for k in 0..16usize {
-                    d_conv1[m] += d_fc1[k] * self.w_fc1[[m, k]];
+            for (m, d_conv1_m) in d_conv1.iter_mut().enumerate() {
+                for (k, &d_k) in d_fc1.iter().enumerate() {
+                    *d_conv1_m += d_k * self.w_fc1[[m, k]];
                 }
             }
             for f in 0..4usize {

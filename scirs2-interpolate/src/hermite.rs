@@ -347,6 +347,11 @@ impl<T: Float + std::fmt::Display> HermiteSpline<T> {
                     let idx = if xval < self.x[0] { 0 } else { n - 2 };
                     return self.evaluate_segment(idx, xval);
                 }
+                ExtrapolateMode::Nearest => {
+                    // Clamp to domain boundary and evaluate there
+                    let clamped = xval.max(self.x[0]).min(self.x[n - 1]);
+                    return self.evaluate_single(clamped);
+                }
                 ExtrapolateMode::Error => {
                     return Err(InterpolateError::OutOfBounds(format!(
                         "x value {} is outside the interpolation range [{}, {}]",
@@ -439,6 +444,11 @@ impl<T: Float + std::fmt::Display> HermiteSpline<T> {
                     let idx = if xval < self.x[0] { 0 } else { n - 2 };
                     return self.derivative_segment(deriv_order, idx, xval);
                 }
+                ExtrapolateMode::Nearest => {
+                    // Clamp to domain boundary and evaluate derivative there
+                    let clamped = xval.max(self.x[0]).min(self.x[n - 1]);
+                    return self.derivative_single(deriv_order, clamped);
+                }
                 ExtrapolateMode::Error => {
                     return Err(InterpolateError::OutOfBounds(format!(
                         "x value {} is outside the interpolation range [{}, {}]",
@@ -517,6 +527,12 @@ impl<T: Float + std::fmt::Display> HermiteSpline<T> {
             match self.extrapolate {
                 ExtrapolateMode::Extrapolate => {
                     // Allow extrapolation
+                }
+                ExtrapolateMode::Nearest => {
+                    // Clamp both integration bounds to domain and integrate there
+                    let a_clamped = a.max(self.x[0]).min(self.x[n - 1]);
+                    let b_clamped = b.max(self.x[0]).min(self.x[n - 1]);
+                    return self.integrate(a_clamped, b_clamped);
                 }
                 ExtrapolateMode::Error => {
                     return Err(InterpolateError::OutOfBounds(format!(

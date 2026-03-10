@@ -1170,7 +1170,7 @@ mod tests {
     fn test_pagerank_scale_rank() {
         let rank = Array1::from_vec(vec![1.0, 2.0, 3.0, 4.0]);
         let scaled = SimdPageRank::scale_rank(&rank.view(), 0.5);
-        let expected = vec![0.5, 1.0, 1.5, 2.0];
+        let expected = [0.5, 1.0, 1.5, 2.0];
         for (got, exp) in scaled.iter().zip(expected.iter()) {
             assert!((got - exp).abs() < 1e-10, "Expected {exp}, got {got}");
         }

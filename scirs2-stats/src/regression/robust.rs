@@ -1301,12 +1301,12 @@ where
 ///
 /// ```
 /// use scirs2_core::ndarray::{array, Array2};
-/// use scirs2_stats::regression::robust::lts_regression;
+/// use scirs2_stats::regression::lts_regression;
 ///
-/// let x = Array2::from_shape_vec((10, 1), vec![
+/// let x = Array2::<f64>::from_shape_vec((10, 1), vec![
 ///     1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0
 /// ]).expect("shape");
-/// let y = array![2.1, 4.0, 5.9, 8.1, 10.0, 12.0, 14.0, 16.1, 18.0, 50.0];
+/// let y = array![2.1_f64, 4.0, 5.9, 8.1, 10.0, 12.0, 14.0, 16.1, 18.0, 50.0];
 /// let result = lts_regression(&x.view(), &y.view(), None, None, None, Some(42))
 ///     .expect("LTS failed");
 /// // Slope should be close to 2.0 (y ≈ 2x), and the last point is an outlier
@@ -1579,12 +1579,12 @@ where
 ///
 /// ```
 /// use scirs2_core::ndarray::{array, Array2};
-/// use scirs2_stats::regression::robust::bisquare_regression;
+/// use scirs2_stats::regression::bisquare_regression;
 ///
-/// let x = Array2::from_shape_vec((10, 1), vec![
+/// let x = Array2::<f64>::from_shape_vec((10, 1), vec![
 ///     1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0,
 /// ]).expect("shape");
-/// let y = array![2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 50.0];
+/// let y = array![2.0_f64, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 50.0];
 /// let result = bisquare_regression(&x.view(), &y.view(), None, None, None, None)
 ///     .expect("bisquare regression failed");
 /// assert_eq!(result.coefficients.len(), 2);

@@ -135,7 +135,7 @@ mod distribution_properties {
             let dist = distributions::norm(mu, sigma)
                 .expect("Failed to create normal distribution");
             let cdf_val = dist.cdf(x);
-            prop_assert!(cdf_val >= -1e-12 && cdf_val <= 1.0 + 1e-12,
+            prop_assert!((-1e-12..=1.0 + 1e-12).contains(&cdf_val),
                 "CDF({}) = {} not in [0,1]", x, cdf_val);
         }
 
@@ -270,7 +270,7 @@ mod distribution_properties {
             let dist = distributions::uniform(a, b)
                 .expect("Failed to create uniform distribution");
             let cdf_val = dist.cdf(x);
-            prop_assert!(cdf_val >= -1e-12 && cdf_val <= 1.0 + 1e-12,
+            prop_assert!((-1e-12..=1.0 + 1e-12).contains(&cdf_val),
                 "CDF({}) = {} not in [0,1]", x, cdf_val);
         }
 
@@ -427,7 +427,7 @@ mod statistical_function_properties {
             let y = Array1::from_vec(yv);
             match pearson_r(&x.view(), &y.view()) {
                 Ok(r) => {
-                    prop_assert!(r >= -1.0 - 1e-10 && r <= 1.0 + 1e-10,
+                    prop_assert!((-1.0 - 1e-10..=1.0 + 1e-10).contains(&r),
                         "Pearson r = {}, out of [-1,1]", r);
                 }
                 Err(_) => { /* numerical edge case, skip */ }
@@ -588,7 +588,7 @@ mod statistical_function_properties {
             }
             let arr = Array1::from_vec(data);
             let v: f64 = var(&arr.view(), 0, None).expect("var failed");
-            let transformed = arr.mapv(|x| a * x + 3.14);
+            let transformed = arr.mapv(|x| a * x + 2.5);
             let v_t: f64 = var(&transformed.view(), 0, None).expect("var failed");
             let expected = a * a * v;
             if expected.abs() < 1e-14 {
@@ -802,7 +802,7 @@ mod survival_properties {
                 .map(|i| ((i as u64 * 7 + seed) % 100) as f64 + 0.1)
                 .collect();
             let events: Vec<bool> = (0..n)
-                .map(|i| ((i as u64 * 13 + seed) % 3) != 0)
+                .map(|i| !(i as u64 * 13 + seed).is_multiple_of(3))
                 .collect();
 
             let km = KaplanMeier::fit(&times, &events)
@@ -810,7 +810,7 @@ mod survival_properties {
 
             // Survival is in [0, 1]
             for &s in &km.survival {
-                prop_assert!(s >= -1e-12 && s <= 1.0 + 1e-12,
+                prop_assert!((-1e-12..=1.0 + 1e-12).contains(&s),
                     "KM survival {} not in [0,1]", s);
             }
 
@@ -837,7 +837,7 @@ mod survival_properties {
                 .map(|i| ((i as u64 * 7 + seed) % 100) as f64 + 0.1)
                 .collect();
             let events: Vec<bool> = (0..n)
-                .map(|i| ((i as u64 * 13 + seed) % 3) != 0)
+                .map(|i| !(i as u64 * 13 + seed).is_multiple_of(3))
                 .collect();
 
             let na = NelsonAalen::fit(&times, &events)
@@ -866,7 +866,7 @@ mod survival_properties {
                 .map(|i| ((i as u64 * 7 + seed) % 100) as f64 + 0.1)
                 .collect();
             let events: Vec<bool> = (0..n)
-                .map(|i| ((i as u64 * 13 + seed) % 3) != 0)
+                .map(|i| !(i as u64 * 13 + seed).is_multiple_of(3))
                 .collect();
 
             let km = KaplanMeier::fit(&times, &events).expect("KM fit failed");
@@ -876,16 +876,47 @@ mod survival_properties {
             prop_assert_eq!(&km.times, &na.times, "KM and NA event times differ");
 
             // KM and NA survival estimates should be close (but not identical;
-            // KM uses product-limit, NA uses exp(-H))
+            // KM uses product-limit, NA uses exp(-H)).
+            //
+            // The fundamental identity is:
+            //   KM:  S(t) = Π (1 - d_k/n_k)
+            //   NA:  S(t) = exp(-Σ d_k/n_k)
+            //
+            // Since (1-x) < exp(-x) for x ∈ (0,1), we always have S_KM ≤ S_NA.
+            // The difference grows with larger d_k/n_k ratios (e.g. when all
+            // remaining subjects have events, d_k/n_k = 1, KM → 0 but
+            // exp(-1) ≈ 0.37).  For small samples with many events the gap
+            // can exceed 0.15, so we check a relative/absolute hybrid bound
+            // that accounts for the known mathematical inequality.
             for k in 0..km.times.len() {
                 let s_km = km.survival[k];
                 let s_na = na.survival_at(na.times[k]);
-                // They can differ but should agree directionally
+
+                // NA should always be >= KM (within numerical noise)
                 prop_assert!(
-                    (s_km - s_na).abs() < 0.15 || (s_km < 0.01 && s_na < 0.01),
-                    "KM S(t)={} vs NA exp(-H(t))={} at t={} differ too much",
-                    s_km, s_na, km.times[k]
+                    s_na >= s_km - 1e-10,
+                    "NA S(t)={} should be >= KM S(t)={} at t={}",
+                    s_na, s_km, km.times[k]
                 );
+
+                // Check that both are bounded in [0, 1]
+                prop_assert!(s_km >= -1e-12 && s_km <= 1.0 + 1e-12,
+                    "KM S(t)={} out of [0,1] at t={}", s_km, km.times[k]);
+                prop_assert!(s_na >= -1e-12 && s_na <= 1.0 + 1e-12,
+                    "NA S(t)={} out of [0,1] at t={}", s_na, km.times[k]);
+
+                // When KM is far from 0, the estimates should be reasonably
+                // close (within 0.25 absolute or 50% relative of NA).
+                // When KM ≈ 0 but NA is still positive, this is the expected
+                // product-limit vs exponential divergence, not a bug.
+                if s_km > 0.05 {
+                    let diff = (s_na - s_km).abs();
+                    prop_assert!(
+                        diff < 0.25 || diff < 0.5 * s_na,
+                        "KM S(t)={} vs NA exp(-H(t))={} at t={} differ too much (diff={})",
+                        s_km, s_na, km.times[k], diff
+                    );
+                }
             }
         }
     }

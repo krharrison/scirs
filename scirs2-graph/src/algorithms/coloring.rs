@@ -905,18 +905,18 @@ mod tests {
                     || edge1.target() == edge2.source()
                     || edge1.target() == edge2.target()
                 {
-                    let s1 = graph.inner()[edge1.source()].clone();
-                    let t1 = graph.inner()[edge1.target()].clone();
-                    let s2 = graph.inner()[edge2.source()].clone();
-                    let t2 = graph.inner()[edge2.target()].clone();
+                    let s1 = graph.inner()[edge1.source()];
+                    let t1 = graph.inner()[edge1.target()];
+                    let s2 = graph.inner()[edge2.source()];
+                    let t2 = graph.inner()[edge2.target()];
 
                     let c1 = result
                         .coloring
-                        .get(&(s1.clone(), t1.clone()))
+                        .get(&(s1, t1))
                         .or_else(|| result.coloring.get(&(t1, s1)));
                     let c2 = result
                         .coloring
-                        .get(&(s2.clone(), t2.clone()))
+                        .get(&(s2, t2))
                         .or_else(|| result.coloring.get(&(t2, s2)));
 
                     if let (Some(c1), Some(c2)) = (c1, c2) {

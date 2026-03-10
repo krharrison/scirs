@@ -12,7 +12,7 @@ pub use monotonic::{
     hyman_interpolate, modified_akima_interpolate, monotonic_interpolate, steffen_interpolate,
     MonotonicInterpolator, MonotonicMethod,
 };
-pub use pchip::{pchip_interpolate, PchipInterpolator};
+pub use pchip::{pchip_interpolate, PchipExtrapolateMode, PchipInterpolator};
 
 use crate::error::{InterpolateError, InterpolateResult};
 use scirs2_core::ndarray::{Array1, ArrayView1};
@@ -59,6 +59,8 @@ pub struct Interp1d<F: Float> {
     method: InterpolationMethod,
     /// Extrapolation mode
     extrapolate: ExtrapolateMode,
+    /// Cached PCHIP interpolator for polynomial extrapolation
+    pchip_cache: Option<PchipInterpolator<F>>,
 }
 
 impl<F: Float + FromPrimitive + Debug + std::fmt::Display> Interp1d<F> {
@@ -151,11 +153,24 @@ impl<F: Float + FromPrimitive + Debug + std::fmt::Display> Interp1d<F> {
             ));
         }
 
+        let pchip_cache = if method == InterpolationMethod::Pchip {
+            let pchip_extrap = extrapolate == ExtrapolateMode::Extrapolate
+                || extrapolate == ExtrapolateMode::Nearest;
+            let mut interp = PchipInterpolator::new(x, y, pchip_extrap)?;
+            if extrapolate == ExtrapolateMode::Extrapolate {
+                interp = interp.with_extrapolate_mode(PchipExtrapolateMode::Polynomial);
+            }
+            Some(interp)
+        } else {
+            None
+        };
+
         Ok(Interp1d {
             x: x.to_owned(),
             y: y.to_owned(),
             method,
             extrapolate,
+            pchip_cache,
         })
     }
 
@@ -192,7 +207,11 @@ impl<F: Float + FromPrimitive + Debug + std::fmt::Display> Interp1d<F> {
                     }
                 }
                 ExtrapolateMode::Extrapolate => {
-                    // For extrapolation, we'll use linear extrapolation based on the edge segments
+                    // PCHIP uses polynomial continuation (scipy-compatible)
+                    if let Some(ref pchip) = self.pchip_cache {
+                        return pchip.evaluate(xnew);
+                    }
+                    // For other methods, linear extrapolation based on the edge segments
                     if xnew < self.x[0] {
                         // Use the first segment for extrapolation below the range
                         let x0 = self.x[0];
@@ -235,12 +254,13 @@ impl<F: Float + FromPrimitive + Debug + std::fmt::Display> Interp1d<F> {
             InterpolationMethod::Linear => linear_interp(&self.x.view(), &self.y.view(), idx, xnew),
             InterpolationMethod::Cubic => cubic_interp(&self.x.view(), &self.y.view(), idx, xnew),
             InterpolationMethod::Pchip => {
-                // For PCHIP, we'll create a PCHIP interpolator and use it
-                // This is not the most efficient approach, but it keeps the interface consistent
-                let extrapolate = self.extrapolate == ExtrapolateMode::Extrapolate
-                    || self.extrapolate == ExtrapolateMode::Nearest;
-                let pchip = PchipInterpolator::new(&self.x.view(), &self.y.view(), extrapolate)?;
-                pchip.evaluate(xnew)
+                // Use the pre-built cached interpolator
+                match self.pchip_cache {
+                    Some(ref pchip) => pchip.evaluate(xnew),
+                    None => Err(InterpolateError::invalid_input(
+                        "PCHIP cache missing (internal error)".to_string(),
+                    )),
+                }
             }
         }
     }

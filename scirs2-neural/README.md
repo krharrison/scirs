@@ -124,14 +124,14 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scirs2-neural = "0.3.0"
+scirs2-neural = "0.3.1"
 ```
 
 With optional features:
 
 ```toml
 [dependencies]
-scirs2-neural = { version = "0.3.0", features = ["parallel"] }
+scirs2-neural = { version = "0.3.1", features = ["parallel"] }
 ```
 
 ### Building a Sequential MLP

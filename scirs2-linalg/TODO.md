@@ -1,6 +1,6 @@
 # scirs2-linalg Development TODO
 
-## v0.3.0 — COMPLETED
+## v0.3.1 — COMPLETED
 
 ### Iterative Solvers
 - GMRES (restarted) with configurable restart parameter

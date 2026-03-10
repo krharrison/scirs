@@ -893,7 +893,10 @@ mod tests {
     #[test]
     fn test_ndjson_roundtrip() {
         let mut log = CdcLog::new();
-        let row = make_row(&[("id", CdcValue::Int(42)), ("x", CdcValue::Float(3.14))]);
+        let row = make_row(&[
+            ("id", CdcValue::Int(42)),
+            ("x", CdcValue::Float(std::f64::consts::PI)),
+        ]);
         log.insert(9999, "metrics", row);
 
         let mut buf = Vec::new();

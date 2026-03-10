@@ -24,10 +24,12 @@ pub use graphs::{
 mod tests {
     use super::*;
 
+    /// Type alias for the hausdorff_distance_detailed function signature
+    type HausdorffFn = fn(&[[f64; 2]], &[[f64; 2]]) -> crate::error::SpatialResult<HausdorffResult>;
+
     #[test]
     fn test_module_imports() {
         // Ensure all public types are accessible
-        let _: fn(&[[f64; 2]], &[[f64; 2]]) -> crate::error::SpatialResult<HausdorffResult> =
-            hausdorff_distance_detailed;
+        let _: HausdorffFn = hausdorff_distance_detailed;
     }
 }

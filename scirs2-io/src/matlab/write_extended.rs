@@ -867,7 +867,6 @@ mod tests {
 
         // Write compressed variable
         let file = std::fs::OpenOptions::new()
-            .write(true)
             .append(true)
             .open(&path)
             .expect("open failed");

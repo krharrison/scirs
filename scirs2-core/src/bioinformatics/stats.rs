@@ -231,8 +231,8 @@ mod tests {
     fn test_dinuc_freq_repeated() {
         let freqs = dinucleotide_frequencies(b"ATATAT");
         // Pairs: AT, TA, AT, TA, AT → AT = 3/5, TA = 2/5
-        let at_freq = freqs[&[b'A', b'T']];
-        let ta_freq = freqs[&[b'T', b'A']];
+        let at_freq = freqs[b"AT"];
+        let ta_freq = freqs[b"TA"];
         assert!((at_freq - 3.0 / 5.0).abs() < 1e-10);
         assert!((ta_freq - 2.0 / 5.0).abs() < 1e-10);
     }
@@ -263,8 +263,8 @@ mod tests {
     #[test]
     fn test_codon_usage_two_atg_one_taa() {
         let table = codon_usage_table(b"ATGATGTAA").expect("codon_usage_table failed");
-        let atg = table[&[b'A', b'T', b'G']];
-        let taa = table[&[b'T', b'A', b'A']];
+        let atg = table[b"ATG"];
+        let taa = table[b"TAA"];
         assert!(
             (atg - 2.0 / 3.0).abs() < 1e-10,
             "ATG expected 2/3, got {atg}"
@@ -293,7 +293,7 @@ mod tests {
         // NNN should be skipped; ATG counts
         let table = codon_usage_table(b"ATGNNN").expect("codon_usage_table failed");
         assert_eq!(table.len(), 1);
-        let atg = table[&[b'A', b'T', b'G']];
+        let atg = table[b"ATG"];
         assert!((atg - 1.0).abs() < 1e-10);
     }
 }

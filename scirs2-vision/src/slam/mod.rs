@@ -842,7 +842,7 @@ mod tests {
         let bow = vec![1.0, 0.0, 0.0];
         let candidates = lc.query(&bow);
         // Should find similar descriptors
-        assert!(!candidates.is_empty() || true); // May have no candidates due to temporal gap
+        let _ = candidates; // May have no candidates due to temporal gap
     }
 
     #[test]

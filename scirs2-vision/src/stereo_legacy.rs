@@ -210,7 +210,7 @@ fn census_hamming(left: &Array2<f64>, right: &Array2<f64>, cy: usize, lx: usize,
 /// # Example
 ///
 /// ```
-/// use scirs2_vision::stereo::{block_matching, MatchingCost};
+/// use scirs2_vision::stereo_legacy::{block_matching, MatchingCost};
 /// use scirs2_core::ndarray::Array2;
 ///
 /// let left = Array2::from_elem((32, 64), 128.0_f64);
@@ -295,7 +295,7 @@ impl StereoMatcher {
     /// # Example
     ///
     /// ```
-    /// use scirs2_vision::stereo::{StereoMatcher, MatchingCost};
+    /// use scirs2_vision::stereo_legacy::{StereoMatcher, MatchingCost};
     /// let matcher = StereoMatcher::new(7, 64, MatchingCost::Census);
     /// assert_eq!(matcher.block_size, 7);
     /// ```
@@ -356,7 +356,7 @@ impl Default for SgmPenalties {
 /// # Example
 ///
 /// ```
-/// use scirs2_vision::stereo::{disparity_map_sgm, SgmPenalties};
+/// use scirs2_vision::stereo_legacy::{disparity_map_sgm, SgmPenalties};
 /// use scirs2_core::ndarray::Array2;
 ///
 /// let left = Array2::from_elem((16, 32), 100.0_f64);
@@ -601,13 +601,13 @@ pub fn disparity_map_sgm(
 /// # Example
 ///
 /// ```
-/// use scirs2_vision::stereo::depth_from_disparity;
+/// use scirs2_vision::stereo_legacy::depth_from_disparity;
 /// use scirs2_core::ndarray::Array2;
 ///
-/// let mut disp = Array2::zeros((4, 4));
+/// let mut disp: Array2<f64> = Array2::zeros((4, 4));
 /// disp[[1, 1]] = 2.0;
 /// let depth = depth_from_disparity(&disp, 500.0, 0.1).unwrap();
-/// assert!((depth[[1, 1]] - 25.0).abs() < 1e-9);
+/// assert!((depth[[1, 1]] - 25.0_f64).abs() < 1e-9);
 /// ```
 pub fn depth_from_disparity(
     disparity: &Array2<f64>,
@@ -760,16 +760,16 @@ fn apply_homography_3x3(h: &Array2<f64>, x: f64, y: f64) -> (f64, f64) {
 /// # Example
 ///
 /// ```
-/// use scirs2_vision::stereo::fundamental_matrix;
+/// use scirs2_vision::stereo_legacy::fundamental_matrix;
 /// use scirs2_core::ndarray::Array2;
 ///
 /// // 8 (arbitrary) synthetic correspondences.
 /// let pts1 = Array2::from_shape_vec((8, 2), vec![
-///     10.0, 20.0, 30.0, 15.0, 50.0, 40.0, 80.0, 10.0,
+///     10.0_f64, 20.0, 30.0, 15.0, 50.0, 40.0, 80.0, 10.0,
 ///     20.0, 60.0, 70.0, 30.0, 100.0, 50.0, 5.0, 70.0,
 /// ]).unwrap();
 /// let pts2 = Array2::from_shape_vec((8, 2), vec![
-///     12.0, 20.0, 32.0, 15.0, 52.0, 40.0, 82.0, 10.0,
+///     12.0_f64, 20.0, 32.0, 15.0, 52.0, 40.0, 82.0, 10.0,
 ///     22.0, 60.0, 72.0, 30.0, 102.0, 50.0, 7.0, 70.0,
 /// ]).unwrap();
 /// let f = fundamental_matrix(&pts1, &pts2).unwrap();
@@ -848,12 +848,12 @@ pub fn fundamental_matrix(pts1: &Array2<f64>, pts2: &Array2<f64>) -> Result<Arra
 /// # Example
 ///
 /// ```
-/// use scirs2_vision::stereo::essential_matrix_from_fundamental;
+/// use scirs2_vision::stereo_legacy::essential_matrix_from_fundamental;
 /// use scirs2_core::ndarray::Array2;
 ///
-/// let f = Array2::eye(3);
-/// let k1 = Array2::eye(3);
-/// let k2 = Array2::eye(3);
+/// let f: Array2<f64> = Array2::eye(3);
+/// let k1: Array2<f64> = Array2::eye(3);
+/// let k2: Array2<f64> = Array2::eye(3);
 /// let e = essential_matrix_from_fundamental(&f, &k1, &k2).unwrap();
 /// assert_eq!(e.dim(), (3, 3));
 /// ```

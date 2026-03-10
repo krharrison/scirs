@@ -736,7 +736,7 @@ mod tests {
         for _ in 0..1000 {
             let p = seq.next_point();
             for &x in &p {
-                assert!(x >= 0.0 && x < 1.0, "Halton point out of [0,1)");
+                assert!((0.0..1.0).contains(&x), "Halton point out of [0,1)");
             }
         }
     }
@@ -765,7 +765,7 @@ mod tests {
             let p = seq.next_point();
             assert_eq!(p.len(), 4);
             for &x in &p {
-                assert!(x >= 0.0 && x <= 1.0, "Sobol point out of [0,1]");
+                assert!((0.0..=1.0).contains(&x), "Sobol point out of [0,1]");
             }
         }
     }

@@ -281,7 +281,7 @@ mod tests {
         let ds = load_digits().expect("ok");
         for &v in ds.target.iter() {
             assert!(
-                v >= 0.0 && v <= 9.0 && v == v.floor(),
+                (0.0..=9.0).contains(&v) && v == v.floor(),
                 "Invalid digit label {v}"
             );
         }

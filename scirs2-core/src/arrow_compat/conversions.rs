@@ -550,7 +550,7 @@ mod tests {
 
     #[test]
     fn test_array1_f64_roundtrip() {
-        let original = Array1::from_vec(vec![1.0_f64, 2.5, -3.14, 0.0, f64::MAX]);
+        let original = Array1::from_vec(vec![1.0_f64, 2.5, -1.23, 0.0, f64::MAX]);
         let arrow = array1_to_arrow(&original).expect("to_arrow failed");
         let recovered: Array1<f64> = arrow_to_array1(&arrow).expect("from_arrow failed");
         assert_eq!(original, recovered);
@@ -558,7 +558,7 @@ mod tests {
 
     #[test]
     fn test_array1_f32_roundtrip() {
-        let original = Array1::from_vec(vec![1.0_f32, 2.5, -3.14, 0.0]);
+        let original = Array1::from_vec(vec![1.0_f32, 2.5, -1.23, 0.0]);
         let arrow = array1_to_arrow(&original).expect("to_arrow failed");
         let recovered: Array1<f32> = arrow_to_array1(&arrow).expect("from_arrow failed");
         assert_eq!(original, recovered);

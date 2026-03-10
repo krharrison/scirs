@@ -357,7 +357,7 @@ fn test_pagerank_with_dangling_nodes() {
     assert_relative_eq!(sum, 1.0, epsilon = TOLERANCE);
 
     // All nodes should have positive PageRank
-    for (_node, rank) in &result {
+    for rank in result.values() {
         assert!(*rank > 0.0);
     }
 

@@ -30,9 +30,10 @@ use scirs2_core::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterato
 /// use scirs2_core::ndarray::Array2;
 /// use scirs2_stats::parallel_simd_stats::corrcoef_parallel_simd;
 ///
-/// let data = Array2::<f64>::zeros((1000, 10));
+/// // Use non-constant data to avoid degenerate correlation (zero variance)
+/// let data = Array2::from_shape_fn((100, 5), |(i, j)| (i as f64 * 0.1 + j as f64).sin());
 /// let corr = corrcoef_parallel_simd(&data.view(), "pearson").expect("Failed");
-/// assert_eq!(corr.shape(), &[10, 10]);
+/// assert_eq!(corr.shape(), &[5, 5]);
 /// ```
 pub fn corrcoef_parallel_simd<F>(data: &ArrayView2<F>, method: &str) -> StatsResult<Array2<F>>
 where

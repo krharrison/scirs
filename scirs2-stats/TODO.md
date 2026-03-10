@@ -1,12 +1,12 @@
 # scirs2-stats TODO
 
-## Status: v0.3.0 Released (February 26, 2026)
+## Status: v0.3.1 Released (March 9, 2026)
 
-19,644 workspace tests pass (100% pass rate). All v0.3.0 features are complete and production-ready.
+19,685 workspace tests pass (100% pass rate). All v0.3.1 features are complete and production-ready.
 
 ---
 
-## v0.3.0 Completed
+## v0.3.1 Completed
 
 ### Classical Statistics
 - [x] Descriptive statistics: mean, median, trimmed mean, geometric/harmonic mean, variance, std, MAD, IQR, skewness, kurtosis, moments

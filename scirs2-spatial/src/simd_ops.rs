@@ -45,7 +45,7 @@ use scirs2_core::simd_ops::SimdUnifiedOps;
 
 /// SIMD-accelerated Euclidean distance between two points
 ///
-/// Computes: sqrt(sum((a[i] - b[i])^2))
+/// Computes: `sqrt(sum((a[i] - b[i])^2))`
 ///
 /// # Arguments
 ///
@@ -71,10 +71,7 @@ use scirs2_core::simd_ops::SimdUnifiedOps;
 /// let dist = simd_euclidean_distance(&a.view(), &b.view()).unwrap();
 /// assert!((dist - 5.196152422706632).abs() < 1e-10);
 /// ```
-pub fn simd_euclidean_distance(
-    a: &ArrayView1<f64>,
-    b: &ArrayView1<f64>,
-) -> SpatialResult<f64> {
+pub fn simd_euclidean_distance(a: &ArrayView1<f64>, b: &ArrayView1<f64>) -> SpatialResult<f64> {
     if a.len() != b.len() {
         return Err(SpatialError::ValueError(
             "Points must have the same dimension".to_string(),
@@ -89,7 +86,7 @@ pub fn simd_euclidean_distance(
 
 /// SIMD-accelerated squared Euclidean distance between two points
 ///
-/// Computes: sum((a[i] - b[i])^2)
+/// Computes: `sum((a[i] - b[i])^2)`
 /// Faster than full Euclidean distance as it avoids the square root operation.
 ///
 /// # Arguments
@@ -121,7 +118,7 @@ pub fn simd_squared_euclidean_distance(
 
 /// SIMD-accelerated Manhattan distance between two points
 ///
-/// Computes: sum(|a[i] - b[i]|)
+/// Computes: `sum(|a[i] - b[i]|)`
 ///
 /// # Arguments
 ///
@@ -147,10 +144,7 @@ pub fn simd_squared_euclidean_distance(
 /// let dist = simd_manhattan_distance(&a.view(), &b.view()).unwrap();
 /// assert_eq!(dist, 9.0);
 /// ```
-pub fn simd_manhattan_distance(
-    a: &ArrayView1<f64>,
-    b: &ArrayView1<f64>,
-) -> SpatialResult<f64> {
+pub fn simd_manhattan_distance(a: &ArrayView1<f64>, b: &ArrayView1<f64>) -> SpatialResult<f64> {
     if a.len() != b.len() {
         return Err(SpatialError::ValueError(
             "Points must have the same dimension".to_string(),
@@ -164,7 +158,7 @@ pub fn simd_manhattan_distance(
 
 /// SIMD-accelerated Chebyshev distance between two points
 ///
-/// Computes: max(|a[i] - b[i]|)
+/// Computes: `max(|a[i] - b[i]|)`
 ///
 /// # Arguments
 ///
@@ -190,10 +184,7 @@ pub fn simd_manhattan_distance(
 /// let dist = simd_chebyshev_distance(&a.view(), &b.view()).unwrap();
 /// assert_eq!(dist, 4.0); // max(|1-4|, |2-6|, |3-5|) = max(3, 4, 2) = 4
 /// ```
-pub fn simd_chebyshev_distance(
-    a: &ArrayView1<f64>,
-    b: &ArrayView1<f64>,
-) -> SpatialResult<f64> {
+pub fn simd_chebyshev_distance(a: &ArrayView1<f64>, b: &ArrayView1<f64>) -> SpatialResult<f64> {
     if a.len() != b.len() {
         return Err(SpatialError::ValueError(
             "Points must have the same dimension".to_string(),
@@ -207,7 +198,7 @@ pub fn simd_chebyshev_distance(
 
 /// SIMD-accelerated Minkowski distance between two points
 ///
-/// Computes: (sum(|a[i] - b[i]|^p))^(1/p)
+/// Computes: `(sum(|a[i] - b[i]|^p))^(1/p)`
 ///
 /// # Arguments
 ///
@@ -305,10 +296,7 @@ pub fn simd_minkowski_distance(
 /// let dist = simd_cosine_distance(&a.view(), &b.view()).unwrap();
 /// assert!(dist < 0.03); // Very similar direction
 /// ```
-pub fn simd_cosine_distance(
-    a: &ArrayView1<f64>,
-    b: &ArrayView1<f64>,
-) -> SpatialResult<f64> {
+pub fn simd_cosine_distance(a: &ArrayView1<f64>, b: &ArrayView1<f64>) -> SpatialResult<f64> {
     if a.len() != b.len() {
         return Err(SpatialError::ValueError(
             "Points must have the same dimension".to_string(),
@@ -367,9 +355,15 @@ pub fn simd_point_to_box_min_distance_squared(
     // Otherwise, distance is to the nearest face
 
     // Clamp point to box: closest_point = clamp(point, box_min, box_max)
-    let clamped = f64::simd_clamp(point,
-        *box_min.first().ok_or_else(|| SpatialError::ValueError("Empty array".to_string()))?,
-        *box_max.first().ok_or_else(|| SpatialError::ValueError("Empty array".to_string()))?);
+    let clamped = f64::simd_clamp(
+        point,
+        *box_min
+            .first()
+            .ok_or_else(|| SpatialError::ValueError("Empty array".to_string()))?,
+        *box_max
+            .first()
+            .ok_or_else(|| SpatialError::ValueError("Empty array".to_string()))?,
+    );
 
     // Compute element-wise clamping manually for each dimension
     let mut closest_point = Array1::zeros(point.len());
@@ -409,7 +403,8 @@ pub fn simd_box_box_intersection(
 ) -> SpatialResult<bool> {
     if box1_min.len() != box1_max.len()
         || box1_min.len() != box2_min.len()
-        || box1_min.len() != box2_max.len() {
+        || box1_min.len() != box2_max.len()
+    {
         return Err(SpatialError::ValueError(
             "All box dimensions must match".to_string(),
         ));
@@ -552,9 +547,10 @@ pub fn simd_knn_search(
     }
 
     if k > n_points {
-        return Err(SpatialError::ValueError(
-            format!("k ({}) cannot be larger than number of data points ({})", k, n_points),
-        ));
+        return Err(SpatialError::ValueError(format!(
+            "k ({}) cannot be larger than number of data points ({})",
+            k, n_points
+        )));
     }
 
     // Compute all distances using SIMD
@@ -573,9 +569,8 @@ pub fn simd_knn_search(
     });
 
     // Sort the k smallest for consistent ordering
-    indexed_distances[..k].sort_by(|a, b| {
-        a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal)
-    });
+    indexed_distances[..k]
+        .sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
 
     // Extract indices and compute full distances
     let mut indices = Array1::zeros(k);
@@ -654,9 +649,7 @@ pub fn simd_radius_search(
 /// # Returns
 ///
 /// * Symmetric distance matrix (n_points x n_points)
-pub fn simd_pairwise_distance_matrix(
-    points: &ArrayView2<f64>,
-) -> SpatialResult<Array2<f64>> {
+pub fn simd_pairwise_distance_matrix(points: &ArrayView2<f64>) -> SpatialResult<Array2<f64>> {
     let n_points = points.nrows();
     let mut distances = Array2::zeros((n_points, n_points));
 
@@ -690,8 +683,8 @@ mod tests {
         let a = array![1.0, 2.0, 3.0];
         let b = array![4.0, 5.0, 6.0];
 
-        let dist = simd_euclidean_distance(&a.view(), &b.view())
-            .expect("Distance computation failed");
+        let dist =
+            simd_euclidean_distance(&a.view(), &b.view()).expect("Distance computation failed");
 
         // Expected: sqrt(3^2 + 3^2 + 3^2) = sqrt(27) ≈ 5.196
         assert_relative_eq!(dist, 5.196152422706632, epsilon = 1e-10);
@@ -702,8 +695,8 @@ mod tests {
         let a = array![1.0, 2.0, 3.0];
         let b = array![4.0, 5.0, 6.0];
 
-        let dist = simd_manhattan_distance(&a.view(), &b.view())
-            .expect("Distance computation failed");
+        let dist =
+            simd_manhattan_distance(&a.view(), &b.view()).expect("Distance computation failed");
 
         // Expected: |1-4| + |2-5| + |3-6| = 3 + 3 + 3 = 9
         assert_eq!(dist, 9.0);
@@ -714,8 +707,8 @@ mod tests {
         let a = array![1.0, 2.0, 3.0];
         let b = array![4.0, 6.0, 5.0];
 
-        let dist = simd_chebyshev_distance(&a.view(), &b.view())
-            .expect("Distance computation failed");
+        let dist =
+            simd_chebyshev_distance(&a.view(), &b.view()).expect("Distance computation failed");
 
         // Expected: max(|1-4|, |2-6|, |3-5|) = max(3, 4, 2) = 4
         assert_eq!(dist, 4.0);
@@ -747,8 +740,7 @@ mod tests {
         let a = array![1.0, 2.0, 3.0];
         let b = array![4.0, 5.0, 6.0];
 
-        let dist = simd_cosine_distance(&a.view(), &b.view())
-            .expect("Distance computation failed");
+        let dist = simd_cosine_distance(&a.view(), &b.view()).expect("Distance computation failed");
 
         // Vectors are in similar direction, distance should be small
         assert!(dist < 0.03);
@@ -773,17 +765,11 @@ mod tests {
 
     #[test]
     fn test_simd_knn_search() {
-        let data_points = array![
-            [0.0, 0.0],
-            [1.0, 0.0],
-            [0.0, 1.0],
-            [1.0, 1.0],
-            [2.0, 2.0]
-        ];
+        let data_points = array![[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [2.0, 2.0]];
         let query = array![0.5, 0.5];
 
-        let (indices, distances) = simd_knn_search(&query.view(), &data_points.view(), 3)
-            .expect("k-NN search failed");
+        let (indices, distances) =
+            simd_knn_search(&query.view(), &data_points.view(), 3).expect("k-NN search failed");
 
         assert_eq!(indices.len(), 3);
         assert_eq!(distances.len(), 3);
@@ -796,13 +782,7 @@ mod tests {
 
     #[test]
     fn test_simd_radius_search() {
-        let data_points = array![
-            [0.0, 0.0],
-            [1.0, 0.0],
-            [0.0, 1.0],
-            [1.0, 1.0],
-            [5.0, 5.0]
-        ];
+        let data_points = array![[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [5.0, 5.0]];
         let query = array![0.5, 0.5];
         let radius = 1.0;
 
@@ -824,11 +804,9 @@ mod tests {
         let box_min = array![0.0, 0.0];
         let box_max = array![1.0, 1.0];
 
-        let dist_sq = simd_point_to_box_min_distance_squared(
-            &point.view(),
-            &box_min.view(),
-            &box_max.view(),
-        ).expect("Point-to-box distance failed");
+        let dist_sq =
+            simd_point_to_box_min_distance_squared(&point.view(), &box_min.view(), &box_max.view())
+                .expect("Point-to-box distance failed");
 
         // Point is at (2,2), box is [0,1] x [0,1]
         // Nearest point on box is (1,1)
@@ -848,7 +826,8 @@ mod tests {
             &box1_max.view(),
             &box2_min.view(),
             &box2_max.view(),
-        ).expect("Box intersection test failed");
+        )
+        .expect("Box intersection test failed");
 
         assert!(intersects);
 
@@ -861,7 +840,8 @@ mod tests {
             &box1_max.view(),
             &box3_min.view(),
             &box3_max.view(),
-        ).expect("Box intersection test failed");
+        )
+        .expect("Box intersection test failed");
 
         assert!(!no_intersect);
     }

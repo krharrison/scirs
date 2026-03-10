@@ -192,6 +192,10 @@ impl<T: Float + std::fmt::Display> BoundaryParameters<T> {
                         // Return NaN for _points outside the interpolation domain
                         Ok(BoundaryResult::DirectValue(T::nan()))
                     }
+                    ExtrapolateMode::Nearest => {
+                        // Clamp to lower boundary
+                        Ok(BoundaryResult::MappedPoint(self.lower_bound))
+                    }
                 }
             }
             BoundaryMode::ZeroGradient => {
@@ -308,6 +312,10 @@ impl<T: Float + std::fmt::Display> BoundaryParameters<T> {
                     ExtrapolateMode::Nan => {
                         // Return NaN for _points outside the interpolation domain
                         Ok(BoundaryResult::DirectValue(T::nan()))
+                    }
+                    ExtrapolateMode::Nearest => {
+                        // Clamp to upper boundary
+                        Ok(BoundaryResult::MappedPoint(self.upper_bound))
                     }
                 }
             }

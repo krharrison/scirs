@@ -67,11 +67,11 @@ pub struct MatrixSqrtResult<F> {
 /// use scirs2_core::ndarray::array;
 /// use scirs2_linalg::matrix_functions_extended::sqrt_denman_beavers;
 ///
-/// let a = array![[4.0, 0.0], [0.0, 9.0]];
+/// let a = array![[4.0_f64, 0.0], [0.0, 9.0]];
 /// let res = sqrt_denman_beavers(&a.view(), None, None).expect("sqrt failed");
 /// // res.sqrt should be approximately [[2, 0], [0, 3]]
-/// assert!((res.sqrt[[0, 0]] - 2.0).abs() < 1e-8);
-/// assert!((res.sqrt[[1, 1]] - 3.0).abs() < 1e-8);
+/// assert!((res.sqrt[[0, 0]] - 2.0_f64).abs() < 1e-8);
+/// assert!((res.sqrt[[1, 1]] - 3.0_f64).abs() < 1e-8);
 /// ```
 pub fn sqrt_denman_beavers<F: MFFloat>(
     a: &ArrayView2<F>,
@@ -133,10 +133,10 @@ pub fn sqrt_denman_beavers<F: MFFloat>(
 /// use scirs2_core::ndarray::array;
 /// use scirs2_linalg::matrix_functions_extended::sqrt_schur;
 ///
-/// let a = array![[4.0, 0.0], [0.0, 9.0]];
+/// let a = array![[4.0_f64, 0.0], [0.0, 9.0]];
 /// let s = sqrt_schur(&a.view()).expect("sqrt failed");
-/// assert!((s[[0, 0]] - 2.0).abs() < 1e-6);
-/// assert!((s[[1, 1]] - 3.0).abs() < 1e-6);
+/// assert!((s[[0, 0]] - 2.0_f64).abs() < 1e-6);
+/// assert!((s[[1, 1]] - 3.0_f64).abs() < 1e-6);
 /// ```
 pub fn sqrt_schur<F: MFFloat>(a: &ArrayView2<F>) -> LinalgResult<Array2<F>> {
     let n = a.shape()[0];
@@ -205,11 +205,11 @@ pub fn sqrt_schur<F: MFFloat>(a: &ArrayView2<F>) -> LinalgResult<Array2<F>> {
 /// use scirs2_core::ndarray::array;
 /// use scirs2_linalg::matrix_functions_extended::logm_iss;
 ///
-/// let a = array![[2.718281828, 0.0], [0.0, 7.389056099]];
+/// let a = array![[2.718281828_f64, 0.0], [0.0, 7.389056099]];
 /// let l = logm_iss(&a.view(), None).expect("logm failed");
 /// // log of diag(e, e^2) ~ diag(1, 2)
-/// assert!((l[[0, 0]] - 1.0).abs() < 1e-4);
-/// assert!((l[[1, 1]] - 2.0).abs() < 1e-4);
+/// assert!((l[[0, 0]] - 1.0_f64).abs() < 1e-4);
+/// assert!((l[[1, 1]] - 2.0_f64).abs() < 1e-4);
 /// ```
 pub fn logm_iss<F: MFFloat>(a: &ArrayView2<F>, max_sqrt: Option<usize>) -> LinalgResult<Array2<F>> {
     let n = a.shape()[0];
@@ -364,10 +364,10 @@ pub struct MatrixSignResult<F> {
 /// use scirs2_linalg::matrix_functions_extended::sign_roberts;
 ///
 /// // For a positive definite matrix, sign(A) = I
-/// let a = array![[2.0, 0.0], [0.0, 3.0]];
+/// let a = array![[2.0_f64, 0.0], [0.0, 3.0]];
 /// let res = sign_roberts(&a.view(), None, None).expect("sign failed");
-/// assert!((res.sign[[0, 0]] - 1.0).abs() < 1e-8);
-/// assert!((res.sign[[1, 1]] - 1.0).abs() < 1e-8);
+/// assert!((res.sign[[0, 0]] - 1.0_f64).abs() < 1e-8);
+/// assert!((res.sign[[1, 1]] - 1.0_f64).abs() < 1e-8);
 /// ```
 pub fn sign_roberts<F: MFFloat>(
     a: &ArrayView2<F>,
@@ -449,10 +449,10 @@ pub struct MatrixPthRootResult<F> {
 /// use scirs2_linalg::matrix_functions_extended::pth_root;
 ///
 /// // Cube root of diag(8, 27) = diag(2, 3)
-/// let a = array![[8.0, 0.0], [0.0, 27.0]];
+/// let a = array![[8.0_f64, 0.0], [0.0, 27.0]];
 /// let res = pth_root(&a.view(), 3, None, None).expect("pth_root failed");
-/// assert!((res.root[[0, 0]] - 2.0).abs() < 1e-4);
-/// assert!((res.root[[1, 1]] - 3.0).abs() < 1e-4);
+/// assert!((res.root[[0, 0]] - 2.0_f64).abs() < 1e-4);
+/// assert!((res.root[[1, 1]] - 3.0_f64).abs() < 1e-4);
 /// ```
 pub fn pth_root<F: MFFloat>(
     a: &ArrayView2<F>,

@@ -1041,11 +1041,12 @@ pub enum OutlierMethod {
 /// use scirs2_core::preprocessing::{OutlierDetector, OutlierMethod};
 /// use ndarray::array;
 ///
-/// let data = array![[1.0], [2.0], [3.0], [100.0]];
-/// let mut det = OutlierDetector::<f64>::new(OutlierMethod::ZScore, 2.0);
+/// // IQR method: Q1=1.5, Q3=3.0, IQR=1.5, upper fence=3+1.5*1.5=5.25 → 100.0 is outlier
+/// let data = array![[1.0f64], [2.0], [3.0], [100.0]];
+/// let mut det = OutlierDetector::<f64>::new(OutlierMethod::Iqr, 1.5);
 /// det.fit(&data).expect("fit failed");
 /// let mask = det.detect(&data).expect("detect failed");
-/// assert!(mask[3]); // 100.0 is an outlier
+/// assert!(mask[3]); // 100.0 is an outlier (above upper fence of 5.25)
 /// ```
 #[derive(Debug, Clone)]
 pub struct OutlierDetector<F: Float> {

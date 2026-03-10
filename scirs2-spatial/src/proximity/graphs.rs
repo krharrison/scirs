@@ -139,8 +139,10 @@ pub fn euclidean_mst(points: &[[f64; 2]]) -> SpatialResult<Vec<MstEdge>> {
 ///
 /// let points = vec![[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]];
 /// let edges = gabriel_graph(&points).expect("compute");
-/// // Square: edges are (0,1), (0,2), (1,3), (2,3) - no diagonals
-/// assert_eq!(edges.len(), 4);
+/// // Unit square: all 6 pairs are Gabriel edges (diagonals included, since for a diagonal
+/// // the sum of squared distances from the endpoints to any other vertex equals the diagonal
+/// // length squared exactly, so no vertex lies strictly inside the diametral circle)
+/// assert_eq!(edges.len(), 6);
 /// ```
 pub fn gabriel_graph(points: &[[f64; 2]]) -> SpatialResult<Vec<(usize, usize)>> {
     let n = points.len();

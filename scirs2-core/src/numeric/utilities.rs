@@ -404,7 +404,7 @@ mod tests {
 
     #[test]
     fn test_relative_error_exact() {
-        let err = relative_error(3.14_f64, 3.14).expect("should succeed");
+        let err = relative_error(1.23_f64, 1.23).expect("should succeed");
         assert_eq!(err, 0.0);
     }
 

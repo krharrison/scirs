@@ -925,6 +925,9 @@ pub use projections::{
     UTMZone,
 };
 
+// SIMD operations (low-level, used by benchmarks)
+pub mod simd_ops;
+
 // SIMD-accelerated distance calculations
 pub mod simd_distance;
 pub use simd_distance::{

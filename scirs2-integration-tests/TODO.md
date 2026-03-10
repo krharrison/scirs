@@ -1,12 +1,12 @@
 # scirs2-integration-tests TODO
 
-## Status: v0.3.0
+## Status: v0.3.1
 
 ## Purpose
 
 Cross-crate integration tests for SciRS2 ecosystem.
 
-## v0.3.0 Coverage
+## v0.3.1 Coverage
 
 - autograd + neural integration
 - linalg + sparse interop

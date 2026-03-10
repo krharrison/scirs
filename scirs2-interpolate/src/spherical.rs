@@ -102,18 +102,64 @@ fn assoc_legendre(l: usize, m: usize, x: f64) -> f64 {
     p_cur
 }
 
-/// Normalisation constant K_l^m for real spherical harmonics.
+/// Compute K_l^m * P_l^m(x) directly via fully-normalized recurrence,
+/// WITH Condon-Shortley phase `(-1)^m`.
 ///
-/// `K = sqrt((2l+1)/(4π) * (l-m)!/(l+m)!)`
-fn normk(l: usize, m: usize) -> f64 {
-    // Compute (l-m)!/(l+m)! incrementally to avoid huge factorials
-    let mut ratio = 1.0f64;
-    // ratio = (l-m)! / (l+m)!
-    // = product of 1/k for k = (l-m+1) to (l+m)
-    for k in (l - m + 1)..=(l + m) {
-        ratio /= k as f64;
+/// Returns `(-1)^m * bar_P_l^m(x)` where `bar_P_l^m = K_l^m * P_l^m(x)`.
+///
+/// The seed incorporates the CS phase by multiplying each factor by -1:
+/// `bar_P_m^m = sqrt(1/(4π)) * prod_{k=1}^{m} (-sqrt((2k-1)/(2k))) * sin_theta^m * sqrt(2m+1)`
+///
+/// This avoids computing large un-normalised P_l^m and normalization constant
+/// separately, preventing overflow for large l=m.
+fn normalized_legendre_cs(l: usize, m: usize, x: f64) -> f64 {
+    if m > l {
+        return 0.0;
     }
-    ((2 * l + 1) as f64 / (4.0 * PI) * ratio).sqrt()
+
+    let x = x.clamp(-1.0, 1.0);
+    let sin_theta = ((1.0 - x) * (1.0 + x)).sqrt();
+
+    // Seed: bar_P_m^m with CS phase baked in
+    // Each step multiplies by -sqrt((2k-1)/(2k)) * sin_theta
+    let inv_4pi = 1.0 / (4.0 * PI);
+    let mut bar_pmm = inv_4pi.sqrt(); // sqrt(1/(4π))
+    for k in 1..=m {
+        let k_f = k as f64;
+        bar_pmm *= -((2.0 * k_f - 1.0) / (2.0 * k_f)).sqrt() * sin_theta;
+    }
+    bar_pmm *= ((2 * m + 1) as f64).sqrt();
+
+    if l == m {
+        return bar_pmm;
+    }
+
+    // bar_P_{m+1}^m = sqrt(2m+3) * x * bar_P_m^m
+    let mut bar_pm1 = ((2 * m + 3) as f64).sqrt() * x * bar_pmm;
+
+    if l == m + 1 {
+        return bar_pm1;
+    }
+
+    // Three-term recurrence for ll >= m+2
+    let mut bar_prev2 = bar_pmm;
+    let mut bar_prev1 = bar_pm1;
+    let mut bar_cur = 0.0;
+    let m2 = (m * m) as f64;
+    for ll in (m + 2)..=l {
+        let ll_f = ll as f64;
+        let ll2 = ll_f * ll_f;
+        let denom = ll2 - m2;
+        let alpha = ((4.0 * ll2 - 1.0) / denom).sqrt();
+        let beta = ((2.0 * ll_f + 1.0) * (ll_f + m as f64 - 1.0) * (ll_f - m as f64 - 1.0)
+            / ((2.0 * ll_f - 3.0) * denom))
+            .sqrt();
+        bar_cur = alpha * x * bar_prev1 - beta * bar_prev2;
+        bar_prev2 = bar_prev1;
+        bar_prev1 = bar_cur;
+    }
+
+    bar_cur
 }
 
 /// Evaluate a single real spherical harmonic Y_l^m(θ, φ).
@@ -123,14 +169,13 @@ pub fn real_sph_harm(l: usize, m: i64, theta: f64, phi: f64) -> f64 {
     let abs_m = m.unsigned_abs() as usize;
     debug_assert!(abs_m <= l);
     let cos_theta = theta.cos().clamp(-1.0, 1.0);
-    let k = normk(l, abs_m);
-    let p = assoc_legendre(l, abs_m, cos_theta);
+    let bar_plm = normalized_legendre_cs(l, abs_m, cos_theta);
     if m == 0 {
-        k * p
+        bar_plm
     } else if m > 0 {
-        SQRT_2 * k * p * (abs_m as f64 * phi).cos()
+        SQRT_2 * bar_plm * (abs_m as f64 * phi).cos()
     } else {
-        SQRT_2 * k * p * (abs_m as f64 * phi).sin()
+        SQRT_2 * bar_plm * (abs_m as f64 * phi).sin()
     }
 }
 

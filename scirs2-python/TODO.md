@@ -1,8 +1,8 @@
 # scirs2-python TODO
 
-## Status: v0.3.0 Released (February 26, 2026)
+## Status: v0.3.1 Released (March 9, 2026)
 
-## v0.3.0 Completed
+## v0.3.1 Completed
 
 ### Infrastructure
 - [x] PyO3-based Python/Rust interop layer
@@ -123,7 +123,7 @@
 
 ## Known Issues
 
-- ndarray version boundary: `scirs2-numpy` resolves the ndarray 0.16/0.17 mismatch that blocked earlier versions; this is fully resolved in v0.3.0.
+- ndarray version boundary: `scirs2-numpy` resolves the ndarray 0.16/0.17 mismatch that blocked earlier versions; this is fully resolved in v0.3.1.
 - Large matrix operations (>200x200) may be slower than SciPy with a well-tuned system LAPACK; use NumPy/SciPy for those cases.
 - `scirs2-python` is excluded from the default workspace build (`--exclude scirs2-python`) because it requires Python dev headers.
 - Graph module suppresses `#[allow(deprecated)]` for `PyAnyMethods::downcast`; will be updated when PyO3 stabilizes the replacement.

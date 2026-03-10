@@ -407,7 +407,7 @@ mod tests {
         let width = 4;
         let height = 4;
         let mut depth = vec![0.0_f32; width * height];
-        depth[1 * width + 1] = 5.0;
+        depth[width + 1] = 5.0;
         depth[2 * width + 2] = 3.0;
 
         let pc = PointCloud::from_depth_map(&depth, width, height, 100.0, 100.0, 2.0, 2.0);
