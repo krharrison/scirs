@@ -13,7 +13,7 @@ use crate::error::SignalResult;
 use crate::lombscargle::lombscargle;
 use scirs2_core::ndarray::Array1;
 use scirs2_core::numeric::Float;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::time::Instant;
 
 #[allow(unused_imports)]

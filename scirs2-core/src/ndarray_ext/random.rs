@@ -39,7 +39,7 @@ use ::ndarray::{
     Array, Array1, Array2, Array3, ArrayBase, Data, DataMut, DataOwned, Dimension, Ix1, Ix2, Ix3,
     ShapeBuilder,
 };
-use rand::Rng;
+use rand::{Rng, RngExt};
 use rand_distr::{Distribution, Normal, Uniform};
 use std::marker::PhantomData;
 
@@ -417,7 +417,7 @@ where
 
         let values: Vec<A> = (0..size)
             .map(|_| {
-                if rng.rng.random::<f64>() < density {
+                if rand::RngExt::random::<f64>(&mut rng.rng) < density {
                     distribution.sample(&mut rng.rng)
                 } else {
                     A::default()

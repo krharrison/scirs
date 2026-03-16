@@ -19,8 +19,10 @@
 use criterion::{
     criterion_group, criterion_main, BenchmarkId, Criterion, SamplingMode, Throughput,
 };
+use ndarray_rand::rand::rngs::StdRng;
+use ndarray_rand::rand::SeedableRng;
+use ndarray_rand::rand_distr::Uniform;
 use scirs2_core::ndarray::{Array1, Array2, RandomExt};
-use scirs2_core::random::{ChaCha8Rng, SeedableRng, Uniform};
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::hint::black_box;
@@ -183,7 +185,7 @@ fn bench_linalg_operations(c: &mut Criterion) {
     let sizes = [50, 100, 200, 500];
 
     for &size in &sizes {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = uniform_f64(-1.0, 1.0);
 
         let matrix = Array2::random_using((size, size), dist, &mut rng);
@@ -261,7 +263,7 @@ fn bench_fft_operations(c: &mut Criterion) {
     let sizes = [128, 512, 2048, 8192, 32768];
 
     for &size in &sizes {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = uniform_f64(-1.0, 1.0);
 
         let signal = Array1::random_using(size, dist, &mut rng);
@@ -304,7 +306,7 @@ fn bench_stats_operations(c: &mut Criterion) {
     let sizes = [10_000, 100_000, 1_000_000];
 
     for &size in &sizes {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = uniform_f64(-1.0, 1.0);
 
         let data = Array1::random_using(size, dist, &mut rng);

@@ -36,7 +36,7 @@
 //! ```
 
 use ::ndarray::{Array1, Array2};
-use rand::Rng;
+use rand::{Rng, RngExt};
 use std::f64;
 use thiserror::Error;
 

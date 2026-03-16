@@ -10,7 +10,7 @@ use crate::lombscargle_enhanced::{lombscargle_enhanced, LombScargleConfig, Windo
 use super::types::{RobustnessValidationResult, SingleTestResult};
 use scirs2_core::random::prelude::*;
 use scirs2_core::random::seq::SliceRandom;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::time::Instant;
 
 // Define PI constant for compatibility

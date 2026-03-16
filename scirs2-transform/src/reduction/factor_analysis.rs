@@ -1054,7 +1054,7 @@ mod tests {
             // Random factors
             let mut factors: Array1<f64> = Array1::zeros(n_factors);
             for f in 0..n_factors {
-                factors[f] = scirs2_core::random::Rng::random_range(&mut rng, -2.0..2.0);
+                factors[f] = scirs2_core::random::RngExt::random_range(&mut rng, -2.0..2.0);
             }
 
             for j in 0..n_features {
@@ -1063,7 +1063,7 @@ mod tests {
                     val += true_loadings[[j, f]] * factors[f];
                 }
                 // Add noise
-                val += scirs2_core::random::Rng::random_range(&mut rng, -0.3..0.3);
+                val += scirs2_core::random::RngExt::random_range(&mut rng, -0.3..0.3);
                 data[[i, j]] = val;
             }
         }

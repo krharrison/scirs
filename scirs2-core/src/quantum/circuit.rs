@@ -26,7 +26,7 @@
 //! assert!(bits == vec![0, 0] || bits == vec![1, 1]);
 //! ```
 
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 use super::error::{QuantumError, QuantumResult};
 use super::gates::{

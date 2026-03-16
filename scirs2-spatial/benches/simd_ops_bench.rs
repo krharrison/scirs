@@ -9,13 +9,13 @@ use scirs2_spatial::distance;
 use scirs2_spatial::simd_ops::*;
 
 fn generate_random_points(n_points: usize, n_dims: usize) -> Array2<f64> {
-    use scirs2_core::random::{rng, Rng};
+    use scirs2_core::random::{rng, Rng, RngExt};
     let mut rng = rng();
     Array2::from_shape_fn((n_points, n_dims), |_| rng.random::<f64>())
 }
 
 fn generate_random_point(n_dims: usize) -> Array1<f64> {
-    use scirs2_core::random::{rng, Rng};
+    use scirs2_core::random::{rng, Rng, RngExt};
     let mut rng = rng();
     Array1::from_shape_fn(n_dims, |_| rng.random::<f64>())
 }

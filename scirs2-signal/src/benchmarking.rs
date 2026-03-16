@@ -19,7 +19,7 @@ use crate::simd_memory_optimization::{simd_optimized_convolution, SimdMemoryConf
 use crate::spectral::{periodogram, spectrogram, welch};
 use crate::wavelets::{cwt, morlet};
 use scirs2_core::ndarray::Array1;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::parallel_ops::*;
 use scirs2_core::simd_ops::PlatformCapabilities;
 use statrs::statistics::Statistics;

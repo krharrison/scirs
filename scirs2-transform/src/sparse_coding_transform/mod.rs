@@ -28,7 +28,7 @@
 
 use std::f64::consts::PI;
 
-use scirs2_core::random::{seeded_rng, Distribution, Normal, RngCore, SeedableRng, Uniform};
+use scirs2_core::random::{seeded_rng, Distribution, Normal, Rng, RngExt, SeedableRng, Uniform};
 
 use crate::error::{Result, TransformError};
 

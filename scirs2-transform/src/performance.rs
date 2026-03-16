@@ -5,7 +5,7 @@
 
 use scirs2_core::ndarray::{par_azip, Array1, Array2, ArrayView2, Axis};
 use scirs2_core::parallel_ops::*;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::validation::{check_not_empty, check_positive};
 
 use crate::error::{Result, TransformError};
@@ -1179,7 +1179,7 @@ impl EnhancedPCA {
         let tolerance = 1e-10;
 
         // Start with a random vector
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut rng = scirs2_core::random::rng();
         let mut vector: Array1<f64> =
             Array1::from_shape_fn(n, |_| rng.random_range(0.0..1.0) - 0.5);

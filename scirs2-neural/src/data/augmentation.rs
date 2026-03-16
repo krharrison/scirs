@@ -5,7 +5,7 @@ use scirs2_core::ndarray::{Array, IxDyn, ScalarOperand};
 use scirs2_core::numeric::{Float, NumAssign};
 use scirs2_core::random::rngs::SmallRng;
 use scirs2_core::random::Distribution;
-use scirs2_core::random::{thread_rng, Rng, SeedableRng};
+use scirs2_core::random::{thread_rng, Rng, RngExt, SeedableRng};
 use std::fmt::Debug;
 
 /// Trait for data augmentation

@@ -25,8 +25,8 @@
 //! ```
 
 use crate::error::{IntegrateError, IntegrateResult as Result};
-use scirs2_core::random::Rng;
 use scirs2_core::random::{Distribution, Normal};
+use scirs2_core::random::{Rng, RngExt};
 
 /// Variance reduction technique
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

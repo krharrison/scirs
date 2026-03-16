@@ -1,7 +1,7 @@
 use crate::error::{SignalError, SignalResult};
 use scirs2_core::ndarray::s;
 use scirs2_core::ndarray::{Array1, Array2, Array3};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_linalg::{cholesky, inv};
 use statrs::statistics::Statistics;
 

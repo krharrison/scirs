@@ -835,7 +835,7 @@ fn squared_distance(p1: &ArrayView1<f64>, p2: &ArrayView1<f64>) -> f64 {
 mod tests {
     use super::*;
     use scirs2_core::ndarray::array;
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
 
     #[test]
     fn test_bounding_box_creation() {

@@ -1511,7 +1511,7 @@ impl EnhancedDistributedCoordinator {
         tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
 
         // Simulate varying health metrics
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut rng = scirs2_core::random::rng();
 
         Ok(NodeHealth {

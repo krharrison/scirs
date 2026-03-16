@@ -9,7 +9,7 @@
 use crate::error::NeuralError;
 use scirs2_core::ndarray::Array2;
 use scirs2_core::random::{rngs::StdRng, SeedableRng};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 // ---------------------------------------------------------------------------
 // Configuration

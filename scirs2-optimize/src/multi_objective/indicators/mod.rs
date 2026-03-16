@@ -62,7 +62,7 @@ fn hypervolume_monte_carlo(
     reference_point: &[f64],
     n_samples: usize,
 ) -> f64 {
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut rng = scirs2_core::random::rng();
     let n_objectives = reference_point.len();
 

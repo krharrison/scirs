@@ -2,7 +2,7 @@
 
 use super::*;
 use scirs2_core::ndarray::{arr2, Array2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashSet;
 
 #[test]

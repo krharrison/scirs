@@ -42,7 +42,7 @@ use crate::waveforms::chirp;
 use crate::window::kaiser::kaiser;
 use crate::window::{blackman, hamming, hann, tukey};
 use scirs2_core::ndarray::Array1;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 
 // Import all types and functions from the modular implementation

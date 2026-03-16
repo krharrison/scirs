@@ -657,7 +657,7 @@ impl PotentialFieldPlanner {
         path_points: &mut Vec<Array1<f64>>,
         total_distance: &mut f64,
     ) -> bool {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut rng = scirs2_core::random::rng();
 
         // Try multiple random directions

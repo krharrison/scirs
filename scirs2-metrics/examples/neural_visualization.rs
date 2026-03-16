@@ -19,7 +19,7 @@ use std::collections::HashMap;
 use scirs2_core::ndarray::Array1;
 
 #[cfg(feature = "neural_common")]
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 #[allow(dead_code)]
 fn main() -> Result<(), Box<dyn Error>> {

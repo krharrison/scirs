@@ -10,7 +10,7 @@ use crate::lti::StateSpace;
 use scirs2_core::ndarray::{array, Array1, Array2};
 use scirs2_core::numeric::Complex64;
 use scirs2_core::random::prelude::*;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::validation::{check_finite, checkshape};
 use scirs2_linalg::{eig, eigh, inv, matrix_norm, solve, svd};
 

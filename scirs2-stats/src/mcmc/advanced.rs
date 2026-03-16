@@ -7,7 +7,7 @@ use super::{ProposalDistribution, TargetDistribution};
 use crate::error::{StatsError, StatsResult as Result};
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1, Axis};
 use scirs2_core::validation::*;
-use scirs2_core::Rng;
+use scirs2_core::{Rng, RngExt};
 use statrs::statistics::Statistics;
 use std::sync::Arc;
 

@@ -8,7 +8,7 @@
 
 use crate::error::{SignalError, SignalResult};
 use scirs2_core::numeric::{Float, NumCast};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::validation::{check_finite, check_positive};
 use std::f64::consts::PI;
 use std::fmt::Debug;

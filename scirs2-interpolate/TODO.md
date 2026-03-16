@@ -1,6 +1,6 @@
 # scirs2-interpolate TODO
 
-## v0.3.1 Completed
+## v0.3.2 Completed
 
 ### 1D Interpolation
 - [x] Linear and nearest-neighbor interpolation with boundary handling

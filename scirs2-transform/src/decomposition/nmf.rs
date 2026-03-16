@@ -6,7 +6,7 @@
 
 use scirs2_core::ndarray::{Array2, ArrayBase, Data, Ix2};
 use scirs2_core::numeric::{Float, NumCast};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 use crate::error::{Result, TransformError};
 

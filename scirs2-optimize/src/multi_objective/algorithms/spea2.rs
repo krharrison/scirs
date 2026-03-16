@@ -23,7 +23,7 @@ use crate::multi_objective::mutation::{MutationOperator, PolynomialMutation};
 use crate::multi_objective::solutions::{MultiObjectiveResult, MultiObjectiveSolution, Population};
 use scirs2_core::ndarray::{Array1, ArrayView1};
 use scirs2_core::random::rngs::StdRng;
-use scirs2_core::random::{Rng, SeedableRng};
+use scirs2_core::random::{Rng, RngExt, SeedableRng};
 
 /// SPEA2 optimizer
 pub struct SPEA2 {

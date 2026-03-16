@@ -537,7 +537,7 @@ where
         Random::seed(_seed)
     } else {
         // Use a random _seed
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut temp_rng = scirs2_core::random::thread_rng();
         Random::seed(temp_rng.random())
     };
@@ -1382,7 +1382,7 @@ where
     let mut rng = if let Some(seed) = random_seed {
         Random::seed(seed)
     } else {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut temp = scirs2_core::random::thread_rng();
         Random::seed(temp.random())
     };

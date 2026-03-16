@@ -5,7 +5,7 @@
 
 use crate::error::{Result, TextError};
 use scirs2_core::ndarray::{s, Array1, Array2, Array3, ArrayView1, ArrayView2, Axis};
-use scirs2_core::random::{self, Rng};
+use scirs2_core::random::{self, Rng, RngExt};
 use statrs::statistics::Statistics;
 
 /// Activation functions for neural networks

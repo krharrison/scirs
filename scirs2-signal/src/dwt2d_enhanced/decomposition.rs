@@ -20,7 +20,7 @@ use crate::dwt::{Wavelet, WaveletFilters};
 use crate::error::{SignalError, SignalResult};
 use scirs2_core::ndarray::{s, Array2, ArrayView1, ArrayView2};
 use scirs2_core::parallel_ops::*;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::SimdUnifiedOps;
 use scirs2_core::validation::{check_positive, checkarray_finite};
 use statrs::statistics::Statistics;

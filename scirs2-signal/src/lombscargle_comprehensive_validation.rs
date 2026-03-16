@@ -10,7 +10,7 @@
 use crate::error::SignalResult;
 use crate::lombscargle::{lombscargle, AutoFreqMethod};
 use crate::lti::design::tf;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::time::Instant;
 
 #[allow(unused_imports)]

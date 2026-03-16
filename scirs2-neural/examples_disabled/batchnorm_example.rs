@@ -1,6 +1,6 @@
 use ndarray::{Array, Array4};
 use rand::rngs::SmallRng;
-use rand::Rng;
+use rand::{Rng, RngExt};
 use rand::SeedableRng;
 use scirs2_neural::layers::{BatchNorm, Conv2D, Dense, Layer, PaddingMode};
 

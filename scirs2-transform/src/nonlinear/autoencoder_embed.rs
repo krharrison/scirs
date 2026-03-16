@@ -26,7 +26,7 @@
 //!   Denoising Autoencoders. ICML.
 
 use crate::error::{Result, TransformError};
-use scirs2_core::random::{seeded_rng, Distribution, Normal, RngCore, SeedableRng};
+use scirs2_core::random::{seeded_rng, Distribution, Normal, Rng, RngExt, SeedableRng};
 
 // ============================================================================
 // Layer representation

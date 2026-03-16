@@ -10,7 +10,7 @@ use scirs2_core::ndarray::{s, Array, Array1, Array2, Array4, ArrayView1, Axis};
 use scirs2_core::random::prelude::SliceRandom;
 use scirs2_core::random::rngs::SmallRng;
 use scirs2_core::random::{Distribution, Uniform};
-use scirs2_core::random::{Rng, SeedableRng};
+use scirs2_core::random::{Rng, RngExt, SeedableRng};
 use scirs2_neural::error::Result;
 // use serde::{Deserialize, Serialize};
 use std::f32;

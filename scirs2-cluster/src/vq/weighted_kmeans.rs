@@ -5,7 +5,7 @@
 
 use scirs2_core::ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
 use scirs2_core::numeric::{Float, FromPrimitive};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::fmt::Debug;
 
 use super::{euclidean_distance, kmeans_init, KMeansInit};

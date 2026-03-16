@@ -7,7 +7,7 @@
 
 use crate::error::{SpatialError, SpatialResult};
 use scirs2_core::ndarray::{Array1, Array2, ArrayView2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 // Import quantum concepts
 use super::super::concepts::QuantumState;

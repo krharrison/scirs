@@ -13,7 +13,7 @@
 
 use scirs2_core::ndarray::{Array1, Array2};
 use scirs2_core::random::rngs::StdRng;
-use scirs2_core::random::{Rng, SeedableRng};
+use scirs2_core::random::{Rng, RngExt, SeedableRng};
 
 use crate::error::{OptimizeError, OptimizeResult};
 

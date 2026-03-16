@@ -144,7 +144,7 @@ where
 
     for _iteration in 0..max_iterations {
         // Choose a random node to move
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let node_idx = rng.random_range(0..n);
         let node = &nodes[node_idx];
         let current_community = current_communities[node];

@@ -6,7 +6,7 @@
 
 use scirs2_core::ndarray::{Array1, Array2, ArrayBase, Data, Dimension, Ix2};
 use scirs2_core::numeric::{Float, NumCast};
-use scirs2_core::random::{rngs::StdRng, Rng, SeedableRng};
+use scirs2_core::random::{rngs::StdRng, Rng, RngExt, SeedableRng};
 use std::collections::HashMap;
 use std::ops::{AddAssign, DivAssign};
 

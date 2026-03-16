@@ -116,7 +116,7 @@ pub fn sparse_random(
         return CsrArray::from_triplets(&rows, &cols, &data, (m, n), false);
     }
 
-    use scirs2_core::random::{Rng, SeedableRng};
+    use scirs2_core::random::{Rng, RngExt, SeedableRng};
     let mut rng = match seed {
         Some(s) => scirs2_core::random::StdRng::seed_from_u64(s),
         None => scirs2_core::random::StdRng::seed_from_u64(42),

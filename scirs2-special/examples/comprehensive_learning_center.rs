@@ -23,7 +23,7 @@
 //!
 //! Run with: cargo run --example comprehensive_learningcenter
 
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::io::{self, Write};

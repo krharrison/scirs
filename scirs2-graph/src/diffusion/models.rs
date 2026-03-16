@@ -11,7 +11,7 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 use crate::error::{GraphError, Result};
 

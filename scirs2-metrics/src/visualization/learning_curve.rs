@@ -341,7 +341,7 @@ where
     S1: Data<Elem = T>,
     S2: Data<Elem = T>,
 {
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut rng = scirs2_core::random::rng();
 
     let n_sizes = train_sizes.len();

@@ -105,7 +105,7 @@ mod tests {
     use super::*;
     use crate::dwt::Wavelet;
     use scirs2_core::ndarray::Array2;
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
 
     #[test]
     fn test_advanced_refined_wavelet_packet_2d() {

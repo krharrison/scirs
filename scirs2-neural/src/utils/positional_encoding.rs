@@ -30,7 +30,7 @@
 use crate::error::{NeuralError, Result};
 use scirs2_core::ndarray::{s, Array, Array2, Array3, Axis, IxDyn, Zip};
 use scirs2_core::numeric::{Float, NumAssign};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::f64::consts::PI;
 use std::fmt::Debug;
 

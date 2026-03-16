@@ -12,7 +12,7 @@ use crate::layers::attention::AttentionConfig;
 use crate::layers::Layer;
 use scirs2_core::ndarray::{s, Array, Array2, Array4, ArrayView2, IxDyn, ScalarOperand, Zip};
 use scirs2_core::numeric::{Float, NumAssign};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::fmt::Debug;
 
 /// Configuration for Flash Attention

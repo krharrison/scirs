@@ -35,8 +35,8 @@ use std::fmt;
 
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1};
 use scirs2_core::random::rngs::StdRng;
-use scirs2_core::random::Rng;
 use scirs2_core::random::SeedableRng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_stats::gaussian_process::{GaussianProcessRegressor, SquaredExponential};
 
 use crate::error::OptimizeError;

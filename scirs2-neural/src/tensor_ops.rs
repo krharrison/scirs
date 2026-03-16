@@ -69,8 +69,8 @@ pub fn dropout<F: Float + Debug + ScalarOperand + NumAssign>(
     }
 
     // Use scirs2_core random for dropout mask
-    use scirs2_core::random::{Rng, RngCore, SeedableRng};
-    let mut rng = scirs2_core::random::StdRng::from_os_rng();
+    use scirs2_core::random::RngExt;
+    let mut rng = scirs2_core::random::rng();
 
     let mut output = input.clone();
     let scale = F::one()

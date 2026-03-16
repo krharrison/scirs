@@ -1162,7 +1162,7 @@ impl<F: Float + FromPrimitive + Send + Sync + 'static> GpuKMeans<F> {
         let mut rng = scirs2_core::random::rng();
 
         // Choose first centroid randomly
-        let first_idx = scirs2_core::random::Rng::random_range(&mut rng, 0..n_samples);
+        let first_idx = scirs2_core::random::RngExt::random_range(&mut rng, 0..n_samples);
         for j in 0..n_features {
             centroids[[0, j]] = data[[first_idx, j]];
         }
@@ -1188,7 +1188,7 @@ impl<F: Float + FromPrimitive + Send + Sync + 'static> GpuKMeans<F> {
             let sum_distances: F = min_distances.iter().copied().fold(F::zero(), |a, b| a + b);
             if sum_distances <= F::zero() {
                 // All points are at centroids, pick random
-                let idx = scirs2_core::random::Rng::random_range(&mut rng, 0..n_samples);
+                let idx = scirs2_core::random::RngExt::random_range(&mut rng, 0..n_samples);
                 for j in 0..n_features {
                     centroids[[i, j]] = data[[idx, j]];
                 }
@@ -1196,8 +1196,11 @@ impl<F: Float + FromPrimitive + Send + Sync + 'static> GpuKMeans<F> {
             }
 
             // Sample next centroid
-            let threshold = F::from(scirs2_core::random::Rng::random_range(&mut rng, 0.0..1.0))
-                .unwrap_or(F::zero())
+            let threshold = F::from(scirs2_core::random::RngExt::random_range(
+                &mut rng,
+                0.0..1.0,
+            ))
+            .unwrap_or(F::zero())
                 * sum_distances;
             let mut cumsum = F::zero();
             let mut next_idx = 0;

@@ -4,7 +4,7 @@
 //! interpolation methods and compares performance with sequential methods.
 
 use scirs2_core::ndarray::{Array1, Array2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_interpolate::parallel::ParallelConfig;
 use scirs2_interpolate::voronoi::{make_parallel_sibson_interpolator, make_sibson_interpolator};
 use std::error::Error;

@@ -6,7 +6,7 @@ use crate::error::{FFTError, FFTResult};
 use crate::fft::{fft, ifft};
 use scirs2_core::numeric::Complex64;
 use scirs2_core::numeric::NumCast;
-use scirs2_core::random::{Rng, SeedableRng};
+use scirs2_core::random::{Rng, RngExt, SeedableRng};
 use std::fmt::Debug;
 use std::time::Instant;
 

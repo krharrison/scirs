@@ -14,7 +14,7 @@ use crate::error::{NeuralError, Result};
 use crate::layers::Layer;
 use scirs2_core::ndarray::{Array, Array2, IxDyn, ScalarOperand};
 use scirs2_core::numeric::{Float, NumAssign};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::fmt::Debug;
 use std::marker::PhantomData;
 

@@ -866,7 +866,7 @@ mod tests {
         let clean = create_test_signal(64);
 
         // Add noise
-        use scirs2_core::random::{Rng, SeedableRng, StdRng};
+        use scirs2_core::random::{Rng, RngExt, SeedableRng, StdRng};
         let mut rng = StdRng::seed_from_u64(42);
         let noisy: Vec<f64> = clean
             .iter()

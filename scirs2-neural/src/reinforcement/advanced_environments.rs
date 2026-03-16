@@ -6,7 +6,7 @@
 use crate::error::{NeuralError, Result};
 use crate::reinforcement::environments::{Action, Environment, Info, Observation, Reward};
 use scirs2_core::ndarray::prelude::*;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 /// Multi-agent environment trait
 pub trait MultiAgentEnvironment: Send + Sync {

@@ -8,7 +8,7 @@ use crate::error::{IntegrateError, IntegrateResult as Result};
 use scirs2_core::constants::PI;
 use scirs2_core::ndarray::{Array1, Array2};
 use scirs2_core::numeric::Complex64;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 
 /// Quantum annealing solver for optimization problems

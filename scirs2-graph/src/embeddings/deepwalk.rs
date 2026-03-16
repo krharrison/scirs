@@ -15,7 +15,7 @@ use super::types::{DeepWalkConfig, RandomWalk};
 use crate::base::{DiGraph, EdgeWeight, Graph, Node};
 use crate::error::{GraphError, Result};
 use scirs2_core::random::seq::SliceRandom;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 
 /// Training mode for DeepWalk

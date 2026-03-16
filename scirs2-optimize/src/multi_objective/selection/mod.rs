@@ -4,7 +4,7 @@
 
 use crate::multi_objective::solutions::Solution;
 use scirs2_core::random::seq::SliceRandom;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 /// Trait for selection operators
 pub trait SelectionOperator {

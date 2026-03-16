@@ -38,7 +38,7 @@
 
 use crate::error::{NeuralError, Result};
 use scirs2_core::random::rngs::SmallRng;
-use scirs2_core::random::{Rng, SeedableRng};
+use scirs2_core::random::{Rng, RngExt, SeedableRng};
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Display};
 

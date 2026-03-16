@@ -388,7 +388,7 @@ where
                 let mut bootstrap_sample = Array1::zeros(n);
 
                 for i in 0..n {
-                    use scirs2_core::random::Rng;
+                    use scirs2_core::random::{Rng, RngExt};
                     let idx = rng.random_range(0..n);
                     bootstrap_sample[i] = data_arc[idx];
                 }

@@ -6,7 +6,7 @@
 use crate::error::{SignalError, SignalResult};
 use crate::lombscargle::lombscargle;
 use crate::lombscargle_enhanced::LombScargleConfig;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::f64::consts::PI;
 
 use super::config::{IrregularSamplingResults, MissingDataResults, NoiseRobustnessResults};

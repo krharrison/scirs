@@ -15,7 +15,7 @@ use scirs2_core::ndarray::s;
 // ```
 // use scirs2_core::ndarray::{Array1, Array2};
 // use scirs2_signal::nlm::{nlm_denoise_1d, nlm_denoise_2d, NlmConfig};
-// use scirs2_core::random::Rng;
+// use scirs2_core::random::{Rng, RngExt};
 //
 // // Create a test signal
 // let n = 500;
@@ -38,7 +38,7 @@ use scirs2_core::ndarray::s;
 
 use crate::error::{SignalError, SignalResult};
 use scirs2_core::ndarray::{Array1, Array2, Array3, Axis};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::cmp;
 
 #[allow(unused_imports)]

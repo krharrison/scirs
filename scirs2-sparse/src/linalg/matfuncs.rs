@@ -6,7 +6,7 @@ use crate::linalg::interface::LinearOperator;
 use crate::sparray::SparseArray;
 use scirs2_core::ndarray::{Array1, ArrayView1};
 use scirs2_core::numeric::{Float, NumAssign};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::SparseElement;
 use std::fmt::Debug;
 use std::iter::Sum;

@@ -6,7 +6,7 @@
 
 use crate::random::core::Random;
 use ::ndarray::{Array, Dimension, Ix1, Ix2, IxDyn};
-use rand::Rng;
+use rand::{Rng, RngExt};
 use rand_distr::{Distribution, Exp, Gamma, Normal, Uniform};
 
 /// Trait for optimized random array generation

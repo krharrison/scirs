@@ -521,7 +521,7 @@ impl LeakDetector {
 
         // Apply sampling
         if self.config.samplingrate < 1.0 {
-            use rand::Rng;
+            use rand::RngExt;
             let mut rng = rand::rng();
             if rng.random::<f64>() > self.config.samplingrate {
                 return Ok(());

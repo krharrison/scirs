@@ -1080,7 +1080,7 @@ impl QuantumOptimizer {
         let delta_fitness = new_fitness - currentfitness;
         let quantum_probability = (-delta_fitness / temperature).exp();
 
-        use rand::Rng;
+        use rand::RngExt;
         let mut rng = rand::rng();
         rng.random::<f64>() < quantum_probability
     }

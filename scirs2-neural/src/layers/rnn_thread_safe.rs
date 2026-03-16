@@ -8,7 +8,7 @@ use crate::error::{NeuralError, Result};
 use crate::layers::Layer;
 use scirs2_core::ndarray::{Array, ArrayView, Axis, Ix2, IxDyn, ScalarOperand};
 use scirs2_core::numeric::{Float, NumAssign};
-use scirs2_core::random::{Rng, SeedableRng};
+use scirs2_core::random::{Rng, RngExt, SeedableRng};
 use std::fmt::Debug;
 use std::sync::{Arc, RwLock};
 

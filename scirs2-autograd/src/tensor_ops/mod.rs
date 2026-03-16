@@ -15,7 +15,7 @@ use crate::graph::AsGraph;
 use crate::ndarray_ext::{ArrayRng, NdArray};
 use crate::tensor::{AsTensor, Tensor};
 use crate::Float;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 // Import ultra-optimized SIMD operations from scirs2-core
 use scirs2_core::ndarray::{Array1, ArrayView1, ArrayView2, ArrayViewMut2};

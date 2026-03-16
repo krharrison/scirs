@@ -23,7 +23,8 @@
 pub use crate::random::core::{seeded_rng, thread_rng, Random};
 
 // Essential traits
-pub use crate::random::{DistributionExt, Rng, RngCore, SeedableRng, SliceRandom};
+#[allow(deprecated)]
+pub use crate::random::{DistributionExt, Rng, RngCore, RngExt, SeedableRng, SliceRandom};
 
 // Most common distributions from rand_distr (with compatibility aliases)
 pub use crate::random::rand_distributions::{

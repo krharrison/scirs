@@ -6,7 +6,7 @@
 
 use crate::error::{StatsError, StatsResult};
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1};
-use scirs2_core::random::{rngs::StdRng, Rng, SeedableRng};
+use scirs2_core::random::{rngs::StdRng, Rng, RngExt, SeedableRng};
 use scirs2_core::validation::*;
 
 /// Generate Sobol sequence

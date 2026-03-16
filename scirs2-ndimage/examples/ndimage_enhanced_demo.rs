@@ -74,7 +74,7 @@ fn create_test_dataset() -> Vec<(String, Array2<f64>)> {
 /// Create random test image
 #[allow(dead_code)]
 fn create_randomimage(height: usize, width: usize) -> Array2<f64> {
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut rng = scirs2_core::random::rng();
     Array2::from_shape_fn((height, width), |_| rng.random_range(0.0..1.0))
 }

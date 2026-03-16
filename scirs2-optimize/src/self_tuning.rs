@@ -1181,7 +1181,7 @@ impl BayesianParameterOptimizer {
             for (name, value) in current_params {
                 if name.contains("step_size") || name.contains("learning_rate") {
                     // Add small random perturbation for exploration
-                    use scirs2_core::random::{rng, Rng};
+                    use scirs2_core::random::{rng, Rng, RngExt};
                     let mut rng = scirs2_core::random::rng();
                     let perturbation_factor = 1.0 + (rng.random_range(-0.1..=0.1));
 

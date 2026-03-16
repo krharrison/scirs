@@ -6,7 +6,7 @@
 use super::types::*;
 use crate::error::SignalResult;
 use scirs2_core::ndarray::Array1;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 
 /// Comprehensive statistical properties validation

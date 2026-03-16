@@ -23,7 +23,7 @@
 use crate::error::{Result, TransformError};
 use scirs2_core::ndarray::{Array1, Array2, ArrayBase, Data, Ix2};
 use scirs2_core::numeric::{Float, NumCast};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 // ─── constants ────────────────────────────────────────────────────────────────
 const EPS: f64 = 1e-10;

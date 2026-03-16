@@ -4,7 +4,7 @@
 //! including quantum annealing, quantum state management, and quantum tunneling.
 
 use crate::error::{IoError, Result};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 
 use super::config::QuantumOptimizationConfig;

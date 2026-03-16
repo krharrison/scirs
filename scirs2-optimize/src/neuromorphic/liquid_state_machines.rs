@@ -4,7 +4,7 @@
 
 use crate::error::{OptimizeError, OptimizeResult};
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 /// Liquid State Machine for optimization
 #[derive(Debug, Clone)]

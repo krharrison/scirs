@@ -18,7 +18,7 @@ use std::f64::consts::PI;
 use std::fmt::Write as FmtWrite;
 use std::hash::Hash;
 
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 use crate::base::{EdgeWeight, Graph, Node};
 use crate::error::{GraphError, Result};

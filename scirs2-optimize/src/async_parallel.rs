@@ -7,7 +7,7 @@
 use crate::error::OptimizeError;
 use crate::unconstrained::OptimizeResult;
 use scirs2_core::ndarray::{Array1, Array2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::cmp::min;
 use std::future::Future;
 use std::sync::Arc;
@@ -674,7 +674,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_async_optimization_with_varying_times() {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
 
         // Function with varying evaluation times
         let objective = |x: Array1<f64>| async move {

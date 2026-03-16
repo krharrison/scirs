@@ -6,6 +6,7 @@
 
 use crate::error::{ScirsError, ScirsResult};
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1};
+use scirs2_core::random::RngExt;
 use scirs2_core::Rng;
 use statrs::statistics::Statistics;
 

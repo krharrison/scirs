@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 use std::f64::consts::PI;
 
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 use crate::base::{EdgeWeight, Graph, Node};
 use crate::error::Result;

@@ -10,7 +10,7 @@ use crate::layers::conv::PaddingMode;
 use crate::layers::{BatchNorm, Conv2D, Dense, Dropout, Layer};
 use scirs2_core::ndarray::{Array, IxDyn, ScalarOperand};
 use scirs2_core::numeric::{Float, NumAssign};
-use scirs2_core::random::{rngs::SmallRng, SeedableRng};
+use scirs2_core::random::{rngs::SmallRng, RngExt, SeedableRng};
 use std::fmt::Debug;
 
 /// Swish activation function used in EfficientNet

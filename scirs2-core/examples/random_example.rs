@@ -2,8 +2,8 @@ use scirs2_core::essentials::{Normal, Uniform};
 use scirs2_core::ndarray_ext::IxDyn;
 use scirs2_core::random::prelude::Bernoulli;
 use scirs2_core::random::seq::SliceRandom;
-use scirs2_core::random::Rng;
 use scirs2_core::random::{get_rng, sampling, CoreRandom, DistributionExt, Random};
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::{Distribution, Exp, LogNormal};
 
 #[allow(dead_code)]

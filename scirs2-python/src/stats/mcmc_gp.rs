@@ -211,8 +211,7 @@ pub fn nuts_sample_py(
     let fn_obj = log_prob_grad_fn.clone().unbind();
 
     let log_prob_grad = move |theta: &[f64]| -> (f64, Vec<f64>) {
-        #[allow(deprecated)]
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let theta_list: Vec<f64> = theta.to_vec();
             let result = fn_obj
                 .bind(py)
@@ -298,8 +297,7 @@ pub fn metropolis_sample_py(
 
     let target = CustomTarget::new(dim, move |x: &Array1<f64>| -> f64 {
         let x_vec: Vec<f64> = x.to_vec();
-        #[allow(deprecated)]
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             fn_obj
                 .bind(py)
                 .call1((x_vec,))

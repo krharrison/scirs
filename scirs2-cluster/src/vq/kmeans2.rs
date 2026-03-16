@@ -2,7 +2,7 @@
 
 use scirs2_core::ndarray::{s, Array1, Array2, ArrayView2};
 use scirs2_core::numeric::{Float, FromPrimitive};
-use scirs2_core::random::{rngs::StdRng, Rng, RngCore, SeedableRng};
+use scirs2_core::random::{rngs::StdRng, Rng, RngExt, SeedableRng};
 use scirs2_core::random::{Distribution, Normal};
 use std::fmt::Debug;
 use std::str::FromStr;
@@ -347,7 +347,7 @@ where
     // Generate random centroids from Gaussian distribution
     let mut centroids = Array2::<F>::zeros((k, n_features));
 
-    let mut rng: Box<dyn RngCore> = if let Some(_seed) = randomseed {
+    let mut rng: Box<dyn Rng> = if let Some(_seed) = randomseed {
         Box::new(StdRng::seed_from_u64(_seed))
     } else {
         Box::new(scirs2_core::random::rng())
@@ -381,7 +381,7 @@ where
     let n_samples = data.shape()[0];
     let n_features = data.shape()[1];
 
-    let mut rng: Box<dyn RngCore> = if let Some(_seed) = randomseed {
+    let mut rng: Box<dyn Rng> = if let Some(_seed) = randomseed {
         Box::new(StdRng::seed_from_u64(_seed))
     } else {
         Box::new(scirs2_core::random::rng())
@@ -417,7 +417,7 @@ where
     let n_samples = data.shape()[0];
     let n_features = data.shape()[1];
 
-    let mut rng: Box<dyn RngCore> = if let Some(_seed) = randomseed {
+    let mut rng: Box<dyn Rng> = if let Some(_seed) = randomseed {
         Box::new(StdRng::seed_from_u64(_seed))
     } else {
         Box::new(scirs2_core::random::rng())

@@ -44,7 +44,7 @@
 
 use scirs2_core::ndarray::{Array1, Array2};
 use scirs2_core::numeric::{Float, FromPrimitive, NumAssign, One, Zero};
-use scirs2_core::random::{self, ChaCha8Rng, Rng, SeedableRng};
+use scirs2_core::random::{self, ChaCha8Rng, Rng, RngExt, SeedableRng};
 use std::iter::Sum;
 
 use crate::decomposition::qr;

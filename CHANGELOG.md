@@ -5,6 +5,15 @@ All notable changes to the SciRS2 project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2026-03-17
+
+### Changed
+- Upgraded pyo3 to 0.28.2
+
+### Fixed
+- **scirs2-python**: Replaced deprecated `Python::with_gil` with `Python::attach` for pyo3 0.28.2 compatibility (optimize.rs, integrate.rs, optimize_ext.rs, stats/mcmc_gp.rs)
+- **scirs2-python**: Added `from_py_object` attribute to `#[pyclass]` on `PyTimeSeries` in series.rs to resolve pyo3 deprecation warning
+
 ## [0.3.1] - 2026-03-09
 
 ### Bug Fixes

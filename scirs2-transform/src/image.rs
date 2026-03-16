@@ -76,7 +76,7 @@ impl PatchExtractor {
         } else {
             // Random patch selection
             use scirs2_core::random::rngs::StdRng;
-            use scirs2_core::random::{Rng, SeedableRng};
+            use scirs2_core::random::{Rng, RngExt, SeedableRng};
 
             let mut rng = if let Some(seed) = self.random_state {
                 StdRng::seed_from_u64(seed)

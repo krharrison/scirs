@@ -8,7 +8,7 @@ use crate::layers::{AttentionConfig, Layer, LayerNorm, MultiHeadAttention, SelfA
 use crate::transformer::encoder::FeedForward;
 use scirs2_core::ndarray::{Array, IxDyn, ScalarOperand};
 use scirs2_core::numeric::{Float, NumAssign};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::SimdUnifiedOps;
 use std::fmt::Debug;
 use std::sync::{Arc, RwLock};

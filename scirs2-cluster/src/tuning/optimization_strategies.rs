@@ -4,7 +4,7 @@
 //! grid search, random search, Bayesian optimization, and evolutionary approaches.
 
 use scirs2_core::ndarray::Array2;
-use scirs2_core::random::{rng, Rng, SeedableRng};
+use scirs2_core::random::{rng, Rng, RngExt, SeedableRng};
 use std::collections::HashMap;
 
 use crate::error::{ClusteringError, Result};

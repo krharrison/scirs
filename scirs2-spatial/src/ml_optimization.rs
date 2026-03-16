@@ -57,7 +57,7 @@
 
 use crate::error::{SpatialError, SpatialResult};
 use scirs2_core::ndarray::{Array1, Array2, ArrayView2, Axis};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use statrs::statistics::Statistics;
 use std::collections::{HashMap, VecDeque};
 use std::f64::consts::PI;

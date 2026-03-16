@@ -6,7 +6,7 @@
 use crate::error::{NeuralError, Result};
 use scirs2_core::ndarray::{s, Array, Array2, ArrayView2, Axis, IxDyn};
 use scirs2_core::numeric::{Float, NumAssign};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::fmt::Debug;
 use std::marker::PhantomData;
 

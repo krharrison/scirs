@@ -13,7 +13,7 @@ use crate::error::{SignalError, SignalResult};
 use crate::lombscargle::lombscargle;
 use crate::lombscargle_enhanced::{lombscargle_enhanced, LombScargleConfig};
 use scirs2_core::numeric::Float;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::validation::{check_finite, check_positive};
 use std::time::Instant;
 

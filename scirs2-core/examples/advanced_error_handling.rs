@@ -396,7 +396,7 @@ fn scientific_computing_scenario() -> CoreResult<()> {
 #[allow(dead_code)]
 fn simulate_iterative_solver(matrix_size: usize, max_iterations: usize) -> CoreResult<String> {
     // Simulate different failure modes
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut rng = scirs2_core::random::rng();
     let failure_mode = rng.random_range(0..4);
 

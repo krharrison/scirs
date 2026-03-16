@@ -8,7 +8,7 @@ use crate::error::{SignalError, SignalResult};
 use crate::lombscargle::lombscargle;
 use super::types::{RealWorldValidationResult, AdvancedStatisticalResult, ValidationResult, StatisticalValidationResult, PerformanceValidationResult, RobustnessValidationResult};
 use scirs2_core::random::prelude::*;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::time::Instant;
 
 /// Validate real-world scenarios

@@ -7,7 +7,7 @@ use super::types::*;
 use crate::error::SignalResult;
 use crate::lombscargle::{lombscargle, AutoFreqMethod};
 use scirs2_core::ndarray::Array1;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::f64::consts::PI;
 
 /// Validate statistical properties

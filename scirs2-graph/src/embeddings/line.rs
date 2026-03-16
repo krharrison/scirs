@@ -11,7 +11,7 @@
 use super::core::{Embedding, EmbeddingModel};
 use crate::base::{Edge, EdgeWeight, Graph, Node};
 use crate::error::{GraphError, Result};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::{HashMap, HashSet};
 
 /// Proximity order for LINE algorithm

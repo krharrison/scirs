@@ -760,7 +760,7 @@ mod tests {
         let clean = create_test_image(32, 32);
 
         // Add noise
-        use scirs2_core::random::{Rng, SeedableRng, StdRng};
+        use scirs2_core::random::{Rng, RngExt, SeedableRng, StdRng};
         let mut rng = StdRng::seed_from_u64(42);
         let noisy = Array2::from_shape_fn(clean.dim(), |(i, j)| {
             clean[[i, j]] + 0.1 * (rng.random::<f64>() * 2.0 - 1.0)

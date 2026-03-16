@@ -14,7 +14,7 @@
 use crate::error::{SignalError, SignalResult};
 use scirs2_core::ndarray::Array1;
 use scirs2_core::numeric::Complex64;
-use scirs2_core::Rng;
+use scirs2_core::{Rng, RngExt};
 use std::f64::consts::PI;
 
 // ============================================================================

@@ -4,7 +4,7 @@
 //! to select optimal quantization parameters for various data distributions.
 
 use scirs2_core::ndarray::Array2;
-use scirs2_core::random::{rng, Rng};
+use scirs2_core::random::{rng, Rng, RngExt};
 use scirs2_core::random::{Distribution, Normal, Uniform};
 use scirs2_linalg::quantization::calibration::{
     calibrate_matrix, CalibrationConfig, CalibrationMethod,

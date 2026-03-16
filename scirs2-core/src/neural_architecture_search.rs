@@ -16,7 +16,7 @@
 
 use crate::error::CoreResult;
 use crate::quantum_optimization::QuantumOptimizer;
-use rand::{Rng, SeedableRng};
+use rand::{Rng, RngExt, SeedableRng};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};

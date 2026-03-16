@@ -6,7 +6,7 @@
 use crate::analysis::types::*;
 use crate::error::{IntegrateError, IntegrateResult};
 use scirs2_core::ndarray::{Array1, Array2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 
 /// Neural network for bifurcation classification and prediction

@@ -14,8 +14,8 @@
 
 use crate::error::{CoreError, CoreResult, ErrorContext};
 use rand::seq::SliceRandom;
-use rand::Rng;
 use rand::SeedableRng;
+use rand::{Rng, RngExt};
 use rand_chacha::ChaCha8Rng;
 use std::collections::HashMap;
 use std::hash::Hash;

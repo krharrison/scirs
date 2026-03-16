@@ -16,7 +16,7 @@ use crate::result::OptimizeResults;
 use scirs2_core::ndarray::{Array1, Array2, Array3, ArrayView1};
 // use scirs2_core::error::CoreResult; // Unused import
 // use scirs2_core::simd_ops::SimdUnifiedOps; // Unused import
-use scirs2_core::random::{rng, Rng};
+use scirs2_core::random::{rng, Rng, RngExt};
 use std::collections::{HashMap, VecDeque};
 
 /// Advanced Neural Network with Meta-Learning Capabilities

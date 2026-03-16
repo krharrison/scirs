@@ -232,8 +232,8 @@ pub use crate::random::{
     random,       // Convenient random value generation: let x: f64 = random();
     thread_rng,   // Thread-local RNG
     Distribution, // Distribution trait
-    Rng,          // Random number generator trait
-    RngCore,      // Core RNG operations
+    Rng,          // Random number generator trait (base trait in rand 0.10)
+    RngExt,       // Extension trait for random(), random_range(), sample(), etc.
     SeedableRng,  // Seedable RNG trait for reproducibility
 };
 

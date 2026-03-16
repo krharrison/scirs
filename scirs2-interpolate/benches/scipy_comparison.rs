@@ -1,4 +1,4 @@
-#![allow(deprecated)] // TODO: Update Python::with_gil to Python::attach when PyO3 API stabilizes
+// PyO3 0.28: Python::with_gil replaced by Python::attach
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use scirs2_core::essentials::Uniform;
@@ -120,7 +120,7 @@ fn bench_linear_1d_comparison(c: &mut Criterion) {
         #[cfg(feature = "scipy-comparison")]
         {
             group.bench_with_input(BenchmarkId::new("scipy", n_points), &n_points, |b, _| {
-                pyo3::Python::with_gil(|py| {
+                pyo3::Python::attach(|py| {
                     let scipy_interp = py.import("scipy.interpolate").expect("Operation failed");
                     let numpy = py.import("numpy").expect("Operation failed");
 
@@ -188,7 +188,7 @@ fn bench_cubic_spline_comparison(c: &mut Criterion) {
         // Benchmark SciPy equivalent
         #[cfg(feature = "scipy-comparison")]
         {
-            pyo3::Python::with_gil(|py| {
+            pyo3::Python::attach(|py| {
                 let scipy_interp = py.import("scipy.interpolate").expect("Operation failed");
                 let numpy = py.import("numpy").expect("Operation failed");
 
@@ -282,7 +282,7 @@ fn bench_rbf_2d_comparison(c: &mut Criterion) {
             // Benchmark SciPy equivalent
             #[cfg(feature = "scipy-comparison")]
             {
-                pyo3::Python::with_gil(|py| {
+                pyo3::Python::attach(|py| {
                     let scipy_interp = py.import("scipy.interpolate").expect("Operation failed");
                     let numpy = py.import("numpy").expect("Operation failed");
 

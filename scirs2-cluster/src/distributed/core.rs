@@ -380,7 +380,7 @@ impl<F: Float + FromPrimitive + Debug + Send + Sync + 'static> DistributedKMeans
         let data_indices: Vec<usize> = (0..data.nrows()).collect();
         let selected_indices: Vec<_> = data_indices
             .as_slice()
-            .choose_multiple(&mut rng, self.k)
+            .sample(&mut rng, self.k)
             .cloned()
             .collect();
 
@@ -394,7 +394,7 @@ impl<F: Float + FromPrimitive + Debug + Send + Sync + 'static> DistributedKMeans
 
     /// K-means++ centroid initialization
     fn kmeans_plus_plus_initialization(&self, data: ArrayView2<F>) -> Result<Array2<F>> {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
 
         let mut rng = scirs2_core::random::rng();
         let mut centroids = Array2::zeros((self.k, data.ncols()));

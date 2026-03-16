@@ -8,7 +8,7 @@ use crate::error::OptimizeError;
 use crate::unconstrained::{minimize, Bounds, Method, OptimizeResult, Options};
 use scirs2_core::ndarray::{Array1, ArrayView1};
 use scirs2_core::random::rngs::StdRng;
-use scirs2_core::random::{Rng, SeedableRng};
+use scirs2_core::random::{Rng, RngExt, SeedableRng};
 
 /// Enforce bounds using reflection method for better exploration
 #[allow(dead_code)]

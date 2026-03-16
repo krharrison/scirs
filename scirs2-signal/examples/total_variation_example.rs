@@ -1,5 +1,5 @@
 use scirs2_core::ndarray::{Array1, Array2, Array3};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::fs::File;
 use std::io::Write;
 

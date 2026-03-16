@@ -6,7 +6,7 @@
 
 use crate::random::core::Random;
 use rand::rngs::StdRng;
-use rand::{Rng, SeedableRng};
+use rand::{Rng, RngExt, SeedableRng};
 use rand_distr::{Distribution, Uniform};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};

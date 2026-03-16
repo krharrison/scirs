@@ -8,7 +8,7 @@ use crate::lombscargle_enhanced::{LombScargleConfig, WindowType};
 use crate::window::{blackman, hamming, hann};
 use scirs2_core::ndarray::ArrayView1;
 use scirs2_core::numeric::{Float, NumCast};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::parallel_ops::*;
 use scirs2_core::simd_ops::{PlatformCapabilities, SimdUnifiedOps};
 use std::fmt::Debug;

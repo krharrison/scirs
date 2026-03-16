@@ -14,7 +14,7 @@
 
 use crate::base::Graph;
 use crate::error::Result;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // biased_random_walk

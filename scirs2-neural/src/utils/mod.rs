@@ -7,7 +7,7 @@
 use crate::error::{NeuralError, Result};
 use scirs2_core::ndarray::{Array, Dimension};
 use scirs2_core::numeric::{Float, NumAssign};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::fmt::Debug;
 /// Terminal color utilities for visualization
 pub mod colors;

@@ -7,7 +7,7 @@ use crate::error::{StatsError, StatsResult};
 use scirs2_core::ndarray::{Array1, ArrayView1};
 use scirs2_core::numeric::{Float, NumCast};
 use scirs2_core::random::uniform::SampleUniform;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::{AutoOptimizer, SimdUnifiedOps};
 
 /// SIMD-optimized Box-Muller transform for normal distribution sampling
@@ -55,7 +55,7 @@ where
 
     let mut rng = {
         let s = seed.unwrap_or_else(|| {
-            use scirs2_core::random::Rng;
+            use scirs2_core::random::{Rng, RngExt};
             scirs2_core::random::thread_rng().random()
         });
         scirs2_core::random::seeded_rng(s)
@@ -159,7 +159,7 @@ where
 {
     let mut rng = {
         let s = seed.unwrap_or_else(|| {
-            use scirs2_core::random::Rng;
+            use scirs2_core::random::{Rng, RngExt};
             scirs2_core::random::thread_rng().random()
         });
         scirs2_core::random::seeded_rng(s)
@@ -200,7 +200,7 @@ where
 
     let mut rng = {
         let s = seed.unwrap_or_else(|| {
-            use scirs2_core::random::Rng;
+            use scirs2_core::random::{Rng, RngExt};
             scirs2_core::random::thread_rng().random()
         });
         scirs2_core::random::seeded_rng(s)
@@ -261,7 +261,7 @@ where
     let n_data = data.len();
     let mut rng = {
         let s = seed.unwrap_or_else(|| {
-            use scirs2_core::random::Rng;
+            use scirs2_core::random::{Rng, RngExt};
             scirs2_core::random::thread_rng().random()
         });
         scirs2_core::random::seeded_rng(s)

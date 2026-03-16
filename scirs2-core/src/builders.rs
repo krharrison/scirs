@@ -216,7 +216,7 @@ where
         let mut rng = ChaCha8Rng::seed_from_u64(seed);
         Array2::from_shape_fn((rows, cols), |_| {
             // Generate a uniform f64 in [0, 1) and cast to T
-            use rand::Rng;
+            use rand::RngExt;
             let v: f64 = rng.random();
             T::from(v).unwrap_or_else(T::zero)
         })
@@ -433,7 +433,7 @@ where
 
         let mut rng = ChaCha8Rng::seed_from_u64(seed);
         Array1::from_shape_fn(n, |_| {
-            use rand::Rng;
+            use rand::RngExt;
             let v: f64 = rng.random();
             T::from(v).unwrap_or_else(T::zero)
         })

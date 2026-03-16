@@ -1,14 +1,14 @@
 # scirs2 Meta-Crate TODO
 
-## Status: v0.3.1 Released (March 9, 2026)
+## Status: v0.3.2 Released (March 17, 2026)
 
 ## Purpose
 
-The `scirs2` meta-crate is the all-in-one convenience entry-point for the SciRS2 ecosystem. It re-exports all sub-crates via Cargo feature flags, exposing them as unified top-level modules. Users who want a single dependency add `scirs2 = "0.3.1"` instead of listing each sub-crate individually.
+The `scirs2` meta-crate is the all-in-one convenience entry-point for the SciRS2 ecosystem. It re-exports all sub-crates via Cargo feature flags, exposing them as unified top-level modules. Users who want a single dependency add `scirs2 = "0.3.2"` instead of listing each sub-crate individually.
 
 ---
 
-## v0.3.1 Completed
+## v0.3.2 Completed
 
 - [x] Feature-gated re-exports for all 23 sub-crates
 - [x] `standard`, `ai`, `experimental`, `full` feature groups

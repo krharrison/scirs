@@ -1064,7 +1064,7 @@ impl TracingSampler for ProbabilitySampler {
         } else if self.samplingrate <= 0.0 {
             false
         } else {
-            use rand::Rng;
+            use rand::RngExt;
             let mut rng = rand::rng();
             rng.random::<f64>() < self.samplingrate
         }
@@ -1141,7 +1141,7 @@ impl TracingSampler for AdaptiveSampler {
         } else if current_rate <= 0.0 {
             false
         } else {
-            use rand::Rng;
+            use rand::RngExt;
             let mut rng = rand::rng();
             if rng.random::<f64>() < current_rate {
                 self.sample_count.fetch_add(1, Ordering::Relaxed);

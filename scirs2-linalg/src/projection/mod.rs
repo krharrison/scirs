@@ -18,7 +18,7 @@
 
 use scirs2_core::ndarray::{Array2, ArrayView2, ScalarOperand};
 use scirs2_core::numeric::{Float, NumAssign, Zero};
-use scirs2_core::random::{self, Rng};
+use scirs2_core::random::{self, Rng, RngExt};
 use std::iter::Sum;
 
 use crate::error::{LinalgError, LinalgResult};

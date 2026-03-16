@@ -17,7 +17,7 @@ use crate::parametric::{estimate_ar, ARMethod};
 use crate::spectral::welch;
 use scirs2_core::ndarray::Array1;
 use scirs2_core::numeric::Float;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::PlatformCapabilities;
 use std::collections::HashMap;
 use std::time::Instant;

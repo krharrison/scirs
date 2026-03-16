@@ -8,7 +8,7 @@ use crate::parametric::{ar_spectrum, estimate_ar, ARMethod};
 use crate::parametric_arma::{estimate_arma, ArmaMethod, ArmaModel};
 use scirs2_core::ndarray::Array1;
 use scirs2_core::numeric::Complex64;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::time::Instant;
 
 #[allow(unused_imports)]

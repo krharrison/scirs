@@ -780,7 +780,7 @@ impl<F: Float + SimdUnifiedOps + Send + Sync + std::iter::Sum> QuantumMetricsCom
     }
 
     fn initialize_vqe_parameters(&self, matrixsize: usize) -> Result<Vec<f64>> {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut rng = scirs2_core::random::rng();
         let num_parameters = self.config.vqe_parameters.ansatz_depth * matrixsize;
 
@@ -972,7 +972,7 @@ impl<F: Float + SimdUnifiedOps + Send + Sync + std::iter::Sum> QuantumMetricsCom
     }
 
     fn measure_qaoa_solution(&self, state: &[Complex<f64>], numvariables: usize) -> Result<Vec<F>> {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut rng = scirs2_core::random::rng();
 
         // Compute probability distribution
@@ -980,7 +980,7 @@ impl<F: Float + SimdUnifiedOps + Send + Sync + std::iter::Sum> QuantumMetricsCom
 
         // Sample from probability distribution
         let random_value: f64 = rng.random();
-        let mut cumulative_prob = 0.0;
+        let mut cumulative_prob: f64 = 0.0;
         let mut measured_state = 0;
 
         for (i, &prob) in probabilities.iter().enumerate() {

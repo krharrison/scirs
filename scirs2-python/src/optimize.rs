@@ -2,7 +2,8 @@
 //!
 //! Provides optimization algorithms similar to scipy.optimize
 
-// Allow deprecated with_gil for callback patterns where GIL must be acquired from Rust
+// Callbacks acquire the GIL via Python::attach (pyo3 0.28+) since they are invoked
+// from Rust optimization routines where the caller's Python<'_> token is not in scope.
 
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
@@ -43,8 +44,7 @@ fn minimize_scalar_py(
 
     let fun_clone = fun.clone().unbind();
     let f = move |x: f64| -> f64 {
-        #[allow(deprecated)]
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let result = fun_clone
                 .bind(py)
                 .call1((x,))
@@ -107,8 +107,7 @@ fn brentq_py(
 ) -> PyResult<Py<PyAny>> {
     let fun_clone = fun.clone().unbind();
     let f = |x: f64| -> f64 {
-        #[allow(deprecated)]
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let result = fun_clone
                 .bind(py)
                 .call1((x,))
@@ -308,8 +307,7 @@ fn minimize_py(
     let fun_arc = std::sync::Arc::new(fun.clone().unbind());
     let f = move |x: &ArrayView1<f64>| -> f64 {
         let fun_clone = fun_arc.clone();
-        #[allow(deprecated)]
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let x_vec: Vec<f64> = x.to_vec();
             let result = fun_clone
                 .bind(py)
@@ -365,8 +363,7 @@ fn differential_evolution_py(
     let fun_arc = std::sync::Arc::new(fun.clone().unbind());
     let f = move |x: &ArrayView1<f64>| -> f64 {
         let fun_clone = fun_arc.clone();
-        #[allow(deprecated)]
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let x_vec: Vec<f64> = x.to_vec();
             let result = fun_clone
                 .bind(py)
@@ -482,8 +479,7 @@ fn curve_fit_py(
         let xdata_ref = &xdata_clone;
         let ydata_ref = &ydata_clone;
 
-        #[allow(deprecated)]
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let mut residuals = Vec::with_capacity(n_data);
 
             for i in 0..n_data {

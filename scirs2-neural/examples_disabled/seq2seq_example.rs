@@ -1,5 +1,5 @@
 use ndarray::Array;
-use rand::Rng;
+use rand::{Rng, RngExt};
 use scirs2_neural::error::Result;
 use scirs2_neural::{
     models::architectures::{RNNCellType, Seq2Seq, Seq2SeqConfig},

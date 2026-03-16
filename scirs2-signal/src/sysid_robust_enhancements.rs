@@ -11,7 +11,7 @@ use crate::lti::StateSpace;
 use crate::sysid_enhanced::{EnhancedSysIdConfig, ModelValidationMetrics, SystemModel};
 use scirs2_core::ndarray::{Array1, Array2};
 use scirs2_core::numeric::Complex64;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::parallel_ops::*;
 use scirs2_core::validation::{check_finite, checkshape};
 use scirs2_core::ndarray::ArrayStatCompat;

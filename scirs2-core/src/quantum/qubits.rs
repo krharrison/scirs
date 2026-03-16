@@ -37,7 +37,7 @@
 //! ```
 
 use num_complex::Complex;
-use rand::Rng;
+use rand::{Rng, RngExt};
 use std::f64::consts::PI;
 
 use super::error::{QuantumError, QuantumResult};

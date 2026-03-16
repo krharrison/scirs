@@ -9,7 +9,7 @@ use crate::unconstrained::OptimizeResult;
 use scirs2_core::ndarray::{Array1, ArrayView1};
 use scirs2_core::random::prelude::SliceRandom;
 use scirs2_core::random::rngs::StdRng;
-use scirs2_core::random::{rng, Rng, SeedableRng};
+use scirs2_core::random::{rng, Rng, RngExt, SeedableRng};
 
 /// Options for Simulated Annealing
 #[derive(Debug, Clone)]

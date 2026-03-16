@@ -7,7 +7,7 @@ use crate::error::SparseResult;
 use crate::neural_adaptive_sparse::{NeuralAdaptiveConfig, NeuralAdaptiveSparseProcessor};
 use crate::quantum_inspired_sparse::{QuantumSparseConfig, QuantumSparseProcessor};
 use scirs2_core::numeric::{Float, NumAssign, NumCast, SparseElement};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::SimdUnifiedOps;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};

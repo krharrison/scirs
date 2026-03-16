@@ -165,7 +165,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Generate random sampling points between 0 and 2π
     let x: Vec<f64> = (0..n_nonuniform)
-        .map(|_| 2.0 * PI * scirs2_core::random::Rng::random_range(&mut rng, 0.0..1.0))
+        .map(|_| 2.0 * PI * scirs2_core::random::RngExt::random_range(&mut rng, 0.0..1.0))
         .collect();
 
     // Generate a signal at these non-uniform points: sum of two sine waves

@@ -9,7 +9,7 @@
 use scirs2_core::ndarray::{s, Array1, Array2, ArrayView1, ArrayViewMut1};
 #[cfg(feature = "parallel")]
 use scirs2_core::parallel_ops::*;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::SimdUnifiedOps;
 
 use crate::base::{DiGraph, EdgeWeight, Graph, Node};

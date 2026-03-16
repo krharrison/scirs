@@ -33,7 +33,7 @@ pub mod common {
     use scirs2_core::ndarray::{Array1, Array2};
     use scirs2_core::random::rngs::SmallRng;
     use scirs2_core::random::Uniform;
-    use scirs2_core::random::{Rng, SeedableRng};
+    use scirs2_core::random::{Rng, RngExt, SeedableRng};
 
     /// Standard seed for reproducible benchmarks
     pub const BENCHMARK_SEED: u64 = 42;

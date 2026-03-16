@@ -10,7 +10,7 @@ use super::{
 use crate::error::{OptimizeError, OptimizeResult};
 use crate::result::OptimizeResults;
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1};
-use scirs2_core::random::{rng, Rng};
+use scirs2_core::random::{rng, Rng, RngExt};
 // use std::collections::VecDeque; // Unused import
 
 /// Actor network for policy learning

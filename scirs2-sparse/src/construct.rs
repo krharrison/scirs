@@ -10,7 +10,7 @@
 use scirs2_core::ndarray::Array1;
 use scirs2_core::numeric::{Float, SparseElement};
 use scirs2_core::random::seq::SliceRandom;
-use scirs2_core::random::{Rng, SeedableRng};
+use scirs2_core::random::{Rng, RngExt, SeedableRng};
 use std::fmt::Debug;
 use std::ops::{Add, Div, Mul, Sub};
 

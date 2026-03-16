@@ -97,7 +97,7 @@ impl SparseSign {
         let mut rng = {
             let s = seed.unwrap_or_else(|| {
                 let mut tr = scirs2_core::random::rng();
-                scirs2_core::random::Rng::random::<u64>(&mut tr)
+                scirs2_core::random::RngExt::random::<u64>(&mut tr)
             });
             scirs2_core::random::seeded_rng(s)
         };
@@ -277,7 +277,7 @@ impl SubsampledRandomizedHadamard {
         let mut rng = {
             let s = seed.unwrap_or_else(|| {
                 let mut tr = scirs2_core::random::rng();
-                scirs2_core::random::Rng::random::<u64>(&mut tr)
+                scirs2_core::random::RngExt::random::<u64>(&mut tr)
             });
             scirs2_core::random::seeded_rng(s)
         };
@@ -1175,7 +1175,7 @@ fn gaussian_random_matrix(
     let mut rng = {
         let seed_val = seed.unwrap_or_else(|| {
             let mut tr = scirs2_core::random::rng();
-            scirs2_core::random::Rng::random::<u64>(&mut tr)
+            scirs2_core::random::RngExt::random::<u64>(&mut tr)
         });
         scirs2_core::random::seeded_rng(seed_val)
     };

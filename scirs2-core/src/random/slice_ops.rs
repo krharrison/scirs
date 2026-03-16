@@ -6,7 +6,7 @@
 
 use crate::random::core::{thread_rng, Random};
 use rand::seq::SliceRandom;
-use rand::Rng;
+use rand::{Rng, RngExt};
 use rand_distr::Uniform;
 
 /// Re-export SliceRandom trait from rand for enhanced compatibility

@@ -1,7 +1,7 @@
 use scirs2_core::array::{mask_array, MaskedArray};
 use scirs2_core::memory_efficient::{create_disk_array, ChunkingStrategy};
 use scirs2_core::ndarray_ext::Array2;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 // Removed unused statrs import
 use std::time::Instant;
 use tempfile::tempdir;

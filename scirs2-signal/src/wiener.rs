@@ -16,7 +16,7 @@ use scirs2_core::ndarray::s;
 // use scirs2_core::ndarray::Array1;
 // use scirs2_signal::wiener::wiener_filter;
 // use scirs2_signal::waveforms;
-// use scirs2_core::random::Rng;
+// use scirs2_core::random::{Rng, RngExt};
 //
 // // Create a test signal
 // let fs = 1000.0;
@@ -42,7 +42,7 @@ use scirs2_core::ndarray::s;
 use crate::error::{SignalError, SignalResult};
 use scirs2_core::ndarray::{Array1, Array2};
 use scirs2_core::numeric::Complex64;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::ndarray::ArrayStatCompat;
 use scirs2_fft;
 use statrs::statistics::Statistics;

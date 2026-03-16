@@ -42,7 +42,7 @@ pub struct SimplePerformanceReport {
     /// Total time spent in milliseconds
     pub total_time_ms: f64,
 }
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::{HashMap, VecDeque};
 
 /// Advanced mode configuration for graph processing

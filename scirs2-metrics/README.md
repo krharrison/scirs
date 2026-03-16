@@ -3,7 +3,7 @@
 [![crates.io](https://img.shields.io/crates/v/scirs2-metrics.svg)](https://crates.io/crates/scirs2-metrics)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-metrics)](https://docs.rs/scirs2-metrics)
-[![Version](https://img.shields.io/badge/version-0.3.1-green)]()
+[![Version](https://img.shields.io/badge/version-0.3.2-green)]()
 
 Comprehensive machine learning evaluation metrics for the SciRS2 scientific computing ecosystem. Covers classification, regression, clustering, ranking, object detection, information retrieval, generative model evaluation, fairness, segmentation, and streaming/online metrics — with SIMD acceleration and parallel processing throughout.
 
@@ -115,14 +115,14 @@ Comprehensive machine learning evaluation metrics for the SciRS2 scientific comp
 
 ```toml
 [dependencies]
-scirs2-metrics = "0.3.1"
+scirs2-metrics = "0.3.2"
 ```
 
 Selective features:
 
 ```toml
 [dependencies]
-scirs2-metrics = { version = "0.3.1", features = ["neural_common", "plotters_backend"] }
+scirs2-metrics = { version = "0.3.2", features = ["neural_common", "plotters_backend"] }
 ```
 
 Available features:
@@ -184,7 +184,7 @@ let ari        = adjusted_rand_index(&truth, &pred)?;
 println!("Silhouette={:.3} DB={:.3} ARI={:.3}", silhouette, db, ari);
 ```
 
-### Object Detection (v0.3.1+)
+### Object Detection (v0.3.2+)
 
 ```rust
 use scirs2_metrics::detection::{iou_score, average_precision, compute_map};

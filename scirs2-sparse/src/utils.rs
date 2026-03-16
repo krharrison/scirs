@@ -185,7 +185,7 @@ pub fn random(shape: (usize, usize), density: f64) -> SparseResult<CsrMatrix<f64
     let mut used = vec![vec![false; cols]; rows];
     let mut count = 0;
 
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut rng = scirs2_core::random::rng();
 
     while count < nnz {

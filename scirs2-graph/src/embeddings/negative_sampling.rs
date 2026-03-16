@@ -2,7 +2,7 @@
 
 use super::types::NegativeSamplingStrategy;
 use crate::base::{EdgeWeight, Graph, Node};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashSet;
 
 /// Negative sampling configuration

@@ -281,7 +281,7 @@ fn generate_synthetic_data(
     n_features: usize,
     n_clusters: usize,
 ) -> (Array2<f64>, Vec<usize>) {
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
 
     let mut rng = scirs2_core::random::rng();
     let mut data = Array2::zeros((n_samples, n_features));
@@ -322,7 +322,7 @@ fn generate_synthetic_data(
 /// Generate random centroids for testing
 #[allow(dead_code)]
 fn generate_centroids(n_clusters: usize, nfeatures: usize) -> Array2<f64> {
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
 
     let mut rng = scirs2_core::random::rng();
     let mut centroids = Array2::zeros((n_clusters, nfeatures));

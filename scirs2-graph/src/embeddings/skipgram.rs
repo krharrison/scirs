@@ -24,7 +24,7 @@
 //! - Perozzi, B., Al-Rfou, R., & Skiena, S. (2014). DeepWalk. KDD 2014.
 //! - Grover, A. & Leskovec, J. (2016). node2vec. KDD 2016.
 
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SkipGramEmbedding

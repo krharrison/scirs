@@ -6,7 +6,7 @@
 use crate::error::{StatsError, StatsResult};
 use scirs2_core::ndarray::{Array1, ArrayView1, ArrayView2};
 use scirs2_core::numeric::{Float, NumCast, One, Zero};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::{simd_ops::SimdUnifiedOps, validation::*};
 use statrs::statistics::Statistics;
 

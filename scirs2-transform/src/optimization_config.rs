@@ -11,6 +11,7 @@ use std::collections::HashMap;
 
 use crate::error::{Result, TransformError};
 use crate::utils::ProcessingStrategy;
+use scirs2_core::random::RngExt;
 
 /// System resource information
 #[derive(Debug, Clone)]

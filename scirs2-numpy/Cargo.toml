@@ -28,7 +28,7 @@ pyo3 = { workspace = true, features = ["macros"] }
 rustc-hash = { workspace = true }
 
 [build-dependencies]
-pyo3-build-config = { version = "0.27", features = ["resolve-config"] }
+pyo3-build-config = { version = "0.28", features = ["resolve-config"] }
 
 [dev-dependencies]
 # Enable auto-initialize for tests only (not for production builds)

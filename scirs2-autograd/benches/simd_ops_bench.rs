@@ -8,9 +8,10 @@
 //! - Reduction operations (sum, mean, max, min)
 //! - Dot products
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use scirs2_autograd as ag;
 use scirs2_core::ndarray::{array, Array1};
+use std::hint::black_box;
 
 // ============================================================================
 // Element-wise Operations

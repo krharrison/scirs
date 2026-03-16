@@ -14,7 +14,7 @@ use crate::parametric::{estimate_arma, ARMethod};
 use crate::sysid::{estimate_transfer_function, TfEstimationMethod};
 use scirs2_core::ndarray::{Array1, Array2};
 use scirs2_core::random::rngs::StdRng;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 use std::time::Instant;
 

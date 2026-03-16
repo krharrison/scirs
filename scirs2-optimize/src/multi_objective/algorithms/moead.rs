@@ -21,7 +21,7 @@ use crate::error::OptimizeError;
 use crate::multi_objective::solutions::{MultiObjectiveResult, MultiObjectiveSolution, Population};
 use scirs2_core::ndarray::{Array1, ArrayView1};
 use scirs2_core::random::rngs::StdRng;
-use scirs2_core::random::{Rng, SeedableRng};
+use scirs2_core::random::{Rng, RngExt, SeedableRng};
 
 /// Scalarization approach for MOEA/D
 #[derive(Debug, Clone, Copy, PartialEq)]

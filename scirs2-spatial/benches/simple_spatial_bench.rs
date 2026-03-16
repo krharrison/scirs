@@ -5,7 +5,7 @@
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use scirs2_core::ndarray::Array2;
-use scirs2_core::random::{rngs::StdRng, Rng, SeedableRng};
+use scirs2_core::random::{rngs::StdRng, Rng, RngExt, SeedableRng};
 use scirs2_spatial::distance::{euclidean, manhattan, pdist};
 use std::hint::black_box;
 use std::time::Duration;

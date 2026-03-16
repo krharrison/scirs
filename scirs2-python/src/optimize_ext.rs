@@ -50,8 +50,7 @@ pub fn minimize_nelder_mead_py(
     let fn_obj = fun.clone().unbind();
     let obj_fn = move |x: &ArrayView1<f64>| -> f64 {
         let x_vec: Vec<f64> = x.to_vec();
-        #[allow(deprecated)]
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             fn_obj
                 .bind(py)
                 .call1((x_vec,))
@@ -130,8 +129,7 @@ pub fn minimize_lbfgsb_py(
     let fn_obj = fun.clone().unbind();
     let obj_fn = move |x: &ArrayView1<f64>| -> f64 {
         let x_vec: Vec<f64> = x.to_vec();
-        #[allow(deprecated)]
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             fn_obj
                 .bind(py)
                 .call1((x_vec,))
@@ -216,8 +214,7 @@ pub fn simulated_annealing_py(
     let fn_obj = fun.clone().unbind();
     let obj_fn = move |x: &ArrayView1<f64>| -> f64 {
         let x_vec: Vec<f64> = x.to_vec();
-        #[allow(deprecated)]
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             fn_obj
                 .bind(py)
                 .call1((x_vec,))
@@ -299,8 +296,7 @@ pub fn particle_swarm_py(
     let fn_obj = fun.clone().unbind();
     let obj_fn = move |x: &ArrayView1<f64>| -> f64 {
         let x_vec: Vec<f64> = x.to_vec();
-        #[allow(deprecated)]
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             fn_obj
                 .bind(py)
                 .call1((x_vec,))
@@ -368,8 +364,7 @@ pub fn dual_annealing_py(
     let fn_obj = fun.clone().unbind();
     let obj_fn = move |x: &ArrayView1<f64>| -> f64 {
         let x_vec: Vec<f64> = x.to_vec();
-        #[allow(deprecated)]
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             fn_obj
                 .bind(py)
                 .call1((x_vec,))

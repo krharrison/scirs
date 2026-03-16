@@ -27,7 +27,7 @@
 
 use crate::random::core::Random;
 use ::ndarray::{Array1, ArrayD, Dimension, IxDyn};
-use rand::Rng;
+use rand::{Rng, RngExt};
 use rand_distr::Distribution;
 use std::fmt;
 

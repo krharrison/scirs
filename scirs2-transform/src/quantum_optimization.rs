@@ -7,7 +7,7 @@ use crate::auto_feature_engineering::{TransformationConfig, TransformationType};
 use crate::error::{Result, TransformError};
 use scirs2_core::ndarray::{Array1, Array2, ArrayView2};
 use scirs2_core::parallel_ops::*;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::SimdUnifiedOps;
 use scirs2_core::validation::check_not_empty;
 use std::collections::HashMap;

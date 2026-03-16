@@ -376,7 +376,7 @@ pub mod algorithms {
         }
 
         fn initialize_population_gpu(&self, bounds: &[(f64, f64)]) -> ScirsResult<Array2<f64>> {
-            use scirs2_core::random::Rng;
+            use scirs2_core::random::{Rng, RngExt};
             let mut rng = scirs2_core::random::rng();
 
             let dims = bounds.len();
@@ -409,7 +409,7 @@ pub mod algorithms {
         ) -> ScirsResult<Array2<f64>> {
             // For now, implement on CPU and transfer to GPU
             // In a full implementation, this would use GPU kernels
-            use scirs2_core::random::Rng;
+            use scirs2_core::random::{Rng, RngExt};
             let mut rng = scirs2_core::random::rng();
 
             let (pop_size, dims) = population.dim();
@@ -580,7 +580,7 @@ pub mod algorithms {
         }
 
         fn initialize_positions_gpu(&self, bounds: &[(f64, f64)]) -> ScirsResult<Array2<f64>> {
-            use scirs2_core::random::Rng;
+            use scirs2_core::random::{Rng, RngExt};
             let mut rng = scirs2_core::random::rng();
 
             let dims = bounds.len();
@@ -615,7 +615,7 @@ pub mod algorithms {
             global_best: &Array1<f64>,
             bounds: &[(f64, f64)],
         ) -> ScirsResult<()> {
-            use scirs2_core::random::Rng;
+            use scirs2_core::random::{Rng, RngExt};
             let mut rng = scirs2_core::random::rng();
 
             let (swarm_size, dims) = positions.dim();

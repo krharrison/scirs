@@ -8,7 +8,7 @@ use crate::error::{NeuralError, Result};
 use crate::layers::Layer;
 use scirs2_core::ndarray::{Array, IxDyn, ScalarOperand};
 use scirs2_core::numeric::{Float, NumAssign};
-use scirs2_core::random::{Rng, RngCore, SeedableRng};
+use scirs2_core::random::{Rng, RngExt, SeedableRng};
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::sync::{Arc, RwLock};
@@ -21,7 +21,7 @@ pub struct Dropout<F: Float + Debug + Send + Sync + NumAssign> {
     /// Probability of dropping an element
     p: F,
     /// Random number generator
-    rng: Arc<RwLock<Box<dyn RngCore + Send + Sync>>>,
+    rng: Arc<RwLock<Box<dyn Rng + Send + Sync>>>,
     /// Whether we're in training mode
     training: bool,
     /// Input cache for backward pass
@@ -32,12 +32,12 @@ pub struct Dropout<F: Float + Debug + Send + Sync + NumAssign> {
     _phantom: PhantomData<F>,
 }
 
-// Manual implementation of Debug because dyn RngCore doesn't implement Debug
+// Manual implementation of Debug because dyn Rng doesn't implement Debug
 impl<F: Float + Debug + Send + Sync + NumAssign> + std::fmt::Debug for Dropout<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Dropout")
             .field("p", &self.p)
-            .field("rng", &"<dyn RngCore>")
+            .field("rng", &"<dyn Rng>")
             .field("training", &self.training)
             .finish()
     }

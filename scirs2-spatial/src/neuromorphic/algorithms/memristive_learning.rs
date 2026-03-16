@@ -6,7 +6,7 @@
 
 use crate::error::SpatialResult;
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1, ArrayView2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::VecDeque;
 
 /// Advanced memristive learning system with synaptic plasticity and homeostasis

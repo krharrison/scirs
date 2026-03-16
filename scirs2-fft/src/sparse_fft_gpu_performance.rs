@@ -340,7 +340,7 @@ impl SparseFftAutoTuner {
         
         // Add some randomness to simulate real-world conditions
         let mut rng = scirs2_core::random::rng();
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let randomness = rng.random_range(0.98..1.0);
         
         Ok(accuracy * randomness)

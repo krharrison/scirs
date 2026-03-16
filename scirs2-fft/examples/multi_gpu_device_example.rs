@@ -295,7 +295,7 @@ fn create_test_signal(n: usize) -> Vec<f64> {
 
     // Add some noise
     use scirs2_core::random::rngs::StdRng;
-    use scirs2_core::random::{Rng, SeedableRng};
+    use scirs2_core::random::{Rng, RngExt, SeedableRng};
     let mut rng = StdRng::seed_from_u64(42);
 
     for sample in &mut signal {

@@ -9,7 +9,7 @@ use crate::error::{SignalError, SignalResult};
 use crate::lti::StateSpace;
 use crate::sysid_enhanced::{NonlinearFunction, ParameterEstimate, SystemModel};
 use scirs2_core::ndarray::{Array1, Array2, Axis};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::parallel_ops::*;
 use scirs2_core::validation::checkshape;
 use scirs2_core::ndarray::ArrayStatCompat;

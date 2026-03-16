@@ -4,7 +4,7 @@
 //! the parallel filtering modules.
 
 use crate::error::{SignalError, SignalResult};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 /// Generate a test signal for filter testing
 ///

@@ -10,7 +10,7 @@ use crate::lombscargle_simd::simd_lombscargle;
 use scirs2_core::ndarray::s;
 use scirs2_core::ndarray::Array1;
 use scirs2_core::numeric::Float;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::PlatformCapabilities;
 use statrs::statistics::Statistics;
 use std::collections::HashMap;

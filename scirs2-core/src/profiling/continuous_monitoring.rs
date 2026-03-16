@@ -6,7 +6,7 @@
 use crate::error::{CoreError, CoreResult};
 use crate::profiling::hardware_counters::{CounterType, CounterValue, HardwareCounterManager};
 use crate::profiling::systemmonitor::{SystemMetrics, SystemMonitor, SystemMonitorError};
-use rand::Rng;
+use rand::{Rng, RngExt};
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;

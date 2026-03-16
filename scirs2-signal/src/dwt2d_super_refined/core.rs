@@ -20,7 +20,7 @@ use super::types::*;
 use crate::dwt::Wavelet;
 use crate::error::SignalResult;
 use scirs2_core::ndarray::Array2;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::PlatformCapabilities;
 
 /// Advanced-refined 2D wavelet packet decomposition with memory efficiency and adaptive basis selection

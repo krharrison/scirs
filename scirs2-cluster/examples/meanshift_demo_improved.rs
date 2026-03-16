@@ -65,7 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut data_vec = Vec::new();
 
     // Add three Gaussian-like clusters
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut rng = scirs2_core::random::rng();
 
     // Cluster 1 around (0, 0)

@@ -743,7 +743,7 @@ where
         D: Data<Elem = F> + Sync + Send,
     {
         use scirs2_core::random::ChaCha8Rng;
-        use scirs2_core::random::{Rng, SeedableRng};
+        use scirs2_core::random::{Rng, RngExt, SeedableRng};
 
         let num_threads = self
             .config

@@ -324,7 +324,7 @@ trait Random {
 
 impl Random for scirs2_core::random::rngs::ThreadRng {
     fn next_u32(&mut self) -> u32 {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         self.random()
     }
 }

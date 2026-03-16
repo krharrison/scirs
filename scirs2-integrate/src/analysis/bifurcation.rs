@@ -7,7 +7,7 @@ use crate::analysis::types::*;
 use crate::error::{IntegrateError, IntegrateResult};
 use scirs2_core::ndarray::{s, Array1, Array2};
 use scirs2_core::numeric::Complex64;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 
 /// Bifurcation analyzer for parametric dynamical systems

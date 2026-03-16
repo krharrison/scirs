@@ -6,6 +6,7 @@ use crate::base::{EdgeWeight, Graph, IndexType, Node};
 use crate::error::{GraphError, Result};
 use scirs2_core::ndarray::{Array1, Array2};
 use scirs2_core::parallel_ops::*;
+use scirs2_core::random::RngExt;
 use std::collections::HashMap;
 use std::hash::Hash;
 
@@ -32,7 +33,7 @@ where
     let mut current = start.clone();
     let mut rng = scirs2_core::random::rng();
 
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
 
     for _ in 0..steps {
         // With restart_probability, jump back to start

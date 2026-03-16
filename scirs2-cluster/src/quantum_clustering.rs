@@ -357,7 +357,7 @@ impl<F: Float + FromPrimitive + Debug> QAOAClustering<F> {
         self.beta_params = Array1::zeros(self.config.p_layers);
 
         // Initialize with random small values
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut rng = scirs2_core::random::rng();
 
         for i in 0..self.config.p_layers {
@@ -698,7 +698,7 @@ impl<F: Float + FromPrimitive + Debug> VQEClustering<F> {
 
     /// Initialize circuit parameters
     fn initialize_circuit_parameters(&mut self) {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut rng = scirs2_core::random::rng();
 
         for i in 0..self.circuit_parameters.len() {
@@ -1004,7 +1004,7 @@ impl<F: Float + FromPrimitive + Debug> VQEClustering<F> {
 
     /// SPSA update
     fn spsa_update(&mut self, iteration: usize) -> Result<()> {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut rng = scirs2_core::random::rng();
 
         let ak = 0.1 / (iteration as f64 + 1.0).powf(0.602);
@@ -1245,7 +1245,7 @@ impl<F: Float + FromPrimitive + Debug> QuantumAnnealingClustering<F> {
         let qubits_per_sample = (self.n_clusters as f64).log2().ceil() as usize;
         let total_qubits = nsamples * qubits_per_sample;
 
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut rng = if let Some(seed) = self.config.random_seed {
             use scirs2_core::random::SeedableRng;
             scirs2_core::random::rngs::StdRng::seed_from_u64(seed)
@@ -1310,7 +1310,7 @@ impl<F: Float + FromPrimitive + Debug> QuantumAnnealingClustering<F> {
 
     /// Run quantum annealing optimization
     fn run_annealing(&mut self) -> Result<()> {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut rng = if let Some(seed) = self.config.random_seed {
             use scirs2_core::random::SeedableRng;
             scirs2_core::random::rngs::StdRng::seed_from_u64(seed)

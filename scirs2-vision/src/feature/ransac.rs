@@ -17,7 +17,7 @@
 
 use crate::error::Result;
 use scirs2_core::ndarray::{Array1, Array2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 /// Configuration for RANSAC algorithm
 #[derive(Debug, Clone)]

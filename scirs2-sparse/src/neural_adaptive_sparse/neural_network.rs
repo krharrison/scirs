@@ -4,7 +4,7 @@
 //! sparse matrix processing system.
 
 use scirs2_core::numeric::{Float, SparseElement};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 
 /// Neural network layer for sparse matrix optimization

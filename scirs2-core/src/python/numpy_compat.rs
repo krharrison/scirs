@@ -215,7 +215,7 @@ mod tests {
     #[test]
     #[allow(deprecated)]
     fn test_numpy_scirs_roundtrip() {
-        pyo3::Python::with_gil(|py| {
+        pyo3::Python::attach(|py| {
             // Create scirs2 array
             let scirs_array = array![[1.0f32, 2.0], [3.0, 4.0]];
             let scirs_arrayd = scirs_array.into_dyn();
@@ -236,7 +236,7 @@ mod tests {
     #[test]
     #[allow(deprecated)]
     fn test_zero_copy_view() {
-        pyo3::Python::with_gil(|py| {
+        pyo3::Python::attach(|py| {
             let scirs_array = array![[1.0f32, 2.0], [3.0, 4.0]].into_dyn();
             let numpy_array =
                 scirs_to_numpy_arrayd(scirs_array.clone(), py).expect("Operation failed");

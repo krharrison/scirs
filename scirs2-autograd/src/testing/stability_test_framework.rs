@@ -505,7 +505,7 @@ impl<'a, F: Float> StabilityTestSuite<'a, F> {
     ) -> Tensor<'a, F> {
         use crate::tensor_ops as T;
         use scirs2_core::ndarray::{Array, IxDyn};
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
 
         let size: usize = shape.iter().product();
         let mut rng = scirs2_core::random::rng();

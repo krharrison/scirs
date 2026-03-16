@@ -152,7 +152,7 @@ impl LateralConnection {
         source_dim: usize,
         target_dim: usize,
         let weights = Array2::from_shape_fn((target_dim, source_dim), |_| {
-            use scirs2_core::random::Rng;
+            use scirs2_core::random::{Rng, RngExt};
             rng().random_range(-0.1..0.1)
         });
         let adapter = if source_dim != target_dim {

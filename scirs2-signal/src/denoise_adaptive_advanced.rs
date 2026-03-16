@@ -16,7 +16,7 @@ use crate::wiener::wiener_filter;
 use scirs2_core::ndarray::Array1;
 use scirs2_core::numeric::{Float, NumCast};
 use scirs2_core::random::prelude::*;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::validation::check_finite;
 use scirs2_core::ndarray::ArrayStatCompat;
 use statrs::statistics::Statistics;

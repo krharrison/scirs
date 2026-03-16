@@ -14,8 +14,8 @@
 use crate::error::StatsResult;
 use scirs2_core::ndarray::{Array1, Array2, Array3};
 use scirs2_core::numeric::{Float, NumCast};
-use scirs2_core::random::Rng;
 use scirs2_core::random::{Distribution, Normal};
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::SimdUnifiedOps;
 use std::marker::PhantomData;
 use std::sync::RwLock;

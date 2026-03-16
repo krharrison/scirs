@@ -22,7 +22,7 @@ fn generate_sine_wave(n: usize, freq: f64, sample_rate: f64) -> Array1<f64> {
 }
 
 fn generate_noisy_signal(n: usize) -> Array1<f64> {
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut rng = scirs2_core::random::thread_rng();
 
     // Base signal: sum of sine waves

@@ -13,7 +13,7 @@ use crate::error::{NeuralError, Result};
 use crate::layers::{Dense, Dropout, Layer, LayerNorm};
 use scirs2_core::ndarray::{s, Array, Array1, Array2, Array3, IxDyn, ScalarOperand, Zip};
 use scirs2_core::numeric::{Float, NumAssign};
-use scirs2_core::random::{Rng, SeedableRng};
+use scirs2_core::random::{Rng, RngExt, SeedableRng};
 use scirs2_core::simd_ops::SimdUnifiedOps;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;

@@ -1,10 +1,10 @@
 # SciRS2 Development Roadmap
 
-**Current Version**: 0.3.1 (Released: March 9, 2026)
-**Status**: Production Ready — All 19,685 tests passing (100% pass rate)
-**Scale**: 2,586,887 lines of Rust, 6,660 source files, 45+ workspace crates
+**Current Version**: 0.3.2 (Released: March 17, 2026)
+**Status**: Production Ready — All 19,684 tests passing (100% pass rate)
+**Scale**: 2,586,908 lines of Rust, 6,660 source files, 45+ workspace crates
 
-This document tracks the development roadmap for SciRS2. Completed items in v0.3.1 are documented here for historical reference; the active roadmap is the v0.4.0 section.
+This document tracks the development roadmap for SciRS2. Completed items in v0.3.2 are documented here for historical reference; the active roadmap is the v0.4.0 section.
 
 ---
 
@@ -40,6 +40,20 @@ This document tracks the development roadmap for SciRS2. Completed items in v0.3
 - [scirs2-series](./scirs2-series/TODO.md): Time series — TFT/N-BEATS/DeepAR, VAR/VECM, EGARCH, FDA, conformal prediction
 - [scirs2-wasm](./scirs2-wasm/TODO.md): WebAssembly — WasmMatrix, TypeScript bindings, WASM SIMD, Web Workers
 - [scirs2-python](./scirs2-python/TODO.md): Python bindings via PyO3 for 15+ modules
+
+---
+
+## v0.3.2 — RELEASED (March 17, 2026)
+
+### Release Statistics
+- 19,684 tests — 100% pass rate
+- 2,586,908 lines of Rust
+- 6,660 source files, 45+ workspace crates
+
+### Changes
+- [x] Upgraded pyo3 to 0.28.2 (Python::with_gil -> Python::attach migration)
+- [x] Fixed #[pyclass] deprecation warnings (from_py_object attribute)
+- [x] Replaced deprecated criterion::black_box with std::hint::black_box in benchmarks
 
 ---
 
@@ -479,7 +493,7 @@ This document tracks the development roadmap for SciRS2. Completed items in v0.3
 ### Current CI Infrastructure
 - Pure Rust toolchain with cargo-nextest
 - Zero warnings enforcement (clippy + rustc)
-- Comprehensive test coverage (19,685 tests)
+- Comprehensive test coverage (19,684 tests)
 - No-unwrap policy enforced in code review
 
 ### Planned CI Enhancements
@@ -541,6 +555,6 @@ All development must adhere to the following policies:
 
 ---
 
-**Last Updated**: March 10, 2026
-**Branch**: 0.3.1
-**Status**: v0.3.1 released — v0.4.0 planning phase
+**Last Updated**: March 17, 2026
+**Branch**: 0.3.2
+**Status**: v0.3.2 released — v0.4.0 planning phase

@@ -15,7 +15,7 @@
 
 use scirs2_core::ndarray::{s, Array1, Array2, ArrayView2};
 use scirs2_core::numeric::{Float, NumAssign, One, Zero};
-use scirs2_core::random::{self, Rng};
+use scirs2_core::random::{self, Rng, RngExt};
 use std::fmt::Debug;
 use std::iter::Sum;
 

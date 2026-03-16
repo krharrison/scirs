@@ -6,7 +6,7 @@
 use plotters::prelude::*;
 use plotters::style::colors::{BLACK, BLUE, RED};
 use scirs2_core::ndarray::{Array1, Array2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_interpolate::voronoi::{make_laplace_interpolator, make_sibson_interpolator};
 use std::error::Error;
 

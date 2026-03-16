@@ -8,7 +8,7 @@ use crate::error::{StatsError, StatsResult};
 use crate::error_recovery_system::{
     EnhancedStatsError, RecoveryAction, RecoverySuggestion, SuggestionType,
 };
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 
 /// Intelligent error recovery analyzer

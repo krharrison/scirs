@@ -18,7 +18,7 @@
 
 use scirs2_core::ndarray::{Array1, ArrayView1};
 use scirs2_core::random::rngs::StdRng;
-use scirs2_core::random::{Rng, SeedableRng};
+use scirs2_core::random::{Rng, RngExt, SeedableRng};
 use std::fmt::Debug;
 
 use crate::distance::EuclideanDistance;

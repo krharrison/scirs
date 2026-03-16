@@ -214,7 +214,7 @@ impl SearchSpace {
         &self,
         rng: &mut (impl scirs2_core::random::Rng + ?Sized),
     ) -> Architecture {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
 
         let cells_lo = self.n_cells_range.0;
         let cells_hi = self.n_cells_range.1;

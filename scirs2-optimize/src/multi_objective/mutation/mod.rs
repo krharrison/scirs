@@ -2,8 +2,8 @@
 //!
 //! Various mutation strategies for maintaining diversity in populations.
 
-use scirs2_core::random::Rng;
 use scirs2_core::random::{Distribution, Normal};
+use scirs2_core::random::{Rng, RngExt};
 
 /// Trait for mutation operators
 pub trait MutationOperator {

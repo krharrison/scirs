@@ -9,7 +9,7 @@
 use crate::advanced::AdvancedProcessor;
 use crate::base::{EdgeWeight, Graph, Node};
 use crate::error::Result;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::{HashMap, VecDeque};
 use std::time::{Duration, SystemTime};
 

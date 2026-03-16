@@ -6,7 +6,7 @@
 use scirs2_core::ndarray::ArrayStatCompat;
 use scirs2_core::ndarray::{Array, Array1, Array2, ArrayBase, Data, Ix1, Ix2};
 use scirs2_core::numeric::Float;
-use scirs2_core::random::{random, rngs::StdRng, Rng, SeedableRng};
+use scirs2_core::random::{random, rngs::StdRng, Rng, RngExt, SeedableRng};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::panic;

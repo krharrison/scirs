@@ -31,7 +31,7 @@ use crate::error::{StatsError, StatsResult};
 use scirs2_core::ndarray::{Array1, ArrayView1};
 use scirs2_core::numeric::{Float, NumCast};
 use scirs2_core::random::uniform::SampleUniform;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::{AutoOptimizer, SimdUnifiedOps};
 
 // ============================================================================
@@ -43,7 +43,7 @@ use scirs2_core::simd_ops::{AutoOptimizer, SimdUnifiedOps};
 macro_rules! build_rng {
     ($seed:expr) => {{
         let s: u64 = $seed.unwrap_or_else(|| {
-            use scirs2_core::random::Rng;
+            use scirs2_core::random::{Rng, RngExt};
             scirs2_core::random::thread_rng().random()
         });
         scirs2_core::random::seeded_rng(s)
@@ -814,7 +814,7 @@ pub fn parallel_normal_sample(
 
     // Derive a base seed — deterministic when the caller provides one.
     let base_seed: u64 = seed.unwrap_or_else(|| {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         scirs2_core::random::thread_rng().random()
     });
 
@@ -905,7 +905,7 @@ pub fn parallel_uniform_sample(
     use scirs2_core::parallel_ops::*;
 
     let base_seed: u64 = seed.unwrap_or_else(|| {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         scirs2_core::random::thread_rng().random()
     });
 

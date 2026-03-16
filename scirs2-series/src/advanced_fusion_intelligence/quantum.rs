@@ -7,7 +7,7 @@
 use scirs2_core::ndarray::Array1;
 use scirs2_core::numeric::Complex;
 use scirs2_core::numeric::{Float, FromPrimitive};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::{HashMap, VecDeque};
 use std::fmt::Debug;
 

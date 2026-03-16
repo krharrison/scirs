@@ -15,7 +15,7 @@ use crate::parametric::{estimate_arma, ARMethod};
 use crate::sysid::{estimate_transfer_function, TfEstimationMethod};
 use crate::validation_runner::{validate_signal_processing_library, ValidationConfig};
 use scirs2_core::ndarray::{Array1, Array2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::ndarray::ArrayStatCompat;
 use statrs::statistics::Statistics;
 

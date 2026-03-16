@@ -6,7 +6,7 @@
 
 use crate::error::{SignalError, SignalResult};
 use scirs2_core::numeric::{Float, NumCast};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::fmt::Debug;
 
 #[allow(unused_imports)]
@@ -177,7 +177,7 @@ where
 ///
 /// ```
 /// use scirs2_signal::measurements::snr;
-/// use scirs2_core::random::Rng;  // Import the Rng trait to access gen_range
+/// use scirs2_core::random::{Rng, RngExt};  // Import the Rng trait to access gen_range
 ///
 /// // Create a clean signal
 /// let clean = (0..100).map(|i| (i as f64 * 0.1).sin()).collect::<Vec<_>>();
@@ -406,7 +406,7 @@ where
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     use std::f64::consts::PI;
     #[test]
     fn test_rms() {

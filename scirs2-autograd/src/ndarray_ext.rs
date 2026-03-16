@@ -129,34 +129,35 @@ pub fn constant<T: Float>(value: T, shape: &[usize]) -> NdArray<T> {
     NdArray::<T>::from_elem(shape, value)
 }
 
-use scirs2_core::random::{Rng, RngCore, SeedableRng};
-// In rand 0.9.0, RngCore doesn't need rand_core imported directly
+use scirs2_core::random::{ChaCha8Rng, Rng, RngExt, SeedableRng, TryRng};
 
 /// Random number generator for ndarray
+///
+/// Uses ChaCha8Rng internally because StdRng does not implement Clone in rand 0.10.
 #[derive(Clone)]
 pub struct ArrayRng<A> {
-    rng: scirs2_core::random::rngs::StdRng,
+    rng: ChaCha8Rng,
     _phantom: std::marker::PhantomData<A>,
 }
 
-// Implement RngCore for ArrayRng by delegating to the internal StdRng
-impl<A> RngCore for ArrayRng<A> {
-    fn next_u32(&mut self) -> u32 {
-        self.rng.next_u32()
+// Implement TryRng for ArrayRng by delegating to the internal ChaCha8Rng.
+// In rand_core 0.10, TryRng<Error=Infallible> auto-provides Rng and (deprecated) RngCore.
+impl<A> TryRng for ArrayRng<A> {
+    type Error = std::convert::Infallible;
+
+    fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+        Ok(self.rng.next_u32())
     }
 
-    fn next_u64(&mut self) -> u64 {
-        self.rng.next_u64()
+    fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
+        Ok(self.rng.next_u64())
     }
 
-    fn fill_bytes(&mut self, dest: &mut [u8]) {
-        self.rng.fill_bytes(dest)
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Self::Error> {
+        self.rng.fill_bytes(dest);
+        Ok(())
     }
 }
-
-// Don't implement Rng directly since there's a blanket impl in rand crate
-// This was causing conflict with the blanket implementation
-// impl<A> Rng for ArrayRng<A> {}
 
 impl<A: Float> ArrayRng<A> {
     /// Creates a new random number generator with the default seed.
@@ -166,7 +167,7 @@ impl<A: Float> ArrayRng<A> {
 
     /// Creates a new random number generator with the specified seed.
     pub fn from_seed(seed: u64) -> Self {
-        let rng = scirs2_core::random::rngs::StdRng::seed_from_u64(seed);
+        let rng = ChaCha8Rng::seed_from_u64(seed);
         Self {
             rng,
             _phantom: std::marker::PhantomData,
@@ -174,12 +175,12 @@ impl<A: Float> ArrayRng<A> {
     }
 
     /// Returns a reference to the internal RNG
-    pub fn as_rng(&self) -> &scirs2_core::random::rngs::StdRng {
+    pub fn as_rng(&self) -> &ChaCha8Rng {
         &self.rng
     }
 
     /// Returns a mutable reference to the internal RNG
-    pub fn as_rng_mut(&mut self) -> &mut scirs2_core::random::rngs::StdRng {
+    pub fn as_rng_mut(&mut self) -> &mut ChaCha8Rng {
         &mut self.rng
     }
 

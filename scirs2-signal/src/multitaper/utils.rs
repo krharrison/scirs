@@ -6,7 +6,7 @@ use crate::filter::filtfilt;
 use scirs2_core::ndarray::Array2;
 use scirs2_core::numeric::Complex64;
 use scirs2_core::numeric::{Float, NumCast};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::f64::consts::PI;
 use std::fmt::Debug;
 
@@ -43,7 +43,7 @@ use std::fmt::Debug;
 /// let t: Vec<f64> = (0..n).map(|i| i as f64 / fs).collect();
 ///
 /// // Signal 1: 10 Hz sine
-/// use scirs2_core::random::Rng;
+/// use scirs2_core::random::{Rng, RngExt};
 /// let mut rng = scirs2_core::random::rng();
 /// let signal1: Vec<f64> = t.iter()
 ///     .map(|&ti| (2.0 * PI * 10.0 * ti).sin() + 0.1 * rng.random_range(0.0..1.0))

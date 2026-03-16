@@ -9,7 +9,7 @@ use crate::multitaper::windows::dpss;
 use crate::multitaper::{enhanced_pmtm, MultitaperConfig};
 use crate::waveforms::{brown_noise, chirp};
 use scirs2_core::ndarray::Array1;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::SimdUnifiedOps;
 use std::collections::HashMap;
 use std::time::Instant;

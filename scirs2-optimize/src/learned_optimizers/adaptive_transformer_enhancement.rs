@@ -11,7 +11,7 @@ use super::{
 use crate::error::{OptimizeError, OptimizeResult};
 use crate::result::OptimizeResults;
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1, ArrayView2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use statrs::statistics::Statistics;
 use std::collections::{HashMap, VecDeque};
 

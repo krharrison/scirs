@@ -6,7 +6,7 @@
 use super::neural_network::NeuralNetwork;
 use super::pattern_memory::OptimizationStrategy;
 use crate::error::SparseResult;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::VecDeque;
 
 /// Reinforcement learning algorithms

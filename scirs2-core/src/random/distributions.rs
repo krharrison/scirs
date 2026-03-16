@@ -6,7 +6,7 @@
 
 use crate::random::core::Random;
 use ::ndarray::{Array, Array1, Array2};
-use rand::Rng;
+use rand::{Rng, RngExt};
 use rand_distr::{Distribution, Gamma, Normal, Uniform};
 use std::f64::consts::PI;
 

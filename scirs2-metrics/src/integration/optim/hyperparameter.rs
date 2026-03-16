@@ -5,7 +5,7 @@
 use crate::error::{MetricsError, Result};
 use crate::integration::optim::OptimizationMode;
 use scirs2_core::numeric::{Float, FromPrimitive};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 use std::fmt;
 use std::marker::PhantomData;

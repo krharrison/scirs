@@ -8,7 +8,7 @@ use crate::error::OptimizeResult;
 use crate::result::OptimizeResults;
 use scirs2_core::error::CoreResult as Result;
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1, ArrayView2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::SimdUnifiedOps;
 
 /// Advanced memristor models

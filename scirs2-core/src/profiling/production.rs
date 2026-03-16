@@ -60,7 +60,7 @@
 //! ```
 
 use crate::error::{CoreError, CoreResult};
-use rand::{rngs::SmallRng, Rng, SeedableRng};
+use rand::{rngs::SmallRng, Rng, RngExt, SeedableRng};
 // Define types for this module
 pub type ProfilerResult<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -665,7 +665,7 @@ impl ProductionProfiler {
 
     /// Check if current operation should be sampled
     fn should_sample(&self) -> CoreResult<bool> {
-        use rand::Rng;
+        use rand::RngExt;
         let mut rng = self
             .sampler
             .lock()

@@ -191,7 +191,7 @@
 //! # {
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! use scirs2_core::random::*;
-//! use rand::Rng;
+//! use rand::{Rng, RngExt};
 //!
 //! // Standard distributions
 //! let mut rng = rand::rng();

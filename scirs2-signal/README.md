@@ -6,7 +6,7 @@
 
 **Production-ready signal processing for Rust** — part of the [SciRS2](https://github.com/cool-japan/scirs) scientific computing ecosystem.
 
-`scirs2-signal` provides a comprehensive signal processing toolkit modelled after SciPy's `signal` module while going considerably further in v0.3.1: matched filtering, CFAR detection, Kalman/EKF/UKF state estimation, MFCC and cepstral analysis, EMD/HHT, compressed sensing (OMP/ISTA), blind source separation (ICA, NMF audio), system identification (ARX, N4SID), radar processing, and music information retrieval.
+`scirs2-signal` provides a comprehensive signal processing toolkit modelled after SciPy's `signal` module while going considerably further in v0.3.2: matched filtering, CFAR detection, Kalman/EKF/UKF state estimation, MFCC and cepstral analysis, EMD/HHT, compressed sensing (OMP/ISTA), blind source separation (ICA, NMF audio), system identification (ARX, N4SID), radar processing, and music information retrieval.
 
 ---
 
@@ -16,7 +16,7 @@ Signal processing tasks range from basic filtering and spectral analysis through
 
 ---
 
-## Feature List (v0.3.1)
+## Feature List (v0.3.2)
 
 ### Filter Design & Application
 - **IIR filters**: Butterworth, Chebyshev I/II, Elliptic, Bessel — analog prototype design and digital transformation
@@ -181,7 +181,7 @@ Signal processing tasks range from basic filtering and spectral analysis through
 
 ```toml
 [dependencies]
-scirs2-signal = "0.3.1"
+scirs2-signal = "0.3.2"
 ```
 
 ### Butterworth Low-Pass Filter

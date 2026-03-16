@@ -1,6 +1,6 @@
 use ndarray::{s, Array1, Array2, Array3, Axis};
 use rand::seq::SliceRandom;
-use rand::Rng;
+use rand::{Rng, RngExt};
 use serde::{Deserialize, Serialize};
 use std::f32;
 use statrs::statistics::Statistics;

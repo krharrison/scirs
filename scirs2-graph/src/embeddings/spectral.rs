@@ -16,7 +16,7 @@ use super::spectral_embedding::{SpectralEmbedding, SpectralEmbeddingConfig, Spec
 use crate::base::{Graph, Node, EdgeWeight};
 use crate::error::{GraphError, Result};
 use scirs2_core::ndarray::Array2;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 
 // ─────────────────────────────────────────────────────────────────────────────

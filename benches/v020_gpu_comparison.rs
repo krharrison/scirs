@@ -18,8 +18,10 @@
 use criterion::{
     criterion_group, criterion_main, BenchmarkId, Criterion, SamplingMode, Throughput,
 };
+use ndarray_rand::rand::rngs::StdRng;
+use ndarray_rand::rand::SeedableRng;
+use ndarray_rand::rand_distr::Uniform;
 use scirs2_core::ndarray::{Array1, Array2, RandomExt};
-use scirs2_core::random::{ChaCha8Rng, SeedableRng, Uniform};
 use std::hint::black_box;
 use std::time::Duration;
 
@@ -82,7 +84,7 @@ fn bench_matmul_cpu_vs_gpu(c: &mut Criterion) {
     let sizes = [256, 512, 1024, 2048];
 
     for &size in &sizes {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = uniform_f32(-1.0, 1.0);
 
         let a = Array2::random_using((size, size), dist, &mut rng);
@@ -143,7 +145,7 @@ fn bench_fft_cpu_vs_gpu(c: &mut Criterion) {
     let sizes = [1024, 4096, 16384, 65536, 262144, 1048576];
 
     for &size in &sizes {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = uniform_f64(-1.0, 1.0);
 
         let signal = Array1::random_using(size, dist, &mut rng);
@@ -248,7 +250,7 @@ fn bench_batch_matmul_cpu_vs_gpu(c: &mut Criterion) {
     let batch_sizes = [1, 10, 100, 1000];
 
     for &batch_size in &batch_sizes {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = uniform_f32(-1.0, 1.0);
 
         let matrices_a: Vec<Array2<f32>> = (0..batch_size)
@@ -315,7 +317,7 @@ fn bench_elementwise_cpu_vs_gpu(c: &mut Criterion) {
     let sizes = [10_000, 100_000, 1_000_000, 10_000_000];
 
     for &size in &sizes {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = uniform_f32(-1.0, 1.0);
 
         let a = Array1::random_using(size, dist, &mut rng);
@@ -386,7 +388,7 @@ fn bench_gpu_backend_comparison(c: &mut Criterion) {
     group.measurement_time(Duration::from_secs(8));
 
     let size = 512;
-    let mut rng = ChaCha8Rng::seed_from_u64(42);
+    let mut rng = StdRng::seed_from_u64(42);
     let dist = uniform_f32(-1.0, 1.0);
 
     let a = Array2::random_using((size, size), dist, &mut rng);
@@ -480,7 +482,7 @@ fn bench_gpu_speedup_summary(c: &mut Criterion) {
 
     // Representative benchmark
     let size = 1024;
-    let mut rng = ChaCha8Rng::seed_from_u64(42);
+    let mut rng = StdRng::seed_from_u64(42);
     let dist = uniform_f32(-1.0, 1.0);
 
     let a = Array2::random_using((size, size), dist, &mut rng);

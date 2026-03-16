@@ -11,7 +11,7 @@ use super::{
 use crate::error::OptimizeResult;
 use crate::result::OptimizeResults;
 use scirs2_core::ndarray::{Array1, Array2, Array3, ArrayView1};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::{HashMap, VecDeque};
 
 /// Few-Shot Learning Optimizer with Rapid Adaptation

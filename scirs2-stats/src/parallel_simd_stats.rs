@@ -226,12 +226,12 @@ where
     let seeds: Vec<u64> = if let Some(s) = seed {
         let mut rng = scirs2_core::random::seeded_rng(s);
         (0..n_bootstrap)
-            .map(|_| scirs2_core::random::Rng::random(&mut rng))
+            .map(|_| scirs2_core::random::RngExt::random(&mut rng))
             .collect()
     } else {
         let mut rng = scirs2_core::random::thread_rng();
         (0..n_bootstrap)
-            .map(|_| scirs2_core::random::Rng::random(&mut rng))
+            .map(|_| scirs2_core::random::RngExt::random(&mut rng))
             .collect()
     };
 

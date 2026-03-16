@@ -3,12 +3,13 @@
 //! Demonstrates the performance benefits of fusing multiple operations
 //! into single kernels versus executing them separately.
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use scirs2_autograd::optimization::fusion::ops::{
     fused_affine, fused_elementwise_chain, fused_linear, fused_linear_gelu, fused_linear_relu,
     fused_linear_sigmoid, fused_linear_tanh, fused_mean, fused_softmax, fused_variance,
 };
 use scirs2_core::ndarray::{Array, IxDyn};
+use std::hint::black_box;
 
 // ---------------------------------------------------------------------------
 // Helper functions

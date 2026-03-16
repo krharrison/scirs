@@ -5,7 +5,7 @@
 //! and basic optimization techniques.
 
 use scirs2_core::ndarray::Array2;
-use scirs2_core::random::{rngs::StdRng, Rng, SeedableRng};
+use scirs2_core::random::{rngs::StdRng, Rng, RngExt, SeedableRng};
 use scirs2_spatial::{
     // AI-driven optimization (basic usage)
     ai_driven_optimization::AIAlgorithmSelector,

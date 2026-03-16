@@ -268,7 +268,7 @@ pub fn create_hermitian_symmetric_signal(
     amplitudes: &[f64],
     randomize_phases: bool,
 ) -> Vec<Complex64> {
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
 
     let n = amplitudes.len();
     let mut result = Vec::with_capacity(n);

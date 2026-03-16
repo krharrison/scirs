@@ -6,7 +6,7 @@
 use crate::dwt::{wavedec, waverec, Wavelet};
 use crate::error::{SignalError, SignalResult};
 use scirs2_core::numeric::{Float, NumCast};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::PlatformCapabilities;
 #[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::*;

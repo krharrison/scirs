@@ -1,5 +1,5 @@
 use ndarray::{s, Array1, Array2, Array3, Axis};
-use rand::Rng;
+use rand::{Rng, RngExt};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::f32;

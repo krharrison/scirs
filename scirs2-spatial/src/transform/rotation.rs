@@ -879,7 +879,7 @@ impl Rotation {
     /// let random_rot = Rotation::random();
     /// ```
     pub fn random() -> Rotation {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut rng = scirs2_core::random::rng();
 
         // Generate random quaternion using method from:

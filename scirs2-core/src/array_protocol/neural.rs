@@ -17,7 +17,7 @@
 
 use ::ndarray::{Array, Ix1};
 
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 use crate::array_protocol::ml_ops::ActivationFunc;
 use crate::array_protocol::operations::OperationError;

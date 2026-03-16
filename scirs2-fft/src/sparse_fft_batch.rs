@@ -449,7 +449,7 @@ mod tests {
 
     // Helper to add noise to signals
     fn add_noise(_signal: &[f64], noise_level: f64) -> Vec<f64> {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut rng = scirs2_core::random::rng();
         _signal
             .iter()

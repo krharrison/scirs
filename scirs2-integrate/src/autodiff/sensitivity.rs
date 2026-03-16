@@ -7,7 +7,7 @@ use crate::common::IntegrateFloat;
 use crate::error::{IntegrateError, IntegrateResult};
 use crate::ode::{solve_ivp, ODEOptions};
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 
 // Type alias for complex return type
@@ -665,7 +665,7 @@ impl<F: IntegrateFloat + std::default::Default> SobolSensitivity<F> {
 
     /// Generate Sobol sample matrices
     pub fn generate_samples(&self) -> (Array2<F>, Array2<F>) {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut rng = scirs2_core::random::rng();
 
         // Generate base sample matrix A

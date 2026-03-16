@@ -4,7 +4,7 @@
 //! across different algorithm categories.
 
 use scirs2_core::ndarray::{Array1, ArrayView1};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_optimize::{
     stochastic::{
         minimize_adam, minimize_sgd, AdamOptions, DataProvider, InMemoryDataProvider, SGDOptions,

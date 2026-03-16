@@ -29,7 +29,7 @@
 
 use crate::error::{Result, TransformError};
 use scirs2_core::ndarray::{s, Array1, Array2, Axis};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_linalg::svd;
 
 // ─── internal helpers ─────────────────────────────────────────────────────────

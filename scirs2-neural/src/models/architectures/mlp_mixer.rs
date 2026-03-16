@@ -32,7 +32,7 @@
 //!     in_channels: 3,
 //! };
 //!
-//! let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(42);
+//! let mut rng = scirs2_core::random::rngs::SmallRng::seed_from_u64(42);
 //! let mixer = MLPMixer::<f32>::new(config, &mut rng).expect("Operation failed");
 //! ```
 
@@ -40,7 +40,7 @@ use crate::error::{NeuralError, Result};
 use crate::layers::{Dense, Dropout, Layer, LayerNorm};
 use scirs2_core::ndarray::{s, Array, Array2, Array3, Axis, IxDyn, ScalarOperand};
 use scirs2_core::numeric::{Float, FromPrimitive, NumAssign};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -648,6 +648,7 @@ impl<
 mod tests {
     use super::*;
     use scirs2_core::ndarray::Array4;
+    use scirs2_core::random::rngs::SmallRng;
     use scirs2_core::random::SeedableRng;
 
     #[test]
@@ -673,7 +674,7 @@ mod tests {
 
     #[test]
     fn test_mixer_mlp() {
-        let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(42);
+        let mut rng = SmallRng::seed_from_u64(42);
         let mlp = MixerMLP::<f32>::new(64, 128, 64, 0.0, &mut rng).expect("Operation failed");
 
         let input = Array2::<f32>::zeros((10, 64)).into_dyn();
@@ -684,7 +685,7 @@ mod tests {
 
     #[test]
     fn test_mixer_block() {
-        let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(42);
+        let mut rng = SmallRng::seed_from_u64(42);
         let block = MixerBlock::<f32>::new(
             16,  // num_patches
             64,  // hidden_dim
@@ -703,7 +704,7 @@ mod tests {
 
     #[test]
     fn test_mlp_mixer_small() {
-        let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(42);
+        let mut rng = SmallRng::seed_from_u64(42);
 
         // Small config for testing
         let config = MLPMixerConfig {
@@ -729,7 +730,7 @@ mod tests {
 
     #[test]
     fn test_extract_patches() {
-        let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(42);
+        let mut rng = SmallRng::seed_from_u64(42);
 
         let config = MLPMixerConfig {
             image_size: 8,
@@ -768,7 +769,7 @@ mod tests {
     #[test]
     fn test_num_parameters() {
         let config = MLPMixerConfig::mixer_s_16(1000);
-        let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(42);
+        let mut rng = SmallRng::seed_from_u64(42);
         let mixer = MLPMixer::<f32>::new(config, &mut rng).expect("Operation failed");
 
         let params = mixer.num_parameters();

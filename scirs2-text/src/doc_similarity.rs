@@ -779,7 +779,7 @@ fn simple_hash(s: &str) -> u64 {
 
 /// Generate a uniform f64 in [0,1) from StdRng.
 fn rng_uniform_f64(rng: &mut StdRng) -> f64 {
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     rng.random::<f64>()
 }
 

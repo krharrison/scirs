@@ -14,7 +14,7 @@
 use crate::error::{SignalError, SignalResult};
 use crate::lombscargle::lombscargle;
 use scirs2_core::numeric::Float;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 use std::time::Instant;
 

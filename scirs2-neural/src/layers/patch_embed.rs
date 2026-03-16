@@ -12,7 +12,7 @@ use crate::error::{NeuralError, Result};
 use crate::layers::{Layer, ParamLayer};
 use scirs2_core::ndarray::{Array, IxDyn, ScalarOperand};
 use scirs2_core::numeric::{Float, NumAssign};
-use scirs2_core::random::{Distribution, Rng, RngCore, Uniform};
+use scirs2_core::random::{Distribution, Rng, RngExt, Uniform};
 use std::fmt::Debug;
 use std::sync::RwLock;
 
@@ -125,7 +125,7 @@ impl<F: Float + Debug + ScalarOperand + Send + Sync + NumAssign + 'static> Patch
     /// * `embed_dim` — output embedding dimension
     /// * `use_bias` — whether to include a learnable bias term
     /// * `rng` — random number generator for weight initialisation
-    pub fn new<R: Rng + RngCore>(
+    pub fn new<R: Rng>(
         image_size: (usize, usize),
         patch_size: (usize, usize),
         in_channels: usize,

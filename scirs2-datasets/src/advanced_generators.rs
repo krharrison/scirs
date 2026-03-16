@@ -626,7 +626,7 @@ impl AdvancedGenerator {
         normal_data: &Array2<f64>,
         config: &AnomalyConfig,
     ) -> Result<Array2<f64>> {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut rng = thread_rng();
 
         match config.anomaly_type {
@@ -695,7 +695,7 @@ impl AdvancedGenerator {
     }
 
     fn generate_shuffle_indices(&self, n_samples: usize) -> Result<Vec<usize>> {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut rng = thread_rng();
         let mut indices: Vec<usize> = (0..n_samples).collect();
 

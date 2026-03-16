@@ -25,7 +25,7 @@ use crate::error::OptimizeResult;
 use crate::result::OptimizeResults;
 use scirs2_core::error::CoreResult as Result;
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 pub mod event_driven;
 pub mod liquid_state_machines;

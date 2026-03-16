@@ -421,7 +421,7 @@ fn create_sparse_dataset(
     n_features: usize,
     sparsity: f64,
 ) -> Result<Array2<f64>, Box<dyn std::error::Error>> {
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut rng = scirs2_core::random::rng();
     let mut data = Array2::zeros((n_samples, n_features));
 
@@ -442,7 +442,7 @@ fn create_drifting_dataset(
     _features: usize,
     drift_factor: f64,
 ) -> Result<Array2<f64>, Box<dyn std::error::Error>> {
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut rng = scirs2_core::random::rng();
     let mut data = Array2::zeros((n_samples, _features));
 
@@ -462,7 +462,7 @@ fn create_numerical_features(
     n_samples: usize,
     n_features: usize,
 ) -> Result<Array2<f64>, Box<dyn std::error::Error>> {
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut rng = scirs2_core::random::rng();
     let mut data = Array2::zeros((n_samples, n_features));
 
@@ -480,7 +480,7 @@ fn create_categorical_features(
     n_samples: usize,
     n_features: usize,
 ) -> Result<Array2<f64>, Box<dyn std::error::Error>> {
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut rng = scirs2_core::random::rng();
     let mut data = Array2::zeros((n_samples, n_features));
 
@@ -498,7 +498,7 @@ fn create_temporal_features(
     n_samples: usize,
     n_features: usize,
 ) -> Result<Array2<f64>, Box<dyn std::error::Error>> {
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut rng = scirs2_core::random::rng();
     let mut data = Array2::zeros((n_samples, n_features));
 
@@ -528,7 +528,7 @@ fn create_benchmark_dataset(
     n_samples: usize,
     n_features: usize,
 ) -> Result<Array2<f64>, Box<dyn std::error::Error>> {
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut rng = scirs2_core::random::rng();
     let mut data = Array2::zeros((n_samples, n_features));
 

@@ -7,11 +7,11 @@
 use crate::error::{StatsError, StatsResult};
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1, ArrayView2};
 use scirs2_core::numeric::{Float, NumCast, One, Zero};
-use scirs2_core::Rng;
 use scirs2_core::{
     simd_ops::{PlatformCapabilities, SimdUnifiedOps},
     validation::*,
 };
+use scirs2_core::{Rng, RngExt};
 use std::marker::PhantomData;
 
 /// Advanced SIMD configuration with platform detection
@@ -594,7 +594,7 @@ where
 /// Create RNG with optional seed
 #[allow(dead_code)]
 fn create_rng(seed: Option<u64>) -> impl Rng {
-    use scirs2_core::random::{rngs::StdRng, SeedableRng};
+    use scirs2_core::random::{rngs::StdRng, RngExt, SeedableRng};
     match seed {
         Some(s) => StdRng::seed_from_u64(s),
         None => {

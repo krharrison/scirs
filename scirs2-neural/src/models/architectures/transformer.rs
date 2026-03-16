@@ -14,7 +14,7 @@ use crate::layers::Layer;
 use crate::transformer::{TransformerDecoder, TransformerEncoder};
 use scirs2_core::ndarray::{Array, Array2, IxDyn, ScalarOperand};
 use scirs2_core::numeric::{Float, NumAssign};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::SimdUnifiedOps;
 use std::fmt::Debug;
 use std::sync::{Arc, RwLock};

@@ -6,8 +6,8 @@
 use scirs2_core::ndarray::{Array1, Array2};
 use scirs2_core::numeric::Complex;
 use scirs2_core::numeric::{Float, NumAssign};
-use scirs2_core::random::Rng;
 use scirs2_core::random::{Distribution, Normal, Uniform};
+use scirs2_core::random::{Rng, RngExt};
 use std::fmt::Debug;
 use std::iter::Sum;
 

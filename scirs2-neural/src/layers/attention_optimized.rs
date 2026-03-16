@@ -7,7 +7,7 @@ use crate::error::{NeuralError, Result};
 use crate::layers::{Layer, ParamLayer};
 use scirs2_core::ndarray::{Array, ArrayView, IxDyn, ScalarOperand, s, Array2, Axis};
 use scirs2_core::numeric::Float;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::sync::RwLock;
 use std::fmt::Debug;
 // SIMD optimizations using scirs2-core

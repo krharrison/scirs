@@ -1,5 +1,5 @@
 use scirs2_core::ndarray::{Array, ArrayBase, IxDyn, OwnedRepr};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_io::compression::ndarray::{
     compare_compression_algorithms, compress_array, compress_array_chunked, decompress_array,
     decompress_array_chunked,

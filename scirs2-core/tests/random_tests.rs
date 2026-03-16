@@ -12,7 +12,7 @@ mod random_tests {
     use approx::assert_abs_diff_eq;
     use ndarray::{Array, Ix2};
     use rand::seq::SliceRandom;
-    use rand::Rng;
+    use rand::{Rng, RngExt};
     use scirs2_core::random::optimized_arrays::*;
     use scirs2_core::random::*;
     use scirs2_core::random::{Distribution, Normal, Uniform};

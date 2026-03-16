@@ -6,7 +6,7 @@ use crate::error::{SignalError, SignalResult};
 use scirs2_core::ndarray::{Array1, ArrayView1};
 use scirs2_core::numeric::Complex64;
 use scirs2_core::numeric::{Float, NumCast};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::{
     simd_add_f32_adaptive, simd_fma_f32_ultra, simd_mul_f32_hyperoptimized, PlatformCapabilities,
 };
@@ -1067,7 +1067,7 @@ where
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     #[test]
     fn test_periodogram_sine_wave() {
         let a = vec![1.0, 2.0, 3.0, 4.0, 5.0];

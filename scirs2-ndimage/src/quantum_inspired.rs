@@ -17,7 +17,7 @@
 use scirs2_core::ndarray::{Array1, Array2, Array3, ArrayView2};
 use scirs2_core::numeric::Complex;
 use scirs2_core::numeric::{Float, FromPrimitive};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::f64::consts::PI;
 
 use crate::error::{NdimageError, NdimageResult};

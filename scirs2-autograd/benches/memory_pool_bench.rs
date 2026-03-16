@@ -1,7 +1,8 @@
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use scirs2_autograd::memory_pool::{global_pool, PooledArray, TensorPool};
 use scirs2_autograd::ndarray_ext::NdArray;
 use scirs2_core::ndarray;
+use std::hint::black_box;
 
 /// Benchmark direct allocation vs. pooled allocation.
 fn bench_allocation_strategies(c: &mut Criterion) {

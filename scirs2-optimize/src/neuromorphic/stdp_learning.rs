@@ -10,7 +10,7 @@
 
 use scirs2_core::error::CoreResult as Result;
 use scirs2_core::ndarray::{Array1, ArrayView1};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use statrs::statistics::Statistics;
 use std::collections::VecDeque;
 

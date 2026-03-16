@@ -1,6 +1,6 @@
 # scirs2-io TODO
 
-## v0.3.1 Completed
+## v0.3.2 Completed
 
 ### Classic Scientific Formats
 - [x] MATLAB `.mat` v4/v5 read/write with all data types, structures, cell arrays

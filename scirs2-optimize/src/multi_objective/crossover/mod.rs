@@ -2,7 +2,7 @@
 //!
 //! Various crossover strategies for generating offspring solutions.
 
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 /// Trait for crossover operators
 pub trait CrossoverOperator {

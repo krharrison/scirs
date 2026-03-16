@@ -4,7 +4,7 @@
 //! performance claims made in the spatial module.
 
 use scirs2_core::ndarray::Array2;
-use scirs2_core::random::{rngs::StdRng, Rng, SeedableRng};
+use scirs2_core::random::{rngs::StdRng, Rng, RngExt, SeedableRng};
 use scirs2_spatial::{
     distance::{euclidean, pdist},
     simd_distance::{

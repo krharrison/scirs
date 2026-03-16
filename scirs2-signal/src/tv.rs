@@ -37,7 +37,7 @@
 
 use crate::error::{SignalError, SignalResult};
 use scirs2_core::ndarray::{Array1, Array2, Array3, Axis};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 #[allow(unused_imports)]
 /// Variant of Total Variation regularization

@@ -2,7 +2,8 @@
 //!
 //! Provides numerical integration similar to scipy.integrate
 
-// Allow deprecated with_gil for callback patterns where GIL must be acquired from Rust
+// Callbacks acquire the GIL via Python::attach (pyo3 0.28+) since they are invoked
+// from Rust integration routines where the caller's Python<'_> token is not in scope.
 
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
@@ -222,8 +223,7 @@ fn quad_py(
 ) -> PyResult<Py<PyAny>> {
     let fun_clone = fun.clone().unbind();
     let f = |x: f64| -> f64 {
-        #[allow(deprecated)]
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let result = fun_clone
                 .bind(py)
                 .call1((x,))
@@ -283,8 +283,7 @@ fn solve_ivp_py(
     let fun_arc = std::sync::Arc::new(fun.clone().unbind());
     let f = move |t: f64, y: ArrayView1<f64>| -> Array1_17<f64> {
         let fun_clone = fun_arc.clone();
-        #[allow(deprecated)]
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let y_vec: Vec<f64> = y.to_vec();
             let result = fun_clone
                 .bind(py)

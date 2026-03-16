@@ -5,7 +5,7 @@
 
 use crate::random::core::Random;
 use rand::seq::SliceRandom;
-use rand::Rng;
+use rand::{Rng, RngExt};
 use rand_distr::{Distribution, Uniform};
 use std::collections::HashMap;
 

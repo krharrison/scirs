@@ -16,7 +16,7 @@ use std::time::{Duration, Instant};
 use tempfile::{NamedTempFile, TempDir};
 
 #[cfg(feature = "random")]
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 #[cfg(feature = "memory_efficient")]
 use crate::memory_efficient::MemoryMappedArray;

@@ -7,7 +7,7 @@
 use super::core::{PerspectiveTransform, RansacParams, RansacResult};
 use crate::error::{Result, VisionError};
 use scirs2_core::random::Random;
-use scirs2_core::random::{rngs::StdRng, seq::SliceRandom, RngCore, SeedableRng};
+use scirs2_core::random::{rngs::StdRng, seq::SliceRandom, Rng, RngExt, SeedableRng};
 
 /// Find a homography transformation using RANSAC
 ///

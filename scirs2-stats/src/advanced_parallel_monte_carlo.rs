@@ -10,7 +10,7 @@
 use crate::error::StatsResult;
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1};
 use scirs2_core::numeric::{Float, FromPrimitive, One, Zero};
-use scirs2_core::random::{rngs::StdRng, Rng, SeedableRng};
+use scirs2_core::random::{rngs::StdRng, Rng, RngExt, SeedableRng};
 use scirs2_core::simd_ops::SimdUnifiedOps;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};

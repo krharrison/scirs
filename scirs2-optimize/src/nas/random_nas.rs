@@ -119,7 +119,7 @@ impl RandomNAS {
         fitness: &F,
         seed: u64,
     ) -> Result<NASResult, OptimizeError> {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
 
         if self.n_trials == 0 {
             return Err(OptimizeError::InvalidParameter(

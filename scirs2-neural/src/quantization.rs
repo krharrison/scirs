@@ -476,7 +476,7 @@ impl QuantizationAwareTraining {
     pub fn add_quantization_noise(&self, tensor: &ArrayD<f32>, noise_scale: f32) -> ArrayD<f32> {
         let mut rng = scirs2_core::random::rng();
         tensor.mapv(|x| {
-            let noise: f32 = scirs2_core::random::Rng::random::<f32>(&mut rng) - 0.5;
+            let noise: f32 = scirs2_core::random::RngExt::random::<f32>(&mut rng) - 0.5;
             x + noise * noise_scale
         })
     }
@@ -766,7 +766,7 @@ mod tests {
     fn random_f32_array(rows: usize, cols: usize) -> Array2<f32> {
         let mut rng = scirs2_core::random::rng();
         let data: Vec<f32> = (0..rows * cols)
-            .map(|_| scirs2_core::random::Rng::random_range(&mut rng, -1.0f32..1.0f32))
+            .map(|_| scirs2_core::random::RngExt::random_range(&mut rng, -1.0f32..1.0f32))
             .collect();
         Array2::from_shape_vec((rows, cols), data).expect("Test: array creation")
     }

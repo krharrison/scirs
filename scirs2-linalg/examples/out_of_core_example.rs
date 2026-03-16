@@ -4,7 +4,7 @@
 //! matrices that are too large to fit in memory, even when quantized.
 
 use scirs2_core::ndarray::{Array1, Array2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_linalg::quantization::{out_of_core::ChunkedQuantizedMatrix, QuantizationMethod};
 use std::env;
 use std::path::{Path, PathBuf};

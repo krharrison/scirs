@@ -5,7 +5,7 @@
 use crate::error::StatsResult;
 use crate::propertybased_validation::ValidationReport;
 use scirs2_core::ndarray::{Array1, ArrayBase, ArrayView1, Data, Ix1};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::{HashMap, VecDeque};
 use std::time::{Duration, Instant, SystemTime};
 

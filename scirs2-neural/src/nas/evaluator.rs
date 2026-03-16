@@ -159,7 +159,7 @@ impl ArchitectureEvaluator {
         for _ in 0..batch_size {
             let mut probs = vec![0.1; num_classes];
             // Make one class more likely
-            use scirs2_core::random::Rng;
+            use scirs2_core::random::{Rng, RngExt};
             let idx = rng().random_range(0..num_classes);
             probs[idx] = 0.9;
             // Normalize

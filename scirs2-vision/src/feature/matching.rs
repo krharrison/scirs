@@ -14,7 +14,7 @@ use crate::error::{Result, VisionError};
 use crate::feature::{Descriptor, KeyPoint};
 use scirs2_core::ndarray::Array2;
 use scirs2_core::random::rngs::StdRng;
-use scirs2_core::random::{Rng, SeedableRng};
+use scirs2_core::random::{Rng, RngExt, SeedableRng};
 use std::collections::HashMap;
 
 /// Distance metrics for feature matching

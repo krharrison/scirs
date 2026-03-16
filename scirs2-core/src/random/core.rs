@@ -5,9 +5,10 @@
 
 use ::ndarray::{Array, Dimension, Ix2, IxDyn};
 use rand::rngs::StdRng;
-use rand::{Rng, RngCore, SeedableRng};
+use rand::{Rng, SeedableRng};
 use rand_distr::{Distribution, Uniform};
 use std::cell::RefCell;
+use std::convert::Infallible;
 
 /// Enhanced random number generator for scientific computing
 ///
@@ -68,18 +69,23 @@ pub fn thread_rng() -> Random<rand::rngs::ThreadRng> {
     Random::default()
 }
 
-// Implement RngCore for Random to forward to inner RNG
-impl<R: RngCore> RngCore for Random<R> {
-    fn next_u32(&mut self) -> u32 {
-        self.rng.next_u32()
+// Implement TryRng for Random to forward to inner RNG
+// In rand_core 0.10, TryRng is the base trait; Rng and RngCore are auto-implemented
+// for TryRng<Error = Infallible>.
+impl<R: Rng> rand::TryRng for Random<R> {
+    type Error = Infallible;
+
+    fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+        Ok(self.rng.next_u32())
     }
 
-    fn next_u64(&mut self) -> u64 {
-        self.rng.next_u64()
+    fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
+        Ok(self.rng.next_u64())
     }
 
-    fn fill_bytes(&mut self, dest: &mut [u8]) {
-        self.rng.fill_bytes(dest)
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Self::Error> {
+        self.rng.fill_bytes(dest);
+        Ok(())
     }
 }
 
@@ -96,12 +102,12 @@ impl<R: Rng> Random<R> {
         T: rand_distr::uniform::SampleUniform,
         B: rand_distr::uniform::SampleRange<T>,
     {
-        rand::Rng::random_range(&mut self.rng, range)
+        rand::RngExt::random_range(&mut self.rng, range)
     }
 
     /// Generate a random boolean
     pub fn random_bool(&mut self, p: f64) -> bool {
-        rand::Rng::random_bool(&mut self.rng, p)
+        rand::RngExt::random_bool(&mut self.rng, p)
     }
 
     /// Generate a random value of the inferred type
@@ -109,7 +115,7 @@ impl<R: Rng> Random<R> {
     where
         rand_distr::StandardUniform: rand_distr::Distribution<T>,
     {
-        rand::Rng::random(&mut self.rng)
+        rand::RngExt::random(&mut self.rng)
     }
 
     /// Backward-compat alias for `random_range`
@@ -132,7 +138,7 @@ impl<R: Rng> Random<R> {
         rand_distr::StandardUniform: rand_distr::Distribution<T>,
     {
         for item in slice.iter_mut() {
-            *item = rand::Rng::random(&mut self.rng);
+            *item = rand::RngExt::random(&mut self.rng);
         }
     }
 

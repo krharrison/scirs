@@ -197,7 +197,7 @@
 
 use crate::error::{Result, TextError};
 use scirs2_core::ndarray::{s, Array1, Array2, Array3, ArrayView2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use statrs::statistics::Statistics;
 use std::collections::HashMap;
 

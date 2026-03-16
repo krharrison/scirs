@@ -1679,7 +1679,7 @@ mod tests {
     }
 
     fn create_noisy_signal(clean: &[f64], noise_level: f64, seed: u64) -> Vec<f64> {
-        use scirs2_core::random::{Rng, SeedableRng, StdRng};
+        use scirs2_core::random::{Rng, RngExt, SeedableRng, StdRng};
         let mut rng = StdRng::seed_from_u64(seed);
         clean
             .iter()
@@ -1744,7 +1744,7 @@ mod tests {
     fn test_estimate_noise_mad() {
         // Create signal with known noise level
         let mut signal: Vec<f64> = (0..1000).map(|_| 0.0).collect();
-        use scirs2_core::random::{Rng, SeedableRng, StdRng};
+        use scirs2_core::random::{Rng, RngExt, SeedableRng, StdRng};
         let mut rng = StdRng::seed_from_u64(42);
         for x in signal.iter_mut() {
             *x = rng.random::<f64>() * 2.0 - 1.0;

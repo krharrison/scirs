@@ -10,7 +10,7 @@ use scirs2_core::ndarray::{Array1, ArrayView1};
 use scirs2_core::random::rngs::StdRng;
 #[allow(unused_imports)]
 use scirs2_core::random::{Cauchy, Distribution as RandDistribution};
-use scirs2_core::random::{Rng, SeedableRng};
+use scirs2_core::random::{Rng, RngExt, SeedableRng};
 
 /// Options for Dual Annealing algorithm
 #[derive(Debug, Clone)]

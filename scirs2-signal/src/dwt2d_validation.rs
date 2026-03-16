@@ -9,7 +9,7 @@ use crate::dwt::Wavelet;
 use crate::dwt2d::{dwt2d_decompose, dwt2d_reconstruct};
 use crate::error::{SignalError, SignalResult};
 use scirs2_core::ndarray::Array2;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use statrs::statistics::Statistics;
 use std::f64;
 use std::time::Instant;

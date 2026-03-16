@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use ndarray::{s, Array, Array1, Array2, Array3, Array4, Axis};
-use rand::Rng;
+use rand::{Rng, RngExt};
 use std::f32;
 use std::fmt::Debug;
 // Trait for all neural network layers

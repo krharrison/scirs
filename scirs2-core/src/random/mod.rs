@@ -158,9 +158,13 @@ pub use ecosystem_integration::{
 // Re-export external dependencies for convenience
 pub use ::ndarray::Dimension;
 pub use rand::prelude as rand_prelude;
+/// Backward-compatible re-export: `RngCore` is deprecated in rand_core 0.10
+/// (auto-implemented for all `Rng`). Kept for downstream crate compatibility.
+#[allow(deprecated)]
+pub use rand::rand_core::RngCore;
 pub use rand::rngs;
 pub use rand::seq::SliceRandom;
-pub use rand::{Rng, RngCore, SeedableRng};
+pub use rand::{Rng, RngExt, SeedableRng, TryRng};
 pub use rand_distr as rand_distributions;
 pub use rand_distr::uniform;
 
@@ -200,7 +204,7 @@ where
 ///
 /// ```
 /// use scirs2_core::random::rng;
-/// use scirs2_core::random::Rng;
+/// use scirs2_core::random::{Rng, RngExt};
 ///
 /// let mut rng = rng();
 /// let x: f64 = rng.random();
@@ -221,8 +225,7 @@ pub use rand_distr::{
     Binomial,
     Cauchy,
     ChiSquared,
-    // Multivariate distributions
-    Dirichlet as RandDirichlet,
+    // Multivariate distributions (Dirichlet moved to rand_distr::multi in 0.6)
     // Distribution trait
     Distribution,
     Exp,
@@ -253,6 +256,9 @@ pub use rand_distr::{
 
 // Re-export WeightedIndex from weighted submodule
 pub use rand_distr::weighted::WeightedIndex;
+
+// Dirichlet moved to rand_distr::multi in rand_distr 0.6
+pub use rand_distr::multi::Dirichlet as RandDirichlet;
 
 // Clean, unprefixed type aliases for common distributions (for easier use)
 // These allow `use scirs2_core::random::Normal;` instead of `use scirs2_core::random::RandNormal;`
@@ -671,7 +677,7 @@ impl<R: rand::Rng> Random<R> {
         T: rand_distr::uniform::SampleUniform,
         RNG: rand_distr::uniform::SampleRange<T>,
     {
-        rand::Rng::random_range(&mut self.rng, range)
+        rand::RngExt::random_range(&mut self.rng, range)
     }
 
     /// Generate a random value within the given range (rand-compatible range syntax)
@@ -680,7 +686,7 @@ impl<R: rand::Rng> Random<R> {
         T: rand_distr::uniform::SampleUniform,
         RNG: rand_distr::uniform::SampleRange<T>,
     {
-        rand::Rng::random_range(&mut self.rng, range)
+        rand::RngExt::random_range(&mut self.rng, range)
     }
 
     /// Generate a random f64 value between 0.0 and 1.0
@@ -690,7 +696,7 @@ impl<R: rand::Rng> Random<R> {
 
     /// Generate a random f64 value using the underlying RNG (convenience method)
     pub fn random_f64_raw(&mut self) -> f64 {
-        rand::Rng::random(&mut self.rng)
+        rand::RngExt::random(&mut self.rng)
     }
 
     /// Generate a random boolean value
@@ -749,18 +755,22 @@ impl Random<rand::rngs::ThreadRng> {
     }
 }
 
-// Implement required traits for the legacy Random struct
-impl<R: rand::RngCore> rand::RngCore for Random<R> {
-    fn next_u32(&mut self) -> u32 {
-        self.rng.next_u32()
+// Implement TryRng for the legacy Random struct (rand_core 0.10 trait hierarchy).
+// TryRng<Error=Infallible> auto-provides Rng and (deprecated) RngCore.
+impl<R: rand::Rng> rand::TryRng for Random<R> {
+    type Error = std::convert::Infallible;
+
+    fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+        Ok(self.rng.next_u32())
     }
 
-    fn next_u64(&mut self) -> u64 {
-        self.rng.next_u64()
+    fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
+        Ok(self.rng.next_u64())
     }
 
-    fn fill_bytes(&mut self, dest: &mut [u8]) {
-        self.rng.fill_bytes(dest)
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Self::Error> {
+        self.rng.fill_bytes(dest);
+        Ok(())
     }
 }
 
@@ -915,7 +925,7 @@ pub mod essentials {
     pub use crate::random::rand_distributions::{Normal, Uniform};
     pub use crate::random::{
         random_normal_array, random_uniform_array, seeded_rng, thread_rng, Beta, Categorical,
-        Random, Rng, RngCore, SeedableRng, WeightedChoice,
+        Random, Rng, SeedableRng, WeightedChoice,
     };
 }
 

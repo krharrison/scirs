@@ -35,7 +35,7 @@ use crate::random::{
     ParallelRng, ThreadLocalRngPool,
 };
 use ::ndarray::{Array, Array1, Array2, Ix2};
-use rand::Rng;
+use rand::{Rng, RngExt};
 use rand_distr::{Distribution, Normal, Uniform};
 use std::collections::HashMap;
 

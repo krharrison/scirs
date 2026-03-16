@@ -9,7 +9,7 @@ use crate::lombscargle_enhanced::{lombscargle_enhanced, LombScargleConfig, Windo
 use super::types::{EnhancedValidationConfig, EnhancedValidationResult, SciPyComparisonResult};
 use super::analytical::validate_analytical_cases;
 use scirs2_core::random::prelude::*;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::time::Instant;
 
 /// Enhanced validation with comprehensive testing including SciPy reference comparison,

@@ -11,7 +11,7 @@ use crate::unconstrained::result::OptimizeResult;
 use crate::unconstrained::utils::check_convergence;
 use crate::unconstrained::Options;
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1, Axis};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_sparse::{csr_array::CsrArray, sparray::SparseArray};
 
 /// Options for sparse optimization algorithms

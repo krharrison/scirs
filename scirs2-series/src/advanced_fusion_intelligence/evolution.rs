@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 
 use crate::error::Result;
+use scirs2_core::random::RngExt;
 
 /// Engine for evolving neural architectures
 #[allow(dead_code)]
@@ -307,7 +308,7 @@ impl<F: Float + Debug + Clone + FromPrimitive> EvolutionEngine<F> {
             // Select random individuals for tournament
             for _ in 0..tournament_size {
                 let idx =
-                    scirs2_core::random::Rng::random_range(&mut rng, 0..self.population.len());
+                    scirs2_core::random::RngExt::random_range(&mut rng, 0..self.population.len());
                 tournament.push(&self.population[idx]);
             }
 
@@ -419,7 +420,7 @@ impl<F: Float + Debug + Clone + FromPrimitive> EvolutionEngine<F> {
         let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(42);
         let max_len = parent1.layers.len().min(parent2.layers.len());
         let crossover_point = if max_len > 0 {
-            scirs2_core::random::Rng::random_range(&mut rng, 0..max_len)
+            scirs2_core::random::RngExt::random_range(&mut rng, 0..max_len)
         } else {
             0
         };
@@ -511,13 +512,13 @@ impl<F: Float + Debug + Clone + FromPrimitive> Architecture<F> {
     /// Create random architecture
     pub fn random() -> Self {
         let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(42);
-        let num_layers = 3 + scirs2_core::random::Rng::random_range(&mut rng, 0..5); // 3-7 layers
+        let num_layers = 3 + scirs2_core::random::RngExt::random_range(&mut rng, 0..5); // 3-7 layers
         let mut layers = Vec::new();
 
         for i in 0..num_layers {
             let layer = LayerConfig {
                 layer_type: LayerType::Dense, // Simplified to Dense for now
-                size: 32 + scirs2_core::random::Rng::random_range(&mut rng, 0..256), // 32-287 neurons
+                size: 32 + scirs2_core::random::RngExt::random_range(&mut rng, 0..256), // 32-287 neurons
                 activation: ActivationFunction::ReLU, // Simplified to ReLU
                 parameters: vec![
                     F::from_f64(scirs2_core::random::random::<f64>())
@@ -725,7 +726,7 @@ impl MutationOperator {
         let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(42);
         let new_layer = LayerConfig {
             layer_type: LayerType::Dense,
-            size: 32 + scirs2_core::random::Rng::random_range(&mut rng, 0..128),
+            size: 32 + scirs2_core::random::RngExt::random_range(&mut rng, 0..128),
             activation: ActivationFunction::ReLU,
             parameters: vec![
                 F::from_f64(scirs2_core::random::random::<f64>())
@@ -747,7 +748,7 @@ impl MutationOperator {
             // Keep at least 2 layers
             let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(42);
             let remove_idx =
-                scirs2_core::random::Rng::random_range(&mut rng, 0..architecture.layers.len());
+                scirs2_core::random::RngExt::random_range(&mut rng, 0..architecture.layers.len());
             architecture.layers.remove(remove_idx);
         }
         Ok(())
@@ -806,7 +807,7 @@ impl CrossoverOperator {
         let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(42);
         let max_len = parent1.layers.len().min(parent2.layers.len());
         let crossover_point = if max_len > 0 {
-            scirs2_core::random::Rng::random_range(&mut rng, 0..max_len)
+            scirs2_core::random::RngExt::random_range(&mut rng, 0..max_len)
         } else {
             0
         };
@@ -836,8 +837,8 @@ impl CrossoverOperator {
         }
 
         let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(42);
-        let point1 = scirs2_core::random::Rng::random_range(&mut rng, 0..len);
-        let point2 = scirs2_core::random::Rng::random_range(&mut rng, 0..len);
+        let point1 = scirs2_core::random::RngExt::random_range(&mut rng, 0..len);
+        let point2 = scirs2_core::random::RngExt::random_range(&mut rng, 0..len);
         let (start, end) = if point1 < point2 {
             (point1, point2)
         } else {

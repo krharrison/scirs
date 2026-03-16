@@ -21,7 +21,7 @@ use scirs2_series::utils::{difference_series, seasonal_difference_series};
 use std::collections::HashMap;
 
 /// Python wrapper for time series data
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Debug)]
 pub struct PyTimeSeries {
     pub(crate) values: Array1<f64>,

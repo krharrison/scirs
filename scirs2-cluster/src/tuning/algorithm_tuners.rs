@@ -5,7 +5,7 @@
 
 use scirs2_core::ndarray::{Array1, Array2, ArrayView2};
 use scirs2_core::numeric::{Float, FromPrimitive};
-use scirs2_core::random::{rng, Rng, SeedableRng};
+use scirs2_core::random::{rng, Rng, RngExt, SeedableRng};
 use std::collections::HashMap;
 use std::fmt::Debug;
 

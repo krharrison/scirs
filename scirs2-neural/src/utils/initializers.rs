@@ -29,7 +29,7 @@
 use crate::error::{NeuralError, Result};
 use scirs2_core::ndarray::{Array, Dimension, IxDyn};
 use scirs2_core::numeric::{Float, NumAssign};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::fmt::Debug;
 
 // ============================================================================

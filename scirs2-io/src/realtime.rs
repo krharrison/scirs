@@ -53,7 +53,7 @@ use crate::error::{IoError, Result};
 use futures::{SinkExt, Stream, StreamExt};
 use scirs2_core::ndarray::{Array1, Array2, ArrayD, ArrayView1, IxDyn};
 use scirs2_core::numeric::ScientificNumber;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use serde_json;
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};

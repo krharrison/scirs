@@ -180,7 +180,7 @@ mod tests {
 
     #[allow(dead_code)]
     fn create_test_dataset(_n_samples: usize, nfeatures: usize) -> Array2<f64> {
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let mut rng = scirs2_core::random::rng();
         let mut data = Array2::zeros((_n_samples, nfeatures));
 

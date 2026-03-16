@@ -5,7 +5,7 @@
 
 use super::neural_network::{ActivationFunction, AttentionHead, LayerNorm};
 use crate::error::SparseResult;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 /// Transformer model for advanced pattern recognition
 #[derive(Debug, Clone)]

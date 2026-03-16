@@ -5,7 +5,7 @@ use crate::reinforcement::environments::Environment;
 use crate::reinforcement::replay_buffer::{PrioritizedReplayBuffer, ReplayBuffer, ReplayBufferTrait};
 use crate::reinforcement::{ExperienceBatch, LossInfo, RLAgent};
 use scirs2_core::ndarray::prelude::*;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::ndarray::ArrayView1;
 /// Training configuration for RL algorithms
 #[derive(Debug, Clone)]

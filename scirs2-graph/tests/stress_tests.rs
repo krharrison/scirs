@@ -4,7 +4,7 @@
 //! with millions of nodes and edges.
 
 use scirs2_core::error::CoreResult;
-use scirs2_core::random::{rng, Rng};
+use scirs2_core::random::{rng, Rng, RngExt};
 use scirs2_graph::{algorithms, generators, measures, DiGraph, Graph};
 use std::time::Instant;
 

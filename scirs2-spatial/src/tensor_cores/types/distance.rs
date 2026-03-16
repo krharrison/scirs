@@ -6,7 +6,7 @@ use std::time::Instant;
 
 use crate::error::{SpatialError, SpatialResult};
 use scirs2_core::ndarray::{s, Array1, Array2, ArrayView2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 use super::super::functions::detect_tensor_core_capabilities;
 use super::enums::{

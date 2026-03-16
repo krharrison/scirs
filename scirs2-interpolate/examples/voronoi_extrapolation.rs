@@ -4,7 +4,7 @@
 //! queries outside the convex hull of the input data points.
 
 use scirs2_core::ndarray::{Array1, Array2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_interpolate::voronoi::{
     constant_value_extrapolation, inverse_distance_extrapolation, linear_gradient_extrapolation,
     make_sibson_interpolator, nearest_neighbor_extrapolation,

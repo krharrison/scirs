@@ -8,7 +8,7 @@ use crate::result::OptimizeResults;
 use scirs2_core::ndarray::{Array1, ArrayView1};
 // Unused import
 // use scirs2_core::error::CoreResult;
-use scirs2_core::random::{rng, Rng};
+use scirs2_core::random::{rng, Rng, RngExt};
 use std::collections::HashMap;
 
 /// Q-Learning optimizer for optimization problems

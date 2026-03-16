@@ -7,7 +7,7 @@
 use crate::error::{SpatialError, SpatialResult};
 use scirs2_core::ndarray::Array1;
 use scirs2_core::numeric::Complex64;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::f64::consts::SQRT_2;
 
 /// Complex number type for quantum states

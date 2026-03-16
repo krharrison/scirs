@@ -15,7 +15,7 @@
 //!   gated recurrent aggregation for the forward pass)
 
 use scirs2_core::ndarray::{Array1, Array2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 use crate::error::{GraphError, Result};
 use crate::gnn::gcn::CsrMatrix;

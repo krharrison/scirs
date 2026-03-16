@@ -5,7 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/scirs2)](https://pypi.org/project/scirs2/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Python](https://img.shields.io/pypi/pyversions/scirs2)](https://pypi.org/project/scirs2/)
-[![Version](https://img.shields.io/badge/version-0.3.1-green)]()
+[![Version](https://img.shields.io/badge/version-0.3.2-green)]()
 
 ## Overview
 
@@ -44,11 +44,11 @@ scirs2-python/
 │   ├── transform.rs    - Dimensionality reduction
 │   ├── text.rs         - NLP and text processing
 │   ├── vision.rs       - Computer vision
-│   ├── linalg_ext.rs   - Extended linear algebra (v0.3.1+)
-│   ├── signal_ext.rs   - Extended signal processing (v0.3.1+)
-│   ├── optimize_ext.rs - Extended optimization (v0.3.1+)
+│   ├── linalg_ext.rs   - Extended linear algebra (v0.3.2+)
+│   ├── signal_ext.rs   - Extended signal processing (v0.3.2+)
+│   ├── optimize_ext.rs - Extended optimization (v0.3.2+)
 │   └── stats/
-│       └── mcmc_gp.rs  - MCMC and Gaussian process bindings (v0.3.1+)
+│       └── mcmc_gp.rs  - MCMC and Gaussian process bindings (v0.3.2+)
 ├── tests/
 │   └── test_module_structure.py
 ├── scirs2.pyi          - Type stubs
@@ -235,7 +235,7 @@ seasonal = decomp['seasonal']
 residual = decomp['residual']
 ```
 
-### MCMC and Gaussian Processes (v0.3.1+)
+### MCMC and Gaussian Processes (v0.3.2+)
 
 ```python
 import numpy as np
@@ -256,7 +256,7 @@ sampler = scirs2.MetropolisHastings(log_prob_fn=my_log_prob, step_size=0.1)
 samples = sampler.sample(initial=np.zeros(3), n_samples=10000, burnin=1000)
 ```
 
-### Extended Optimization (v0.3.1+)
+### Extended Optimization (v0.3.2+)
 
 ```python
 import numpy as np

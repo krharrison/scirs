@@ -51,7 +51,7 @@ where
     for node in &nodes {
         let mut fluids = vec![0.0; num_communities];
         // Assign random initial fluid
-        use scirs2_core::random::Rng;
+        use scirs2_core::random::{Rng, RngExt};
         let initial_fluid = rng.random_range(0..num_communities);
         fluids[initial_fluid] = 1.0;
         node_fluids.insert(node.clone(), fluids);
@@ -101,7 +101,7 @@ where
                 }
             } else {
                 // If all fluids are zero, assign random fluid
-                use scirs2_core::random::Rng;
+                use scirs2_core::random::{Rng, RngExt};
                 let random_fluid = rng.random_range(0..num_communities);
                 fluid_sums[random_fluid] = 1.0;
             }

@@ -52,7 +52,7 @@ use crate::random::{
     scientific::*,
 };
 use ::ndarray::{Array1, Array2, Array3, ArrayD, Dimension, Ix2};
-use rand::Rng;
+use rand::{Rng, RngExt};
 use rand_distr::{Distribution, Normal, Uniform};
 use std::collections::HashMap;
 

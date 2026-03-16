@@ -536,7 +536,7 @@ where
                 values.push(value);
             } else {
                 let j = {
-                    use scirs2_core::random::Rng;
+                    use scirs2_core::random::{Rng, RngExt};
                     let mut rng = scirs2_core::random::thread_rng();
                     rng.random_range(0..total_count)
                 };

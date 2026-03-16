@@ -22,7 +22,7 @@
 //!    that use that atom, using a rank-1 SVD update.
 
 use scirs2_core::ndarray::{Array1, Array2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_linalg::svd;
 
 use crate::error::{Result, TransformError};

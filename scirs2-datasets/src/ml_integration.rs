@@ -443,7 +443,7 @@ impl MLPipeline {
 
     fn random_oversample(&self, dataset: &Dataset, randomstate: Option<u64>) -> Result<Dataset> {
         use scirs2_core::random::prelude::*;
-        use scirs2_core::random::{rngs::StdRng, RngCore, SeedableRng};
+        use scirs2_core::random::{rngs::StdRng, RngExt, SeedableRng};
         use std::collections::HashMap;
 
         let target = dataset.target.as_ref().ok_or_else(|| {
@@ -476,7 +476,7 @@ impl MLPipeline {
         }
 
         // Create RNG
-        let mut rng: Box<dyn RngCore> = match randomstate {
+        let mut rng: Box<dyn scirs2_core::random::Rng> = match randomstate {
             Some(seed) => Box::new(StdRng::seed_from_u64(seed)),
             None => Box::new(thread_rng()),
         };

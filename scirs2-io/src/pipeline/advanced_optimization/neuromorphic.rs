@@ -4,7 +4,7 @@
 //! neural networks, synaptic plasticity, and bio-inspired adaptation mechanisms.
 
 use crate::error::{IoError, Result};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 
 use super::config::NeuromorphicConfig;

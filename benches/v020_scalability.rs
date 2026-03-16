@@ -16,9 +16,11 @@
 use criterion::{
     criterion_group, criterion_main, BenchmarkId, Criterion, SamplingMode, Throughput,
 };
+use ndarray_rand::rand::rngs::StdRng;
+use ndarray_rand::rand::SeedableRng;
+use ndarray_rand::rand_distr::{Distribution, Uniform};
 use rayon::prelude::*;
 use scirs2_core::ndarray::{Array1, Array2, RandomExt};
-use scirs2_core::random::{ChaCha8Rng, Distribution, SeedableRng, Uniform};
 use std::hint::black_box;
 use std::time::Duration;
 
@@ -164,7 +166,7 @@ fn bench_n_log_n_complexity_scaling(c: &mut Criterion) {
     let sizes = [1_000, 10_000, 100_000, 1_000_000];
 
     for &size in &sizes {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = uniform_f64(-1000.0, 1000.0);
         let data: Vec<f64> = (0..size).map(|_| dist.sample(&mut rng)).collect();
 
@@ -194,7 +196,7 @@ fn bench_quadratic_complexity_scaling(c: &mut Criterion) {
     let sizes = [32, 64, 128, 256, 512];
 
     for &size in &sizes {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = uniform_f64(-1.0, 1.0);
 
         let matrix = Array2::random_using((size, size), dist, &mut rng);
@@ -225,7 +227,7 @@ fn bench_cubic_complexity_scaling(c: &mut Criterion) {
     let sizes = [16, 32, 64, 128, 256, 512];
 
     for &size in &sizes {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = uniform_f64(-1.0, 1.0);
 
         let a = Array2::random_using((size, size), dist, &mut rng);
@@ -256,7 +258,7 @@ fn bench_parallel_efficiency_matmul(c: &mut Criterion) {
     group.measurement_time(Duration::from_secs(10));
 
     let size = 512;
-    let mut rng = ChaCha8Rng::seed_from_u64(42);
+    let mut rng = StdRng::seed_from_u64(42);
     let dist = uniform_f64(-1.0, 1.0);
 
     let a = Array2::random_using((size, size), dist, &mut rng);
@@ -314,7 +316,7 @@ fn bench_parallel_efficiency_fft(c: &mut Criterion) {
     group.measurement_time(Duration::from_secs(8));
 
     let size = 1_048_576; // 1M points
-    let mut rng = ChaCha8Rng::seed_from_u64(42);
+    let mut rng = StdRng::seed_from_u64(42);
     let dist = uniform_f64(-1.0, 1.0);
 
     let signal = Array1::random_using(size, dist, &mut rng);
@@ -379,7 +381,7 @@ fn bench_batch_processing_scaling(c: &mut Criterion) {
     let batch_sizes = [1, 10, 100, 1000];
 
     for &batch_size in &batch_sizes {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = uniform_f64(-1.0, 1.0);
 
         // Create batch of systems to solve

@@ -79,7 +79,7 @@ impl<F: Float + Debug + ScalarOperand + Send + Sync + NumAssign + 'static> Dense
     /// * `output_dim` - Number of output features
     /// * `activation_name` - Optional activation function name
     /// * `rng` - Random number generator for weight initialization
-    pub fn new<R: scirs2_core::random::Rng + scirs2_core::random::RngCore>(
+    pub fn new<R: scirs2_core::random::Rng>(
         input_dim: usize,
         output_dim: usize,
         activation_name: Option<&str>,

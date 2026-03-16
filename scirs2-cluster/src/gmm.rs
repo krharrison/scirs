@@ -5,7 +5,7 @@
 
 use scirs2_core::ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Axis, ScalarOperand};
 use scirs2_core::numeric::{Float, FromPrimitive};
-use scirs2_core::random::{Rng, SeedableRng};
+use scirs2_core::random::{Rng, RngExt, SeedableRng};
 use std::f64::consts::PI;
 use std::fmt::Debug;
 use std::iter::Sum;

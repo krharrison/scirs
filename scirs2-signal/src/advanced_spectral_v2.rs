@@ -1681,6 +1681,7 @@ fn hann_window(size: usize) -> Vec<f64> {
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
+    use scirs2_core::random::RngExt;
     use scirs2_core::Rng;
 
     fn generate_test_signal(n: usize, freq: f64, fs: f64) -> Array1<f64> {

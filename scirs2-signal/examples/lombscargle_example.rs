@@ -1,4 +1,4 @@
-use scirs2_core::random::{rng, Rng};
+use scirs2_core::random::{rng, Rng, RngExt};
 use scirs2_signal::lombscargle::{find_peaks, lombscargle, significance_levels, AutoFreqMethod};
 use std::error::Error;
 use std::f64::consts::PI;

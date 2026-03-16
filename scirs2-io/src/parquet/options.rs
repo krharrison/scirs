@@ -143,7 +143,7 @@ impl ParquetWriteOptions {
     pub fn to_writer_properties(&self) -> parquet::file::properties::WriterProperties {
         parquet::file::properties::WriterProperties::builder()
             .set_compression(self.compression.to_parquet_compression())
-            .set_max_row_group_size(self.row_group_size)
+            .set_max_row_group_row_count(Some(self.row_group_size))
             .set_data_page_size_limit(self.data_page_size)
             .set_dictionary_enabled(self.enable_dictionary)
             .set_statistics_enabled(if self.enable_statistics {

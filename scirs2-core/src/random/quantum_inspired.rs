@@ -66,7 +66,7 @@ use crate::random::{
     parallel::{ParallelRng, ThreadLocalRngPool},
 };
 use ::ndarray::{s, Array1, Array2, Array3, Axis};
-use rand::Rng;
+use rand::{Rng, RngExt};
 use rand_distr::{Distribution, Normal, Uniform};
 use std::collections::HashMap;
 use std::f64::consts::PI;

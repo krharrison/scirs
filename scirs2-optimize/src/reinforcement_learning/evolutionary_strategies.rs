@@ -5,7 +5,7 @@
 use crate::error::OptimizeResult;
 use crate::result::OptimizeResults;
 use scirs2_core::ndarray::{Array1, ArrayView1};
-use scirs2_core::random::{rng, Rng};
+use scirs2_core::random::{rng, Rng, RngExt};
 // Unused import
 // use scirs2_core::error::CoreResult;
 

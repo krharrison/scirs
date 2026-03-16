@@ -24,8 +24,10 @@
 use criterion::{
     criterion_group, criterion_main, BenchmarkId, Criterion, SamplingMode, Throughput,
 };
+use ndarray_rand::rand::rngs::StdRng;
+use ndarray_rand::rand::SeedableRng;
+use ndarray_rand::rand_distr::Uniform;
 use scirs2_core::ndarray::{Array1, Array2, RandomExt};
-use scirs2_core::random::{ChaCha8Rng, Distribution, SeedableRng, Uniform};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::File;
@@ -147,7 +149,7 @@ fn bench_linalg_matmul(c: &mut Criterion) {
     let sizes = [32, 64, 128, 256, 512];
 
     for &size in &sizes {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = Uniform::new(-1.0f64, 1.0f64).expect("Failed to create uniform distribution");
 
         let a = Array2::random_using((size, size), dist, &mut rng);
@@ -182,7 +184,7 @@ fn bench_linalg_decompositions(c: &mut Criterion) {
     let sizes = [32, 64, 128, 256];
 
     for &size in &sizes {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = Uniform::new(-1.0f64, 1.0f64).expect("Failed to create uniform distribution");
 
         let a = Array2::random_using((size, size), dist, &mut rng);
@@ -235,7 +237,7 @@ fn bench_fft_operations(c: &mut Criterion) {
     let sizes = [64, 128, 256, 512, 1024, 2048, 4096];
 
     for &size in &sizes {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = Uniform::new(-1.0f64, 1.0f64).expect("Failed to create uniform distribution");
 
         let signal = Array1::random_using(size, dist, &mut rng);
@@ -270,7 +272,7 @@ fn bench_stats_operations(c: &mut Criterion) {
     let sizes = [1000, 10_000, 100_000, 1_000_000];
 
     for &size in &sizes {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = Uniform::new(-1.0f64, 1.0f64).expect("Failed to create uniform distribution");
 
         let data = Array1::random_using(size, dist, &mut rng);
@@ -398,7 +400,7 @@ fn bench_clustering_operations(c: &mut Criterion) {
     ];
 
     for &(n_points, n_clusters) in &configs {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = Uniform::new(-10.0f64, 10.0f64).expect("Failed to create uniform distribution");
 
         let data = Array2::random_using((n_points, 2), dist, &mut rng);
@@ -433,7 +435,7 @@ fn bench_signal_processing(c: &mut Criterion) {
     let kernel_size = 21;
 
     for &size in &signal_sizes {
-        let mut rng = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = StdRng::seed_from_u64(42);
         let dist = Uniform::new(-1.0f64, 1.0f64).expect("Failed to create uniform distribution");
 
         let signal = Array1::random_using(size, dist, &mut rng);

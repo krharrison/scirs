@@ -1,6 +1,6 @@
 # SciRS2 Integration Tests
 
-Cross-crate integration test suite for the SciRS2 ecosystem, v0.3.1.
+Cross-crate integration test suite for the SciRS2 ecosystem, v0.3.2.
 
 ## Purpose
 
@@ -10,7 +10,7 @@ All tests run with `--all-features` so that every optional sub-crate is exercise
 
 ---
 
-## Integration Scenarios Tested (v0.3.1)
+## Integration Scenarios Tested (v0.3.2)
 
 ### autograd + neural
 
@@ -126,7 +126,7 @@ scirs2-integration-tests/
 
 ---
 
-## Current Status (v0.3.1)
+## Current Status (v0.3.2)
 
 - All five integration scenarios above are implemented and passing
 - 100% of tests pass as part of the full workspace test suite (`cargo nextest run --all-features --workspace`)

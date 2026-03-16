@@ -6,7 +6,7 @@
 
 use crate::error::{SpatialError, SpatialResult};
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1, ArrayView2};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::VecDeque;
 
 /// Bio-inspired competitive learning for spatial clustering

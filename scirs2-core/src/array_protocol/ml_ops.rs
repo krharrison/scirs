@@ -20,7 +20,7 @@ use std::any::{Any, TypeId};
 use std::collections::HashMap;
 
 use ::ndarray::{Array, Axis, Ix1, Ix2, Ix3, Ix4, IxDyn};
-use rand::{Rng, SeedableRng};
+use rand::{Rng, RngExt, SeedableRng};
 
 use crate::array_protocol::operations::OperationError;
 use crate::array_protocol::{

@@ -6,7 +6,7 @@ use crate::error::{SignalError, SignalResult};
 use scirs2_core::ndarray::Array2;
 use scirs2_core::numeric::Complex64;
 use scirs2_core::numeric::{Float, NumCast};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::fmt::Debug;
 
 #[allow(unused_imports)]
@@ -40,7 +40,7 @@ use std::fmt::Debug;
 /// let n = 1024;
 /// let fs = 100.0;
 /// let t: Vec<f64> = (0..n).map(|i| i as f64 / fs).collect();
-/// use scirs2_core::random::Rng;
+/// use scirs2_core::random::{Rng, RngExt};
 /// let mut rng = scirs2_core::random::rng();
 /// let signal: Vec<f64> = t.iter()
 ///     .map(|&ti| (2.0 * PI * 10.0 * ti).sin() + 0.1 * rng.random_range(0.0..1.0))

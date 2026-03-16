@@ -109,7 +109,7 @@ impl<F: Float + Debug + ScalarOperand + Send + Sync + SimdUnifiedOps + NumAssign
     /// * `rng` - Random number generator for weight initialization
     /// # Returns
     /// * A new LSTM layer
-    pub fn new<R: scirs2_core::random::Rng + scirs2_core::random::RngCore>(
+    pub fn new<R: scirs2_core::random::Rng>(
         input_size: usize,
         hidden_size: usize,
         rng: &mut R,

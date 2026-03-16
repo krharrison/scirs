@@ -14,6 +14,7 @@ use super::types::{Node2VecConfig, RandomWalk};
 use crate::base::{DiGraph, EdgeWeight, Graph, Node};
 use crate::error::Result;
 use scirs2_core::random::seq::SliceRandom;
+use scirs2_core::random::RngExt;
 
 /// Node2Vec embedding algorithm
 ///

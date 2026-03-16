@@ -501,7 +501,7 @@ fn test_wavelet_denoising_workflow() {
     let mut signal = generate_test_signal(256);
 
     // Add noise
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut rng = scirs2_core::random::thread_rng();
     for val in signal.iter_mut() {
         *val += rng.gen_range(-0.1..0.1);

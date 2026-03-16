@@ -391,7 +391,7 @@ fn generate_brief_pattern() -> Vec<(i32, i32, i32, i32)> {
     let max_offset = 12i32;
 
     use scirs2_core::random::rngs::StdRng;
-    use scirs2_core::random::{Rng, SeedableRng};
+    use scirs2_core::random::{Rng, RngExt, SeedableRng};
 
     let mut rng = StdRng::seed_from_u64(42); // Fixed seed for reproducibility
 

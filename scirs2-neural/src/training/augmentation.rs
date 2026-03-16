@@ -19,7 +19,7 @@ use crate::error::{NeuralError, Result};
 use scirs2_core::ndarray::{s, Array2, Array3, Array4, Axis, ScalarOperand};
 use scirs2_core::numeric::{Float, FromPrimitive, NumAssign};
 use scirs2_core::random::rngs::SmallRng;
-use scirs2_core::random::{Distribution, Normal, RandBeta, Rng, SeedableRng};
+use scirs2_core::random::{Distribution, Normal, RandBeta, Rng, RngExt, SeedableRng};
 use std::fmt::Debug;
 
 // ---------------------------------------------------------------------------

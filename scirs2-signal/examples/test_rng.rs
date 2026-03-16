@@ -1,4 +1,4 @@
-use scirs2_core::random::{rngs::StdRng, Rng, SeedableRng};
+use scirs2_core::random::{rngs::StdRng, Rng, RngExt, SeedableRng};
 
 #[allow(dead_code)]
 fn main() {

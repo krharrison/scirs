@@ -278,7 +278,7 @@ where
         .into_par_iter()
         .map(|sample_idx| {
             use scirs2_core::random::rngs::StdRng;
-            use scirs2_core::random::{Rng, SeedableRng};
+            use scirs2_core::random::{Rng, RngExt, SeedableRng};
 
             // Create deterministic RNG for reproducibility
             let mut rng = StdRng::seed_from_u64(sample_idx as u64);

@@ -72,7 +72,7 @@ where
                 .collect();
 
             // Choose randomly among ties
-            use scirs2_core::random::Rng;
+            use scirs2_core::random::{Rng, RngExt};
             let new_label = best_labels[rng.random_range(0..best_labels.len())];
 
             if labels[i] != new_label {

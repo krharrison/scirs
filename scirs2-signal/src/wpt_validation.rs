@@ -9,7 +9,7 @@ use crate::wpt::{reconstruct_from_nodes, wp_decompose, WaveletPacketTree};
 use scirs2_core::ndarray::ArrayView1;
 use scirs2_core::numeric::{Float, NumCast};
 use scirs2_core::random::prelude::*;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::simd_ops::SimdUnifiedOps;
 use scirs2_core::validation::{check_finite, check_positive};
 use std::collections::HashMap;

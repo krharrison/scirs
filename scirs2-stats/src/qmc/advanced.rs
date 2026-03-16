@@ -7,7 +7,7 @@ use crate::error::{StatsError, StatsResult as Result};
 use crate::error_handling_v2::ErrorCode;
 use crate::unified_error_handling::global_error_handler;
 use scirs2_core::ndarray::{Array1, Array2};
-use scirs2_core::random::{rngs::StdRng, Rng, SeedableRng};
+use scirs2_core::random::{rngs::StdRng, Rng, RngExt, SeedableRng};
 use scirs2_core::validation::*;
 use statrs::statistics::Statistics;
 use std::collections::HashMap;

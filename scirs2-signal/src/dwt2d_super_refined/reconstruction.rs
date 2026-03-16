@@ -7,7 +7,7 @@ use super::types::*;
 use crate::dwt::Wavelet;
 use crate::error::{SignalError, SignalResult};
 use scirs2_core::ndarray::{Array2, Array3};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 /// Apply perceptual coefficient processing
 pub fn apply_perceptual_coefficient_processing(

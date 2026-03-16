@@ -6,7 +6,7 @@
 use crate::error::{StatsError, StatsResult as Result};
 use scirs2_core::ndarray::{Array1, Array2};
 use scirs2_core::validation::*;
-use scirs2_core::Rng;
+use scirs2_core::{Rng, RngExt};
 use std::fmt::Debug;
 
 /// Conditional distribution trait for Gibbs sampling

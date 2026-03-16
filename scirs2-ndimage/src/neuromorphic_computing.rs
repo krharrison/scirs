@@ -17,7 +17,7 @@
 
 use scirs2_core::ndarray::{s, Array1, Array2, Array3, ArrayView2};
 use scirs2_core::numeric::{Float, FromPrimitive};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::VecDeque;
 
 use crate::error::{NdimageError, NdimageResult};

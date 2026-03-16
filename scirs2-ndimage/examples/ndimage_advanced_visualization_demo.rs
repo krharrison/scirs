@@ -190,7 +190,7 @@ fn create_sampleimage(size: usize) -> Array2<f64> {
 
 #[allow(dead_code)]
 fn add_noise(image: &Array2<f64>) -> Array2<f64> {
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut rng = scirs2_core::random::rng();
     image.mapv(|x| x + (rng.random::<f64>() - 0.5) * 0.1)
 }

@@ -811,8 +811,8 @@ mod tests {
         let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(42);
 
         for t in 1..100 {
-            let noise1: f64 = scirs2_core::random::Rng::random_range(&mut rng, -0.1..0.1);
-            let noise2: f64 = scirs2_core::random::Rng::random_range(&mut rng, -0.1..0.1);
+            let noise1: f64 = scirs2_core::random::RngExt::random_range(&mut rng, -0.1..0.1);
+            let noise2: f64 = scirs2_core::random::RngExt::random_range(&mut rng, -0.1..0.1);
 
             data[[t, 0]] = 0.3 * data[[t - 1, 0]] + 0.1 * data[[t - 1, 1]] + 0.1 + noise1;
             data[[t, 1]] = 0.2 * data[[t - 1, 0]] + 0.4 * data[[t - 1, 1]] + 0.05 + noise2;

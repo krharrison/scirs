@@ -1353,6 +1353,7 @@ impl ParallelSpectralProcessor {
 
 mod tests {
     use super::*;
+    use scirs2_core::random::RngExt;
     use scirs2_core::Rng;
     use std::f64::consts::PI;
 

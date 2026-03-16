@@ -17,7 +17,7 @@ use crate::error::OptimizeError;
 use crate::unconstrained::OptimizeResult;
 use scirs2_core::ndarray::{Array1, ArrayView1};
 use scirs2_core::random::rngs::StdRng;
-use scirs2_core::random::{rng, Rng, SeedableRng};
+use scirs2_core::random::{rng, Rng, RngExt, SeedableRng};
 
 /// Swarm topology for neighborhood communication
 #[derive(Debug, Clone, Copy, PartialEq)]

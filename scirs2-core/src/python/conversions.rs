@@ -218,7 +218,7 @@ mod tests {
     #[test]
     #[allow(deprecated)]
     fn test_shape_conversion() {
-        pyo3::Python::with_gil(|py| {
+        pyo3::Python::attach(|py| {
             let shape = vec![2, 3, 4];
             let py_tuple = shape_to_py_tuple(&shape, py).expect("Operation failed");
             let bound_tuple = py_tuple.bind(py);

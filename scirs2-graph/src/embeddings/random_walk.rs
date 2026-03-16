@@ -7,7 +7,7 @@ use super::types::RandomWalk;
 use crate::base::{DiGraph, EdgeWeight, Graph, Node};
 use crate::error::{GraphError, Result};
 use scirs2_core::random::rand_prelude::IndexedRandom;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 /// Random walk generator for graphs
 pub struct RandomWalkGenerator<N: Node> {

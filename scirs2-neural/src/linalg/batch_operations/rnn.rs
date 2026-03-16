@@ -8,6 +8,7 @@ use scirs2_core::numeric::Float;
 use std::fmt::Debug;
 
 use crate::error::{NeuralError, Result};
+use scirs2_core::random::RngExt;
 
 /// Type alias for LSTM forward return values
 type LSTMForwardReturn<F> = (

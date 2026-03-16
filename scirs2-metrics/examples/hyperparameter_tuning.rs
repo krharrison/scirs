@@ -138,7 +138,7 @@ fn simulate_model_training(
 
     // Add some randomness to simulate training stochasticity
     let mut rng = scirs2_core::random::rng();
-    let random_factor = 0.95 + scirs2_core::random::Rng::random_range(&mut rng, 0.0..0.1);
+    let random_factor = 0.95 + scirs2_core::random::RngExt::random_range(&mut rng, 0.0..0.1);
 
     // Calculate simulated accuracy
     let mut accuracy = base_accuracy * lr_factor * hidden_factor * epoch_factor * random_factor;

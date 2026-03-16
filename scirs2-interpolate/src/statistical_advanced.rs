@@ -10,7 +10,7 @@
 use crate::error::{InterpolateError, InterpolateResult};
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1, ArrayView2, Axis};
 use scirs2_core::numeric::{Float, FromPrimitive};
-use scirs2_core::random::{rngs::StdRng, Rng, SeedableRng};
+use scirs2_core::random::{rngs::StdRng, Rng, RngExt, SeedableRng};
 use std::fmt::{Debug, Display};
 use std::marker::PhantomData;
 

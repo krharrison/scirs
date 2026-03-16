@@ -8,7 +8,7 @@ use image::{DynamicImage, Rgb, RgbImage};
 use scirs2_core::parallel_ops::*;
 use scirs2_core::random::prelude::*;
 use scirs2_core::random::seq::SliceRandom;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 
 /// K-means color quantization parameters

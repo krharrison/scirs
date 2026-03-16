@@ -8,7 +8,7 @@ use super::types::*;
 use crate::error::{IntegrateError, IntegrateResult};
 use crate::ode::ODEResult;
 use scirs2_core::ndarray::{Array1, Array2, Axis};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::collections::HashMap;
 
 /// Multi-dimensional data visualization engine

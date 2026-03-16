@@ -9,7 +9,7 @@
 use crate::error::{NeuralError, Result};
 use scirs2_core::ndarray::{Array, ArrayD, Axis};
 use scirs2_core::numeric::Float;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::ndarray::ArrayStatCompat;
 use std::collections::HashMap;
 use std::fmt::Debug;

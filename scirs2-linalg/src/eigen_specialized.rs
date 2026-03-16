@@ -7,7 +7,7 @@
 use crate::error::{LinalgError, LinalgResult};
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1, ArrayView2, ScalarOperand};
 use scirs2_core::numeric::{Float, NumAssign, One, Zero};
-use scirs2_core::random::{self, Rng};
+use scirs2_core::random::{self, Rng, RngExt};
 use std::iter::Sum;
 
 // Compatibility wrapper functions for the compat module

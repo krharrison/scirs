@@ -8,7 +8,7 @@ use crate::error::{DatasetsError, Result};
 use scirs2_core::ndarray::{s, Array1, Array2, Array3, ArrayView2};
 use scirs2_core::rand_distributions::Normal;
 use scirs2_core::random::Random;
-use scirs2_core::Rng;
+use scirs2_core::{Rng, RngExt};
 use std::sync::Arc;
 
 /// Helper function to create a random number generator with time-based seed

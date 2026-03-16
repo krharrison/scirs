@@ -4,7 +4,7 @@
 //! to achieve optimal performance on different hardware configurations and workloads.
 
 use crate::gpu::{GpuBackend, GpuError, GpuKernelHandle};
-use rand::Rng;
+use rand::{Rng, RngExt};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};

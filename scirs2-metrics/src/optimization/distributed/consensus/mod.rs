@@ -7,7 +7,7 @@
 //! - Simple majority voting
 
 use crate::error::{MetricsError, Result};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::net::SocketAddr;

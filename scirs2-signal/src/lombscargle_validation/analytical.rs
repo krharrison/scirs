@@ -10,7 +10,7 @@ use super::types::{ValidationResult, SingleTestResult};
 use scirs2_core::numeric::Float;
 use scirs2_core::random::prelude::*;
 use scirs2_core::random::seq::SliceRandom;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use std::f64::consts::PI;
 use std::time::Instant;
 

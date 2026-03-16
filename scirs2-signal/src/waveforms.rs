@@ -5,7 +5,7 @@
 
 use crate::error::{SignalError, SignalResult};
 use scirs2_core::numeric::{Float, NumCast};
-use scirs2_core::random::{rngs::StdRng, Rng, SeedableRng};
+use scirs2_core::random::{rngs::StdRng, Rng, RngExt, SeedableRng};
 use std::f64::consts::PI;
 use std::fmt::Debug;
 

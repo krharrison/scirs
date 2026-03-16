@@ -1,5 +1,5 @@
 use scirs2_core::ndarray::{array, Array1, Array2};
-use scirs2_core::random::{ChaCha8Rng, Rng, SeedableRng};
+use scirs2_core::random::{ChaCha8Rng, Rng, RngExt, SeedableRng};
 use scirs2_stats::regression::*;
 
 #[test]
@@ -89,7 +89,7 @@ fn test_ransac_advanced() {
     let mut y = Vec::new();
 
     // Create inliers following y = 3x + 2 with some noise
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut rng = scirs2_core::random::rng();
     for i in 0..20 {
         let x_val = i as f64;
@@ -243,7 +243,7 @@ fn test_huber_regression_advanced() {
     let mut y = Vec::with_capacity(20);
 
     // Add a temporary RNG for generating outliers
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
     let mut temp_rng = scirs2_core::random::rng();
     for i in 0..20 {
         let noise = if i < 17 {

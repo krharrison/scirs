@@ -86,7 +86,8 @@ pub fn directed_hausdorff<T: Float + Send + Sync>(
     // Create randomized indices for shuffling
     let mut rng = match seed {
         Some(s) => StdRng::seed_from_u64(s),
-        None => StdRng::from_os_rng(),
+        None => StdRng::try_from_rng(&mut rand::rngs::SysRng)
+            .unwrap_or_else(|_| StdRng::seed_from_u64(42)),
     };
 
     let mut indices1: Vec<usize> = (0..n1).collect();

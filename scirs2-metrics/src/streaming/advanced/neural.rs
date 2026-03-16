@@ -9,7 +9,7 @@
 use crate::error::Result;
 use scirs2_core::ndarray::{Array1, Array2};
 use scirs2_core::numeric::Float;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 

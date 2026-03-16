@@ -10,7 +10,7 @@
 //! prioritising numerically robust prediction of both mean and uncertainty.
 
 use scirs2_core::ndarray::{Array1, Array2, ArrayView1};
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 
 use crate::error::{OptimizeError, OptimizeResult};
 

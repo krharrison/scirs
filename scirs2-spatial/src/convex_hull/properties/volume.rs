@@ -149,7 +149,7 @@ fn compute_nd_volume(hull: &ConvexHull) -> SpatialResult<f64> {
 /// ```
 pub fn compute_volume_monte_carlo(hull: &ConvexHull, num_samples: usize) -> SpatialResult<f64> {
     use crate::convex_hull::geometry::compute_bounding_box;
-    use scirs2_core::random::Rng;
+    use scirs2_core::random::{Rng, RngExt};
 
     if hull.vertex_indices.is_empty() {
         return Ok(0.0);

@@ -12,7 +12,7 @@ use crate::dwt2d_boundary_enhanced::{dwt2d_decompose_enhanced, BoundaryMode2D};
 use crate::error::{SignalError, SignalResult};
 use scirs2_core::ndarray::{Array2, ArrayView1, ArrayView2};
 use scirs2_core::numeric::Float;
-use scirs2_core::random::Rng;
+use scirs2_core::random::{Rng, RngExt};
 use scirs2_core::parallel_ops::*;
 use scirs2_core::simd_ops::{PlatformCapabilities, SimdUnifiedOps};
 use scirs2_core::Rng as CoreRng;
