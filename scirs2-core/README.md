@@ -12,17 +12,17 @@
 
 ```toml
 [dependencies]
-scirs2-core = "0.3.2"
+scirs2-core = "0.3.3"
 ```
 
 With optional feature flags:
 
 ```toml
 [dependencies]
-scirs2-core = { version = "0.3.2", features = ["validation", "simd", "parallel", "gpu"] }
+scirs2-core = { version = "0.3.3", features = ["validation", "simd", "parallel", "gpu"] }
 ```
 
-## Features (v0.3.2)
+## Features (v0.3.3)
 
 ### Performance
 

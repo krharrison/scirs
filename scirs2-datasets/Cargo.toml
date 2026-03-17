@@ -33,7 +33,6 @@ statrs = { workspace = true }
 reqwest = { workspace = true, optional = true, features = ["stream"] }
 futures-util = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["time"] }
-dirs = { workspace = true }
 oxiarc-archive = { workspace = true }  # Pure Rust archive support (COOLJAPAN Policy)
 blake3 = { workspace = true }
 sha2 = { workspace = true }

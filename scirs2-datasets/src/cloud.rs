@@ -88,7 +88,7 @@ pub struct CloudClient {
 impl CloudClient {
     /// Create a new cloud client
     pub fn new(config: CloudConfig) -> Result<Self> {
-        let cachedir = dirs::cache_dir()
+        let cachedir = crate::platform_dirs::cache_dir()
             .ok_or_else(|| DatasetsError::Other("Could not determine cache directory".to_string()))?
             .join("scirs2-datasets");
         let cache = DatasetCache::new(cachedir);

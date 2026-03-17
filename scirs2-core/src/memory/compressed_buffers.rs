@@ -5,10 +5,9 @@
 
 use crate::error::CoreError;
 use ::ndarray::{Array, ArrayBase, Data, Dimension};
-use flate2::{read::GzDecoder, write::GzEncoder, Compression};
-use lz4::{Decoder as Lz4Decoder, EncoderBuilder as Lz4EncoderBuilder};
+use oxiarc_deflate::{gzip_compress, gzip_decompress};
+use oxiarc_lz4;
 use std::io::Result as IoResult;
-use std::io::{Read, Write};
 use std::marker::PhantomData;
 
 /// Compression algorithm options
@@ -135,31 +134,24 @@ where
     }
 
     fn compress_gzip(data: &[u8], level: CompressionLevel) -> IoResult<Vec<u8>> {
-        let mut encoder = GzEncoder::new(Vec::new(), Compression::new(level.into()));
-        encoder.write_all(data)?;
-        encoder.finish()
+        let level_u8: u32 = level.into();
+        gzip_compress(data, level_u8.min(9) as u8)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
     }
 
     fn decompress_gzip(data: &[u8]) -> IoResult<Vec<u8>> {
-        let mut decoder = GzDecoder::new(data);
-        let mut decompressed = Vec::new();
-        decoder.read_to_end(&mut decompressed)?;
-        Ok(decompressed)
+        gzip_decompress(data)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
     }
 
-    fn compress_lz4(data: &[u8], level: CompressionLevel) -> IoResult<Vec<u8>> {
-        let mut encoder = Lz4EncoderBuilder::new()
-            .level(std::cmp::min(level.into(), 12))
-            .build(Vec::new())?;
-        encoder.write_all(data)?;
-        Ok(encoder.finish().0)
+    fn compress_lz4(data: &[u8], _level: CompressionLevel) -> IoResult<Vec<u8>> {
+        oxiarc_lz4::compress(data)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
     }
 
     fn decompress_lz4(data: &[u8]) -> IoResult<Vec<u8>> {
-        let mut decoder = Lz4Decoder::new(data)?;
-        let mut decompressed = Vec::new();
-        decoder.read_to_end(&mut decompressed)?;
-        Ok(decompressed)
+        oxiarc_lz4::decompress(data, 256 * 1024 * 1024)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
     }
 }
 

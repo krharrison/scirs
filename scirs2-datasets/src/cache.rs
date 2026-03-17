@@ -78,7 +78,7 @@ pub fn get_cachedir() -> Result<PathBuf> {
     }
 
     // Fallback to home directory
-    let homedir = dirs::home_dir()
+    let homedir = crate::platform_dirs::home_dir()
         .ok_or_else(|| DatasetsError::CacheError("Could not find home directory".to_string()))?;
     let cachedir = homedir.join(format!(".{CACHE_DIR_NAME}"));
     ensuredirectory_exists(&cachedir)?;
@@ -91,11 +91,12 @@ pub fn get_cachedir() -> Result<PathBuf> {
 fn get_platform_cachedir() -> Option<PathBuf> {
     #[cfg(target_os = "windows")]
     {
-        dirs::data_local_dir().map(|dir| dir.join(CACHE_DIR_NAME))
+        crate::platform_dirs::data_local_dir().map(|dir| dir.join(CACHE_DIR_NAME))
     }
     #[cfg(target_os = "macos")]
     {
-        dirs::home_dir().map(|dir| dir.join("Library").join("Caches").join(CACHE_DIR_NAME))
+        crate::platform_dirs::home_dir()
+            .map(|dir| dir.join("Library").join("Caches").join(CACHE_DIR_NAME))
     }
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
@@ -103,7 +104,7 @@ fn get_platform_cachedir() -> Option<PathBuf> {
         if let Ok(xdg_cache) = std::env::var("XDG_CACHE_HOME") {
             Some(PathBuf::from(xdg_cache).join(CACHE_DIR_NAME))
         } else {
-            dirs::home_dir().map(|home| home.join(".cache").join(CACHE_DIR_NAME))
+            crate::platform_dirs::home_dir().map(|home| home.join(".cache").join(CACHE_DIR_NAME))
         }
     }
 }

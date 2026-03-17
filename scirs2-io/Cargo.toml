@@ -27,11 +27,11 @@ serde_json = { workspace = true }
 oxicode = { workspace = true }  # Binary serialization (SIMD-optimized)
 rmp-serde = { workspace = true }
 oxiarc-archive = { workspace = true }  # Pure Rust compression (COOLJAPAN Policy)
-# C-backed compression libraries (feature-gated for backward compatibility)
-flate2 = { workspace = true, optional = true }
-lz4 = { workspace = true, optional = true }
-zstd = { workspace = true, optional = true }
-bzip2 = { workspace = true, optional = true }
+# Pure Rust compression libraries (COOLJAPAN Policy)
+oxiarc-deflate = { workspace = true }
+oxiarc-lz4 = { workspace = true }
+oxiarc-zstd = { workspace = true }
+oxiarc-bzip2 = { workspace = true }
 sha2 = { workspace = true }
 crc32fast = { workspace = true }
 blake3 = { workspace = true }
@@ -94,8 +94,6 @@ default = ["csv", "compression", "validation"]
 csv = []
 # Default compression uses 100% Pure Rust libraries (COOLJAPAN Policy)
 compression = []
-# Legacy C-backed compression (feature-gated, not in default)
-compression-c = ["dep:flate2", "dep:lz4", "dep:zstd", "dep:bzip2"]
 validation = []
 hdf5 = ["dep:hdf5"]
 parquet = ["dep:parquet", "dep:arrow", "dep:arrow-array", "dep:arrow-schema", "dep:arrow-cast"]
@@ -104,9 +102,8 @@ reqwest = ["dep:reqwest", "dep:log"]
 aws-sdk-s3 = []
 google-cloud-storage = []
 azure-storage-blobs = []
-# GPU compression currently requires C-backed libraries for block-level APIs
-# TODO: Migrate to Pure Rust when oxiarc-archive adds block compression support
-gpu = ["compression-c"]
+# GPU compression uses Pure Rust oxiarc-* compression (COOLJAPAN Policy)
+gpu = []
 exif = []
 # Database features
 sqlite = ["dep:rusqlite"]

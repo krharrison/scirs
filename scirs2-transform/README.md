@@ -8,7 +8,7 @@ Data transformation, dimensionality reduction, and feature engineering library f
 
 ## Overview
 
-`scirs2-transform` provides comprehensive data preprocessing and transformation utilities following scikit-learn's `fit` / `transform` / `fit_transform` API pattern. v0.3.2 significantly extends the library with UMAP, Barnes-Hut t-SNE, persistent homology / TDA, metric learning, kernel methods, optimal transport, and advanced NMF variants.
+`scirs2-transform` provides comprehensive data preprocessing and transformation utilities following scikit-learn's `fit` / `transform` / `fit_transform` API pattern. v0.3.3 significantly extends the library with UMAP, Barnes-Hut t-SNE, persistent homology / TDA, metric learning, kernel methods, optimal transport, and advanced NMF variants.
 
 ## Features
 
@@ -149,14 +149,14 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scirs2-transform = "0.3.2"
+scirs2-transform = "0.3.3"
 ```
 
 With SIMD and parallel features:
 
 ```toml
 [dependencies]
-scirs2-transform = { version = "0.3.2", features = ["parallel", "simd"] }
+scirs2-transform = { version = "0.3.3", features = ["parallel", "simd"] }
 ```
 
 ### Normalization

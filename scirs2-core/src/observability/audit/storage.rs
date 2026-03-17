@@ -535,33 +535,37 @@ impl LogFileManager {
         })?;
 
         let mut reader = BufReader::new(input_file);
-        let writer = BufWriter::new(output_file);
+        let _writer = BufWriter::new(output_file);
 
-        // Use flate2 for gzip compression
-        #[cfg(feature = "flate2")]
+        // Use oxiarc-deflate for gzip compression (Pure Rust - COOLJAPAN Policy)
+        #[cfg(feature = "compression")]
         {
-            use flate2::write::GzEncoder;
-            use flate2::Compression;
-            use std::io::copy;
+            let mut data = Vec::new();
+            std::io::Read::read_to_end(&mut reader, &mut data).map_err(|e| {
+                CoreError::ComputationError(crate::error::ErrorContext::new(format!(
+                    "Failed to read file: {e}"
+                )))
+            })?;
 
-            let mut encoder = GzEncoder::new(writer, Compression::default());
-            copy(&mut reader, &mut encoder).map_err(|e| {
+            let compressed = oxiarc_deflate::gzip_compress(&data, 6).map_err(|e| {
                 CoreError::ComputationError(crate::error::ErrorContext::new(format!(
                     "Failed to compress file: {e}"
                 )))
             })?;
 
-            encoder.finish().map_err(|e| {
+            std::fs::write(&compressed_path, &compressed).map_err(|e| {
                 CoreError::ComputationError(crate::error::ErrorContext::new(format!(
-                    "Failed to finalize compression: {e}"
+                    "Failed to write compressed file: {e}"
                 )))
             })?;
         }
 
-        #[cfg(not(feature = "flate2"))]
+        #[cfg(not(feature = "compression"))]
         {
             return Err(CoreError::ComputationError(
-                crate::error::ErrorContext::new("Compression requires flate2 feature".to_string()),
+                crate::error::ErrorContext::new(
+                    "Compression requires compression feature".to_string(),
+                ),
             ));
         }
 

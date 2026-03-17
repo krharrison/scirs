@@ -84,7 +84,7 @@ pub mod astronomy {
     impl StellarDatasets {
         /// Create a new stellar datasets client
         pub fn new() -> Result<Self> {
-            let cachedir = dirs::cache_dir()
+            let cachedir = crate::platform_dirs::cache_dir()
                 .ok_or_else(|| {
                     DatasetsError::Other("Could not determine cache directory".to_string())
                 })?
@@ -405,7 +405,7 @@ pub mod genomics {
     impl GenomicsDatasets {
         /// Create a new genomics datasets client
         pub fn new() -> Result<Self> {
-            let cachedir = dirs::cache_dir()
+            let cachedir = crate::platform_dirs::cache_dir()
                 .ok_or_else(|| {
                     DatasetsError::Other("Could not determine cache directory".to_string())
                 })?
@@ -659,7 +659,7 @@ pub mod climate {
     impl ClimateDatasets {
         /// Create a new climate datasets client
         pub fn new() -> Result<Self> {
-            let cachedir = dirs::cache_dir()
+            let cachedir = crate::platform_dirs::cache_dir()
                 .ok_or_else(|| {
                     DatasetsError::Other("Could not determine cache directory".to_string())
                 })?

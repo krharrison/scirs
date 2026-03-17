@@ -168,7 +168,7 @@ mod tests {
             CompressionCodec::Snappy,
             CompressionCodec::Gzip,
             CompressionCodec::Lz4,
-            CompressionCodec::Zstd,
+            CompressionCodec::Brotli,
         ];
 
         for codec in codecs {
@@ -179,7 +179,7 @@ mod tests {
                     | parquet::basic::Compression::SNAPPY
                     | parquet::basic::Compression::GZIP(_)
                     | parquet::basic::Compression::LZ4
-                    | parquet::basic::Compression::ZSTD(_)
+                    | parquet::basic::Compression::BROTLI(_)
             ));
         }
     }
@@ -195,11 +195,11 @@ mod tests {
 
     #[test]
     fn test_builder_pattern() {
-        let options = ParquetWriteOptions::with_compression(CompressionCodec::Zstd)
+        let options = ParquetWriteOptions::with_compression(CompressionCodec::Brotli)
             .with_row_group_size(50000)
             .with_dictionary(false);
 
-        assert_eq!(options.compression, CompressionCodec::Zstd);
+        assert_eq!(options.compression, CompressionCodec::Brotli);
         assert_eq!(options.row_group_size, 50000);
         assert!(!options.enable_dictionary);
     }

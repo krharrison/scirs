@@ -213,16 +213,7 @@ impl AdvancedExport for KMeansModel {
                 let json = serde_json::to_string(&export_data)
                     .map_err(|e| ClusteringError::InvalidInput(e.to_string()))?;
 
-                use flate2::write::GzEncoder;
-                use flate2::Compression;
-                use std::io::Write;
-
-                let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-                encoder
-                    .write_all(json.as_bytes())
-                    .map_err(|e| ClusteringError::InvalidInput(e.to_string()))?;
-                encoder
-                    .finish()
+                oxiarc_deflate::gzip_compress(json.as_bytes(), 6)
                     .map_err(|e| ClusteringError::InvalidInput(e.to_string()))
             }
             #[cfg(feature = "yaml")]
@@ -460,30 +451,14 @@ pub mod utils {
 
     /// Compress data using gzip
     pub fn compress_data(data: &[u8]) -> Result<Vec<u8>> {
-        use flate2::write::GzEncoder;
-        use flate2::Compression;
-        use std::io::Write;
-
-        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-        encoder
-            .write_all(data)
-            .map_err(|e| ClusteringError::InvalidInput(e.to_string()))?;
-        encoder
-            .finish()
+        oxiarc_deflate::gzip_compress(data, 6)
             .map_err(|e| ClusteringError::InvalidInput(e.to_string()))
     }
 
     /// Decompress gzip data
     pub fn decompress_data(compressed: &[u8]) -> Result<Vec<u8>> {
-        use flate2::read::GzDecoder;
-        use std::io::Read;
-
-        let mut decoder = GzDecoder::new(compressed);
-        let mut decompressed = Vec::new();
-        decoder
-            .read_to_end(&mut decompressed)
-            .map_err(|e| ClusteringError::InvalidInput(e.to_string()))?;
-        Ok(decompressed)
+        oxiarc_deflate::gzip_decompress(compressed)
+            .map_err(|e| ClusteringError::InvalidInput(e.to_string()))
     }
 }
 

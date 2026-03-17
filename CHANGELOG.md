@@ -5,6 +5,29 @@ All notable changes to the SciRS2 project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2026-03-17
+
+### Changed
+- **Pure Rust Policy**: Replaced C/Fortran-dependent compression crates (`flate2`, `lz4`, `zstd`, `bzip2`) with pure Rust `oxiarc-deflate`, `oxiarc-lz4`, `oxiarc-zstd`, `oxiarc-bzip2` across scirs2-core, scirs2-cluster, and scirs2-io
+- **Pure Rust Policy**: Replaced `tikv-jemallocator`/`tikv-jemalloc-ctl` (C-based jemalloc) with pure Rust memory profiling using OS APIs (Mach task_info on macOS, `/proc/self/statm` on Linux) in scirs2-core
+- **Pure Rust Policy**: Replaced `dirs` crate with a pure Rust `platform_dirs` module in scirs2-datasets for home/cache/data directory detection
+- **Pure Rust Policy**: Removed `tar` crate dependency from scirs2-cluster
+- **scirs2-io**: Configured `parquet` crate with `default-features = false` and explicit pure Rust feature flags (`flate2-zlib-rs`, `brotli`, `lz4`, `simdutf8`, `snap`) to avoid C dependencies
+- **scirs2-io**: Replaced `Zstd` compression codec with `Brotli` in parquet writer defaults, docs, and tests (Zstd codec requires C library in parquet crate)
+
+### Added
+- **WASM support**: Added `.cargo/config.toml` with `getrandom_backend="wasm_js"` rustflag for `wasm32-unknown-unknown` target
+- **WASM support**: Added `getrandom_03` workspace dependency (getrandom 0.3 with `wasm_js` feature) for transitive dependency compatibility on wasm32
+- **scirs2-core**: Added wasm32-specific dependencies (`getrandom`, `getrandom_03`, `uuid` with `js` feature) for proper WASM compilation
+- **scirs2-datasets**: Added `platform_dirs` module providing pure Rust cross-platform directory detection (home, cache, data)
+- Added `oxiarc-deflate` to workspace dependencies for pure Rust DEFLATE/GZIP compression
+
+### Fixed
+- **scirs2-ndimage**: Improved streaming module for WASM and pure Rust compatibility
+- **scirs2-core**: Rewrote `out_of_core_v2` module for pure Rust compression backends
+- **scirs2-core**: Updated compressed memory buffers and compressed memmap to use oxiarc pure Rust compression libraries
+- **scirs2-cluster**: Updated serialization core and export modules to use `oxiarc-deflate` instead of `flate2`
+
 ## [0.3.2] - 2026-03-17
 
 ### Changed

@@ -1152,6 +1152,139 @@ impl GpuContext {
     }
 }
 
+/// Write adapter for oxiarc-deflate gzip compression (block-based API).
+/// Buffers all written data in memory and compresses+writes to the underlying file on flush/drop.
+#[cfg(feature = "compression")]
+struct GzipWriteAdapter {
+    file: File,
+    buffer: Vec<u8>,
+    level: u8,
+}
+
+#[cfg(feature = "compression")]
+impl GzipWriteAdapter {
+    fn new(file: File, level: u8) -> Self {
+        Self {
+            file,
+            buffer: Vec::new(),
+            level,
+        }
+    }
+}
+
+#[cfg(feature = "compression")]
+impl Write for GzipWriteAdapter {
+    fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
+        self.buffer.extend_from_slice(data);
+        Ok(data.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        if !self.buffer.is_empty() {
+            let compressed = oxiarc_deflate::gzip_compress(&self.buffer, self.level)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+            self.file.write_all(&compressed)?;
+            self.file.flush()?;
+            self.buffer.clear();
+        }
+        Ok(())
+    }
+}
+
+#[cfg(feature = "compression")]
+impl Drop for GzipWriteAdapter {
+    fn drop(&mut self) {
+        let _ = self.flush();
+    }
+}
+
+/// Write adapter for oxiarc-lz4 compression (block-based API).
+/// Buffers all written data in memory and compresses+writes to the underlying file on flush/drop.
+#[cfg(feature = "compression")]
+struct Lz4WriteAdapter {
+    file: File,
+    buffer: Vec<u8>,
+}
+
+#[cfg(feature = "compression")]
+impl Lz4WriteAdapter {
+    fn new(file: File) -> Self {
+        Self {
+            file,
+            buffer: Vec::new(),
+        }
+    }
+}
+
+#[cfg(feature = "compression")]
+impl Write for Lz4WriteAdapter {
+    fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
+        self.buffer.extend_from_slice(data);
+        Ok(data.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        if !self.buffer.is_empty() {
+            let compressed = oxiarc_lz4::compress(&self.buffer)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+            self.file.write_all(&compressed)?;
+            self.file.flush()?;
+            self.buffer.clear();
+        }
+        Ok(())
+    }
+}
+
+#[cfg(feature = "compression")]
+impl Drop for Lz4WriteAdapter {
+    fn drop(&mut self) {
+        let _ = self.flush();
+    }
+}
+
+/// Write adapter for oxiarc-zstd compression (block-based API).
+/// Buffers all written data in memory and compresses+writes to the underlying file on flush/drop.
+#[cfg(feature = "compression")]
+struct ZstdWriteAdapter {
+    file: File,
+    buffer: Vec<u8>,
+    level: i32,
+}
+
+#[cfg(feature = "compression")]
+impl ZstdWriteAdapter {
+    fn new(file: File, level: i32) -> Self {
+        Self {
+            file,
+            buffer: Vec::new(),
+            level,
+        }
+    }
+}
+
+#[cfg(feature = "compression")]
+impl Write for ZstdWriteAdapter {
+    fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
+        self.buffer.extend_from_slice(data);
+        Ok(data.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        if !self.buffer.is_empty() {
+            let compressed = oxiarc_zstd::compress_with_level(&self.buffer, self.level)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+            self.file.write_all(&compressed)?;
+            self.file.flush()?;
+            self.buffer.clear();
+        }
+        Ok(())
+    }
+}
+
+#[cfg(feature = "compression")]
+impl Drop for ZstdWriteAdapter {
+    fn drop(&mut self) {
+        let _ = self.flush();
+    }
+}
+
 /// Enhanced streaming interface for file-based processing with compression
 #[allow(dead_code)]
 pub fn stream_process_file_compressed<T>(
@@ -1173,8 +1306,17 @@ where
         CompressionType::Gzip => {
             #[cfg(feature = "compression")]
             {
-                use flate2::read::GzDecoder;
-                Box::new(BufReader::new(GzDecoder::new(input_file)))
+                // Read all data then decompress with oxiarc-deflate (Pure Rust)
+                let mut compressed_data = Vec::new();
+                std::io::Read::read_to_end(&mut BufReader::new(input_file), &mut compressed_data)
+                    .map_err(|e| {
+                    NdimageError::ComputationError(format!("Failed to read input: {}", e))
+                })?;
+                let decompressed =
+                    oxiarc_deflate::gzip_decompress(&compressed_data).map_err(|e| {
+                        NdimageError::ComputationError(format!("Failed to decompress gzip: {}", e))
+                    })?;
+                Box::new(std::io::Cursor::new(decompressed))
             }
             #[cfg(not(feature = "compression"))]
             return Err(NdimageError::InvalidInput(
@@ -1184,10 +1326,17 @@ where
         CompressionType::Lz4 => {
             #[cfg(feature = "compression")]
             {
-                use lz4::Decoder;
-                Box::new(BufReader::new(Decoder::new(input_file).map_err(|e| {
-                    NdimageError::ComputationError(format!("Failed to create LZ4 decoder: {}", e))
-                })?))
+                // Read all data then decompress with oxiarc-lz4 (Pure Rust)
+                let mut compressed_data = Vec::new();
+                std::io::Read::read_to_end(&mut BufReader::new(input_file), &mut compressed_data)
+                    .map_err(|e| {
+                    NdimageError::ComputationError(format!("Failed to read input: {}", e))
+                })?;
+                let decompressed = oxiarc_lz4::decompress(&compressed_data, 256 * 1024 * 1024)
+                    .map_err(|e| {
+                        NdimageError::ComputationError(format!("Failed to decompress LZ4: {}", e))
+                    })?;
+                Box::new(std::io::Cursor::new(decompressed))
             }
             #[cfg(not(feature = "compression"))]
             return Err(NdimageError::InvalidInput(
@@ -1197,10 +1346,16 @@ where
         CompressionType::Zstd => {
             #[cfg(feature = "compression")]
             {
-                use zstd::stream::read::Decoder;
-                Box::new(BufReader::new(Decoder::new(input_file).map_err(|e| {
-                    NdimageError::ComputationError(format!("Failed to create Zstd decoder: {}", e))
-                })?))
+                // Read all data then decompress with oxiarc-zstd (Pure Rust)
+                let mut compressed_data = Vec::new();
+                std::io::Read::read_to_end(&mut BufReader::new(input_file), &mut compressed_data)
+                    .map_err(|e| {
+                    NdimageError::ComputationError(format!("Failed to read input: {}", e))
+                })?;
+                let decompressed = oxiarc_zstd::decompress(&compressed_data).map_err(|e| {
+                    NdimageError::ComputationError(format!("Failed to decompress Zstd: {}", e))
+                })?;
+                Box::new(std::io::Cursor::new(decompressed))
             }
             #[cfg(not(feature = "compression"))]
             return Err(NdimageError::InvalidInput(
@@ -1219,12 +1374,8 @@ where
         CompressionType::Gzip => {
             #[cfg(feature = "compression")]
             {
-                use flate2::write::GzEncoder;
-                use flate2::Compression;
-                Box::new(BufWriter::new(GzEncoder::new(
-                    output_file,
-                    Compression::default(),
-                )))
+                // oxiarc-deflate uses block API; wrap with a buffering adapter
+                Box::new(GzipWriteAdapter::new(output_file, 6))
             }
             #[cfg(not(feature = "compression"))]
             return Err(NdimageError::InvalidInput(
@@ -1234,15 +1385,8 @@ where
         CompressionType::Lz4 => {
             #[cfg(feature = "compression")]
             {
-                use lz4::EncoderBuilder;
-                Box::new(BufWriter::new(
-                    EncoderBuilder::new().build(output_file).map_err(|e| {
-                        NdimageError::ComputationError(format!(
-                            "Failed to create LZ4 encoder: {}",
-                            e
-                        ))
-                    })?,
-                ))
+                // oxiarc-lz4 uses block API; wrap with a buffering adapter
+                Box::new(Lz4WriteAdapter::new(output_file))
             }
             #[cfg(not(feature = "compression"))]
             return Err(NdimageError::InvalidInput(
@@ -1252,15 +1396,8 @@ where
         CompressionType::Zstd => {
             #[cfg(feature = "compression")]
             {
-                use zstd::stream::write::Encoder;
-                Box::new(BufWriter::new(Encoder::new(output_file, 0).map_err(
-                    |e| {
-                        NdimageError::ComputationError(format!(
-                            "Failed to create Zstd encoder: {}",
-                            e
-                        ))
-                    },
-                )?))
+                // oxiarc-zstd uses block API; wrap with a buffering adapter
+                Box::new(ZstdWriteAdapter::new(output_file, 3))
             }
             #[cfg(not(feature = "compression"))]
             return Err(NdimageError::InvalidInput(

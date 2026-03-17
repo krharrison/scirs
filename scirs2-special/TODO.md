@@ -1,6 +1,6 @@
 # scirs2-special TODO
 
-## v0.3.2 Completed
+## v0.3.3 Completed
 
 ### Classical Special Functions
 - [x] Gamma: `gamma`, `log_gamma`, `digamma`, `trigamma`, `polygamma`, `beta`, `log_beta`

@@ -1,10 +1,10 @@
 # SciRS2 Development Roadmap
 
-**Current Version**: 0.3.2 (Released: March 17, 2026)
+**Current Version**: 0.3.3 (Released: March 17, 2026)
 **Status**: Production Ready — All 19,684 tests passing (100% pass rate)
 **Scale**: 2,586,908 lines of Rust, 6,660 source files, 45+ workspace crates
 
-This document tracks the development roadmap for SciRS2. Completed items in v0.3.2 are documented here for historical reference; the active roadmap is the v0.4.0 section.
+This document tracks the development roadmap for SciRS2. Completed items in v0.3.3 are documented here for historical reference; the active roadmap is the v0.4.0 section.
 
 ---
 
@@ -43,7 +43,7 @@ This document tracks the development roadmap for SciRS2. Completed items in v0.3
 
 ---
 
-## v0.3.2 — RELEASED (March 17, 2026)
+## v0.3.3 — RELEASED (March 17, 2026)
 
 ### Release Statistics
 - 19,684 tests — 100% pass rate
@@ -556,5 +556,5 @@ All development must adhere to the following policies:
 ---
 
 **Last Updated**: March 17, 2026
-**Branch**: 0.3.2
-**Status**: v0.3.2 released — v0.4.0 planning phase
+**Branch**: 0.3.3
+**Status**: v0.3.3 released — v0.4.0 planning phase

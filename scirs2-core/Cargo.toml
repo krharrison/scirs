@@ -54,16 +54,13 @@ crossbeam-utils = { workspace = true, optional = true }  # Used in parallel sche
 crossbeam-deque = { workspace = true, optional = true }  # Used in parallel scheduler
 num_cpus = { workspace = true, optional = true }  # CPU count detection
 
-# Compression libraries
-lz4 = { workspace = true, optional = true }   # LZ4 compression (C-based, feature-gated)
-zstd = { workspace = true, optional = true }  # Zstandard compression (C-based, feature-gated)
+# Compression libraries (Pure Rust - COOLJAPAN Policy)
 snap = { workspace = true, optional = true }   # Snappy compression
-flate2 = { workspace = true, optional = true }  # DEFLATE compression
 bytemuck = { workspace = true, optional = true }  # Zero-copy type casting
-# Pure Rust compression libraries (COOLJAPAN Pure Rust Policy)
 crc32fast = { workspace = true }  # CRC32 checksum (used in serialization)
 oxiarc-lz4 = { workspace = true, optional = true }  # Pure Rust LZ4 compression
 oxiarc-zstd = { workspace = true, optional = true }  # Pure Rust Zstandard compression
+oxiarc-deflate = { workspace = true, optional = true }  # Pure Rust DEFLATE/GZIP compression
 
 # System monitoring for resource-aware prefetching
 libc = { workspace = true, optional = true }  # System calls for resource monitoring
@@ -116,9 +113,7 @@ opentelemetry-semantic-conventions = { workspace = true, optional = true }  # Se
 # Prometheus metrics
 prometheus = { workspace = true, optional = true }  # Prometheus metrics
 
-# Memory profiling dependencies
-tikv-jemallocator = { workspace = true, optional = true }  # jemalloc allocator
-tikv-jemalloc-ctl = { workspace = true, optional = true }  # jemalloc control and introspection APIs
+# Memory profiling uses Pure Rust OS APIs (libc on Unix, windows-sys on Windows)
 
 # Testing and validation dependencies
 statrs = { workspace = true, optional = true }  # Statistical functions for validation
@@ -154,6 +149,12 @@ atomic-polyfill = { workspace = true, optional = true }  # Atomic operations for
 portable-atomic = { workspace = true, optional = true }  # Portable atomic operations
 embedded-alloc = { workspace = true, optional = true }  # Global allocator for embedded
 linked_list_allocator = { workspace = true, optional = true }  # Alternative allocator for embedded
+
+# WASM support - getrandom needs wasm_js feature, uuid needs js feature for wasm32 targets
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { workspace = true }
+getrandom_03 = { workspace = true }
+uuid = { workspace = true, features = ["serde", "js"] }
 
 # Platform-specific BLAS backend configuration
 # macOS: Use Accelerate framework ONLY (system BLAS, no source build)
@@ -239,7 +240,7 @@ int64 = []    # Support for i64 in zero-copy operations
 uint32 = []   # Support for u32 in zero-copy operations
 uint64 = []   # Support for u64 in zero-copy operations
 all_ints = [] # Support for all integer types in zero-copy operations
-memory_compression = ["memory_efficient", "lz4", "zstd", "snap", "flate2", "bytemuck", "serde", "serde_json", "libc", "num_cpus"]  # Compressed memory-mapped arrays (SIMD-optimized)
+memory_compression = ["memory_efficient", "dep:oxiarc-lz4", "dep:oxiarc-zstd", "dep:oxiarc-deflate", "snap", "bytemuck", "serde", "serde_json", "libc", "num_cpus"]  # Compressed memory-mapped arrays (SIMD-optimized)
 memory_metrics = ["memory_management", "serde", "serde_json"]  # Enhanced memory metrics tracking
 sysinfo = ["dep:sysinfo"]  # System information gathering
 serialization = ["std", "serde", "serde_json", "num-complex/serde", "dep:oxiarc-lz4", "dep:oxiarc-zstd"]  # Serialization support (includes Complex<T> serde, pure-Rust LZ4/Zstd) (requires std)
@@ -255,7 +256,7 @@ profiling_chrome = ["std", "profiling_advanced", "tracing-chrome"]  # Chrome Dev
 profiling_opentelemetry = ["std", "profiling_advanced", "tracing-opentelemetry", "opentelemetry", "opentelemetry_sdk"]  # OpenTelemetry integration (requires std)
 profiling_prometheus = ["std", "profiling", "prometheus", "opentelemetry-prometheus"]  # Prometheus metrics export (requires std)
 profiling_otlp = ["std", "profiling_opentelemetry", "opentelemetry-otlp"]  # OTLP exporter for distributed tracing (requires std)
-profiling_memory = ["std", "profiling", "tikv-jemallocator", "tikv-jemalloc-ctl"]  # Memory profiling with jemalloc (requires std)
+profiling_memory = ["std", "profiling", "libc"]  # Memory profiling with Pure Rust OS APIs (requires std)
 profiling_perf = ["std", "profiling", "perf-event"]  # Linux perf integration (platform-specific) (requires std)
 profiling_all = ["std", "profiling_advanced", "profiling_flame", "profiling_chrome", "profiling_opentelemetry", "profiling_prometheus", "profiling_otlp", "profiling_memory"]  # All profiling features (requires std)
 instrumentation = ["std", "profiling_advanced", "opentelemetry-semantic-conventions"]  # Instrumentation framework (requires std)
@@ -284,7 +285,7 @@ leak_detection = ["std", "memory_management", "serde", "serde_json"]  # Memory l
 data_validation = ["std", "validation", "serde", "serde_json", "regex"]  # Comprehensive data validation (requires std)
 s3 = ["std"]  # S3 integration for remote storage (requires std)
 crypto = []  # Cryptographic features (placeholder) (may work in no_std)
-compression = ["std", "flate2"]  # Compression support (requires std)
+compression = ["std", "dep:oxiarc-deflate"]  # Compression support (requires std)
 database = ["std"]  # Database integration features (requires std)
 cloud = ["std"]  # Cloud storage integration (S3, GCS, Azure) (requires std)
 arrow = ["std", "dep:arrow", "dep:arrow-array", "dep:arrow-buffer", "dep:arrow-cast", "dep:arrow-data", "dep:arrow-schema", "dep:arrow-select", "dep:arrow-arith", "memmap2"]  # Arrow columnar format interoperability for zero-copy data exchange (requires std)

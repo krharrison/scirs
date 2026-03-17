@@ -1,0 +1,4 @@
+# WASM target configuration
+# getrandom 0.3.x requires a cfg flag (not just a feature) for wasm32 support
+[target.wasm32-unknown-unknown]
+rustflags = ['--cfg', 'getrandom_backend="wasm_js"']

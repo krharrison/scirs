@@ -1,6 +1,6 @@
 # scirs2-fft Development TODO
 
-## v0.3.2 — COMPLETED
+## v0.3.3 — COMPLETED
 
 ### Sparse FFT Algorithms
 - Sublinear sparse FFT (O(k log n) for k-sparse signals, randomized hashing)

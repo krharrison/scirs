@@ -4,9 +4,7 @@
 //! for model serialization and deserialization.
 
 use crate::error::{ClusteringError, Result};
-use flate2::read::GzDecoder;
-use flate2::write::GzEncoder;
-use flate2::Compression;
+use oxiarc_deflate::{gzip_compress, gzip_decompress};
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{Read, Write};
@@ -30,18 +28,26 @@ pub trait SerializableModel: Serialize + for<'de> Deserialize<'de> {
 
     /// Save the model to a file with compression
     fn save_to_file_compressed<P: AsRef<Path>>(&self, path: P) -> Result<()> {
-        let file = File::create(path)
-            .map_err(|e| ClusteringError::InvalidInput(format!("Failed to create file: {}", e)))?;
-        let encoder = GzEncoder::new(file, Compression::default());
-        self.save_to_writer(encoder)
+        // Serialize to JSON bytes first
+        let json_bytes = serde_json::to_vec_pretty(self).map_err(|e| {
+            ClusteringError::InvalidInput(format!("Failed to serialize model: {}", e))
+        })?;
+        // Compress with oxiarc-deflate gzip (level 6 = default)
+        let compressed = gzip_compress(&json_bytes, 6)
+            .map_err(|e| ClusteringError::InvalidInput(format!("Failed to compress: {}", e)))?;
+        std::fs::write(path, compressed)
+            .map_err(|e| ClusteringError::InvalidInput(format!("Failed to write file: {}", e)))
     }
 
     /// Load the model from a compressed file
     fn load_from_file_compressed<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let file = File::open(path)
-            .map_err(|e| ClusteringError::InvalidInput(format!("Failed to open file: {}", e)))?;
-        let decoder = GzDecoder::new(file);
-        Self::load_from_reader(decoder)
+        let compressed = std::fs::read(path.as_ref())
+            .map_err(|e| ClusteringError::InvalidInput(format!("Failed to read file: {}", e)))?;
+        let decompressed = gzip_decompress(&compressed)
+            .map_err(|e| ClusteringError::InvalidInput(format!("Failed to decompress: {}", e)))?;
+        serde_json::from_slice(&decompressed).map_err(|e| {
+            ClusteringError::InvalidInput(format!("Failed to deserialize model: {}", e))
+        })
     }
 
     /// Load the model from a file

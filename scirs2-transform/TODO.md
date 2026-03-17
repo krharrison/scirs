@@ -1,8 +1,8 @@
 # scirs2-transform TODO
 
-## Status: v0.3.2 Released (March 17, 2026)
+## Status: v0.3.3 Released (March 17, 2026)
 
-## v0.3.2 Completed
+## v0.3.3 Completed
 
 ### Normalization and Scaling
 - Min-Max, Z-score, Robust (IQR), Max-absolute, L1/L2, Quantile

@@ -43,7 +43,7 @@
 //!
 //! let data = Array1::from_vec(vec![1.0, 2.0, 3.0, 4.0]);
 //! let options = ParquetWriteOptions {
-//!     compression: CompressionCodec::Zstd,
+//!     compression: CompressionCodec::Brotli,
 //!     ..Default::default()
 //! };
 //! write_parquet("output.parquet", &data, options)?;
@@ -276,7 +276,7 @@ mod tests {
         let path = dir.path().join("test_builder.parquet");
 
         let data = Array1::from_vec(vec![1.0, 2.0, 3.0]);
-        let options = ParquetWriteOptions::with_compression(CompressionCodec::Zstd)
+        let options = ParquetWriteOptions::with_compression(CompressionCodec::Brotli)
             .with_row_group_size(500)
             .with_dictionary(false);
 
@@ -554,7 +554,7 @@ mod tests {
         // Write compressed data
         let data = Array1::from_vec((0..50).map(|x| x as f64).collect::<Vec<_>>());
         let options = ParquetWriteOptions {
-            compression: CompressionCodec::Zstd,
+            compression: CompressionCodec::Brotli,
             enable_statistics: true,
             ..Default::default()
         };

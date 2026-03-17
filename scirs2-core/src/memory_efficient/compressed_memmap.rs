@@ -12,7 +12,9 @@ use crate::error::{CoreError, CoreResult, ErrorContext};
 use ::ndarray::{Array, ArrayBase, Dimension, IxDyn, RawData};
 
 #[cfg(feature = "memory_compression")]
-use lz4::{Decoder, EncoderBuilder};
+use oxiarc_lz4;
+#[cfg(feature = "memory_compression")]
+use oxiarc_zstd;
 
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
@@ -243,16 +245,20 @@ impl CompressedMemMapBuilder {
 
             // Compress the block
             let compressed_data = match self.algorithm {
-                CompressionAlgorithm::Lz4 => {
-                    let mut encoder = EncoderBuilder::new()
-                        .level(self.level as u32)
-                        .build(Vec::new())?;
-                    encoder.write_all(block_data)?;
-                    let (compressed, result) = encoder.finish();
-                    result?;
-                    compressed
+                CompressionAlgorithm::Lz4 => oxiarc_lz4::compress(block_data).map_err(|e| {
+                    CoreError::ComputationError(ErrorContext::new(format!(
+                        "LZ4 compression error: {}",
+                        e
+                    )))
+                })?,
+                CompressionAlgorithm::Zstd => {
+                    oxiarc_zstd::compress_with_level(block_data, self.level).map_err(|e| {
+                        CoreError::ComputationError(ErrorContext::new(format!(
+                            "Zstd compression error: {}",
+                            e
+                        )))
+                    })?
                 }
-                CompressionAlgorithm::Zstd => zstd::encode_all(block_data, self.level)?,
                 CompressionAlgorithm::Snappy => snap::raw::Encoder::new()
                     .compress_vec(block_data)
                     .map_err(|e| {
@@ -522,12 +528,21 @@ impl<A: Clone + Copy + 'static + Send + Sync> CompressedMemMappedArray<A> {
         // Decompress the block
         let block_bytes = match self.metadata.compression_algorithm {
             CompressionAlgorithm::Lz4 => {
-                let mut decoder = Decoder::new(&compressed_data[..])?;
-                let mut decompressed = Vec::with_capacity(uncompressed_size);
-                decoder.read_to_end(&mut decompressed)?;
-                decompressed
+                oxiarc_lz4::decompress(&compressed_data, uncompressed_size).map_err(|e| {
+                    CoreError::ComputationError(ErrorContext::new(format!(
+                        "LZ4 decompression error: {}",
+                        e
+                    )))
+                })?
             }
-            CompressionAlgorithm::Zstd => zstd::decode_all(&compressed_data[..])?,
+            CompressionAlgorithm::Zstd => {
+                oxiarc_zstd::decompress(&compressed_data).map_err(|e| {
+                    CoreError::ComputationError(ErrorContext::new(format!(
+                        "Zstd decompression error: {}",
+                        e
+                    )))
+                })?
+            }
             CompressionAlgorithm::Snappy => snap::raw::Decoder::new()
                 .decompress_vec(&compressed_data)
                 .map_err(|e| {

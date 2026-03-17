@@ -1,8 +1,8 @@
 # scirs2-python TODO
 
-## Status: v0.3.2 Released (March 17, 2026)
+## Status: v0.3.3 Released (March 17, 2026)
 
-## v0.3.2 Completed
+## v0.3.3 Completed
 
 ### Infrastructure
 - [x] PyO3-based Python/Rust interop layer

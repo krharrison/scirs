@@ -74,7 +74,7 @@ impl ParquetWriter {
 /// use scirs2_core::ndarray::Array1;
 ///
 /// let data = Array1::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0]);
-/// let options = ParquetWriteOptions::with_compression(CompressionCodec::Zstd);
+/// let options = ParquetWriteOptions::with_compression(CompressionCodec::Brotli);
 /// write_parquet("output.parquet", &data, options)?;
 /// # Ok::<(), scirs2_io::error::IoError>(())
 /// ```
@@ -277,7 +277,7 @@ mod tests {
         let path = dir.path().join("configured.parquet");
 
         let data = Array1::from_vec(vec![1.0, 2.0, 3.0]);
-        let options = ParquetWriteOptions::with_compression(CompressionCodec::Zstd)
+        let options = ParquetWriteOptions::with_compression(CompressionCodec::Brotli)
             .with_row_group_size(1000)
             .with_dictionary(true);
 

@@ -32,10 +32,10 @@ regex = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 
-# Compression dependencies
-flate2 = { workspace = true, optional = true }
-zstd = { workspace = true, optional = true }
-lz4 = { workspace = true, optional = true }
+# Pure Rust compression (COOLJAPAN Policy)
+oxiarc-deflate = { workspace = true, optional = true }
+oxiarc-zstd = { workspace = true, optional = true }
+oxiarc-lz4 = { workspace = true, optional = true }
 statrs.workspace = true
 
 [features]
@@ -46,7 +46,7 @@ cuda = ["scirs2-core/cuda"]
 opencl = []
 metal = []
 gpu = []  # GPU abstraction layer - does NOT auto-enable specific backends
-compression = ["flate2", "zstd", "lz4"]
+compression = ["dep:oxiarc-deflate", "dep:oxiarc-zstd", "dep:oxiarc-lz4"]
 
 [dev-dependencies]
 criterion = { workspace = true }

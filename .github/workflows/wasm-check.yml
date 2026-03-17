@@ -79,8 +79,7 @@ jobs:
         run: |
           cargo check \
             -p scirs2-core \
-            --target wasm32-unknown-unknown \
-            --no-default-features
+            --target wasm32-unknown-unknown
 
       - name: Check scirs2-wasm crate
         run: |

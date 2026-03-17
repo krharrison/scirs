@@ -128,55 +128,55 @@ where
             let uncompressed_size = chunk_bytes.len();
 
             // Apply compression if requested
-            let (final_bytes, compressed_size) =
-                match compression {
-                    CompressionType::None => (chunk_bytes, 0),
-                    #[cfg(feature = "memory_compression")]
-                    CompressionType::Lz4 => {
-                        let compressed =
-                            lz4::block::compress(&chunk_bytes, None, false).map_err(|e| {
-                                CoreError::IoError(
-                                    ErrorContext::new(format!("LZ4 compression failed: {e}"))
-                                        .with_location(ErrorLocation::new(file!(), line!())),
-                                )
-                            })?;
-                        let size = compressed.len();
-                        (compressed, size)
-                    }
-                    #[cfg(feature = "memory_compression")]
-                    CompressionType::Zstd => {
-                        let compressed = zstd::encode_all(&chunk_bytes[..], 3).map_err(|e| {
-                            CoreError::IoError(
-                                ErrorContext::new(format!("Zstd compression failed: {e}"))
-                                    .with_location(ErrorLocation::new(file!(), line!())),
-                            )
-                        })?;
-                        let size = compressed.len();
-                        (compressed, size)
-                    }
-                    #[cfg(feature = "memory_compression")]
-                    CompressionType::Snappy => {
-                        let mut compressed = Vec::new();
-                        let mut encoder = snap::write::FrameEncoder::new(&mut compressed);
-                        encoder.write_all(&chunk_bytes).map_err(|e| {
-                            CoreError::IoError(
-                                ErrorContext::new(format!("Snappy compression failed: {e}"))
-                                    .with_location(ErrorLocation::new(file!(), line!())),
-                            )
-                        })?;
-                        drop(encoder);
-                        let size = compressed.len();
-                        (compressed, size)
-                    }
-                    #[cfg(not(feature = "memory_compression"))]
-                    _ => return Err(CoreError::InvalidArgument(
+            let (final_bytes, compressed_size) = match compression {
+                CompressionType::None => (chunk_bytes, 0),
+                #[cfg(feature = "memory_compression")]
+                CompressionType::Lz4 => {
+                    let compressed = oxiarc_lz4::compress_block(&chunk_bytes).map_err(|e| {
+                        CoreError::IoError(
+                            ErrorContext::new(format!("LZ4 compression failed: {e}"))
+                                .with_location(ErrorLocation::new(file!(), line!())),
+                        )
+                    })?;
+                    let size = compressed.len();
+                    (compressed, size)
+                }
+                #[cfg(feature = "memory_compression")]
+                CompressionType::Zstd => {
+                    let compressed = oxiarc_zstd::encode_all(&chunk_bytes[..], 3).map_err(|e| {
+                        CoreError::IoError(
+                            ErrorContext::new(format!("Zstd compression failed: {e}"))
+                                .with_location(ErrorLocation::new(file!(), line!())),
+                        )
+                    })?;
+                    let size = compressed.len();
+                    (compressed, size)
+                }
+                #[cfg(feature = "memory_compression")]
+                CompressionType::Snappy => {
+                    let mut compressed = Vec::new();
+                    let mut encoder = snap::write::FrameEncoder::new(&mut compressed);
+                    encoder.write_all(&chunk_bytes).map_err(|e| {
+                        CoreError::IoError(
+                            ErrorContext::new(format!("Snappy compression failed: {e}"))
+                                .with_location(ErrorLocation::new(file!(), line!())),
+                        )
+                    })?;
+                    drop(encoder);
+                    let size = compressed.len();
+                    (compressed, size)
+                }
+                #[cfg(not(feature = "memory_compression"))]
+                _ => {
+                    return Err(CoreError::InvalidArgument(
                         ErrorContext::new(
                             "Compression requested but memory_compression feature is not enabled"
                                 .to_string(),
                         )
                         .with_location(ErrorLocation::new(file!(), line!())),
-                    )),
-                };
+                    ))
+                }
+            };
 
             // Write chunk data
             writer.write_all(&final_bytes).map_err(|e| {
@@ -326,51 +326,51 @@ where
         })?;
 
         // Decompress if needed
-        let decompressed_bytes = if entry.is_compressed() {
-            match self.header.compression {
-                CompressionType::None => chunk_bytes,
-                #[cfg(feature = "memory_compression")]
-                CompressionType::Lz4 => {
-                    lz4::block::decompress(&chunk_bytes, Some(entry.size as i32)).map_err(|e| {
-                        CoreError::IoError(
-                            ErrorContext::new(format!("LZ4 decompression failed: {e}"))
-                                .with_location(ErrorLocation::new(file!(), line!())),
-                        )
-                    })?
-                }
-                #[cfg(feature = "memory_compression")]
-                CompressionType::Zstd => zstd::decode_all(&chunk_bytes[..]).map_err(|e| {
-                    CoreError::IoError(
-                        ErrorContext::new(format!("Zstd decompression failed: {e}"))
-                            .with_location(ErrorLocation::new(file!(), line!())),
-                    )
-                })?,
-                #[cfg(feature = "memory_compression")]
-                CompressionType::Snappy => {
-                    let mut decompressed = Vec::new();
-                    let mut decoder = snap::read::FrameDecoder::new(&chunk_bytes[..]);
-                    decoder.read_to_end(&mut decompressed).map_err(|e| {
-                        CoreError::IoError(
-                            ErrorContext::new(format!("Snappy decompression failed: {e}"))
-                                .with_location(ErrorLocation::new(file!(), line!())),
-                        )
-                    })?;
-                    decompressed
-                }
-                #[cfg(not(feature = "memory_compression"))]
-                _ => {
-                    return Err(CoreError::InvalidArgument(
+        let decompressed_bytes =
+            if entry.is_compressed() {
+                match self.header.compression {
+                    CompressionType::None => chunk_bytes,
+                    #[cfg(feature = "memory_compression")]
+                    CompressionType::Lz4 => oxiarc_lz4::decompress_block(&chunk_bytes, entry.size)
+                        .map_err(|e| {
+                            CoreError::IoError(
+                                ErrorContext::new(format!("LZ4 decompression failed: {e}"))
+                                    .with_location(ErrorLocation::new(file!(), line!())),
+                            )
+                        })?,
+                    #[cfg(feature = "memory_compression")]
+                    CompressionType::Zstd => {
+                        oxiarc_zstd::decode_all(&chunk_bytes[..]).map_err(|e| {
+                            CoreError::IoError(
+                                ErrorContext::new(format!("Zstd decompression failed: {e}"))
+                                    .with_location(ErrorLocation::new(file!(), line!())),
+                            )
+                        })?
+                    }
+                    #[cfg(feature = "memory_compression")]
+                    CompressionType::Snappy => {
+                        let mut decompressed = Vec::new();
+                        let mut decoder = snap::read::FrameDecoder::new(&chunk_bytes[..]);
+                        decoder.read_to_end(&mut decompressed).map_err(|e| {
+                            CoreError::IoError(
+                                ErrorContext::new(format!("Snappy decompression failed: {e}"))
+                                    .with_location(ErrorLocation::new(file!(), line!())),
+                            )
+                        })?;
+                        decompressed
+                    }
+                    #[cfg(not(feature = "memory_compression"))]
+                    _ => return Err(CoreError::InvalidArgument(
                         ErrorContext::new(
                             "Compression detected but memory_compression feature is not enabled"
                                 .to_string(),
                         )
                         .with_location(ErrorLocation::new(file!(), line!())),
-                    ))
+                    )),
                 }
-            }
-        } else {
-            chunk_bytes
-        };
+            } else {
+                chunk_bytes
+            };
 
         // Deserialize chunk
         let cfg = config::standard();

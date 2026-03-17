@@ -3,10 +3,7 @@
 //! This module provides GPU-accelerated compression and decompression
 //! with backend-specific optimizations for maximum throughput and efficiency.
 //!
-//! **Note:** This module currently uses C-backed compression libraries (flate2, lz4, zstd)
-//! because it requires block-level compression APIs that are not yet available in oxiarc-archive.
-//! The gpu feature automatically enables compression-c to ensure these dependencies are available.
-//! TODO: Migrate to Pure Rust oxiarc-archive when block-level compression APIs become available.
+//! Uses Pure Rust oxiarc-* compression libraries (COOLJAPAN Policy).
 
 use super::backend_management::GpuIoProcessor;
 use crate::compression::{CompressionAlgorithm, ParallelCompressionConfig};
@@ -135,36 +132,23 @@ impl GpuCompressionProcessor {
         let compressed_chunks: Result<Vec<Vec<u8>>> = data_bytes
             .chunks(chunk_size)
             .enumerate()
-            .map(|(i, chunk)| {
-                match algorithm {
-                    CompressionAlgorithm::Gzip => {
-                        use flate2::write::GzEncoder;
-                        use flate2::Compression;
-                        use std::io::Write;
-
-                        let compression_level = level.unwrap_or(6).clamp(1, 9);
-                        let mut encoder =
-                            GzEncoder::new(Vec::new(), Compression::new(compression_level));
-                        encoder.write_all(chunk)?;
-                        encoder.finish().map_err(|e| IoError::Io(e))
-                    }
-                    CompressionAlgorithm::Zstd => {
-                        // CUDA-optimized zstd with high compression ratio
-                        let compression_level = level.unwrap_or(3).clamp(1, 19);
-                        zstd::bulk::compress(chunk, compression_level as i32)
-                            .map_err(|e| IoError::Other(e.to_string()))
-                    }
-                    CompressionAlgorithm::Lz4 => {
-                        // LZ4 with CUDA-specific optimizations
-                        // Use lz4 crate instead of lz4_flex
-                        lz4::block::compress(chunk, None, false)
-                            .map_err(|e| IoError::Other(format!("LZ4 compression error: {}", e)))
-                    }
-                    _ => Err(IoError::UnsupportedFormat(format!(
-                        "Compression algorithm {:?} not supported for CUDA",
-                        algorithm
-                    ))),
+            .map(|(i, chunk)| match algorithm {
+                CompressionAlgorithm::Gzip => {
+                    let compression_level = level.unwrap_or(6).clamp(1, 9) as u8;
+                    oxiarc_deflate::gzip_compress(chunk, compression_level)
+                        .map_err(|e| IoError::Other(format!("Gzip compression error: {}", e)))
                 }
+                CompressionAlgorithm::Zstd => {
+                    let compression_level = level.unwrap_or(3).clamp(1, 19);
+                    oxiarc_zstd::compress_with_level(chunk, compression_level as i32)
+                        .map_err(|e| IoError::Other(format!("Zstd compression error: {}", e)))
+                }
+                CompressionAlgorithm::Lz4 => oxiarc_lz4::compress_block(chunk)
+                    .map_err(|e| IoError::Other(format!("LZ4 compression error: {}", e))),
+                _ => Err(IoError::UnsupportedFormat(format!(
+                    "Compression algorithm {:?} not supported for CUDA",
+                    algorithm
+                ))),
             })
             .collect();
 
@@ -217,32 +201,23 @@ impl GpuCompressionProcessor {
 
         let compressed_chunks: Result<Vec<Vec<u8>>> = data_bytes
             .chunks(chunk_size)
-            .map(|chunk| {
-                match algorithm {
-                    CompressionAlgorithm::Gzip => {
-                        use flate2::write::GzEncoder;
-                        use flate2::Compression;
-                        use std::io::Write;
-
-                        let compression_level = level.unwrap_or(6).clamp(1, 9);
-                        let mut encoder =
-                            GzEncoder::new(Vec::new(), Compression::new(compression_level));
-                        encoder.write_all(chunk)?;
-                        encoder.finish().map_err(|e| IoError::Io(e))
-                    }
-                    CompressionAlgorithm::Zstd => {
-                        // Metal-optimized zstd parameters
-                        let compression_level = level.unwrap_or(4).clamp(1, 19);
-                        zstd::bulk::compress(chunk, compression_level as i32)
-                            .map_err(|e| IoError::Other(e.to_string()))
-                    }
-                    CompressionAlgorithm::Lz4 => lz4::block::compress(chunk, None, false)
-                        .map_err(|e| IoError::Other(format!("LZ4 compression error: {}", e))),
-                    _ => Err(IoError::UnsupportedFormat(format!(
-                        "Compression algorithm {:?} not supported for Metal",
-                        algorithm
-                    ))),
+            .map(|chunk| match algorithm {
+                CompressionAlgorithm::Gzip => {
+                    let compression_level = level.unwrap_or(6).clamp(1, 9) as u8;
+                    oxiarc_deflate::gzip_compress(chunk, compression_level)
+                        .map_err(|e| IoError::Other(format!("Gzip compression error: {}", e)))
                 }
+                CompressionAlgorithm::Zstd => {
+                    let compression_level = level.unwrap_or(4).clamp(1, 19);
+                    oxiarc_zstd::compress_with_level(chunk, compression_level as i32)
+                        .map_err(|e| IoError::Other(format!("Zstd compression error: {}", e)))
+                }
+                CompressionAlgorithm::Lz4 => oxiarc_lz4::compress_block(chunk)
+                    .map_err(|e| IoError::Other(format!("LZ4 compression error: {}", e))),
+                _ => Err(IoError::UnsupportedFormat(format!(
+                    "Compression algorithm {:?} not supported for Metal",
+                    algorithm
+                ))),
             })
             .collect();
 
@@ -295,36 +270,23 @@ impl GpuCompressionProcessor {
 
         let compressed_chunks: Result<Vec<Vec<u8>>> = data_bytes
             .chunks(chunk_size)
-            .map(|chunk| {
-                match algorithm {
-                    CompressionAlgorithm::Gzip => {
-                        use flate2::write::GzEncoder;
-                        use flate2::Compression;
-                        use std::io::Write;
-
-                        let compression_level = level.unwrap_or(6).clamp(1, 9);
-                        let mut encoder =
-                            GzEncoder::new(Vec::new(), Compression::new(compression_level));
-                        encoder.write_all(chunk)?;
-                        encoder.finish().map_err(|e| IoError::Io(e))
-                    }
-                    CompressionAlgorithm::Zstd => {
-                        // OpenCL-optimized zstd with balanced parameters
-                        let compression_level = level.unwrap_or(5).clamp(1, 19);
-                        zstd::bulk::compress(chunk, compression_level as i32)
-                            .map_err(|e| IoError::Other(e.to_string()))
-                    }
-                    CompressionAlgorithm::Lz4 => {
-                        // LZ4 works particularly well with OpenCL due to its simplicity
-                        // Use lz4 crate instead of lz4_flex
-                        lz4::block::compress(chunk, None, false)
-                            .map_err(|e| IoError::Other(format!("LZ4 compression error: {}", e)))
-                    }
-                    _ => Err(IoError::UnsupportedFormat(format!(
-                        "Compression algorithm {:?} not supported for OpenCL",
-                        algorithm
-                    ))),
+            .map(|chunk| match algorithm {
+                CompressionAlgorithm::Gzip => {
+                    let compression_level = level.unwrap_or(6).clamp(1, 9) as u8;
+                    oxiarc_deflate::gzip_compress(chunk, compression_level)
+                        .map_err(|e| IoError::Other(format!("Gzip compression error: {}", e)))
                 }
+                CompressionAlgorithm::Zstd => {
+                    let compression_level = level.unwrap_or(5).clamp(1, 19);
+                    oxiarc_zstd::compress_with_level(chunk, compression_level as i32)
+                        .map_err(|e| IoError::Other(format!("Zstd compression error: {}", e)))
+                }
+                CompressionAlgorithm::Lz4 => oxiarc_lz4::compress_block(chunk)
+                    .map_err(|e| IoError::Other(format!("LZ4 compression error: {}", e))),
+                _ => Err(IoError::UnsupportedFormat(format!(
+                    "Compression algorithm {:?} not supported for OpenCL",
+                    algorithm
+                ))),
             })
             .collect();
 
@@ -519,26 +481,13 @@ impl GpuCompressionProcessor {
         let decompressed_chunks: Result<Vec<Vec<u8>>> = chunk_data
             .par_iter()
             .map(|chunk| match algorithm {
-                CompressionAlgorithm::Gzip => {
-                    use flate2::read::GzDecoder;
-                    use std::io::Read;
-
-                    let mut decoder = GzDecoder::new(*chunk);
-                    let mut decompressed = Vec::new();
-                    decoder
-                        .read_to_end(&mut decompressed)
-                        .map_err(|e| IoError::Io(e))?;
-                    Ok(decompressed)
-                }
-                CompressionAlgorithm::Zstd => {
-                    zstd::bulk::decompress(chunk, chunk.len() * 10) // Estimate decompressed size
-                        .map_err(|e| IoError::Other(e.to_string()))
-                }
+                CompressionAlgorithm::Gzip => oxiarc_deflate::gzip_decompress(chunk)
+                    .map_err(|e| IoError::Other(format!("Gzip decompression error: {}", e))),
+                CompressionAlgorithm::Zstd => oxiarc_zstd::decompress(chunk)
+                    .map_err(|e| IoError::Other(format!("Zstd decompression error: {}", e))),
                 CompressionAlgorithm::Lz4 => {
-                    // LZ4 decompression - we need to provide the max decompressed size
-                    // Assume max 10x expansion ratio for safety
                     let max_size = chunk.len() * 10;
-                    lz4::block::decompress(chunk, Some(max_size as i32))
+                    oxiarc_lz4::decompress_block(chunk, max_size)
                         .map_err(|e| IoError::Other(format!("LZ4 decompression error: {}", e)))
                 }
                 _ => Err(IoError::UnsupportedFormat(format!(

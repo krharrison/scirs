@@ -165,6 +165,9 @@ pub mod standard;
 /// for the scirs2-datasets crate.
 pub mod stability;
 
+/// Pure Rust platform directory detection (replaces `dirs` crate for COOLJAPAN Pure Rust policy)
+pub mod platform_dirs;
+
 // Temporary module to test method resolution conflict
 mod method_resolution_test;
 

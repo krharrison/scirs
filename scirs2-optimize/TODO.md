@@ -1,12 +1,12 @@
 # scirs2-optimize TODO
 
-## Status: v0.3.2 Released (March 17, 2026)
+## Status: v0.3.3 Released (March 17, 2026)
 
-19,685 workspace tests pass (100% pass rate). All v0.3.2 features are complete and production-ready.
+19,685 workspace tests pass (100% pass rate). All v0.3.3 features are complete and production-ready.
 
 ---
 
-## v0.3.2 Completed
+## v0.3.3 Completed
 
 ### Unconstrained Optimization
 - [x] Nelder-Mead simplex with adaptive parameters (Gao-Han scaling)

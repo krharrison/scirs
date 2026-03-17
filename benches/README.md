@@ -1,4 +1,4 @@
-# SciRS2 Benchmark Suite (v0.3.2)
+# SciRS2 Benchmark Suite (v0.3.3)
 
 Performance benchmarks using [Criterion](https://github.com/bheisler/criterion.rs).
 

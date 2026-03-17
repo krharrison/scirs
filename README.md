@@ -35,9 +35,9 @@ cargo build --release
 
 SciRS2 provides a complete ecosystem for scientific computing, data analysis, and machine learning in Rust, with production-grade quality and performance that rivals or exceeds traditional C/Fortran-based libraries.
 
-## 🎉 Release Status: v0.3.2 - pyo3 0.28.2 Upgrade & Benchmark Modernization
+## 🎉 Release Status: v0.3.3 - Pure Rust Policy & WASM Support
 
-**Latest Stable Release** - v0.3.2 (March 17, 2026) 🚀
+**Latest Stable Release** - v0.3.3 (March 17, 2026) 🚀
 
 - ✅ **19,700+ Tests**: Full test suite across 29 workspace crates
 - ✅ **2.59M Lines of Rust Code**: Comprehensive coverage of scientific computing and AI/ML
@@ -51,10 +51,20 @@ SciRS2 provides a complete ecosystem for scientific computing, data analysis, an
 - ✅ **Zero Warnings Policy**: Clean build with 0 compilation errors, 0 clippy warnings
 - 📅 **Release Date**: March 17, 2026
 
-**What's New in 0.3.2**:
+**What's New in 0.3.3**:
+- **Pure Rust Compression**: Replaced C-based compression (flate2, lz4, zstd, bzip2) with oxiarc pure Rust alternatives across core, cluster, and io
+- **Pure Rust Memory Profiling**: Replaced tikv-jemallocator with OS-native APIs (Mach task_info/procfs)
+- **WASM Target Support**: Added getrandom WASM backend and wasm32 configuration
+- **Pure Rust Directory Detection**: Replaced `dirs` crate with custom `platform_dirs` module
+- **Parquet Pure Rust**: Configured parquet with pure Rust feature flags, switched Zstd to Brotli codec
+
+<details>
+<summary><strong>What was in 0.3.2</strong></summary>
+
 - **pyo3 0.28.2 Upgrade**: Migrated Python bindings to pyo3 0.28.2 (`Python::with_gil` -> `Python::attach`)
 - **#[pyclass] Deprecation Fixes**: Updated `from_py_object` attribute usage to resolve deprecation warnings
 - **Benchmark Modernization**: Replaced deprecated `criterion::black_box` with `std::hint::black_box` across all benchmarks
+</details>
 
 <details>
 <summary><strong>What was in 0.3.1</strong></summary>
@@ -286,7 +296,7 @@ Profiler::global().lock().unwrap().print_report();
 
 Each module has its own README with detailed documentation and is available on crates.io.
 
-### Complete Crate Reference (v0.3.2)
+### Complete Crate Reference (v0.3.3)
 
 | Crate | Description | docs.rs |
 |-------|-------------|---------|
@@ -445,7 +455,7 @@ SciRS2 follows the COOLJAPAN Pure Rust Policy. All default dependencies are 100%
 
 ### System Dependencies
 
-**v0.3.2 uses Pure Rust dependencies only - No system libraries required!** 🎉
+**v0.3.3 uses Pure Rust dependencies only - No system libraries required!** 🎉
 
 SciRS2 is **100% Pure Rust** with OxiBLAS (Pure Rust BLAS/LAPACK implementation). You don't need to install:
 - ❌ OpenBLAS
@@ -467,7 +477,7 @@ SciRS2 and all its modules are available on [crates.io](https://crates.io/crates
 ```toml
 # Add the main integration crate for all functionality
 [dependencies]
-scirs2 = "0.3.2"
+scirs2 = "0.3.3"
 ```
 
 Or include only the specific modules you need:
@@ -475,16 +485,16 @@ Or include only the specific modules you need:
 ```toml
 [dependencies]
 # Core utilities
-scirs2-core = "0.3.2"
+scirs2-core = "0.3.3"
 
 # Scientific computing modules
-scirs2-linalg = "0.3.2"
-scirs2-stats = "0.3.2"
-scirs2-optimize = "0.3.2"
+scirs2-linalg = "0.3.3"
+scirs2-stats = "0.3.3"
+scirs2-optimize = "0.3.3"
 
 # AI/ML modules
-scirs2-neural = "0.3.2"
-scirs2-autograd = "0.3.2"
+scirs2-neural = "0.3.3"
+scirs2-autograd = "0.3.3"
 # Note: For ML optimization algorithms, use the independent OptiRS project
 ```
 
@@ -602,7 +612,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Platform Compatibility
 
-SciRS2 v0.3.2 has been tested on the following platforms:
+SciRS2 v0.3.3 has been tested on the following platforms:
 
 ### ✅ Fully Supported Platforms
 
@@ -680,7 +690,7 @@ cargo nextest run --nff --all-features
 - **Data I/O**: MATLAB, HDF5, NetCDF, Parquet, Arrow, CSV, image formats
 - **Production Quality**: 19,700+ tests, zero warnings policy, comprehensive error handling
 
-#### New in v0.3.2
+#### New in v0.3.3
 - ✨ **29 Workspace Crates**: Modular ecosystem covering all scientific computing domains
 - ✨ **Advanced Neural Networks**: Transformers (GPT-2/T5/Swin), GNNs (GCN/GAT/GIN), diffusion models, SNN, capsule networks
 - ✨ **Statistics & Probabilistic ML**: Gaussian processes, Bayesian networks, survival analysis, copulas, nonparametric Bayes
@@ -690,7 +700,7 @@ cargo nextest run --nff --all-features
 - ✨ **Julia Bindings**: New Julia interface for seamless ecosystem interoperability
 - ✨ **Full Test Coverage**: 19,700+ tests
 
-### Stable Modules (Production Ready — v0.3.2)
+### Stable Modules (Production Ready — v0.3.3)
 
 All 29 workspace crates are production-ready with comprehensive test coverage (19,700+ tests).
 
@@ -749,10 +759,10 @@ All SciRS2 modules are available on crates.io. Add the modules you need to your 
 
 ```toml
 [dependencies]
-scirs2 = "0.3.2"  # Core library with all modules
+scirs2 = "0.3.3"  # Core library with all modules
 # Or individual modules:
-scirs2-linalg = "0.3.2"  # Linear algebra
-scirs2-stats = "0.3.2"   # Statistics
+scirs2-linalg = "0.3.3"  # Linear algebra
+scirs2-stats = "0.3.3"   # Statistics
 # ... and more
 ```
 
@@ -827,9 +837,9 @@ For detailed development plans, upcoming features, and contribution opportunitie
 
 ## Development Branch Status
 
-**Current Branch**: `0.3.2` (March 17, 2026)
+**Current Branch**: `0.3.3` (March 17, 2026)
 
-**Release Status**: All major features for v0.3.2 have been implemented and tested:
+**Release Status**: All major features for v0.3.3 have been implemented and tested:
 - ✅ 29 workspace crates fully implemented
 - ✅ Advanced neural networks (Transformers, GNNs, diffusion, SNN) complete
 - ✅ Comprehensive statistics & probabilistic ML implemented
@@ -872,12 +882,12 @@ All platforms benefit from:
 #### scirs2-autograd
 - ✅ **Fixed in v0.2.0**: Optimizer::update() now correctly updates variables
 - ✅ **Fixed in v0.2.0**: Eliminated warning spam during gradient computation
-- ✅ **Enhanced in v0.3.2**: Custom gradient, checkpointing, FD/Richardson differentiation, JVP/VJP, implicit diff
+- ✅ **Enhanced in v0.3.3**: Custom gradient, checkpointing, FD/Richardson differentiation, JVP/VJP, implicit diff
 
 #### scirs2-spatial
 - ✅ **New in v0.2.0**: Enhanced Delaunay triangulation with modular Bowyer-Watson architecture (2D/3D/ND)
 - ✅ **New in v0.2.0**: Constrained Delaunay triangulation support
-- ✅ **New in v0.3.2**: R*-Tree, geodata handling, Voronoi Fortune algorithm, trajectory analysis
+- ✅ **New in v0.3.3**: R*-Tree, geodata handling, Voronoi Fortune algorithm, trajectory analysis
 - ✅ **Stable**: KD-trees, distance calculations, convex hull, Voronoi diagrams
 
 #### scirs2-optimize / scirs2-stats / scirs2-special
@@ -988,8 +998,8 @@ SciRS2 is part of the **COOLJAPAN Ecosystem** - a comprehensive collection of pr
 
 #### [OptiRS](https://github.com/cool-japan/optirs)
 **Advanced ML optimization algorithms extending SciRS2**
-- GPU-accelerated training (CUDA, ROCm, Metal) with 100x+ speedups
-- 30+ optimizers: Adam, RAdam, Lookahead, LAMB, learned optimizers
+- GPU-accelerated training (CUDA, ROCm, Metal) with 10-50x speedups
+- 19 production-ready optimizers: Adam, RAdam, Lookahead, LAMB, learned optimizers
 - Neural Architecture Search (NAS), pruning, and quantization
 - Distributed training with data/model parallelism and TPU coordination
 
@@ -1017,7 +1027,7 @@ SciRS2 is part of the **COOLJAPAN Ecosystem** - a comprehensive collection of pr
 **Hugging Face Transformers in pure Rust for production deployment**
 - BERT, GPT-2/3/4, T5, BART, RoBERTa, DistilBERT, and more
 - Full training infrastructure with mixed precision and gradient accumulation
-- Optimized inference (1.5-3x faster than PyTorch) with quantization support
+- Optimized inference (up to 1.67x faster than PyTorch) with quantization support
 
 ### 🎙️ Speech & Audio Processing
 
@@ -1049,7 +1059,7 @@ SciRS2 is part of the **COOLJAPAN Ecosystem** - a comprehensive collection of pr
 
 #### [OxiLean](https://github.com/cool-japan/oxilean)
 **Pure Rust Interactive Theorem Prover — Calculus of Inductive Constructions**
-- Zero-dependency kernel (~3,500 SLOC TCB), WASM-first design
+- Zero-dependency kernel (115k SLOC TCB), WASM-first design
 - Universe hierarchy, dependent types, inductive types, proof irrelevance, universe polymorphism
 - Cargo integration for proof libraries as crates; 11 workspace crates
 
@@ -1057,8 +1067,8 @@ SciRS2 is part of the **COOLJAPAN Ecosystem** - a comprehensive collection of pr
 
 #### [OxiGDAL](https://github.com/cool-japan/oxigdal)
 **Pure Rust Geospatial Data Abstraction Library — Production-Grade GDAL Alternative**
-- 68 workspace crates, ~500k SLoC with 11 format drivers (GeoTIFF/COG, GeoJSON, GeoParquet, Zarr, FlatGeobuf, Shapefile, NetCDF, HDF5, GRIB, JPEG2000, VRT)
-- Full CRS transformations (20+ projections, 1000+ EPSG codes), cloud-native I/O (S3/GCS/Azure), GPU acceleration
+- 76 workspace crates, ~540k SLoC with 15 format drivers (GeoTIFF/COG, GeoJSON, GeoParquet, Zarr, FlatGeobuf, Shapefile, NetCDF, HDF5, GRIB, JPEG2000, VRT, COPC/LAS, GeoPackage, MBTiles, PMTiles)
+- Full CRS transformations (20+ projections, 211+ EPSG codes), cloud-native I/O (S3/GCS/Azure), GPU acceleration
 - Cross-platform: WASM, iOS, Android, embedded (no_std); zero C/C++ dependencies in default features
 
 ### ⚖️ Legal Technology
@@ -1093,7 +1103,7 @@ SciRS2 is part of the **COOLJAPAN Ecosystem** - a comprehensive collection of pr
 
 #### [OxiMedia](https://github.com/cool-japan/oximedia)
 **Pure Rust reconstruction of OpenCV + FFmpeg — Patent-free multimedia and computer vision framework**
-- 92 workspace crates, ~1.36M SLoC; codec encode/decode (AV1, VP9, Opus, FLAC), container mux/demux (MP4, MKV, MPEG-TS, OGG)
+- 106 workspace crates, ~2.16M SLoC; codec encode/decode (AV1, VP9, Opus, FLAC), container mux/demux (MP4, MKV, MPEG-TS, OGG)
 - Streaming protocols (HLS, DASH, RTMP, SRT, WebRTC), transcoding pipelines, filter graphs (DAG-based)
 - Computer vision: object detection, motion tracking, video stabilization, scene analysis, shot detection, denoising
 - Professional image I/O (DPX, OpenEXR, TIFF), color management (ICC, ACES, HDR), quality metrics (PSNR/SSIM/VMAF)
@@ -1168,7 +1178,7 @@ If you use SciRS2 in your research, please cite:
   author = {{COOLJAPAN OU (Team KitaSan)}},
   year = {2026},
   url = {https://github.com/cool-japan/scirs},
-  version = {0.3.2}
+  version = {0.3.3}
 }
 ```
 

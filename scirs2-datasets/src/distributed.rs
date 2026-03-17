@@ -59,7 +59,7 @@ pub struct DistributedProcessor {
 impl DistributedProcessor {
     /// Create a new distributed processor
     pub fn new(config: DistributedConfig) -> Result<Self> {
-        let cachedir = dirs::cache_dir()
+        let cachedir = crate::platform_dirs::cache_dir()
             .ok_or_else(|| DatasetsError::Other("Could not determine cache directory".to_string()))?
             .join("scirs2-datasets");
         let cache = DatasetCache::new(cachedir);

@@ -1,6 +1,6 @@
 # scirs2-sparse Development TODO
 
-## v0.3.2 — COMPLETED
+## v0.3.3 — COMPLETED
 
 ### New Sparse Formats
 - ELLPACK/ITPACK format with uniform nnz-per-row storage (GPU-friendly)
