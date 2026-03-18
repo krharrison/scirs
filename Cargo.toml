@@ -64,7 +64,7 @@ android_min_api = 21
 supported_architectures = ["aarch64", "armv7"]
 
 [workspace.package]
-version = "0.3.3"  # scirs2 0.3.3
+version = "0.3.4"  # scirs2 0.3.4
 edition = "2021"
 authors = ["COOLJAPAN OU (Team KitaSan)"]
 description = "A Rust port of SciPy with AI/ML extensions - Scientific Computing and AI Library"
@@ -79,7 +79,7 @@ categories = ["science", "mathematics", "algorithms", "ai"]
 ndarray = { version = "0.17.2", default-features = false, features = ["std", "serde", "rayon", "approx"] }
 ndarray-stats = "0.7.0"
 ndarray-rand = "0.16.0"
-ndarray-npy = "0.10.0"
+# ndarray-npy removed to eliminate `zip` crate from dependency tree (COOLJAPAN Pure Rust Policy)
 # Numerical libraries (no_std compatible)
 num-traits = { version = "0.2.19", default-features = false, features = ["libm"] }  # libm for no_std math
 num-complex = { version = "0.4.6", default-features = false, features = ["libm"] }  # no_std support
@@ -122,7 +122,7 @@ chrono = "0.4.44"
 # extension-module should be enabled only in actual Python extension module crates
 pyo3 = { version = "0.28.2", default-features = false, features = ["macros"] }
 numpy = { version = "0.28.0" }  # Keep for non-SciRS2 compatibility
-scirs2-numpy = { version = "0.3.3", path = "./scirs2-numpy" }  # SciRS2 fork with ndarray 0.17
+scirs2-numpy = { version = "0.3.4", path = "./scirs2-numpy" }  # SciRS2 fork with ndarray 0.17
 
 # Linear algebra and math (heavy dependencies - minimize features)
 nalgebra = { version = "0.34.1", default-features = false }
@@ -168,13 +168,12 @@ hex = "0.4"
 digest = "0.11"
 data-encoding = "2.10"
 glob = "0.3"
-oxiarc-archive = "0.2.4"  # Pure Rust archive support (COOLJAPAN Policy)
-oxiarc-lz4 = "0.2.4"  # Pure Rust LZ4 compression (COOLJAPAN Policy)
-oxiarc-bzip2 = "0.2.4"  # Pure Rust BZIP2 compression (COOLJAPAN Policy)
-oxiarc-zstd = "0.2.4"  # Pure Rust Zstandard compression (COOLJAPAN Policy)
-oxiarc-core = "0.2.4"  # Pure Rust compression core (COOLJAPAN Policy)
-oxiarc-deflate = "0.2.4"  # Pure Rust DEFLATE/GZIP compression (COOLJAPAN Policy)
-miniz_oxide = "0.9.1"  # Pure Rust DEFLATE compression (COOLJAPAN Policy)
+oxiarc-archive = "0.2.5"  # Pure Rust archive support (COOLJAPAN Policy)
+oxiarc-lz4 = "0.2.5"  # Pure Rust LZ4 compression (COOLJAPAN Policy)
+oxiarc-bzip2 = "0.2.5"  # Pure Rust BZIP2 compression (COOLJAPAN Policy)
+oxiarc-zstd = "0.2.5"  # Pure Rust Zstandard compression (COOLJAPAN Policy)
+oxiarc-core = "0.2.5"  # Pure Rust compression core (COOLJAPAN Policy)
+oxiarc-deflate = "0.2.5"  # Pure Rust DEFLATE/GZIP compression (COOLJAPAN Policy)
 urlencoding = "2.1"
 url = "2.5.8"
 cron = "0.15"
@@ -194,7 +193,6 @@ unicode-segmentation = "1.12"
 lazy_static = "1.5"
 statrs = "0.18.0"
 petgraph = "0.8.3"
-itertools = "0.14"
 
 # Additional dependencies for modules
 half = { version = "2.7.1", features = ["num-traits", "serde", "alloc"] }
@@ -204,11 +202,8 @@ crossbeam-deque = { version = "0.8.6" }
 crossbeam-channel = { version = "0.5.15" }
 memmap2 = { version = "0.9.10" }
 bytemuck = { version = "1.25", features = ["derive"] }
-snap = { version = "1.1.1" }
-brotli = { version = "8.0.2" }
-cranelift-module = { version = "0.129.1" }
-cranelift-jit = { version = "0.129.1" }
-cranelift-frontend = { version = "0.129.1" }
+oxiarc-snappy = "0.2.5"  # Pure Rust Snappy compression (COOLJAPAN Policy)
+oxiarc-brotli = "0.2.5"  # Pure Rust Brotli compression (COOLJAPAN Policy)
 plotly = { version = "0.14.1" }
 plotters = { version = "0.3.7" }
 reqwest = { version = "0.13", features = ["blocking", "json"] }
@@ -217,25 +212,8 @@ reqwest = { version = "0.13", features = ["blocking", "json"] }
 libm = "0.2"
 array-init = "2.1.0"
 
-# Embedded systems support (v0.2.0)
 # Fixed-point arithmetic for no_std environments
 fixed = { version = "1.30.0", default-features = false }
-fixed-sqrt = { version = "0.3.0", default-features = false }
-cordic = { version = "0.1.5", default-features = false }  # CORDIC algorithms for embedded
-# Embedded hardware abstraction
-embedded-hal = { version = "1.0.0" }
-critical-section = { version = "1.2.0", default-features = false }
-# Platform-specific embedded support
-cortex-m = { version = "0.7.7", default-features = false }
-cortex-m-rt = { version = "0.7.5" }
-riscv = { version = "0.16.0", default-features = false }
-riscv-rt = { version = "0.17.1" }
-# Atomic operations for embedded
-atomic-polyfill = { version = "1.0.3", default-features = false }
-portable-atomic = { version = "1.13.1", default-features = false }
-# Memory allocation for alloc feature
-embedded-alloc = { version = "0.7.0" }
-linked_list_allocator = { version = "0.10.5" }
 netcdf3 = "0.6.0"
 sobol = "1.0.2"
 halton = "0.2.1"
@@ -250,9 +228,7 @@ ciborium = "0.2.2"
 
 # Arbitrary precision libraries
 num-bigint = "0.4.6"
-num-rational = "0.4.2"
 rug = { version = "1.28.1", features = ["integer", "float", "rational", "complex"], default-features = false }
-gmp-mpfr-sys = { version = "1.6.8", default-features = false }
 
 # There were compatibility issues with chrono
 arrow = "58.0.0"
@@ -303,22 +279,21 @@ ahash = { version = "0.8" }
 # Database drivers
 rusqlite = { version = "=0.37.0" }
 # sqlx removed - not used (postgres/mysql implementations are stubs)
-mongodb = { version = "3.5" }
-redis = { version = "1.0" }
+# mongodb removed - stub only, not actually used
+# redis removed - stub only, not actually used
 
 # Real-time streaming
 tokio-tungstenite = { version = "0.28" }
 rumqttc = { version = "0.25" }
 eventsource-client = { version = "0.17" }
 tonic = { version = "0.14" }
-prost = { version = "0.14" }
+# prost removed - not used in any crate
 
 # CLI and utilities
 clap = { version = "4.6" }
 
 # Cryptography
 rsa = { version = "0.9" }
-x509-parser = { version = "0.18" }
 
 # WASM support
 wasm-bindgen = { version = "0.2" }
@@ -346,8 +321,6 @@ tracing-opentelemetry = { version = "0.32" }
 opentelemetry = { version = "0.31.0" }
 opentelemetry_sdk = { version = "0.31.0", features = ["rt-tokio", "metrics", "trace"] }
 opentelemetry-otlp = { version = "0.31.0", features = ["grpc-tonic", "metrics", "trace"] }
-opentelemetry-prometheus = { version = "0.31.0" }
-opentelemetry-semantic-conventions = { version = "0.31.0" }
 
 # Memory profiling (Pure Rust - uses OS APIs via libc)
 
@@ -365,37 +338,37 @@ pyo3-async-runtimes = { version = "0.28.0", default-features = false, features =
 # Python integration (optional)
 
 # Base scirs2 crates
-scirs2-core = { version = "0.3.3", path = "./scirs2-core", default-features = false }
-scirs2 = { version = "0.3.3", path = "./scirs2", default-features = false }
-scirs2-linalg = { version = "0.3.3", path = "./scirs2-linalg", default-features = false }
-scirs2-integrate = { version = "0.3.3", path = "./scirs2-integrate", default-features = false }
-scirs2-interpolate = { version = "0.3.3", path = "./scirs2-interpolate", default-features = false }
-scirs2-optimize = { version = "0.3.3", path = "./scirs2-optimize", default-features = false }
-scirs2-fft = { version = "0.3.3", path = "./scirs2-fft", default-features = false }
-scirs2-stats = { version = "0.3.3", path = "./scirs2-stats", default-features = false }
-scirs2-special = { version = "0.3.3", path = "./scirs2-special", default-features = false }
-scirs2-signal = { version = "0.3.3", path = "./scirs2-signal", default-features = false }
-scirs2-sparse = { version = "0.3.3", path = "./scirs2-sparse" }
-scirs2-spatial = { version = "0.3.3", path = "./scirs2-spatial" }
+scirs2-core = { version = "0.3.4", path = "./scirs2-core", default-features = false }
+scirs2 = { version = "0.3.4", path = "./scirs2", default-features = false }
+scirs2-linalg = { version = "0.3.4", path = "./scirs2-linalg", default-features = false }
+scirs2-integrate = { version = "0.3.4", path = "./scirs2-integrate", default-features = false }
+scirs2-interpolate = { version = "0.3.4", path = "./scirs2-interpolate", default-features = false }
+scirs2-optimize = { version = "0.3.4", path = "./scirs2-optimize", default-features = false }
+scirs2-fft = { version = "0.3.4", path = "./scirs2-fft", default-features = false }
+scirs2-stats = { version = "0.3.4", path = "./scirs2-stats", default-features = false }
+scirs2-special = { version = "0.3.4", path = "./scirs2-special", default-features = false }
+scirs2-signal = { version = "0.3.4", path = "./scirs2-signal", default-features = false }
+scirs2-sparse = { version = "0.3.4", path = "./scirs2-sparse" }
+scirs2-spatial = { version = "0.3.4", path = "./scirs2-spatial" }
 
 # Advanced modules
-scirs2-cluster = { version = "0.3.3", path = "./scirs2-cluster" }
-scirs2-ndimage = { version = "0.3.3", path = "./scirs2-ndimage" }
-scirs2-io = { version = "0.3.3", path = "./scirs2-io" }
-scirs2-datasets = { version = "0.3.3", path = "./scirs2-datasets", default-features = false }
+scirs2-cluster = { version = "0.3.4", path = "./scirs2-cluster" }
+scirs2-ndimage = { version = "0.3.4", path = "./scirs2-ndimage" }
+scirs2-io = { version = "0.3.4", path = "./scirs2-io" }
+scirs2-datasets = { version = "0.3.4", path = "./scirs2-datasets", default-features = false }
 
 # AI/ML modules
-scirs2-neural = { version = "0.3.3", path = "./scirs2-neural" }
+scirs2-neural = { version = "0.3.4", path = "./scirs2-neural" }
 # scirs2-optim moved to independent OptiRS project
-scirs2-graph = { version = "0.3.3", path = "./scirs2-graph" }
-scirs2-transform = { version = "0.3.3", path = "./scirs2-transform" }
-scirs2-metrics = { version = "0.3.3", path = "./scirs2-metrics", default-features = false }
-scirs2-text = { version = "0.3.3", path = "./scirs2-text" }
-scirs2-vision = { version = "0.3.3", path = "./scirs2-vision" }
-scirs2-series = { version = "0.3.3", path = "./scirs2-series" }
-scirs2-autograd = { version = "0.3.3", path = "./scirs2-autograd" }
-scirs2-wasm = { version = "0.3.3", path = "./scirs2-wasm" }  # WebAssembly bindings
-scirs2-python = { version = "0.3.3", path = "./scirs2-python" }  # Python bindings
+scirs2-graph = { version = "0.3.4", path = "./scirs2-graph" }
+scirs2-transform = { version = "0.3.4", path = "./scirs2-transform" }
+scirs2-metrics = { version = "0.3.4", path = "./scirs2-metrics", default-features = false }
+scirs2-text = { version = "0.3.4", path = "./scirs2-text" }
+scirs2-vision = { version = "0.3.4", path = "./scirs2-vision" }
+scirs2-series = { version = "0.3.4", path = "./scirs2-series" }
+scirs2-autograd = { version = "0.3.4", path = "./scirs2-autograd" }
+scirs2-wasm = { version = "0.3.4", path = "./scirs2-wasm" }  # WebAssembly bindings
+scirs2-python = { version = "0.3.4", path = "./scirs2-python" }  # Python bindings
 
 
 [profile.release]

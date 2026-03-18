@@ -356,15 +356,11 @@ impl PhoneticAlgorithm for Metaphone {
             };
 
             match ch {
-                'A' | 'E' | 'I' | 'O' | 'U' => {
-                    if i == 0 {
-                        result.push(ch);
-                    }
+                'A' | 'E' | 'I' | 'O' | 'U' if i == 0 => {
+                    result.push(ch);
                 }
-                'B' => {
-                    if !result.ends_with('B') {
-                        result.push('B');
-                    }
+                'B' if !result.ends_with('B') => {
+                    result.push('B');
                 }
                 'C' => {
                     if next == Some('H') {
@@ -384,10 +380,8 @@ impl PhoneticAlgorithm for Metaphone {
                         result.push('T');
                     }
                 }
-                'F' | 'J' | 'L' | 'M' | 'N' | 'R' => {
-                    if !result.ends_with(ch) {
-                        result.push(ch);
-                    }
+                'F' | 'J' | 'L' | 'M' | 'N' | 'R' if !result.ends_with(ch) => {
+                    result.push(ch);
                 }
                 'G' => {
                     if next == Some('H') {
@@ -399,20 +393,16 @@ impl PhoneticAlgorithm for Metaphone {
                         result.push('K');
                     }
                 }
-                'H' => {
-                    if prev != Some('C')
-                        && prev != Some('S')
-                        && prev != Some('P')
-                        && prev != Some('T')
-                        && prev != Some('G')
-                    {
-                        result.push('H');
-                    }
+                'H' if prev != Some('C')
+                    && prev != Some('S')
+                    && prev != Some('P')
+                    && prev != Some('T')
+                    && prev != Some('G') =>
+                {
+                    result.push('H');
                 }
-                'K' => {
-                    if prev != Some('C') {
-                        result.push('K');
-                    }
+                'K' if prev != Some('C') => {
+                    result.push('K');
                 }
                 'P' => {
                     if next == Some('H') {
@@ -444,10 +434,8 @@ impl PhoneticAlgorithm for Metaphone {
                     }
                 }
                 'V' => result.push('F'),
-                'W' | 'Y' => {
-                    if next.map(|c| "AEIOU".contains(c)).unwrap_or(false) {
-                        result.push(ch);
-                    }
+                'W' | 'Y' if next.map(|c| "AEIOU".contains(c)).unwrap_or(false) => {
+                    result.push(ch);
                 }
                 'X' => {
                     result.push('K');

@@ -253,7 +253,7 @@
 //!
 //! ## 📜 License
 //!
-//! Licensed under either of Apache License, Version 2.0 or MIT license at your option.
+//! Licensed under Apache License, Version 2.0.
 
 // Re-export from scirs2-core
 #[cfg(feature = "cache")]

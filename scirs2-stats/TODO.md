@@ -1,8 +1,8 @@
 # scirs2-stats TODO
 
-## Status: v0.3.3 Released (March 17, 2026)
+## Status: v0.3.4 Released (March 18, 2026)
 
-19,685 workspace tests pass (100% pass rate). All v0.3.3 features are complete and production-ready.
+19,685 workspace tests pass (100% pass rate). All v0.3.4 features are complete and production-ready.
 
 ---
 

@@ -12,17 +12,17 @@
 
 ```toml
 [dependencies]
-scirs2-fft = "0.3.3"
+scirs2-fft = "0.3.4"
 ```
 
 With parallel processing:
 
 ```toml
 [dependencies]
-scirs2-fft = { version = "0.3.3", features = ["parallel"] }
+scirs2-fft = { version = "0.3.4", features = ["parallel"] }
 ```
 
-## Features (v0.3.3)
+## Features (v0.3.4)
 
 ### Core Transforms
 

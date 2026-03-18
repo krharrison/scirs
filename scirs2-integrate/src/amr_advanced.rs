@@ -1276,9 +1276,9 @@ impl<F: IntegrateFloat + Send + Sync> RefinementCriterion<F> for FeatureDetectio
 
         for &feature_type in &self.feature_types {
             match feature_type {
-                FeatureType::SharpGradient => {
+                FeatureType::SharpGradient
                     // Detect sharp gradients
-                    if neighbors.len() >= 2 {
+                    if neighbors.len() >= 2 => {
                         let gradients: Vec<F> = neighbors
                             .iter()
                             .map(|n| (&cell.solution - &n.solution).mapv(|x| x.abs()).sum())
@@ -1292,7 +1292,6 @@ impl<F: IntegrateFloat + Send + Sync> RefinementCriterion<F> for FeatureDetectio
                             feature_score += max_grad / avg_grad;
                         }
                     }
-                }
                 FeatureType::LocalExtremum => {
                     // Detect local extrema
                     let cell_value = cell.solution.mapv(|x| x.abs()).sum();

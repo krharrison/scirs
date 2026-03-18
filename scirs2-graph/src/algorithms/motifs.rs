@@ -966,7 +966,7 @@ where
     }
 
     // Sort by support descending
-    patterns.sort_by(|a, b| b.support.cmp(&a.support));
+    patterns.sort_by_key(|p| std::cmp::Reverse(p.support));
     patterns
 }
 

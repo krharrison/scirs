@@ -1,13 +1,7 @@
 // Copyright (c) 2025, SciRS2 Team
 //
-// Licensed under either of
-//
-// * Apache License, Version 2.0
-//   (LICENSE-APACHE or http://www.apache.org/licenses/LICENSE-2.0)
-// * MIT license
-//   (LICENSE-MIT or http://opensource.org/licenses/MIT)
-//
-// at your option.
+// Licensed under the Apache License, Version 2.0
+// (LICENSE-APACHE or http://www.apache.org/licenses/LICENSE-2.0)
 //
 
 //! Example demonstrating neural network implementation using the array protocol.

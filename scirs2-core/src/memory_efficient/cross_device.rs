@@ -563,7 +563,7 @@ impl DeviceMemoryManager {
             .collect();
 
         // Sort by access time (oldest first)
-        key_times.sort_by(|a, b| a.1.cmp(&b.1));
+        key_times.sort_by_key(|a| a.1);
 
         // Remove entries until we're under the limit
         let mut removed_size = 0;

@@ -396,7 +396,7 @@ where
             return Array1::from(vec![]);
         }
         let n_float = ((stop - start) / step).ceil();
-        let n = n_float.to_usize().unwrap_or(0).max(0);
+        let n = n_float.to_usize().unwrap_or(0);
         Array1::from_shape_fn(n, |i| start + step * T::from(i).unwrap_or_else(T::zero))
     }
 

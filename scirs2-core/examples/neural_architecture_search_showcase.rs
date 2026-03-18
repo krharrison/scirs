@@ -759,7 +759,7 @@ fn count_layer_types(architecture: &Architecture) -> std::collections::HashMap<L
 
     // Sort by count (create vector of pairs and sort)
     let mut sorted_counts: Vec<_> = counts.into_iter().collect();
-    sorted_counts.sort_by(|a, b| b.1.cmp(&a.1));
+    sorted_counts.sort_by_key(|b| std::cmp::Reverse(b.1));
 
     // Convert back to HashMap maintaining insertion order for display
     sorted_counts.into_iter().collect()

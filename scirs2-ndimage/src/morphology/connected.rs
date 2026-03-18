@@ -402,29 +402,26 @@ where
             let neighbor_label = input_dyn[IxDyn(&neighbor_indices)];
 
             match mode_str {
-                "inner" => {
+                "inner"
                     // Inner boundary: foreground pixels adjacent to background or different labels
                     if current_label != 0
                         && (neighbor_label == 0 || neighbor_label != current_label)
-                    {
+                    => {
                         is_boundary = true;
                         break;
                     }
-                }
-                "outer" => {
+                "outer"
                     // Outer boundary: background pixels adjacent to foreground
-                    if current_label == 0 && neighbor_label != 0 {
+                    if current_label == 0 && neighbor_label != 0 => {
                         is_boundary = true;
                         break;
                     }
-                }
-                "thick" => {
+                "thick"
                     // Thick boundary: both inner and outer
-                    if current_label != neighbor_label {
+                    if current_label != neighbor_label => {
                         is_boundary = true;
                         break;
                     }
-                }
                 _ => {} // Already validated above
             }
         }

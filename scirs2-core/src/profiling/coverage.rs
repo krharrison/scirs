@@ -504,7 +504,7 @@ impl CoverageReport {
             })
             .collect();
 
-        uncovered.sort_by(|a, b| b.0.complexity.cmp(&a.0.complexity));
+        uncovered.sort_by_key(|b| std::cmp::Reverse(b.0.complexity));
         uncovered.into_iter().take(10).collect()
     }
 }
@@ -1173,7 +1173,7 @@ impl CoverageAnalyzer {
         }
 
         // Sort by priority
-        recommendations.sort_by(|a, b| b.priority.cmp(&a.priority));
+        recommendations.sort_by_key(|b| std::cmp::Reverse(b.priority));
 
         Ok(recommendations)
     }
@@ -1798,7 +1798,7 @@ impl CoverageAnalyzer {
             })
             .collect();
 
-        complex_functions.sort_by(|a, b| b.complexity.cmp(&a.complexity));
+        complex_functions.sort_by_key(|b| std::cmp::Reverse(b.complexity));
         complex_functions.into_iter().take(10).collect()
     }
 

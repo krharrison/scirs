@@ -155,14 +155,19 @@ where
                 #[cfg(feature = "memory_compression")]
                 CompressionType::Snappy => {
                     let mut compressed = Vec::new();
-                    let mut encoder = snap::write::FrameEncoder::new(&mut compressed);
+                    let mut encoder = oxiarc_snappy::FrameEncoder::new(&mut compressed);
                     encoder.write_all(&chunk_bytes).map_err(|e| {
                         CoreError::IoError(
                             ErrorContext::new(format!("Snappy compression failed: {e}"))
                                 .with_location(ErrorLocation::new(file!(), line!())),
                         )
                     })?;
-                    drop(encoder);
+                    encoder.finish().map_err(|e| {
+                        CoreError::IoError(
+                            ErrorContext::new(format!("Snappy frame finish failed: {e}"))
+                                .with_location(ErrorLocation::new(file!(), line!())),
+                        )
+                    })?;
                     let size = compressed.len();
                     (compressed, size)
                 }
@@ -350,7 +355,7 @@ where
                     #[cfg(feature = "memory_compression")]
                     CompressionType::Snappy => {
                         let mut decompressed = Vec::new();
-                        let mut decoder = snap::read::FrameDecoder::new(&chunk_bytes[..]);
+                        let mut decoder = oxiarc_snappy::FrameDecoder::new(&chunk_bytes[..]);
                         decoder.read_to_end(&mut decompressed).map_err(|e| {
                             CoreError::IoError(
                                 ErrorContext::new(format!("Snappy decompression failed: {e}"))

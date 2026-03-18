@@ -162,7 +162,7 @@ fn generate_memory_efficient_graph(num_nodes: usize) -> Graph<usize, f64> {
             let num_local_connections = rng.random_range(2..5);
             for _ in 0..num_local_connections {
                 if i > 0 {
-                    let local_start = (i.saturating_sub(1000)).max(0);
+                    let local_start = i.saturating_sub(1000);
                     let local_end = i.saturating_sub(1);
                     if local_start <= local_end {
                         let target = rng.random_range(local_start..=local_end);

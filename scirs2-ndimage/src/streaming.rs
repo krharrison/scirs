@@ -1181,7 +1181,7 @@ impl Write for GzipWriteAdapter {
     fn flush(&mut self) -> std::io::Result<()> {
         if !self.buffer.is_empty() {
             let compressed = oxiarc_deflate::gzip_compress(&self.buffer, self.level)
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+                .map_err(|e| std::io::Error::other(e.to_string()))?;
             self.file.write_all(&compressed)?;
             self.file.flush()?;
             self.buffer.clear();
@@ -1224,7 +1224,7 @@ impl Write for Lz4WriteAdapter {
     fn flush(&mut self) -> std::io::Result<()> {
         if !self.buffer.is_empty() {
             let compressed = oxiarc_lz4::compress(&self.buffer)
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+                .map_err(|e| std::io::Error::other(e.to_string()))?;
             self.file.write_all(&compressed)?;
             self.file.flush()?;
             self.buffer.clear();
@@ -1269,7 +1269,7 @@ impl Write for ZstdWriteAdapter {
     fn flush(&mut self) -> std::io::Result<()> {
         if !self.buffer.is_empty() {
             let compressed = oxiarc_zstd::compress_with_level(&self.buffer, self.level)
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+                .map_err(|e| std::io::Error::other(e.to_string()))?;
             self.file.write_all(&compressed)?;
             self.file.flush()?;
             self.buffer.clear();

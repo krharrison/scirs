@@ -135,23 +135,20 @@ where
 
     fn compress_gzip(data: &[u8], level: CompressionLevel) -> IoResult<Vec<u8>> {
         let level_u8: u32 = level.into();
-        gzip_compress(data, level_u8.min(9) as u8)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+        gzip_compress(data, level_u8.min(9) as u8).map_err(|e| std::io::Error::other(e.to_string()))
     }
 
     fn decompress_gzip(data: &[u8]) -> IoResult<Vec<u8>> {
-        gzip_decompress(data)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+        gzip_decompress(data).map_err(|e| std::io::Error::other(e.to_string()))
     }
 
     fn compress_lz4(data: &[u8], _level: CompressionLevel) -> IoResult<Vec<u8>> {
-        oxiarc_lz4::compress(data)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+        oxiarc_lz4::compress(data).map_err(|e| std::io::Error::other(e.to_string()))
     }
 
     fn decompress_lz4(data: &[u8]) -> IoResult<Vec<u8>> {
         oxiarc_lz4::decompress(data, 256 * 1024 * 1024)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+            .map_err(|e| std::io::Error::other(e.to_string()))
     }
 }
 

@@ -405,7 +405,7 @@ impl SnapshotDiff {
 
             // Sort components by current usage delta (descending)
             let mut components: Vec<_> = self.component_changes.iter().collect();
-            components.sort_by(|a, b| b.1.current_usage_delta.cmp(&a.1.current_usage_delta));
+            components.sort_by_key(|b| std::cmp::Reverse(b.1.current_usage_delta));
 
             for (component, diff) in components {
                 let current_prefix = if diff.current_usage_delta >= 0 {
@@ -519,7 +519,7 @@ impl SnapshotDiff {
 
         // Sort components by current usage delta (descending)
         let mut components: Vec<_> = self.component_changes.iter().collect();
-        components.sort_by(|a, b| b.1.current_usage_delta.cmp(&a.1.current_usage_delta));
+        components.sort_by_key(|item| std::cmp::Reverse(item.1.current_usage_delta));
 
         // Table rows
         for (component, diff) in components {

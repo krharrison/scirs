@@ -23,7 +23,7 @@ Optimization problems appear across all of scientific computing: fitting models 
 
 ---
 
-## Feature List (v0.3.3)
+## Feature List (v0.3.4)
 
 ### Unconstrained Optimization
 - Nelder-Mead simplex with adaptive parameter selection
@@ -184,7 +184,7 @@ Optimization problems appear across all of scientific computing: fitting models 
 
 ```toml
 [dependencies]
-scirs2-optimize = "0.3.3"
+scirs2-optimize = "0.3.4"
 ```
 
 ### Unconstrained Minimisation (BFGS)

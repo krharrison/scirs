@@ -900,9 +900,9 @@ mod survival_properties {
                 );
 
                 // Check that both are bounded in [0, 1]
-                prop_assert!(s_km >= -1e-12 && s_km <= 1.0 + 1e-12,
+                prop_assert!((-1e-12..=1.0 + 1e-12).contains(&s_km),
                     "KM S(t)={} out of [0,1] at t={}", s_km, km.times[k]);
-                prop_assert!(s_na >= -1e-12 && s_na <= 1.0 + 1e-12,
+                prop_assert!((-1e-12..=1.0 + 1e-12).contains(&s_na),
                     "NA S(t)={} out of [0,1] at t={}", s_na, km.times[k]);
 
                 // When KM is far from 0, the estimates should be reasonably

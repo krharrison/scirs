@@ -419,15 +419,11 @@ impl AuditLogger {
                 let value = &part[equals_pos + 1..];
 
                 match key {
-                    "user" => {
-                        if value != "-" {
-                            userid = Some(value.to_string());
-                        }
+                    "user" if value != "-" => {
+                        userid = Some(value.to_string());
                     }
-                    "resource" => {
-                        if value != "-" {
-                            resourceid = Some(value.to_string());
-                        }
+                    "resource" if value != "-" => {
+                        resourceid = Some(value.to_string());
                     }
                     "outcome" => {
                         outcome = match value {

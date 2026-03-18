@@ -117,7 +117,7 @@ where
     // Find index for desired strike
     let k = option.strike.ln();
     let idx = ((k + b) / lambda).round() as usize;
-    let idx = idx.min(n - 1).max(0);
+    let idx = idx.min(n - 1);
 
     // Extract call price from FFT output.
     // The exp(i*v_j*b) phase factor inserted before the FFT combined with the FFT kernel

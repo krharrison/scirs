@@ -163,7 +163,7 @@ where
 {
     let mut node_degrees: Vec<(N, usize)> =
         nodes.iter().map(|n| (n.clone(), graph.degree(n))).collect();
-    node_degrees.sort_by(|a, b| b.1.cmp(&a.1));
+    node_degrees.sort_by_key(|item| std::cmp::Reverse(item.1));
     node_degrees.into_iter().map(|(n, _)| n).collect()
 }
 

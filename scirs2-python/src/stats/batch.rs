@@ -228,7 +228,7 @@ pub fn batch_correlation(arrays: Vec<Vec<f64>>) -> PyResult<Vec<Vec<f64>>> {
         .collect::<Vec<Result<((usize, usize), f64), String>>>()
         .into_iter()
         .collect::<Result<Vec<((usize, usize), f64)>, String>>()
-        .map_err(|e| PyRuntimeError::new_err(e))?;
+        .map_err(PyRuntimeError::new_err)?;
 
     // Fill symmetric matrix
     let mut matrix = vec![vec![0.0f64; k]; k];

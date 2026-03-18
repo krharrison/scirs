@@ -259,14 +259,7 @@ impl CompressedMemMapBuilder {
                         )))
                     })?
                 }
-                CompressionAlgorithm::Snappy => snap::raw::Encoder::new()
-                    .compress_vec(block_data)
-                    .map_err(|e| {
-                        CoreError::ComputationError(ErrorContext::new(format!(
-                            "Snappy compression error: {}",
-                            e
-                        )))
-                    })?,
+                CompressionAlgorithm::Snappy => oxiarc_snappy::compress(block_data),
             };
 
             // Record the compressed size
@@ -543,14 +536,14 @@ impl<A: Clone + Copy + 'static + Send + Sync> CompressedMemMappedArray<A> {
                     )))
                 })?
             }
-            CompressionAlgorithm::Snappy => snap::raw::Decoder::new()
-                .decompress_vec(&compressed_data)
-                .map_err(|e| {
+            CompressionAlgorithm::Snappy => {
+                oxiarc_snappy::decompress(&compressed_data).map_err(|e| {
                     CoreError::ComputationError(ErrorContext::new(format!(
                         "Snappy decompression error: {}",
                         e
                     )))
-                })?,
+                })?
+            }
         };
 
         // Check that we got the expected number of bytes

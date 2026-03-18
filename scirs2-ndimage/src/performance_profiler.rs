@@ -718,7 +718,7 @@ impl PerformanceReport {
 
         println!("\n--- Top Operations by Time ---");
         let mut operations: Vec<_> = self.operationmetrics.iter().collect();
-        operations.sort_by(|a, b| b.1.avg_execution_time.cmp(&a.1.avg_execution_time));
+        operations.sort_by_key(|item| std::cmp::Reverse(item.1.avg_execution_time));
 
         for (name, metrics) in operations.iter().take(5) {
             println!(

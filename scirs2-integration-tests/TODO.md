@@ -1,6 +1,6 @@
 # scirs2-integration-tests TODO
 
-## Status: v0.3.3
+## Status: v0.3.4
 
 ## Purpose
 

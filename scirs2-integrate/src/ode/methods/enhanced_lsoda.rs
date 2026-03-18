@@ -272,38 +272,34 @@ where
             Err(e) => {
                 // Handle specific errors that might indicate stiffness changes
                 match &e {
-                    IntegrateError::ConvergenceError(msg) if msg.contains("stiff") => {
-                        if state.adaptive_state.method_type == AdaptiveMethodType::Explicit {
-                            // Problem appears to be stiff - switch to BDF
-                            state.switch_method(AdaptiveMethodType::Implicit)?;
+                    IntegrateError::ConvergenceError(msg)
+                        if msg.contains("stiff")
+                            && state.adaptive_state.method_type == AdaptiveMethodType::Explicit =>
+                    {
+                        // Problem appears to be stiff - switch to BDF
+                        state.switch_method(AdaptiveMethodType::Implicit)?;
 
-                            // Reduce step size
-                            state.h *= const_f64::<F>(0.5);
-                            if state.h < min_step {
-                                return Err(IntegrateError::ConvergenceError(
-                                    "Step size too small after method switch".to_string(),
-                                ));
-                            }
-                        } else {
-                            // Already using BDF and still failing
-                            return Err(e);
+                        // Reduce step size
+                        state.h *= const_f64::<F>(0.5);
+                        if state.h < min_step {
+                            return Err(IntegrateError::ConvergenceError(
+                                "Step size too small after method switch".to_string(),
+                            ));
                         }
                     }
-                    IntegrateError::ConvergenceError(msg) if msg.contains("non-stiff") => {
-                        if state.adaptive_state.method_type == AdaptiveMethodType::Implicit {
-                            // Problem appears to be non-stiff - switch to Adams
-                            state.switch_method(AdaptiveMethodType::Explicit)?;
+                    IntegrateError::ConvergenceError(msg)
+                        if msg.contains("non-stiff")
+                            && state.adaptive_state.method_type == AdaptiveMethodType::Implicit =>
+                    {
+                        // Problem appears to be non-stiff - switch to Adams
+                        state.switch_method(AdaptiveMethodType::Explicit)?;
 
-                            // Reduce step size for stability
-                            state.h *= const_f64::<F>(0.5);
-                            if state.h < min_step {
-                                return Err(IntegrateError::ConvergenceError(
-                                    "Step size too small after method switch".to_string(),
-                                ));
-                            }
-                        } else {
-                            // Already using Adams and still failing
-                            return Err(e);
+                        // Reduce step size for stability
+                        state.h *= const_f64::<F>(0.5);
+                        if state.h < min_step {
+                            return Err(IntegrateError::ConvergenceError(
+                                "Step size too small after method switch".to_string(),
+                            ));
                         }
                     }
                     _ => return Err(e), // Other errors are passed through

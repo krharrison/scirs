@@ -3,7 +3,7 @@
 //! Provides a suite of lossless encoding primitives that complement the full
 //! compression pipeline in [`crate::compression`]:
 //!
-//! * **Gzip** – convenience wrappers around `miniz_oxide` DEFLATE (pure Rust)
+//! * **Gzip** – convenience wrappers around `oxiarc_deflate` DEFLATE (pure Rust)
 //! * **LZ4 block** – frame-less block compression via `oxiarc_archive::lz4`
 //! * **Run-Length Encoding (RLE)** – classical byte-stream RLE
 //! * **Delta encoding** – i64 and f64 variants for monotone / smooth sequences
@@ -15,8 +15,8 @@ use std::fs::File;
 use std::io::{BufWriter, Read, Write};
 use std::path::Path;
 
-use miniz_oxide::deflate::compress_to_vec as deflate_compress;
-use miniz_oxide::inflate::decompress_to_vec as deflate_decompress;
+use oxiarc_deflate::deflate as deflate_compress_result;
+use oxiarc_deflate::inflate as deflate_decompress_result;
 use oxiarc_archive::lz4;
 
 use crate::error::{IoError, Result};
@@ -26,11 +26,12 @@ use crate::error::{IoError, Result};
 /// Default DEFLATE compression level used by the gzip helpers (0–10).
 const GZIP_DEFAULT_LEVEL: u8 = 6;
 
-/// Compress `data` with GZIP (DEFLATE + gzip framing) using `miniz_oxide`.
+/// Compress `data` with GZIP (DEFLATE + gzip framing) using `oxiarc_deflate`.
 pub fn gzip_compress(data: &[u8]) -> Result<Vec<u8>> {
-    // miniz_oxide compresses the raw deflate stream; we wrap it in a minimal
+    // oxiarc_deflate compresses the raw deflate stream; we wrap it in a minimal
     // gzip container (RFC 1952) so the output is a valid .gz file / stream.
-    let deflated = deflate_compress(data, GZIP_DEFAULT_LEVEL);
+    let deflated = deflate_compress_result(data, GZIP_DEFAULT_LEVEL)
+        .map_err(|e| IoError::CompressionError(format!("DEFLATE compression failed: {e}")))?;
     let mut out = Vec::with_capacity(10 + deflated.len() + 8);
 
     // Gzip header (minimal, no filename, no comment)
@@ -105,8 +106,8 @@ pub fn gzip_decompress(data: &[u8]) -> Result<Vec<u8>> {
     let deflate_end = data.len() - 8;
     let compressed_body = &data[pos..deflate_end];
 
-    let decompressed = deflate_decompress(compressed_body).map_err(|e| {
-        IoError::DecompressionError(format!("DEFLATE decompression failed: {e:?}"))
+    let decompressed = deflate_decompress_result(compressed_body).map_err(|e| {
+        IoError::DecompressionError(format!("DEFLATE decompression failed: {e}"))
     })?;
 
     // Verify CRC-32

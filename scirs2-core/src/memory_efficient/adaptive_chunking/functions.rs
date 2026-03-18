@@ -280,11 +280,9 @@ impl<A: Clone + Copy + 'static + Send + Sync> MemoryMappedArray<A> {
         if let Some(numworkers) = params.numworkers {
             let total_elements = self.size;
             let target_num_chunks = numworkers.checked_mul(2).unwrap_or(numworkers);
-            let ideal_chunksize = if target_num_chunks > 0 {
-                total_elements / target_num_chunks
-            } else {
-                total_elements
-            };
+            let ideal_chunksize = total_elements
+                .checked_div(target_num_chunks)
+                .unwrap_or(total_elements);
             if ideal_chunksize >= params.min_chunksize && ideal_chunksize <= params.max_chunksize {
                 chunksize = ideal_chunksize;
                 decision_factors

@@ -390,12 +390,10 @@ impl RuntimeContractValidator {
                     ChaosFault::LatencyInjection(delay) => {
                         thread::sleep(delay);
                     }
-                    ChaosFault::RandomFailure(prob) => {
-                        if rand_val < prob {
-                            return Err(CoreError::ValidationError(ErrorContext::new(
-                                "Chaos engineering: Random failure injected".to_string(),
-                            )));
-                        }
+                    ChaosFault::RandomFailure(prob) if rand_val < prob => {
+                        return Err(CoreError::ValidationError(ErrorContext::new(
+                            "Chaos engineering: Random failure injected".to_string(),
+                        )));
                     }
                     _ => {} // Other faults would require system-level intervention
                 }

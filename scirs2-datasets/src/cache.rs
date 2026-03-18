@@ -640,7 +640,7 @@ impl DatasetCache {
         }
 
         // Sort files by size (largest first)
-        files.sort_by(|a, b| b.size_bytes.cmp(&a.size_bytes));
+        files.sort_by_key(|f| std::cmp::Reverse(f.size_bytes));
 
         Ok(DetailedCacheStats {
             total_size_bytes: total_size,

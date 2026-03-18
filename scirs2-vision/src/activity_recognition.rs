@@ -1350,12 +1350,11 @@ impl HierarchicalActivityDecomposer {
         };
 
         // Build activity_ hierarchy
-        let mut node_id = 1;
-
         // Group activities by type and create hierarchy
         let activity_groups = self.group_activities_by_similarity(activities);
 
-        for (group_type, group_activities) in activity_groups {
+        for (node_id, (group_type, group_activities)) in activity_groups.into_iter().enumerate() {
+            let node_id = node_id + 1;
             // Create composite activity_ node
             let composite_node = ActivityNode {
                 node_id: format!("composite_{node_id}"),
@@ -1394,8 +1393,6 @@ impl HierarchicalActivityDecomposer {
                     relationship_type: "instantiation".to_string(),
                 });
             }
-
-            node_id += 1;
         }
 
         Ok(structure)

@@ -739,8 +739,9 @@ pub fn write_variable_compressed<W: Write + Seek>(
     write_variable_extended(&mut inner_buf, name, mat_type)?;
     let uncompressed = inner_buf.into_inner();
 
-    // Compress using miniz_oxide (pure Rust deflate)
-    let compressed = miniz_oxide::deflate::compress_to_vec_zlib(&uncompressed, 6);
+    // Compress using oxiarc_deflate (pure Rust deflate, COOLJAPAN Policy)
+    let compressed = oxiarc_deflate::zlib_compress(&uncompressed, 6)
+        .map_err(|e| IoError::CompressionError(format!("zlib compression failed: {e}")))?;
 
     // Write MI_COMPRESSED header
     writer

@@ -43,9 +43,7 @@ use std::io::{Read, Write};
 use std::path::Path;
 
 // Pure Rust compression libraries (COOLJAPAN Policy)
-use brotli::{enc::BrotliEncoderParams, BrotliCompress, BrotliDecompress};
 use oxiarc_archive::{bzip2, gzip, lz4, zstd};
-use snap::{raw::Decoder as SnapDecoder, raw::Encoder as SnapEncoder};
 
 // Re-export ndarray submodule
 pub mod ndarray;
@@ -182,24 +180,9 @@ pub fn compress_data(
                 .compress(data)
                 .map_err(|e| IoError::CompressionError(e.to_string()))
         }
-        CompressionAlgorithm::Brotli => {
-            let mut compressed = Vec::new();
-            let params = BrotliEncoderParams {
-                quality: normalized_level as i32,
-                ..Default::default()
-            };
-            BrotliCompress(&mut data, &mut compressed, &params).map_err(|e| {
-                IoError::CompressionError(format!("Brotli compression failed: {e}"))
-            })?;
-            Ok(compressed)
-        }
-        CompressionAlgorithm::Snappy => {
-            let mut encoder = SnapEncoder::new();
-            let compressed = encoder.compress_vec(data).map_err(|e| {
-                IoError::CompressionError(format!("Snappy compression failed: {e:?}"))
-            })?;
-            Ok(compressed)
-        }
+        CompressionAlgorithm::Brotli => oxiarc_brotli::compress(data, normalized_level)
+            .map_err(|e| IoError::CompressionError(format!("Brotli compression failed: {e}"))),
+        CompressionAlgorithm::Snappy => Ok(oxiarc_snappy::compress(data)),
         CompressionAlgorithm::FpZip => {
             // Implement floating-point specific compression
             compress_fpzip(data, normalized_level)
@@ -254,21 +237,10 @@ pub fn decompress_data(data: &[u8], algorithm: CompressionAlgorithm) -> Result<V
             // Use Pure Rust oxiarc-archive implementation
             bzip2::decompress(data).map_err(|e| IoError::DecompressionError(e.to_string()))
         }
-        CompressionAlgorithm::Brotli => {
-            let mut decompressed = Vec::new();
-            let mut data_copy = data;
-            BrotliDecompress(&mut data_copy, &mut decompressed).map_err(|e| {
-                IoError::DecompressionError(format!("Brotli decompression failed: {e}"))
-            })?;
-            Ok(decompressed)
-        }
-        CompressionAlgorithm::Snappy => {
-            let mut decoder = SnapDecoder::new();
-            let decompressed = decoder.decompress_vec(data).map_err(|e| {
-                IoError::DecompressionError(format!("Snappy decompression failed: {e:?}"))
-            })?;
-            Ok(decompressed)
-        }
+        CompressionAlgorithm::Brotli => oxiarc_brotli::decompress(data)
+            .map_err(|e| IoError::DecompressionError(format!("Brotli decompression failed: {e}"))),
+        CompressionAlgorithm::Snappy => oxiarc_snappy::decompress(data)
+            .map_err(|e| IoError::DecompressionError(format!("Snappy decompression failed: {e}"))),
         CompressionAlgorithm::FpZip => {
             // Implement floating-point specific decompression
             decompress_fpzip(data)

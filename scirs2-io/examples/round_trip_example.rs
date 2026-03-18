@@ -201,8 +201,8 @@ fn test_matrix_market_round_trip(
     let mut original_entries = original_matrix.entries.clone();
     let mut read_entries = read_matrix.entries.clone();
 
-    original_entries.sort_by(|a, b| (a.row, a.col).cmp(&(b.row, b.col)));
-    read_entries.sort_by(|a, b| (a.row, a.col).cmp(&(b.row, b.col)));
+    original_entries.sort_by_key(|a| (a.row, a.col));
+    read_entries.sort_by_key(|a| (a.row, a.col));
 
     for (original, read) in original_entries.iter().zip(read_entries.iter()) {
         assert_eq!(read.row, original.row, "Row index mismatch");
@@ -579,8 +579,8 @@ fn test_parallel_round_trip(
     let mut original_entries = original_matrix.entries.clone();
     let mut read_entries = read_matrix.entries.clone();
 
-    original_entries.sort_by(|a, b| (a.row, a.col).cmp(&(b.row, b.col)));
-    read_entries.sort_by(|a, b| (a.row, a.col).cmp(&(b.row, b.col)));
+    original_entries.sort_by_key(|a| (a.row, a.col));
+    read_entries.sort_by_key(|a| (a.row, a.col));
 
     for (i, (original, read)) in original_entries.iter().zip(read_entries.iter()).enumerate() {
         assert_eq!(read.row, original.row, "Row mismatch at entry {}", i);

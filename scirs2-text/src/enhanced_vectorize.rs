@@ -134,7 +134,7 @@ impl EnhancedCountVectorizer {
             .collect();
 
         // Sort by frequency and limit features if needed
-        filtered_tokens.sort_by(|a, b| b.1.cmp(&a.1));
+        filtered_tokens.sort_by_key(|item| std::cmp::Reverse(item.1));
 
         if let Some(max_features) = self.max_features {
             filtered_tokens.truncate(max_features);

@@ -1271,11 +1271,7 @@ pub fn calculate_adaptive_workgroup_size(
     matrix_nnz: usize,
     available_memory: usize,
 ) -> GpuKernelConfig {
-    let avg_nnz_per_row = if matrix_rows > 0 {
-        matrix_nnz / matrix_rows
-    } else {
-        0
-    };
+    let avg_nnz_per_row = matrix_nnz.checked_div(matrix_rows).unwrap_or(0);
 
     let workgroup_size = match backend {
         GpuBackend::Cuda => {

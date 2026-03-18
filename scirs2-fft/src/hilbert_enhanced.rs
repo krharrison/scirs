@@ -1127,7 +1127,7 @@ pub fn analytic_signal_padded(signal: &[f64], pad_fraction: f64) -> FFTResult<Ve
 
     // Right mirror padding
     for i in 0..pad_len {
-        let idx = n.saturating_sub(2 + i).max(0);
+        let idx = n.saturating_sub(2 + i);
         padded.push(signal[idx]);
     }
 

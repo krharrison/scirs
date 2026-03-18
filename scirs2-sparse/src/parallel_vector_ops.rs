@@ -694,7 +694,7 @@ pub fn advanced_sparse_matvec_csr<T>(
 {
     // Analyze matrix characteristics for optimal strategy selection
     let total_nnz = data.len();
-    let avg_nnz_per_row = if rows > 0 { total_nnz / rows } else { 0 };
+    let avg_nnz_per_row = total_nnz.checked_div(rows).unwrap_or(0);
 
     // Calculate row sparsity variance for workload balancing
     let mut row_nnz_counts = Vec::with_capacity(rows);

@@ -70,20 +70,19 @@ uuid = { workspace = true, features = ["v4", "serde"] }
 urlencoding = { workspace = true }
 crossbeam-channel = { workspace = true }
 cron = { workspace = true }
-miniz_oxide = { workspace = true }  # Pure Rust DEFLATE (for MATLAB compression)
-snap = { workspace = true }  # Pure Rust Snappy
-brotli = { workspace = true }  # Pure Rust Brotli (Dropbox implementation)
+oxiarc-snappy = { workspace = true }  # Pure Rust Snappy (COOLJAPAN Policy)
+oxiarc-brotli = { workspace = true }  # Pure Rust Brotli (COOLJAPAN Policy)
 # Database drivers
 rusqlite = { workspace = true, optional = true }
 # sqlx removed - postgres/mysql implementations are stubs only
-mongodb = { workspace = true, optional = true }
-redis = { workspace = true, optional = true }
+# mongodb removed - stub only, no actual crate usage
+# redis removed - stub only, no actual crate usage
 # Real-time streaming
 tokio-tungstenite = { workspace = true, optional = true }
 rumqttc = { workspace = true, optional = true }
 eventsource-client = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
-prost = { workspace = true, optional = true }
+# prost removed - not used in any source file
 url = { workspace = true }
 
 [dev-dependencies]
@@ -109,15 +108,15 @@ exif = []
 sqlite = ["dep:rusqlite"]
 postgres = ["async"]  # Stub implementation only (no actual sqlx dependency)
 mysql = ["async"]     # Stub implementation only (no actual sqlx dependency)
-mongodb = ["dep:mongodb", "async"]
-redis = ["dep:redis"]
+mongodb = ["async"]   # Stub feature (no actual mongodb crate dependency)
+redis = []            # Stub feature (no actual redis crate dependency)
 database = ["sqlite", "postgres", "mysql"]
 database-full = ["database"]  # Full database support
 # Real-time streaming features
 websocket = ["dep:tokio-tungstenite", "async"]
 mqtt = ["dep:rumqttc", "async"]
 sse = ["dep:eventsource-client", "async", "reqwest"]
-grpc = ["dep:tonic", "dep:prost", "async"]
+grpc = ["dep:tonic", "async"]
 realtime = ["websocket", "mqtt", "sse", "grpc"]
 all = ["csv", "compression", "validation", "hdf5", "async", "reqwest", "aws-sdk-s3", "google-cloud-storage", "azure-storage-blobs", "gpu", "exif", "database", "mongodb", "redis", "realtime"]
 

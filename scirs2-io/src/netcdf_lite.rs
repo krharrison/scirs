@@ -550,11 +550,7 @@ impl NcFile {
                     .product::<usize>()
                     .max(1);
                 let total_elements = var.data.len() / elem_size;
-                let records = if per_record_elements > 0 {
-                    total_elements / per_record_elements
-                } else {
-                    0
-                };
+                let records = total_elements.checked_div(per_record_elements).unwrap_or(0);
                 if records > self.num_records {
                     self.num_records = records;
                 }
@@ -1214,7 +1210,6 @@ fn var_total_elements(var: &NcVariable, dims: &[NcDimension], num_records: usize
             }
         })
         .product::<usize>()
-        .max(0)
 }
 
 // =============================================================================

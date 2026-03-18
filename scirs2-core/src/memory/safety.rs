@@ -236,11 +236,7 @@ impl SafetyTracker {
         let allocations = self.allocations.lock().expect("Operation failed");
         let total_allocations = allocations.len();
         let total_size: usize = allocations.values().map(|info| info.size).sum();
-        let average_size = if total_allocations > 0 {
-            total_size / total_allocations
-        } else {
-            0
-        };
+        let average_size = total_size.checked_div(total_allocations).unwrap_or(0);
 
         let oldest_allocation = allocations
             .values()

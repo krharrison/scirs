@@ -758,7 +758,7 @@ impl PatternRecognizer {
     /// Get all recognized patterns ordered by confidence.
     pub fn get_patterns(&self) -> Vec<&RecognizedPattern> {
         let mut patterns: Vec<_> = self.patterns.iter().collect();
-        patterns.sort_by(|a, b| b.confidence.cmp(&a.confidence));
+        patterns.sort_by_key(|b| std::cmp::Reverse(b.confidence));
         patterns
     }
 

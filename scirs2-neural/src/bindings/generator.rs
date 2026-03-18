@@ -110,7 +110,7 @@ mod tests {
             version: "1.0.0".to_string(),
             author: "Test Author".to_string(),
             description: "Test model".to_string(),
-            license: "MIT".to_string(),
+            license: "Apache-2.0".to_string(),
             platforms: vec!["linux-x86_64".to_string()],
             dependencies: std::collections::HashMap::new(),
             input_specs: vec![],

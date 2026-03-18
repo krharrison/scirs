@@ -179,7 +179,7 @@ where
             for i in (start_idx + n)..padded_size {
                 let offset = i - (start_idx + n);
                 let cycle = 2 * (n - 1);
-                let src_idx = (n - 1 - (offset % cycle)).max(0);
+                let src_idx = n - 1 - (offset % cycle);
                 padded[i] = x[src_idx].clone();
             }
         }
@@ -199,7 +199,7 @@ where
             for i in (start_idx + n)..padded_size {
                 let offset = i - (start_idx + n);
                 let cycle = 2 * n;
-                let src_idx = (n - 1 - (offset % cycle)).max(0);
+                let src_idx = n - 1 - (offset % cycle);
                 padded[i] = x[src_idx].clone();
             }
         }

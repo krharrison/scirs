@@ -49,9 +49,9 @@ impl<F: Float + Debug + ScalarOperand + NumAssign> Callback<F> for TensorBoardLo
                 );
                 // In a real implementation, we'd initialize the TensorBoard writer here
             }
-            CallbackTiming::AfterBatch => {
+            CallbackTiming::AfterBatch
                 // Log batch metrics at specified frequency
-                if context.batch.is_multiple_of(self.update_freq) {
+                if context.batch.is_multiple_of(self.update_freq) => {
                     if let Some(batch_loss) = context.batch_loss {
                         let global_step = context.epoch * context.total_batches + context.batch;
                         println!(
@@ -62,7 +62,6 @@ impl<F: Float + Debug + ScalarOperand + NumAssign> Callback<F> for TensorBoardLo
                         // writer.add_scalar("train/batch_loss", batch_loss, global_step);
                     }
                 }
-            }
             CallbackTiming::AfterEpoch => {
                 let epoch = context.epoch;
 

@@ -4,11 +4,11 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-special)](https://docs.rs/scirs2-special)
 
-**Special mathematical functions for the SciRS2 scientific computing library (v0.3.3).**
+**Special mathematical functions for the SciRS2 scientific computing library (v0.3.4).**
 
-`scirs2-special` provides a comprehensive collection of special mathematical functions modeled after SciPy's `special` module. Version 0.3.3 extends the classical function set with advanced additions: Mathieu functions, Coulomb wave functions, spherical harmonics with Wigner/Gaunt symbols, Jacobi theta functions, Weierstrass elliptic functions, parabolic cylinder functions, Fox H-functions, Appell hypergeometric functions, Meixner-Pollaczek polynomials, Heun functions, polylogarithm, q-analogs, number-theoretic functions, and information-theoretic functions — all as pure Rust.
+`scirs2-special` provides a comprehensive collection of special mathematical functions modeled after SciPy's `special` module. Version 0.3.4 extends the classical function set with advanced additions: Mathieu functions, Coulomb wave functions, spherical harmonics with Wigner/Gaunt symbols, Jacobi theta functions, Weierstrass elliptic functions, parabolic cylinder functions, Fox H-functions, Appell hypergeometric functions, Meixner-Pollaczek polynomials, Heun functions, polylogarithm, q-analogs, number-theoretic functions, and information-theoretic functions — all as pure Rust.
 
-## Features (v0.3.3)
+## Features (v0.3.4)
 
 ### Classical Special Functions
 
@@ -80,7 +80,7 @@
 - Logarithmic integral `li(x)`, offset logarithmic integral `Li(x)`
 - Exponential integrals `Ei(x)`, `E_n(x)`, `E_1(x)`
 
-### Advanced Special Functions (v0.3.3 Additions)
+### Advanced Special Functions (v0.3.4 Additions)
 
 #### Mathieu Functions
 - Characteristic values of even functions `a_r(q)` and odd functions `b_r(q)`
@@ -192,14 +192,14 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scirs2-special = "0.3.3"
+scirs2-special = "0.3.4"
 ```
 
 With parallel processing:
 
 ```toml
 [dependencies]
-scirs2-special = { version = "0.3.3", features = ["parallel"] }
+scirs2-special = { version = "0.3.4", features = ["parallel"] }
 ```
 
 ### Classical functions

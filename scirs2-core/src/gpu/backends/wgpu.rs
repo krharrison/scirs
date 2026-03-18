@@ -394,7 +394,7 @@ impl WebGPUContext {
         let mut seen = std::collections::HashSet::new();
         let mut dedup_entries = Vec::new();
         let mut dedup_infos = Vec::new();
-        for (e, info) in entries.into_iter().zip(infos.into_iter()) {
+        for (e, info) in entries.into_iter().zip(infos) {
             if seen.insert(e.binding) {
                 dedup_entries.push(e);
                 dedup_infos.push(info);

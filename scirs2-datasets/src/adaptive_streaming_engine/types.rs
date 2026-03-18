@@ -759,17 +759,13 @@ impl NeuralAdaptiveSystem {
             ChangeType::AdjustLearningRate
         };
         match change_type {
-            ChangeType::AddLayer => {
-                if self.neural_network.layers.len() < 10 {
-                    self.neural_network
-                        .add_layer(64, ActivationFunction::ReLU, LayerType::Dense);
-                }
+            ChangeType::AddLayer if self.neural_network.layers.len() < 10 => {
+                self.neural_network
+                    .add_layer(64, ActivationFunction::ReLU, LayerType::Dense);
             }
-            ChangeType::ModifyLayerSize => {
-                if !self.neural_network.layers.is_empty() {
-                    let layer_idx = thread_rng().random_range(0..self.neural_network.layers.len());
-                    self.neural_network.modify_layer_size(layer_idx, 32);
-                }
+            ChangeType::ModifyLayerSize if !self.neural_network.layers.is_empty() => {
+                let layer_idx = thread_rng().random_range(0..self.neural_network.layers.len());
+                self.neural_network.modify_layer_size(layer_idx, 32);
             }
             ChangeType::AdjustLearningRate => {
                 self.neural_network.learning_rate_schedule.current_rate *= 0.95;

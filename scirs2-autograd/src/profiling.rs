@@ -34,7 +34,7 @@ impl OpCounts {
     /// Get the most common operation types, sorted by count descending.
     pub fn top_ops(&self, n: usize) -> Vec<(String, usize)> {
         let mut items: Vec<(String, usize)> = self.counts.clone().into_iter().collect();
-        items.sort_by(|a, b| b.1.cmp(&a.1));
+        items.sort_by_key(|item| std::cmp::Reverse(item.1));
         items.truncate(n);
         items
     }
@@ -575,7 +575,7 @@ impl OperationProfiler {
     /// Top N slowest operations.
     pub fn slowest_ops(&self, n: usize) -> Vec<&OpTiming> {
         let mut sorted: Vec<&OpTiming> = self.timings.iter().collect();
-        sorted.sort_by(|a, b| b.duration.cmp(&a.duration));
+        sorted.sort_by_key(|item| std::cmp::Reverse(item.duration));
         sorted.truncate(n);
         sorted
     }

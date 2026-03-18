@@ -861,7 +861,7 @@ impl KernelCache {
             .iter()
             .map(|(id, count)| (id.clone(), *count))
             .collect();
-        top_kernels.sort_by(|a, b| b.1.cmp(&a.1));
+        top_kernels.sort_by_key(|b| std::cmp::Reverse(b.1));
         top_kernels.truncate(10);
 
         CompilationStats {

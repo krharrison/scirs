@@ -145,7 +145,7 @@ impl Profiler {
 
             // Sort by total duration
             let mut entries: Vec<(&String, &TimingEntry)> = self.timings.iter().collect();
-            entries.sort_by(|a, b| b.1.total_duration().cmp(&a.1.total_duration()));
+            entries.sort_by_key(|b| std::cmp::Reverse(b.1.total_duration()));
 
             for (name, entry) in entries {
                 println!(
@@ -169,7 +169,7 @@ impl Profiler {
 
             // Sort by total memory delta
             let mut entries: Vec<(&String, &MemoryEntry)> = self.memory.iter().collect();
-            entries.sort_by(|a, b| b.1.total_delta().abs().cmp(&a.1.total_delta().abs()));
+            entries.sort_by_key(|b| std::cmp::Reverse(b.1.total_delta().abs()));
 
             for (name, entry) in entries {
                 println!(
@@ -205,7 +205,7 @@ impl Profiler {
 
             // Sort by total duration
             let mut entries: Vec<(&String, &TimingEntry)> = self.timings.iter().collect();
-            entries.sort_by(|a, b| b.1.total_duration().cmp(&a.1.total_duration()));
+            entries.sort_by_key(|b| std::cmp::Reverse(b.1.total_duration()));
 
             for (name, entry) in entries {
                 writeln!(
@@ -233,7 +233,7 @@ impl Profiler {
 
             // Sort by total memory delta
             let mut entries: Vec<(&String, &MemoryEntry)> = self.memory.iter().collect();
-            entries.sort_by(|a, b| b.1.total_delta().abs().cmp(&a.1.total_delta().abs()));
+            entries.sort_by_key(|b| std::cmp::Reverse(b.1.total_delta().abs()));
 
             for (name, entry) in entries {
                 writeln!(

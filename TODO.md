@@ -1,10 +1,10 @@
 # SciRS2 Development Roadmap
 
-**Current Version**: 0.3.3 (Released: March 17, 2026)
+**Current Version**: 0.3.4 (Released: March 18, 2026)
 **Status**: Production Ready — All 19,684 tests passing (100% pass rate)
 **Scale**: 2,586,908 lines of Rust, 6,660 source files, 45+ workspace crates
 
-This document tracks the development roadmap for SciRS2. Completed items in v0.3.3 are documented here for historical reference; the active roadmap is the v0.4.0 section.
+This document tracks the development roadmap for SciRS2. Completed items in v0.3.4 are documented here for historical reference; the active roadmap is the v0.4.0 section.
 
 ---
 
@@ -444,6 +444,46 @@ This document tracks the development roadmap for SciRS2. Completed items in v0.3
 - [ ] Compressed sensing recovery via FFT-based measurements
 - [ ] Fast multipole method (FMM) integration for N-body problems
 
+### Pure Rust Policy Enforcement and Dependency Cleanup
+
+#### Completed in v0.3.4
+- [x] Removed `ndarray-npy` from scirs2-core — eliminated `zip` crate from dependency tree entirely
+- [x] Removed unused workspace deps: `x509-parser`, `itertools`, `num-rational`, `gmp-mpfr-sys`
+- [x] Removed unused OTel deps: `opentelemetry-prometheus`, `opentelemetry-semantic-conventions`
+- [x] Removed unused scirs2-io stubs: `mongodb`, `redis`, `prost` (direct dep)
+- [x] Fixed dangling feature refs: `opentelemetry-semantic-conventions` in scirs2-core `instrumentation` feature, `itertools` in scirs2-graph
+
+#### Transitive Policy Violations (indirect deps from external crates)
+These are pulled in by external crates we depend on — not direct violations, but targets for future Pure Rust replacements:
+
+- [ ] `flate2` + `zlib-rs` — pulled in transitively by:
+  - `parquet` (scirs2-io) — flate2 for Parquet compression
+  - `png` / `tiff` (image crate) — flate2 for image codec
+  - `ureq` (scirs2-datasets) — flate2 for HTTP content encoding
+  - **Action**: Evaluate Pure Rust Parquet alternatives or contribute upstream patches; for image/ureq these are internal to the crate and not directly replaceable
+- [ ] `snap` (Snappy) — pulled in by `parquet`
+  - **Action**: Feature-gate `parquet` support so users who don't need it avoid these deps
+- [ ] `prost` (transitive) — pulled in by `opentelemetry-otlp` (scirs2-core)
+  - **Action**: Consider whether OTel OTLP export is needed; if not, remove `opentelemetry-otlp` or feature-gate it
+
+#### Barely-Used Dependencies (audit candidates)
+- [ ] `ureq` (8 uses) — overlaps with `reqwest` (80+ uses); consolidate HTTP client to one
+- [ ] `cron` (4 uses) — ensure properly feature-gated, not pulled into default builds
+- [ ] `opentelemetry_sdk` (4 uses) — verify necessity; most OTel setup is stub code
+- [ ] `num_bigint` (4 uses) — verify `arbitrary-precision` feature is not in default features
+- [ ] `egui` / `eframe` (~40 uses) — GUI deps; ensure feature-gated (visualization only)
+
+#### Dead Code Cleanup
+- [ ] Audit `scirs2-core` JIT module — Cranelift crates removed but JIT stub code may remain in `array_protocol/jit_impl.rs`
+- [ ] Audit `scirs2-io` mongodb/redis feature stubs — feature names kept but deps removed; clean up cfg blocks if they contain only stub code
+- [ ] Audit `array_io` feature in scirs2-core — ndarray-npy removed; feature now only gates `["std", "array"]` which may be redundant
+
+#### Dependency Reduction Goals for v0.4.0
+- [ ] Reduce total workspace dependency count by 15-20%
+- [ ] Ensure all default feature sets are 100% Pure Rust (no C/Fortran transitive deps)
+- [ ] Run `cargo tree --workspace --all-features -d` regularly to detect unnecessary version duplicates
+- [ ] Implement `cargo-scirs2-policy` linter check for banned direct deps (zip, flate2, bincode, openblas, etc.)
+
 ### Infrastructure and Tooling
 - [ ] WebGPU backend for scirs2-wasm (browser-side GPU compute via WebGPU API)
 - [ ] Python PyPI wheel distribution via maturin (Linux/macOS/Windows wheels)
@@ -555,6 +595,6 @@ All development must adhere to the following policies:
 
 ---
 
-**Last Updated**: March 17, 2026
-**Branch**: 0.3.3
-**Status**: v0.3.3 released — v0.4.0 planning phase
+**Last Updated**: March 18, 2026
+**Branch**: 0.3.4
+**Status**: v0.3.4 released — v0.4.0 planning phase

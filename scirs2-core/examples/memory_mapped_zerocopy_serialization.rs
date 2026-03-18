@@ -295,7 +295,7 @@ fn metadata_example(tempdir: &Path) -> Result<(), Box<dyn std::error::Error>> {
         "version": "1.0",
         "author": "SciRS2 Team",
         "created": "2023-05-20T10:30:00Z",
-        "license": "MIT",
+        "license": "Apache-2.0",
         "properties": {
             "samplingrate": 1000,
             "units": "meters",
@@ -327,7 +327,7 @@ fn metadata_example(tempdir: &Path) -> Result<(), Box<dyn std::error::Error>> {
         "author": "SciRS2 Team",
         "created": "2023-05-20T10:30:00Z",
         "updated": "2023-05-20T11:45:00Z",
-        "license": "MIT",
+        "license": "Apache-2.0",
         "properties": {
             "samplingrate": 1000,
             "units": "meters",

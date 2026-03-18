@@ -252,7 +252,7 @@ pub fn graph_summary<'g, F: Float>(root: &Tensor<'g, F>, ctx: &'g Context<'g, F>
 
     // Sort op counts by frequency
     let mut sorted_ops: Vec<_> = op_counts.into_iter().collect();
-    sorted_ops.sort_by(|a, b| b.1.cmp(&a.1));
+    sorted_ops.sort_by_key(|item| std::cmp::Reverse(item.1));
 
     let _ = writeln!(output, "Operation breakdown:");
     for (name, count) in &sorted_ops {
@@ -451,7 +451,7 @@ impl GraphStats {
         let max_fan_out = fan_out.values().copied().max().unwrap_or(0);
 
         let mut op_breakdown: Vec<_> = op_counts.into_iter().collect();
-        op_breakdown.sort_by(|a, b| b.1.cmp(&a.1));
+        op_breakdown.sort_by_key(|item| std::cmp::Reverse(item.1));
 
         GraphStats {
             total_nodes: nodes.len(),

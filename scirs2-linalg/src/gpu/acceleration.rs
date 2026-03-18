@@ -1136,7 +1136,7 @@ impl GpuStreamManager {
     fn queue_operation(&mut self, operation: StreamOperation) {
         self.stream_queue.push(operation);
         self.stream_queue
-            .sort_by(|a, b| b.priority.cmp(&a.priority));
+            .sort_by_key(|op| std::cmp::Reverse(op.priority));
     }
 }
 

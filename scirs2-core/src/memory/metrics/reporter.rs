@@ -78,7 +78,7 @@ impl MemoryReport {
 
         // Sort components by peak usage (descending)
         let mut components: Vec<_> = self.component_stats.iter().collect();
-        components.sort_by(|a, b| b.1.peak_usage.cmp(&a.1.peak_usage));
+        components.sort_by_key(|b| std::cmp::Reverse(b.1.peak_usage));
 
         for (component, stats) in components {
             output.push_str(&format!("\n  {component}\n"));
@@ -192,7 +192,7 @@ impl MemoryReport {
 
         // Sort components by peak usage (descending)
         let mut components: Vec<_> = self.component_stats.iter().collect();
-        components.sort_by(|a, b| b.1.peak_usage.cmp(&a.1.peak_usage));
+        components.sort_by_key(|b| std::cmp::Reverse(b.1.peak_usage));
 
         // Find maximum usage for scaling
         let max_usage = components

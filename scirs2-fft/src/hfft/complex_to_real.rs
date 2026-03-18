@@ -468,8 +468,8 @@ fn _hfftn_complex(
         let mut idx = vec![0; ndim];
         for (dim, idx_val) in idx.iter_mut().enumerate().take(ndim) {
             let stride = array.strides()[dim] as usize;
-            if stride > 0 {
-                *idx_val = (i / stride) % array.shape()[dim];
+            if let Some(divided) = i.checked_div(stride) {
+                *idx_val = divided % array.shape()[dim];
             }
         }
         real_result[IxDyn(&idx)] = val.re;

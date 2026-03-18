@@ -61,7 +61,7 @@ mod tests {
             version: "1.0.0".to_string(),
             description: "Test WebAssembly model".to_string(),
             author: "SciRS2".to_string(),
-            license: "MIT".to_string(),
+            license: "Apache-2.0".to_string(),
             platforms: vec!["wasm".to_string()],
             dependencies: HashMap::new(),
             input_specs: Vec::new(),

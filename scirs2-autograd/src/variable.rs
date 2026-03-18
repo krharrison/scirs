@@ -277,8 +277,8 @@ pub trait NamespaceTrait<F: Float> {
     fn current_var_names(&self) -> Vec<&str> {
         self.env()
             .name_to_id
-            .iter()
-            .filter_map(|(v_name, _v_id)| {
+            .keys()
+            .filter_map(|v_name| {
                 if v_name.namespace_id == self.name() {
                     Some(v_name.variable_name.deref())
                 } else {

@@ -308,7 +308,7 @@ impl BlockCache {
             .map(|(id, block)| (id.clone(), block.access_count))
             .collect();
 
-        blocks.sort_by(|a, b| b.1.cmp(&a.1));
+        blocks.sort_by_key(|item| std::cmp::Reverse(item.1));
         blocks.truncate(limit);
         blocks
     }

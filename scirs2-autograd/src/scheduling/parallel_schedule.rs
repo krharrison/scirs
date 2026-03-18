@@ -305,7 +305,7 @@ pub fn work_stealing_schedule<F: Float>(
             num_dependents: children_count[id],
         })
         .collect();
-    all_tasks.sort_by(|a, b| b.priority.cmp(&a.priority));
+    all_tasks.sort_by_key(|task| std::cmp::Reverse(task.priority));
 
     // Distribute tasks round-robin to workers
     let mut worker_queues: Vec<Vec<ReadyTask>> = vec![Vec::new(); num_workers];

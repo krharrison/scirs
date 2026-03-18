@@ -897,7 +897,7 @@ impl AdvancedMemoryProfiler {
 
         // Prioritize optimization opportunities
         let mut sorted_opportunities = self.profile.optimization_opportunities.clone();
-        sorted_opportunities.sort_by(|a, b| b.priority.cmp(&a.priority));
+        sorted_opportunities.sort_by_key(|o| std::cmp::Reverse(o.priority));
 
         for opportunity in sorted_opportunities.iter().take(5) {
             recommendations.push(format!(

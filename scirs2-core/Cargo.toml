@@ -36,7 +36,6 @@ rand_distr = { workspace = true }
 rand_chacha = { workspace = true }
 ndarray-rand = { workspace = true, optional = true }
 ndarray-stats = { workspace = true, optional = true }
-ndarray-npy = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }  # Serialization
 serde_json = { workspace = true, optional = true }  # JSON serialization
 uuid = { workspace = true, features = ["serde"] }  # Used for unique identifiers
@@ -55,7 +54,7 @@ crossbeam-deque = { workspace = true, optional = true }  # Used in parallel sche
 num_cpus = { workspace = true, optional = true }  # CPU count detection
 
 # Compression libraries (Pure Rust - COOLJAPAN Policy)
-snap = { workspace = true, optional = true }   # Snappy compression
+oxiarc-snappy = { workspace = true, optional = true }   # Pure Rust Snappy compression (COOLJAPAN Policy)
 bytemuck = { workspace = true, optional = true }  # Zero-copy type casting
 crc32fast = { workspace = true }  # CRC32 checksum (used in serialization)
 oxiarc-lz4 = { workspace = true, optional = true }  # Pure Rust LZ4 compression
@@ -75,10 +74,6 @@ oxiblas-blas = { workspace = true, optional = true }
 oxiblas-lapack = { workspace = true, optional = true }
 # NOTE: All OpenBLAS/system BLAS dependencies removed - using pure Rust OxiBLAS
 
-# JIT compilation for Array Protocol
-cranelift-module = { workspace = true, optional = true }  # JIT compilation module
-cranelift-jit = { workspace = true, optional = true }  # JIT compiler (previously simplejit)
-cranelift-frontend = { workspace = true, optional = true }  # JIT compiler frontend
 
 # Async runtime for async error handling
 tokio = { workspace = true, optional = true }  # Async runtime for async error handling
@@ -107,8 +102,6 @@ tracing-opentelemetry = { workspace = true, optional = true }  # OpenTelemetry i
 opentelemetry = { workspace = true, optional = true }  # OpenTelemetry API
 opentelemetry_sdk = { workspace = true, optional = true }  # OpenTelemetry SDK
 opentelemetry-otlp = { workspace = true, optional = true }  # OTLP exporter
-opentelemetry-prometheus = { workspace = true, optional = true }  # Prometheus exporter for OpenTelemetry
-opentelemetry-semantic-conventions = { workspace = true, optional = true }  # Semantic conventions
 
 # Prometheus metrics
 prometheus = { workspace = true, optional = true }  # Prometheus metrics
@@ -121,9 +114,7 @@ quickcheck = { workspace = true, optional = true }  # Property-based testing
 
 # Arbitrary precision dependencies
 num-bigint = { workspace = true, optional = true }  # Arbitrary precision integers
-num-rational = { workspace = true, optional = true }  # Exact rational arithmetic
 rug = { workspace = true, optional = true }  # High-performance arbitrary precision
-gmp-mpfr-sys = { workspace = true, optional = true }  # Low-level GMP/MPFR bindings
 
 # Python integration dependencies (PyO3)
 pyo3 = { workspace = true, optional = true }  # Python bindings
@@ -142,13 +133,6 @@ arrow-arith = { workspace = true, optional = true }  # Arrow arithmetic operatio
 # Embedded systems support (v0.2.0) - no_std compatibility
 libm = { workspace = true, optional = true }  # Math functions for no_std
 fixed = { workspace = true, optional = true }  # Fixed-point arithmetic
-fixed-sqrt = { workspace = true, optional = true }  # Fixed-point sqrt
-cordic = { workspace = true, optional = true }  # CORDIC algorithms
-critical-section = { workspace = true, optional = true }  # Interrupt-safe operations
-atomic-polyfill = { workspace = true, optional = true }  # Atomic operations for no_std
-portable-atomic = { workspace = true, optional = true }  # Portable atomic operations
-embedded-alloc = { workspace = true, optional = true }  # Global allocator for embedded
-linked_list_allocator = { workspace = true, optional = true }  # Alternative allocator for embedded
 
 # WASM support - getrandom needs wasm_js feature, uuid needs js feature for wasm32 targets
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -174,15 +158,6 @@ objc2-metal-performance-shaders-graph = { workspace = true, optional = true }  #
 [target.'cfg(all(target_arch = "x86_64", any(target_os = "linux", target_os = "windows")))'.dependencies]
 cudarc = { workspace = true, optional = true }  # CUDA runtime
 
-# Embedded ARM Cortex-M support
-[target.'cfg(target_arch = "arm")'.dependencies]
-cortex-m = { workspace = true, optional = true }  # ARM Cortex-M support
-cortex-m-rt = { workspace = true, optional = true }  # Runtime for ARM Cortex-M
-
-# Embedded RISC-V support
-[target.'cfg(target_arch = "riscv32")'.dependencies]
-riscv = { workspace = true, optional = true }  # RISC-V support
-riscv-rt = { workspace = true, optional = true }  # Runtime for RISC-V
 
 # Linux-specific profiling dependencies
 [target.'cfg(target_os = "linux")'.dependencies]
@@ -206,13 +181,9 @@ default = ["std", "array", "serialization"]  # Enable std and array module by de
 # Core embedded support features (v0.2.0)
 std = []  # Standard library support (default, required for most features)
 alloc = []  # Heap allocation support (requires global allocator in no_std)
-embedded = ["libm", "critical-section", "portable-atomic"]  # Basic embedded support (no_std + no heap)
-embedded-alloc = ["alloc", "embedded", "dep:embedded-alloc"]  # Embedded with heap allocator
-embedded-arm = ["embedded", "dep:cortex-m"]  # ARM Cortex-M support
-embedded-arm-rt = ["embedded-arm", "dep:cortex-m-rt"]  # ARM Cortex-M with runtime
-embedded-riscv = ["embedded", "dep:riscv"]  # RISC-V support
-embedded-riscv-rt = ["embedded-riscv", "dep:riscv-rt"]  # RISC-V with runtime
-fixed-point = ["embedded", "dep:fixed", "dep:fixed-sqrt", "dep:cordic"]  # Fixed-point arithmetic
+embedded = ["libm"]  # Basic embedded support (no_std + no heap)
+embedded-alloc = ["alloc", "embedded"]  # Embedded with heap allocator
+fixed-point = ["embedded", "dep:fixed"]  # Fixed-point arithmetic
 ffi = ["std"]  # C ABI FFI for calling SciRS2 from C, Julia, and other languages (requires std)
 simd = ["wide"]  # SIMD operations (works in no_std with alloc)
 parallel = ["std", "rayon", "crossbeam", "crossbeam-utils", "crossbeam-deque", "num_cpus"]  # Parallel processing with rayon (requires std)
@@ -240,13 +211,13 @@ int64 = []    # Support for i64 in zero-copy operations
 uint32 = []   # Support for u32 in zero-copy operations
 uint64 = []   # Support for u64 in zero-copy operations
 all_ints = [] # Support for all integer types in zero-copy operations
-memory_compression = ["memory_efficient", "dep:oxiarc-lz4", "dep:oxiarc-zstd", "dep:oxiarc-deflate", "snap", "bytemuck", "serde", "serde_json", "libc", "num_cpus"]  # Compressed memory-mapped arrays (SIMD-optimized)
+memory_compression = ["memory_efficient", "dep:oxiarc-lz4", "dep:oxiarc-zstd", "dep:oxiarc-deflate", "dep:oxiarc-snappy", "bytemuck", "serde", "serde_json", "libc", "num_cpus"]  # Compressed memory-mapped arrays (SIMD-optimized)
 memory_metrics = ["memory_management", "serde", "serde_json"]  # Enhanced memory metrics tracking
 sysinfo = ["dep:sysinfo"]  # System information gathering
 serialization = ["std", "serde", "serde_json", "num-complex/serde", "dep:oxiarc-lz4", "dep:oxiarc-zstd"]  # Serialization support (includes Complex<T> serde, pure-Rust LZ4/Zstd) (requires std)
 array = ["std", "ndarray-rand"]  # Basic ndarray with random support (minimal dependencies) (requires std)
 array_stats = ["std", "array", "ndarray-stats"]  # Statistics operations on arrays (requires std)
-array_io = ["std", "array", "ndarray-npy"]  # Array I/O (save/load .npy files) (requires std)
+array_io = ["std", "array"]  # Array I/O (save/load .npy files) (requires std) - ndarray-npy removed to eliminate zip crate
 memory_visualization = ["memory_metrics"]  # Memory usage visualization
 memory_call_stack = ["memory_metrics"]  # Capture call stacks for memory events
 profiling = ["std", "num_cpus", "serialization"]  # Performance profiling tools (basic, includes serialization for JSON export) (requires std)
@@ -254,12 +225,12 @@ profiling_advanced = ["std", "profiling", "tracing", "tracing-subscriber", "trac
 profiling_flame = ["std", "profiling_advanced", "tracing-flame"]  # Flame graph generation (requires std)
 profiling_chrome = ["std", "profiling_advanced", "tracing-chrome"]  # Chrome DevTools profiling (requires std)
 profiling_opentelemetry = ["std", "profiling_advanced", "tracing-opentelemetry", "opentelemetry", "opentelemetry_sdk"]  # OpenTelemetry integration (requires std)
-profiling_prometheus = ["std", "profiling", "prometheus", "opentelemetry-prometheus"]  # Prometheus metrics export (requires std)
+profiling_prometheus = ["std", "profiling", "prometheus"]  # Prometheus metrics export (requires std)
 profiling_otlp = ["std", "profiling_opentelemetry", "opentelemetry-otlp"]  # OTLP exporter for distributed tracing (requires std)
 profiling_memory = ["std", "profiling", "libc"]  # Memory profiling with Pure Rust OS APIs (requires std)
 profiling_perf = ["std", "profiling", "perf-event"]  # Linux perf integration (platform-specific) (requires std)
 profiling_all = ["std", "profiling_advanced", "profiling_flame", "profiling_chrome", "profiling_opentelemetry", "profiling_prometheus", "profiling_otlp", "profiling_memory"]  # All profiling features (requires std)
-instrumentation = ["std", "profiling_advanced", "opentelemetry-semantic-conventions"]  # Instrumentation framework (requires std)
+instrumentation = ["std", "profiling_advanced"]  # Instrumentation framework (requires std)
 random = ["std", "array"]  # Random number generation utilities with ndarray support (requires std)
 types = []  # Type conversion utilities (works in no_std)
 ufuncs = []  # Universal Functions (ufuncs) system (works in no_std)
@@ -268,7 +239,7 @@ benchmarking = ["std", "testing", "serde", "serde_json"]  # Comprehensive benchm
 linalg = ["std", "array", "oxiblas-ndarray", "oxiblas-blas", "oxiblas-lapack"]  # Linear algebra with OxiBLAS (pure Rust) with Complex support (v0.1.2+) (requires std)
 # NOTE: OpenBLAS/Netlib/Accelerate features removed - using pure Rust OxiBLAS for all platforms
 array_protocol = []  # Array Protocol for third-party array implementations
-array_protocol_jit = ["std", "array_protocol", "cranelift-module", "cranelift-jit", "cranelift-frontend"]  # JIT compilation for Array Protocol (requires std)
+array_protocol_jit = ["std", "array_protocol"]  # JIT compilation for Array Protocol (requires std)
 array_protocol_gpu = ["array_protocol", "gpu"]  # GPU support for Array Protocol
 array_protocol_cuda = ["array_protocol_gpu", "cuda"]  # CUDA support for Array Protocol
 array_protocol_opencl = ["array_protocol_gpu", "opencl"]  # OpenCL support for Array Protocol
@@ -289,10 +260,10 @@ compression = ["std", "dep:oxiarc-deflate"]  # Compression support (requires std
 database = ["std"]  # Database integration features (requires std)
 cloud = ["std"]  # Cloud storage integration (S3, GCS, Azure) (requires std)
 arrow = ["std", "dep:arrow", "dep:arrow-array", "dep:arrow-buffer", "dep:arrow-cast", "dep:arrow-data", "dep:arrow-schema", "dep:arrow-select", "dep:arrow-arith", "memmap2"]  # Arrow columnar format interoperability for zero-copy data exchange (requires std)
-jit = ["std", "cranelift-jit", "cranelift-module", "cranelift-frontend"]  # Just-in-time compilation with LLVM (requires std)
+jit = ["std"]  # Just-in-time compilation (requires std)
 ml_pipeline = ["std"]  # ML pipeline integration and real-time processing (requires std)
 production = ["std", "observability", "versioning", "leak_detection", "data_validation"]  # All production features (requires std)
-arbitrary-precision = ["std", "num-bigint", "num-rational", "rug", "gmp-mpfr-sys"]  # Arbitrary precision arithmetic (requires std for GMP)
+arbitrary-precision = ["std", "num-bigint", "rug"]  # Arbitrary precision arithmetic (requires std for GMP)
 python = ["std", "dep:pyo3", "dep:scirs2-numpy", "serialization"]  # Python bindings with NumPy integration (uses scirs2-numpy with ndarray 0.17) (requires std)
 all = [
     "simd", "parallel", "cache", "validation", "logging",

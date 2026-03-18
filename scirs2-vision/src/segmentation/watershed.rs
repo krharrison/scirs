@@ -126,11 +126,9 @@ pub fn watershed(
     // If no markers provided, use local minima
     if queue.is_empty() {
         let local_minima = find_local_minima(&gray, connectivity);
-        let mut next_label = 1;
-
-        for (y, x) in local_minima {
+        for (next_label_idx, (y, x)) in local_minima.into_iter().enumerate() {
+            let next_label = (next_label_idx + 1) as u32;
             labels[[y, x]] = next_label;
-            next_label += 1;
 
             // Add neighbors to queue
             for (dy, dx) in get_neighbors(connectivity) {

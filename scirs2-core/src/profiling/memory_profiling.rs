@@ -262,11 +262,7 @@ impl MemoryStats {
         let metadata = allocated / 50;
 
         // Retained is memory the allocator holds but hasn't returned to the OS
-        let retained = if os_info.resident > allocated {
-            os_info.resident - allocated
-        } else {
-            0
-        };
+        let retained = os_info.resident.saturating_sub(allocated);
 
         Ok(Self {
             allocated,

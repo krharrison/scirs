@@ -739,7 +739,7 @@ This model was compiled with the following configuration:
 - `ts/scirs2-model.ts` - TypeScript bindings
 - `examples/demo.html` - Interactive demo
 ## License
-MIT License - see [LICENSE](LICENSE) file for details.
+Apache License 2.0 - see [LICENSE](LICENSE) file for details.
 "#,
             self.config.target_version,
             self.config.optimization_level.size_level,
@@ -886,7 +886,7 @@ mod tests {
             version: "1.0.0".to_string(),
             description: "Test".to_string(),
             author: "Test".to_string(),
-            license: "MIT".to_string(),
+            license: "Apache-2.0".to_string(),
             platforms: vec!["wasm".to_string()],
             dependencies: HashMap::new(),
             input_specs: Vec::new(),

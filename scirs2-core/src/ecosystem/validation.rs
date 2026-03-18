@@ -1520,7 +1520,7 @@ fn create_core_module_info() -> ModuleInfo {
         metadata: ModuleMetadata {
             author: "SciRS2 Team".to_string(),
             description: "Core utilities for SciRS2 ecosystem".to_string(),
-            license: "MIT".to_string(),
+            license: "Apache-2.0".to_string(),
             repository: Some("https://github.com/cool-japan/scirs".to_string()),
             build_time: None,
         },

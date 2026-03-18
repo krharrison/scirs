@@ -107,7 +107,7 @@ pub mod gamma_stability {
         for x in [1e-10, 1e-8, 1e-6, 1e-4, 1e-2] {
             let g: f64 = gamma(x);
             let expected: f64 = 1.0 / x; // Leading term
-            let rel_error = ((g - expected).abs() / expected) as f64;
+            let rel_error = (g - expected).abs() / expected;
 
             if rel_error > 0.1 {
                 issues.push(StabilityIssue::LossOfSignificance {
@@ -151,7 +151,7 @@ pub mod gamma_stability {
             let gminus: f64 = gamma(x - h);
 
             let derivative = (g_plus - gminus) / (2.0 * h);
-            let condition = ((x * derivative / g).abs()) as f64;
+            let condition = (x * derivative / g).abs();
 
             condition_numbers.insert(format!("x={x}"), condition);
         }
@@ -225,11 +225,11 @@ pub mod bessel_stability {
 
             // J_0(x) ≈ 1 - x²/4 for small x
             let j0_expected: f64 = 1.0 - x * x / 4.0;
-            let j0_error = ((j0_val - j0_expected).abs() / j0_expected.abs()) as f64;
+            let j0_error = (j0_val - j0_expected).abs() / j0_expected.abs();
 
             // J_1(x) ≈ x/2 for small x
             let j1_expected: f64 = x / 2.0;
-            let j1_error = ((j1_val - j1_expected).abs() / j1_expected.abs()) as f64;
+            let j1_error = (j1_val - j1_expected).abs() / j1_expected.abs();
 
             if j0_error > 1e-6 || j1_error > 1e-6 {
                 issues.push(StabilityIssue::LossOfSignificance {
@@ -492,7 +492,7 @@ pub mod erf_stability {
 
             // This difference should equal -erfc(x)
             let expected: f64 = -erfc(x);
-            let rel_error = ((diff - expected).abs() / expected.abs()) as f64;
+            let rel_error = (diff - expected).abs() / expected.abs();
 
             if rel_error > 1e-10 {
                 issues.push(StabilityIssue::CatastrophicCancellation {

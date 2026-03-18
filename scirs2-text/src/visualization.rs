@@ -1079,11 +1079,7 @@ impl TextAnalyticsDashboard {
             .iter()
             .map(|text| text.split_whitespace().count())
             .sum();
-        let avg_words = if total_docs > 0 {
-            total_words / total_docs
-        } else {
-            0
-        };
+        let avg_words = total_words.checked_div(total_docs).unwrap_or(0);
         let unique_words = word_frequencies.len();
 
         html.push_str(&format!(

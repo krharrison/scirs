@@ -402,12 +402,11 @@ impl ThreadPoolManager {
 
                 // Optimize affinity strategy based on workload pattern
                 match profile {
-                    ThreadPoolProfile::MatrixMultiplication | ThreadPoolProfile::CpuIntensive => {
+                    ThreadPoolProfile::MatrixMultiplication | ThreadPoolProfile::CpuIntensive
                         // CPU-intensive tasks benefit from pinned affinity
-                        if optimized_config.base_config.affinity == AffinityStrategy::None {
+                        if optimized_config.base_config.affinity == AffinityStrategy::None => {
                             optimized_config.base_config.affinity = AffinityStrategy::NumaSpread;
                         }
-                    }
                     ThreadPoolProfile::MemoryBound => {
                         // Memory-bound tasks benefit from NUMA awareness
                         optimized_config.base_config.affinity = AffinityStrategy::NumaCompact;

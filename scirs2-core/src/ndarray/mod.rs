@@ -50,11 +50,7 @@ pub use ndarray_stats::{
     Sort1dExt, SummaryStatisticsExt,
 };
 
-#[cfg(feature = "array_io")]
-pub use ndarray_npy::{
-    NpzReader, NpzWriter, ReadNpyExt, ReadNpzError, ViewMutNpyExt, ViewNpyExt, WriteNpyError,
-    WriteNpyExt,
-};
+// NOTE: ndarray_npy removed to eliminate `zip` crate from dependency tree (COOLJAPAN Pure Rust Policy)
 
 // ========================================
 // ENHANCED FUNCTIONALITY

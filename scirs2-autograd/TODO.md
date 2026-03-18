@@ -1,6 +1,6 @@
 # scirs2-autograd TODO
 
-## Status: v0.3.3 Released (March 17, 2026)
+## Status: v0.3.4 Released (March 18, 2026)
 
 ## v0.3.3 Completed
 

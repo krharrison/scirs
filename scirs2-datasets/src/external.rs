@@ -621,8 +621,7 @@ pub mod convenience {
             .download_dataset(
                 url,
                 Some(Box::new(|downloaded, total| {
-                    if total > 0 {
-                        let percent = (downloaded * 100) / total;
+                    if let Some(percent) = (downloaded * 100).checked_div(total) {
                         eprintln!("Downloaded: {percent:.1}% ({downloaded}/{total})");
                     } else {
                         eprintln!("Downloaded: {downloaded} bytes");
@@ -642,8 +641,7 @@ pub mod convenience {
         client.download_dataset_sync(
             url,
             Some(Box::new(|downloaded, total| {
-                if total > 0 {
-                    let percent = (downloaded * 100) / total;
+                if let Some(percent) = (downloaded * 100).checked_div(total) {
                     eprintln!("Downloaded: {percent:.1}% ({downloaded}/{total})");
                 } else {
                     eprintln!("Downloaded: {downloaded} bytes");

@@ -310,7 +310,12 @@ impl QuantumNeuralHybridProcessor {
 
         // Consider matrix size and sparsity
         let size_factor = (rows as f64).log10() / 6.0; // Normalize by 10^6
-        let avg_nnz = if rows > 0 { indptr[rows] / rows } else { 0 };
+        let avg_nnz = indptr
+            .get(rows)
+            .copied()
+            .unwrap_or(0)
+            .checked_div(rows)
+            .unwrap_or(0);
         let sparsity_factor = (avg_nnz as f64 / 100.0).min(1.0);
 
         let quantum_preference = quantum_score + size_factor * 0.3;

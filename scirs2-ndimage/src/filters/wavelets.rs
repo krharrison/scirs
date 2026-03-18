@@ -952,7 +952,7 @@ where
                         wrapped - n
                     }
                 };
-                padded[n + pad_len + i] = signal[src_idx.max(0).min(n - 1)];
+                padded[n + pad_len + i] = signal[src_idx.min(n - 1)];
             }
         }
     }

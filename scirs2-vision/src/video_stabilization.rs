@@ -361,9 +361,9 @@ fn downsample(src: &Array2<f64>, target_rows: usize, target_cols: usize) -> Arra
 /// Normalised cross-correlation between two images at integer shift (dy, dx).
 fn compute_ncc(a: &Array2<f64>, b: &Array2<f64>, dy: i32, dx: i32) -> f64 {
     let (rows, cols) = a.dim();
-    let r0 = 0usize.max((-dy).max(0) as usize);
+    let r0 = (-dy).max(0) as usize;
     let r1 = rows.min(rows.saturating_sub(dy.max(0) as usize));
-    let c0 = 0usize.max((-dx).max(0) as usize);
+    let c0 = (-dx).max(0) as usize;
     let c1 = cols.min(cols.saturating_sub(dx.max(0) as usize));
 
     if r0 >= r1 || c0 >= c1 {

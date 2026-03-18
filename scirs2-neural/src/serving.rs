@@ -258,7 +258,7 @@ impl<
             version: "1.0.0".to_string(),
             description: "SciRS2 Neural Network Model".to_string(),
             author: "SciRS2".to_string(),
-            license: "MIT".to_string(),
+            license: "Apache-2.0".to_string(),
             platforms: vec![
                 "linux".to_string(),
                 "windows".to_string(),

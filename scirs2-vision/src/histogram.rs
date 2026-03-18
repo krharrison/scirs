@@ -330,10 +330,8 @@ pub fn clahe(img: &DynamicImage, tile_size: u32, clip_limit: f32) -> Result<Dyna
                 cdfs[ty][tx][i] = cdfs[ty][tx][i - 1] + histograms[ty][tx][i];
             }
 
-            if area > 0 {
-                for v in cdfs[ty][tx].iter_mut() {
-                    *v = (*v * 255) / area;
-                }
+            for v in cdfs[ty][tx].iter_mut() {
+                *v = (*v * 255).checked_div(area).unwrap_or(0);
             }
         }
     }

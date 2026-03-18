@@ -387,17 +387,15 @@ fn validate_csv_format<P: AsRef<Path>>(path: P) -> Result<FormatValidationResult
     let first_field_count = count_csv_fields(first_line);
 
     // Check remaining lines for consistency
-    let mut line_number = 2;
     let mut inconsistent_lines = Vec::new();
 
-    for line in lines {
+    for (i, line) in lines.enumerate() {
         let field_count = count_csv_fields(line);
+        let line_number = i + 2;
 
         if field_count != first_field_count {
             inconsistent_lines.push(line_number);
         }
-
-        line_number += 1;
     }
 
     if inconsistent_lines.is_empty() {
@@ -458,12 +456,11 @@ fn count_csv_fields(line: &[u8]) -> usize {
                 // Toggle quote state
                 in_quotes = !in_quotes;
             }
-            b',' => {
+            b','
                 // Only count commas outside quotes
-                if !in_quotes {
+                if !in_quotes => {
                     count += 1;
                 }
-            }
             _ => {}
         }
     }

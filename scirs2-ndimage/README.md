@@ -21,7 +21,7 @@ Use scirs2-ndimage when you need to:
 - Detect features (corners, edges, SIFT descriptors, HOG)
 - Perform atlas-based segmentation
 
-## Features (v0.3.3)
+## Features (v0.3.4)
 
 ### Image Filtering
 - **Gaussian Filters**: `gaussian_filter`, `gaussian_filter1d`, `gaussian_gradient_magnitude`, `gaussian_laplace`
@@ -112,14 +112,14 @@ Use scirs2-ndimage when you need to:
 
 ```toml
 [dependencies]
-scirs2-ndimage = "0.3.3"
+scirs2-ndimage = "0.3.4"
 ```
 
 For parallel processing and SIMD:
 
 ```toml
 [dependencies]
-scirs2-ndimage = { version = "0.3.3", features = ["parallel", "simd"] }
+scirs2-ndimage = { version = "0.3.4", features = ["parallel", "simd"] }
 ```
 
 ## Feature Flags

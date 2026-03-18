@@ -271,7 +271,7 @@ impl Covisibility {
                 }
             }
         }
-        neighbours.sort_by(|x, y| y.1.cmp(&x.1));
+        neighbours.sort_by_key(|entry| std::cmp::Reverse(entry.1));
         neighbours
     }
 

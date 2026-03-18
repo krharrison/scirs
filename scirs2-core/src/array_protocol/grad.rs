@@ -1,13 +1,7 @@
 // Copyright (c) 2025, `SciRS2` Team
 //
-// Licensed under either of
-//
-// * Apache License, Version 2.0
-//   (LICENSE-APACHE or http://www.apache.org/licenses/LICENSE-2.0)
-// * MIT license
-//   (LICENSE-MIT or http://opensource.org/licenses/MIT)
-//
-// at your option.
+// Licensed under the Apache License, Version 2.0
+// (LICENSE-APACHE or http://www.apache.org/licenses/LICENSE-2.0)
 //
 
 //! Gradient computation support for the array protocol.
@@ -467,9 +461,9 @@ impl GradientTensor {
                         }
                     }
                 }
-                "multiply" => {
+                "multiply"
                     // For element-wise multiplication, input_grad = output_grad * other_input
-                    if inputs.len() == 2 {
+                    if inputs.len() == 2 => {
                         let (a, b) = (&inputs[0], &inputs[1]);
 
                         // Compute grad_a = grad_out * b
@@ -504,12 +498,11 @@ impl GradientTensor {
                             }
                         }
                     }
-                }
-                "matmul" => {
+                "matmul"
                     // For matrix multiplication, the gradients are more complex:
                     // grad_a = grad_out @ b.T
                     // grad_b = a.T @ grad_out
-                    if inputs.len() == 2 {
+                    if inputs.len() == 2 => {
                         let (a, b) = (&inputs[0], &inputs[1]);
 
                         // Compute grad_a = grad_out @ b.T
@@ -654,10 +647,9 @@ impl GradientTensor {
                             }
                         }
                     }
-                }
-                "subtract" => {
+                "subtract"
                     // For subtraction: a - b, grad_a = grad_out, grad_b = -grad_out
-                    if inputs.len() == 2 {
+                    if inputs.len() == 2 => {
                         let (a, b) = (&inputs[0], &inputs[1]);
 
                         // Compute grad_a = grad_out
@@ -688,10 +680,9 @@ impl GradientTensor {
                             }
                         }
                     }
-                }
-                "divide" => {
+                "divide"
                     // For division: a / b, grad_a = grad_out / b, grad_b = -grad_out * a / b^2
-                    if inputs.len() == 2 {
+                    if inputs.len() == 2 => {
                         let (a, b) = (&inputs[0], &inputs[1]);
 
                         // Compute grad_a = grad_out / b
@@ -748,10 +739,9 @@ impl GradientTensor {
                             }
                         }
                     }
-                }
-                "sigmoid" => {
+                "sigmoid"
                     // For sigmoid: grad_input = grad_out * sigmoid * (1 - sigmoid)
-                    if inputs.len() == 1 {
+                    if inputs.len() == 1 => {
                         let input = &inputs[0];
 
                         if input.requiresgrad() {
@@ -790,10 +780,9 @@ impl GradientTensor {
                             }
                         }
                     }
-                }
-                "mean" => {
+                "mean"
                     // For mean: grad_input = grad_out / n (where n is the number of elements)
-                    if inputs.len() == 1 {
+                    if inputs.len() == 1 => {
                         let input = &inputs[0];
 
                         if input.requiresgrad() {
@@ -832,7 +821,6 @@ impl GradientTensor {
                             }
                         }
                     }
-                }
                 _ => {
                     // Other operations would be implemented here
                 }

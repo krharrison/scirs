@@ -133,7 +133,7 @@ println!("Filtered image shape: {{:?}}", filtered.shape());</code></pre>
 
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2024 SciRS2 Project. Licensed under MIT License.</p>
+            <p>&copy; 2024 SciRS2 Project. Licensed under Apache License 2.0.</p>
             <p>Version {} | <a href="https://github.com/scirs2/ndimage">GitHub</a> | <a href="https://docs.rs/scirs2-ndimage">docs.rs</a></p>
         </div>
     </footer>
@@ -243,7 +243,7 @@ println!("Filtered image shape: {{:?}}", filtered.shape());</code></pre>
 
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2024 SciRS2 Project. Licensed under MIT License.</p>
+            <p>&copy; 2024 SciRS2 Project. Licensed under Apache License 2.0.</p>
         </div>
     </footer>
 
@@ -329,7 +329,7 @@ println!("Filtered image shape: {{:?}}", filtered.shape());</code></pre>
 
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2024 SciRS2 Project. Licensed under MIT License.</p>
+            <p>&copy; 2024 SciRS2 Project. Licensed under Apache License 2.0.</p>
         </div>
     </footer>
 
@@ -500,7 +500,7 @@ println!("Filtered image shape: {{:?}}", filtered.shape());</code></pre>
 
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2024 SciRS2 Project. Licensed under MIT License.</p>
+            <p>&copy; 2024 SciRS2 Project. Licensed under Apache License 2.0.</p>
         </div>
     </footer>
 </body>
@@ -585,7 +585,7 @@ println!("Filtered image shape: {{:?}}", filtered.shape());</code></pre>
 
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2024 SciRS2 Project. Licensed under MIT License.</p>
+            <p>&copy; 2024 SciRS2 Project. Licensed under Apache License 2.0.</p>
         </div>
     </footer>
 
@@ -650,7 +650,7 @@ println!("Filtered image shape: {{:?}}", filtered.shape());</code></pre>
 
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2024 SciRS2 Project. Licensed under MIT License.</p>
+            <p>&copy; 2024 SciRS2 Project. Licensed under Apache License 2.0.</p>
         </div>
     </footer>
 

@@ -159,7 +159,7 @@ where
             triplets.push((self.row[i], self.col[i], self.data[i]));
         }
 
-        triplets.sort_by(|&(r1, c1_, _), &(r2, c2_, _)| (r1, c1_).cmp(&(r2, c2_)));
+        triplets.sort_by_key(|&(r1, c1_, _)| (r1, c1_));
 
         for (i, &(r, c, v)) in triplets.iter().enumerate() {
             self.row[i] = r;
@@ -266,7 +266,7 @@ where
         for i in 0..data_vec.len() {
             triplets.push((row_vec[i], col_vec[i], data_vec[i]));
         }
-        triplets.sort_by(|&(r1, c1_, _), &(r2, c2_, _)| (r1, c1_).cmp(&(r2, c2_)));
+        triplets.sort_by_key(|&(r1, c1_, _)| (r1, c1_));
 
         for (i, &(r, c, v)) in triplets.iter().enumerate() {
             row_vec[i] = r;
@@ -537,7 +537,7 @@ where
             for i in 0..data_vec.len() {
                 triplets.push((row_vec[i], col_vec[i], data_vec[i]));
             }
-            triplets.sort_by(|&(r1, c1_, _), &(r2, c2_, _)| (r1, c1_).cmp(&(r2, c2_)));
+            triplets.sort_by_key(|&(r1, c1_, _)| (r1, c1_));
 
             let mut result_row = Vec::new();
             let mut result_col = Vec::new();

@@ -325,7 +325,7 @@ impl MultiGPUSparseFFT {
             WorkloadDistribution::MemoryBased => {
                 // Sort by available memory and select top N
                 let mut sorted_devices = available_devices;
-                sorted_devices.sort_by(|a, b| b.1.memory_free.cmp(&a.1.memory_free));
+                sorted_devices.sort_by_key(|item| std::cmp::Reverse(item.1.memory_free));
 
                 for i in 0..max_devices {
                     self.selected_devices.push(sorted_devices[i].0);

@@ -1,6 +1,6 @@
 # scirs2-numpy TODO
 
-## Status: v0.3.3 Released (February 26, 2026)
+## Status: v0.3.4 Released (March 18, 2026)
 
 ## v0.3.3 Completed
 

@@ -25,7 +25,6 @@ thiserror = { workspace = true }
 
 # Graph processing specific dependencies
 petgraph = { workspace = true }
-itertools = { workspace = true }
 ordered-float = { workspace = true }
 
 # Performance dependencies

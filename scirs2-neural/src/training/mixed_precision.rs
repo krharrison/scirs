@@ -1516,17 +1516,12 @@ impl<
                     }
                 }
             }
-            CallbackTiming::AfterEpoch => {
-                if self.config.log_statistics {
-                    let stats = self.scaler.get_stats();
-                    eprintln!(
-                        "[MixedPrecision] Epoch {} - Scale: {:.2}, Overflows: {}, Total skipped: {}",
-                        context.epoch,
-                        stats.loss_scale,
-                        self.epoch_overflows,
-                        stats.overflow_steps
-                    );
-                }
+            CallbackTiming::AfterEpoch if self.config.log_statistics => {
+                let stats = self.scaler.get_stats();
+                eprintln!(
+                    "[MixedPrecision] Epoch {} - Scale: {:.2}, Overflows: {}, Total skipped: {}",
+                    context.epoch, stats.loss_scale, self.epoch_overflows, stats.overflow_steps
+                );
             }
             _ => {}
         }

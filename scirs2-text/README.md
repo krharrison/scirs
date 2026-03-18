@@ -3,7 +3,7 @@
 [![crates.io](https://img.shields.io/crates/v/scirs2-text.svg)](https://crates.io/crates/scirs2-text)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/docsrs/scirs2-text)](https://docs.rs/scirs2-text)
-[![Version](https://img.shields.io/badge/version-0.3.3-green)]()
+[![Version](https://img.shields.io/badge/version-0.3.4-green)]()
 
 Comprehensive natural language processing and text processing library for the SciRS2 scientific computing ecosystem. Provides tokenization, vectorization, word embeddings, NER, CRF sequence labelling, BPE, dependency parsing, topic modeling, summarization, question answering, knowledge graph extraction, and much more — all in pure, safe Rust with parallel processing.
 
@@ -58,7 +58,7 @@ Comprehensive natural language processing and text processing library for the Sc
 - CRF-based NER with feature engineering
 - Standard entity types: PER, ORG, LOC, DATE, TIME, MONEY, PERCENT
 
-### Advanced NLP (v0.3.3+)
+### Advanced NLP (v0.3.4+)
 - **Coreference resolution**: mention detection and clustering
 - **Dependency parsing**: arc-factored dependency graph construction
 - **Discourse analysis**: rhetorical structure theory primitives
@@ -120,7 +120,7 @@ Comprehensive natural language processing and text processing library for the Sc
 
 ```toml
 [dependencies]
-scirs2-text = "0.3.3"
+scirs2-text = "0.3.4"
 ```
 
 ## Quick Start

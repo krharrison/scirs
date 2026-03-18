@@ -196,7 +196,7 @@ impl<T: GpuDataType> GpuMemoryPool<T> {
 
         // Sort size classes by size (largest first) for efficient cleanup
         let mut size_classes: Vec<_> = buffers.keys().cloned().collect();
-        size_classes.sort_by(|a, b| b.size.cmp(&a.size));
+        size_classes.sort_by_key(|sc| std::cmp::Reverse(sc.size));
 
         for size_class in size_classes {
             if freed_space >= required_space {

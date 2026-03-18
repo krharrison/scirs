@@ -26,6 +26,9 @@ use scirs2_linalg::{
     vector_norm,
 };
 
+/// Type alias for SVD result: (U, S, Vt) where U and Vt are 2D matrices, S is 1D.
+type SvdResult = (Vec<Vec<f64>>, Vec<f64>, Vec<Vec<f64>>);
+
 // ========================================
 // BASIC OPERATIONS
 // ========================================
@@ -430,14 +433,12 @@ fn batch_matmul_py(
 /// Returns:
 ///     List of (U, S, Vt) tuples where U and Vt are 2D matrices, S is 1D
 #[pyfunction]
-fn batch_svd_py(
-    matrices: Vec<Vec<Vec<f64>>>,
-) -> PyResult<Vec<(Vec<Vec<f64>>, Vec<f64>, Vec<Vec<f64>>)>> {
+fn batch_svd_py(matrices: Vec<Vec<Vec<f64>>>) -> PyResult<Vec<SvdResult>> {
     if matrices.is_empty() {
         return Ok(vec![]);
     }
 
-    let results: Vec<Result<(Vec<Vec<f64>>, Vec<f64>, Vec<Vec<f64>>), String>> = matrices
+    let results: Vec<Result<SvdResult, String>> = matrices
         .par_iter()
         .map(|mat_rows| {
             let mat = vec2d_to_array2(mat_rows)?;

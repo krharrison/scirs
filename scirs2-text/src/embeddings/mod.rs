@@ -331,7 +331,7 @@ impl HuffmanTree {
             .enumerate()
             .map(|(i, n)| (i, n.frequency))
             .collect();
-        queue.sort_by(|a, b| b.1.cmp(&a.1)); // Sort descending (pop from end = min)
+        queue.sort_by_key(|item| std::cmp::Reverse(item.1)); // Sort descending (pop from end = min)
 
         // Build the tree bottom-up
         while queue.len() > 1 {

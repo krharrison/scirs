@@ -480,20 +480,14 @@ impl ErrorContext {
     /// Add context to an existing error
     fn add_context(self, mut err: GraphError) -> GraphError {
         match &mut err {
-            GraphError::NodeNotFound { context, .. } => {
-                if context == "Node lookup operation" {
-                    *context = self.operation;
-                }
+            GraphError::NodeNotFound { context, .. } if context == "Node lookup operation" => {
+                *context = self.operation;
             }
-            GraphError::EdgeNotFound { context, .. } => {
-                if context == "Edge lookup operation" {
-                    *context = self.operation;
-                }
+            GraphError::EdgeNotFound { context, .. } if context == "Edge lookup operation" => {
+                *context = self.operation;
             }
-            GraphError::InvalidParameter { context, .. } => {
-                if context == "Parameter validation" {
-                    *context = self.operation;
-                }
+            GraphError::InvalidParameter { context, .. } if context == "Parameter validation" => {
+                *context = self.operation;
             }
             GraphError::GraphStructureError { context, .. } => {
                 *context = self.operation;

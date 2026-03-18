@@ -21,7 +21,7 @@ impl MLFrameworkConverter for CoreMLConverter {
                 "metadata": {
                     "userDefined": model.metadata.parameters,
                     "author": "SciRS2",
-                    "license": "MIT",
+                    "license": "Apache-2.0",
                     "shortDescription": model.metadata.model_name.clone().unwrap_or_default()
                 },
                 "input": model.metadata.inputshapes.iter().map(|(name, shape)| {

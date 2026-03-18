@@ -660,7 +660,12 @@ impl QuantumSparseProcessor {
 
     fn identify_computational_barriers(&self, rows: usize, indptr: &[usize]) -> Vec<usize> {
         let mut barriers = Vec::new();
-        let avg_nnz = if rows > 0 { indptr[rows] / rows } else { 0 };
+        let avg_nnz = indptr
+            .get(rows)
+            .copied()
+            .unwrap_or(0)
+            .checked_div(rows)
+            .unwrap_or(0);
 
         for row in 0..rows {
             let nnz = indptr[row + 1] - indptr[row];

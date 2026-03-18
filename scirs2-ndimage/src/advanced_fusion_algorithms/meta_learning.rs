@@ -575,10 +575,10 @@ pub fn perform_adaptive_memory_consolidation(
     // Apply consolidation strategies based on performance
     for strategy in consolidation.consolidation_strategies.iter() {
         match strategy {
-            ConsolidationStrategy::ReplayBased { replay_frequency } => {
-                if performance_score > *replay_frequency {
-                    apply_replay_consolidation(output, *replay_frequency)?;
-                }
+            ConsolidationStrategy::ReplayBased { replay_frequency }
+                if performance_score > *replay_frequency =>
+            {
+                apply_replay_consolidation(output, *replay_frequency)?;
             }
             ConsolidationStrategy::ImportanceWeighted {
                 importance_threshold,

@@ -141,38 +141,30 @@ where
         // Check if dimensions match exactly
         if source_ndim == target_ndim {
             match target_ndim {
-                1 => {
-                    if resultdims.len() == 1 {
-                        let dim1 = crate::ndarray::Ix1(resultdims[0]);
-                        let converted_dim = unsafe { std::mem::transmute_copy(&dim1) };
-                        return Ok(converted_dim);
-                    }
+                1 if resultdims.len() == 1 => {
+                    let dim1 = crate::ndarray::Ix1(resultdims[0]);
+                    let converted_dim = unsafe { std::mem::transmute_copy(&dim1) };
+                    return Ok(converted_dim);
                 }
-                2 => {
-                    if resultdims.len() == 2 {
-                        let dim2 = crate::ndarray::Ix2(resultdims[0], resultdims[1]);
-                        let converted_dim = unsafe { std::mem::transmute_copy(&dim2) };
-                        return Ok(converted_dim);
-                    }
+                2 if resultdims.len() == 2 => {
+                    let dim2 = crate::ndarray::Ix2(resultdims[0], resultdims[1]);
+                    let converted_dim = unsafe { std::mem::transmute_copy(&dim2) };
+                    return Ok(converted_dim);
                 }
-                3 => {
-                    if resultdims.len() == 3 {
-                        let dim3 = crate::ndarray::Ix3(resultdims[0], resultdims[1], resultdims[2]);
-                        let converted_dim = unsafe { std::mem::transmute_copy(&dim3) };
-                        return Ok(converted_dim);
-                    }
+                3 if resultdims.len() == 3 => {
+                    let dim3 = crate::ndarray::Ix3(resultdims[0], resultdims[1], resultdims[2]);
+                    let converted_dim = unsafe { std::mem::transmute_copy(&dim3) };
+                    return Ok(converted_dim);
                 }
-                4 => {
-                    if resultdims.len() == 4 {
-                        let dim4 = crate::ndarray::Ix4(
-                            resultdims[0],
-                            resultdims[1],
-                            resultdims[2],
-                            resultdims[3],
-                        );
-                        let converted_dim = unsafe { std::mem::transmute_copy(&dim4) };
-                        return Ok(converted_dim);
-                    }
+                4 if resultdims.len() == 4 => {
+                    let dim4 = crate::ndarray::Ix4(
+                        resultdims[0],
+                        resultdims[1],
+                        resultdims[2],
+                        resultdims[3],
+                    );
+                    let converted_dim = unsafe { std::mem::transmute_copy(&dim4) };
+                    return Ok(converted_dim);
                 }
                 _ => {}
             }

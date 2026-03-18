@@ -93,15 +93,11 @@ impl OctreeNode {
 
     /// Get the average color for this node
     fn get_color(&self) -> [u8; 3] {
-        if self.pixel_count > 0 {
-            [
-                (self.red_sum / self.pixel_count) as u8,
-                (self.green_sum / self.pixel_count) as u8,
-                (self.blue_sum / self.pixel_count) as u8,
-            ]
-        } else {
-            [0, 0, 0]
-        }
+        [
+            (self.red_sum.checked_div(self.pixel_count).unwrap_or(0)) as u8,
+            (self.green_sum.checked_div(self.pixel_count).unwrap_or(0)) as u8,
+            (self.blue_sum.checked_div(self.pixel_count).unwrap_or(0)) as u8,
+        ]
     }
 
     /// Find the nearest color in the tree

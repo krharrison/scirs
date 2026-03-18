@@ -139,7 +139,7 @@ pub fn hough_lines(edges: &GrayImage, params: &HoughParams) -> Result<Vec<HoughL
     }
 
     // Sort by votes (strongest lines first)
-    lines.sort_by(|a, b| b.votes.cmp(&a.votes));
+    lines.sort_by_key(|l| std::cmp::Reverse(l.votes));
 
     Ok(lines)
 }

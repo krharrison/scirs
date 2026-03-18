@@ -520,7 +520,7 @@ impl OptimizationAnalyzer {
         self.check_warmup_benefit(&mut recommendations);
 
         // Sort by priority
-        recommendations.sort_by(|a, b| b.priority.cmp(&a.priority));
+        recommendations.sort_by_key(|r| std::cmp::Reverse(r.priority));
 
         recommendations
     }

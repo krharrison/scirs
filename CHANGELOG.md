@@ -5,6 +5,19 @@ All notable changes to the SciRS2 project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4] - 2026-03-18
+
+### Changed
+- **Dependencies**: Upgraded all OxiARC compression libraries (`oxiarc-archive`, `oxiarc-lz4`, `oxiarc-bzip2`, `oxiarc-zstd`, `oxiarc-core`, `oxiarc-deflate`) from 0.2.4 to 0.2.5
+- **Dependencies**: Migrated `oxiarc-snappy` and `oxiarc-brotli` from local path dependencies to crates.io version 0.2.5
+
+### Dependency Cleanup
+- Removed `ndarray-npy` from scirs2-core — eliminated `zip` crate from dependency tree
+- Removed unused workspace dependencies: `x509-parser`, `itertools`, `num-rational`, `gmp-mpfr-sys`
+- Removed unused OpenTelemetry dependencies: `opentelemetry-prometheus`, `opentelemetry-semantic-conventions`
+- Removed unused scirs2-io stub dependencies: `mongodb`, `redis`, `prost` (direct)
+- Fixed dangling feature references in scirs2-core and scirs2-graph
+
 ## [0.3.3] - 2026-03-17
 
 ### Changed

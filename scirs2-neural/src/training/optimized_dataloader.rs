@@ -796,11 +796,10 @@ fn compute_adaptive_batch_size(
     // How many bytes may we use for a single batch?
     let budget_bytes = ((available as f64) * config.target_memory_fraction) as usize;
     // Convert to sample count, guarding against division by zero.
-    let budget_samples = if bytes_per_sample > 0 {
-        (budget_bytes / bytes_per_sample).max(1)
-    } else {
-        config.max_batch_size
-    };
+    let budget_samples = budget_bytes
+        .checked_div(bytes_per_sample)
+        .map(|v| v.max(1))
+        .unwrap_or(config.max_batch_size);
 
     // ── Step 3: reconcile the two hints ──────────────────────────────────────
     // Take the more conservative (smaller) of the two estimates, then clamp to
