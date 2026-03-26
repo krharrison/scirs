@@ -109,19 +109,9 @@ pub use dag::CausalDAG;
 // ---------------------------------------------------------------------------
 
 pub use identification::{
-    check_do_calculus_rule,
-    c_components_with_hidden,
-    find_backdoor_sets,
-    find_frontdoor_set,
-    id_algorithm,
-    satisfies_backdoor,
-    satisfies_frontdoor,
-    tian_pearl_id,
-    BackdoorResult,
-    CComponent,
-    DoCalculusRule,
-    FrontdoorResult,
-    IdResult,
+    c_components_with_hidden, check_do_calculus_rule, find_backdoor_sets, find_frontdoor_set,
+    id_algorithm, satisfies_backdoor, satisfies_frontdoor, tian_pearl_id, BackdoorResult,
+    CComponent, DoCalculusRule, FrontdoorResult, IdResult,
 };
 
 // ---------------------------------------------------------------------------
@@ -129,14 +119,8 @@ pub use identification::{
 // ---------------------------------------------------------------------------
 
 pub use estimation::{
-    DifferenceInDifferences,
-    DiDResult,
-    DoublyRobustEstimator,
-    EstimationResult,
-    IPWEstimator,
-    NearestNeighborMatching,
-    RegressionDiscontinuity,
-    SyntheticControlEstimator,
+    DiDResult, DifferenceInDifferences, DoublyRobustEstimator, EstimationResult, IPWEstimator,
+    NearestNeighborMatching, RegressionDiscontinuity, SyntheticControlEstimator,
     SyntheticControlResult,
 };
 
@@ -145,12 +129,6 @@ pub use estimation::{
 // ---------------------------------------------------------------------------
 
 pub use structure_learning::{
-    BicGreedySearch,
-    EdgeType,
-    FciAlgorithm,
-    LiNGAM,
-    LiNGAMResult,
-    Notears,
-    PcAlgorithm,
+    BicGreedySearch, EdgeType, FciAlgorithm, LiNGAM, LiNGAMResult, Notears, PcAlgorithm,
     StructureLearningResult,
 };

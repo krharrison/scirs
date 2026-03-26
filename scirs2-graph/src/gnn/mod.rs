@@ -15,14 +15,20 @@
 //! - [`gat`] – `GraphAttentionLayer`, `gat_forward`
 
 // --- Sub-modules with the new Array2-based API ---
-pub mod gcn;
+pub mod equivariant;
 pub mod gat;
+pub mod gcn;
+pub mod hgt;
+pub mod kg_completion;
+pub mod relation_message;
+pub mod rgcn;
 pub mod sage;
+pub mod transformers;
 
 // --- Re-export new Array2 API types ---
-pub use gcn::{CsrMatrix, GcnLayer, Gcn, gcn_forward, add_self_loops, symmetric_normalize};
-pub use sage::{GraphSageLayer, GraphSage, SageAggregation, sage_aggregate, sample_neighbors};
-pub use gat::{GraphAttentionLayer, gat_forward};
+pub use gat::{gat_forward, GraphAttentionLayer};
+pub use gcn::{add_self_loops, gcn_forward, symmetric_normalize, CsrMatrix, Gcn, GcnLayer};
+pub use sage::{sage_aggregate, sample_neighbors, GraphSage, GraphSageLayer, SageAggregation};
 
 // --- Legacy Vec-based message-passing API (kept for backward compatibility) ---
 // The following items are re-exported from the inline implementation below so
@@ -40,11 +46,12 @@ use crate::error::{GraphError, Result};
 // ============================================================================
 
 /// Aggregation strategy for collecting neighbor messages (legacy Vec-based API)
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub enum MessagePassing {
     /// Sum all neighbor messages
     Sum,
     /// Arithmetic mean of neighbor messages
+    #[default]
     Mean,
     /// Element-wise maximum
     Max,
@@ -52,12 +59,6 @@ pub enum MessagePassing {
     Min,
     /// Attention-weighted mean (weights computed internally)
     Attention,
-}
-
-impl Default for MessagePassing {
-    fn default() -> Self {
-        MessagePassing::Mean
-    }
 }
 
 // ============================================================================
@@ -78,11 +79,7 @@ pub trait MessagePassingLayer {
     ) -> Result<Vec<Vec<f64>>>;
 
     /// Update node embeddings using aggregated messages and self-features
-    fn update(
-        &self,
-        aggregated: &[Vec<f64>],
-        node_features: &[Vec<f64>],
-    ) -> Result<Vec<Vec<f64>>>;
+    fn update(&self, aggregated: &[Vec<f64>], node_features: &[Vec<f64>]) -> Result<Vec<Vec<f64>>>;
 
     /// Run one full forward pass: aggregate + update
     fn forward(
@@ -141,9 +138,7 @@ fn matvec(w: &[Vec<f64>], x: &[f64]) -> Vec<f64> {
 }
 
 /// Convert graph to sparse adjacency (src, dst, weight) triples
-pub fn graph_to_adjacency<N, E, Ix>(
-    graph: &Graph<N, E, Ix>,
-) -> (Vec<N>, Vec<(usize, usize, f64)>)
+pub fn graph_to_adjacency<N, E, Ix>(graph: &Graph<N, E, Ix>) -> (Vec<N>, Vec<(usize, usize, f64)>)
 where
     N: Node + Clone + std::fmt::Debug,
     E: EdgeWeight + Clone + Into<f64>,
@@ -158,10 +153,9 @@ where
 
     let mut adjacency = Vec::new();
     for edge in graph.edges() {
-        if let (Some(&si), Some(&ti)) = (
-            node_to_idx.get(&edge.source),
-            node_to_idx.get(&edge.target),
-        ) {
+        if let (Some(&si), Some(&ti)) =
+            (node_to_idx.get(&edge.source), node_to_idx.get(&edge.target))
+        {
             let w: f64 = edge.weight.clone().into();
             adjacency.push((si, ti, w));
             adjacency.push((ti, si, w)); // undirected
@@ -348,11 +342,11 @@ impl MessagePassingLayer for GraphSAGELayer {
             return Ok(Vec::new());
         }
 
-        let mut neighbor_sums: Vec<Vec<f64>> =
-            (0..n_nodes).map(|_| vec![0.0f64; in_dim]).collect();
+        let mut neighbor_sums: Vec<Vec<f64>> = (0..n_nodes).map(|_| vec![0.0f64; in_dim]).collect();
         let mut neighbor_counts: Vec<f64> = vec![0.0; n_nodes];
-        let mut neighbor_max: Vec<Vec<f64>> =
-            (0..n_nodes).map(|_| vec![f64::NEG_INFINITY; in_dim]).collect();
+        let mut neighbor_max: Vec<Vec<f64>> = (0..n_nodes)
+            .map(|_| vec![f64::NEG_INFINITY; in_dim])
+            .collect();
         let mut neighbor_min: Vec<Vec<f64>> =
             (0..n_nodes).map(|_| vec![f64::INFINITY; in_dim]).collect();
 
@@ -376,9 +370,7 @@ impl MessagePassingLayer for GraphSAGELayer {
                 let count = neighbor_counts[i].max(1.0);
                 match &self.aggregation {
                     MessagePassing::Sum => neighbor_sums[i].clone(),
-                    MessagePassing::Mean => {
-                        neighbor_sums[i].iter().map(|s| s / count).collect()
-                    }
+                    MessagePassing::Mean => neighbor_sums[i].iter().map(|s| s / count).collect(),
                     MessagePassing::Max => neighbor_max[i]
                         .iter()
                         .map(|&v| if v == f64::NEG_INFINITY { 0.0 } else { v })
@@ -471,7 +463,11 @@ impl GATLayer {
     }
 
     fn leaky_relu(&self, x: f64) -> f64 {
-        if x >= 0.0 { x } else { self.negative_slope * x }
+        if x >= 0.0 {
+            x
+        } else {
+            self.negative_slope * x
+        }
     }
 }
 
@@ -670,7 +666,9 @@ mod tests {
     use super::*;
     use crate::base::Graph;
 
-    fn make_triangle_graph() -> (Graph<usize, f64>, Vec<(usize, usize, f64)>) {
+    type TriangleGraph = (Graph<usize, f64>, Vec<(usize, usize, f64)>);
+
+    fn make_triangle_graph() -> TriangleGraph {
         let mut g: Graph<usize, f64> = Graph::new();
         let _ = g.add_edge(0, 1, 1.0);
         let _ = g.add_edge(1, 2, 1.0);

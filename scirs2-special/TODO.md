@@ -67,37 +67,37 @@
 - [ ] Mixed-precision: f16 accumulation with f32 correction for throughput-critical paths
 
 ### Symbolic Computation Interface
-- [ ] Symbolic representation of special functions as expression trees
-- [ ] Automatic differentiation of special functions: symbolic derivative rules
-- [ ] Series expansion engine: formal power series around regular and irregular points
-- [ ] Asymptotic expansion engine: automated derivation of leading-order terms
+- [x] Symbolic representation of special functions as expression trees — Implemented in v0.4.0 (`symbolic/types.rs`: `Expr` enum)
+- [x] Automatic differentiation of special functions: symbolic derivative rules — Implemented in v0.4.0 (`differentiation/symbolic_rules.rs`)
+- [x] Series expansion engine: formal power series around regular and irregular points — Implemented in v0.4.0 (`symbolic/series.rs`: `PowerSeries`)
+- [x] Asymptotic expansion engine: automated derivation of leading-order terms — Implemented in v0.4.0 (`symbolic/asymptotic.rs`: `AsymptoticExpansion`)
 - [ ] Connection formula generator: transformations between solution bases
 
 ### Extended Precision
 - [ ] Arbitrary-precision gamma, erf, Bessel via the `rug` MPFR backend (feature-gated)
 - [ ] Ball arithmetic for certified enclosure of function values
 - [ ] Validated numerics interface: output intervals guaranteed to contain the true value
-- [ ] Double-double (quad-double) precision for 30-60 decimal digits without MPFR overhead
+- [x] Double-double (quad-double) precision for 30-60 decimal digits without MPFR overhead — Implemented in v0.4.0 (`double_double/` module)
 
 ### New Function Families
-- [ ] Lame functions: solutions to Lame's equation on an ellipsoidal coordinate system
+- [x] Lame functions: solutions to Lame's equation on an ellipsoidal coordinate system — Implemented in v0.4.0 (`lame/` module)
 - [ ] Spheroidal wave functions with full asymptotic transitions
-- [ ] Nield-Kuznetsov functions for gravity wave theory
+- [x] Nield-Kuznetsov functions for gravity wave theory — Implemented in v0.4.0 (`nield_kuznetsov/` module)
 - [ ] Mathieu-Hill functions: generalized periodic Hill's equation solutions
-- [ ] Painleve transcendents: numerical solution with connection formulas
-- [ ] Elliptic modular functions: j-invariant, Dedekind eta, modular lambda
+- [x] Painleve transcendents: numerical solution with connection formulas — Implemented in v0.4.0 (`painleve/` module)
+- [x] Elliptic modular functions: j-invariant, Dedekind eta, modular lambda — Implemented in v0.4.0 (`elliptic_modular.rs`)
 
 ### Number Theory Extensions
-- [ ] L-functions: Dirichlet L(s, chi) for primitive characters
+- [x] L-functions: Dirichlet L(s, chi) for primitive characters — Implemented in v0.4.0 (`l_functions/` module)
 - [ ] Hecke L-functions and Maass forms
 - [ ] Elliptic curve L-functions (BSD conjecture numerics)
-- [ ] Dedekind zeta functions for number fields
-- [ ] Selberg zeta function for hyperbolic surfaces
+- [x] Dedekind zeta functions for number fields — Implemented in v0.4.0 (`dedekind_zeta/` module)
+- [x] Selberg zeta function for hyperbolic surfaces — Implemented in v0.4.0 (`selberg_zeta/` module)
 
 ### Combinatorics and Algebra
-- [ ] Chromatic polynomial of graphs
-- [ ] Tutte polynomial of matroids
-- [ ] Schur polynomials and symmetric function bases (power-sum, monomial, elementary)
+- [x] Chromatic polynomial of graphs — Implemented in v0.4.0 (`chromatic/` module)
+- [x] Tutte polynomial of matroids — Implemented in v0.4.0 (`tutte/` module)
+- [x] Schur polynomials and symmetric function bases (power-sum, monomial, elementary) — Implemented in v0.4.0 (`schur/` module)
 - [ ] Clebsch-Gordan series for arbitrary Lie groups (SU(3), SO(5), etc.)
 - [ ] Hall polynomials for p-group extensions
 

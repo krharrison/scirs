@@ -30,7 +30,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-transform = "0.1.5"
+//! scirs2-transform = "0.4.0"
 //! ```
 //!
 //! ```rust,no_run
@@ -145,6 +145,21 @@ pub mod monitoring;
 
 /// Kernel methods (Kernel PCA, Kernel Ridge Regression, kernel functions)
 pub mod kernel;
+
+// Alignment transforms (Procrustes)
+pub mod alignment;
+// Drift detection and adaptation
+pub mod drift;
+// Optimal transport
+pub mod ot;
+// Topological data analysis (Alpha, Cubical, Zigzag)
+pub mod tda;
+// Vietoris-Rips TDA
+pub mod tda_vr;
+// Extended Vietoris-Rips TDA
+pub mod tda_vr_ext;
+// TDA extension module (alias for tda_vr_ext, used by doc tests)
+pub mod tda_ext;
 
 // Re-export important types and functions
 pub use decomposition::{DictionaryLearning, NMF};

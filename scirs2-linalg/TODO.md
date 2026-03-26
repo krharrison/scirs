@@ -70,30 +70,30 @@
 ## v0.4.0 — Planned
 
 ### Mixed-Precision Arithmetic
-- [ ] f16/bf16 storage with f32 accumulation for matmul
-- [ ] Iterative refinement with higher-precision residual correction
+- [x] f16/bf16 storage with f32 accumulation for matmul — Implemented in v0.4.0 (`mixed_precision/f16_gemm.rs`, `mixed_precision/gemm.rs`, `mixed_precision/operations.rs`)
+- [x] Iterative refinement with higher-precision residual correction — Implemented in v0.4.0
 - [ ] Automatically select precision based on condition number estimate
 
 ### Structured Matrix Exploits
 - [ ] Hierarchical matrix (H-matrix) compression for dense-but-rank-structured matrices
-- [ ] H^2-matrix arithmetic (O(n log n) matrix-vector products)
-- [ ] Sequentially semi-separable (SSS) matrix operations
+- [x] H^2-matrix arithmetic (O(n log n) matrix-vector products) — Implemented in v0.4.0 (`hmatrix_h2.rs`)
+- [x] Sequentially semi-separable (SSS) matrix operations — Implemented in v0.4.0 (`sss_matrix.rs`)
 
 ### Distributed Linear Algebra
-- [ ] Distributed dense matmul (ScaLAPACK-style 2D block cyclic layout)
-- [ ] Distributed QR via Householder with communication-avoiding variants
-- [ ] Distributed SVD via Lanczos
+- [x] Distributed dense matmul (ScaLAPACK-style 2D block cyclic layout) — Implemented in v0.4.0 (`distributed/algorithms/gemm.rs`, SUMMA)
+- [x] Distributed QR via Householder with communication-avoiding variants — Implemented in v0.4.0 (`distributed/algorithms/qr.rs`, `scalable.rs`: TSQR)
+- [x] Distributed SVD via Lanczos — Implemented in v0.4.0 (`distributed/algorithms/svd.rs`)
 
 ### GPU Acceleration
-- [ ] GPU-accelerated GEMM via OxiBLAS GPU backend
+- [x] GPU-accelerated GEMM via OxiBLAS GPU backend — Implemented in v0.4.0 (`gpu_gemm/` module)
 - [ ] GPU eigensolvers (cuSOLVER-equivalent in pure Rust)
 - [ ] Mixed CPU/GPU solver: factor on GPU, refine on CPU
 
 ### Additional Algorithms
-- [ ] Rank-revealing QR (RRQR) with column pivoting
-- [ ] URV decomposition for rank-deficient systems
-- [ ] Contour integral eigensolver (FEAST)
-- [ ] Zolotarev rational approximations for matrix functions
+- [x] Rank-revealing QR (RRQR) with column pivoting — Implemented in v0.4.0
+- [x] URV decomposition for rank-deficient systems — Implemented in v0.4.0
+- [x] Contour integral eigensolver (FEAST) — Implemented in v0.4.0
+- [x] Zolotarev rational approximations for matrix functions — Implemented in v0.4.0 (`matrix_functions_zolotarev.rs`)
 
 ---
 

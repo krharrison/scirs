@@ -37,7 +37,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-cluster = "0.1.5"
+//! scirs2-cluster = "0.4.0"
 //! ```
 //!
 //! ```rust
@@ -94,6 +94,11 @@
 //! println!("Cluster assignments: {:?}", labels);
 //! ```
 
+/// Community detection algorithms for graph/network data.
+///
+/// Provides Leiden algorithm (refinement of Louvain), enhanced label propagation
+/// with seed labels and weighted edges, and Stochastic Block Model (SBM) inference.
+pub mod community;
 /// Consensus and ensemble clustering methods.
 ///
 /// Provides co-association consensus clustering, evidence accumulation clustering (EAC),
@@ -335,6 +340,15 @@ pub mod preprocess;
 #[cfg(feature = "simd")]
 pub mod simd_ops;
 
+// Adaptive clustering (ADWIN/DDM drift detection)
+pub mod adaptive;
+// Distributed k-means clustering
+pub mod distributed_kmeans;
+// Concept drift detection
+pub mod drift;
+// Overlapping community detection (BigCLAM, DEMON, LinkComm)
+pub mod overlapping;
+
 // Quantum clustering module (used by other modules, must be unconditional)
 pub mod quantum_clustering;
 pub mod serialization;
@@ -458,6 +472,11 @@ pub use affinity::{
     AffinityPropagationResult,
 };
 pub use birch::{birch, Birch, BirchOptions, BirchStatistics};
+pub use community::{
+    label_propagation_community, leiden, AdjacencyGraph, CommunityResult, LabelPropagationConfig,
+    LabelPropagationResult, LeidenConfig, QualityFunction, StochasticBlockModel,
+    StochasticBlockModelConfig,
+};
 pub use density::hdbscan::{
     dbscan_clustering, hdbscan, ClusterSelectionMethod, HDBSCANOptions, HDBSCANResult, StoreCenter,
 };

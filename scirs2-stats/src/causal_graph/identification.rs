@@ -209,10 +209,7 @@ pub fn find_backdoor_sets(
     // Iterate over subsets by size
     'outer: for size in 0..=max_set_size.min(candidates.len()) {
         for subset in subsets(&candidates, size) {
-            let z_names: Vec<&str> = subset
-                .iter()
-                .filter_map(|&i| dag.node_name(i))
-                .collect();
+            let z_names: Vec<&str> = subset.iter().filter_map(|&i| dag.node_name(i)).collect();
             if satisfies_backdoor(dag, x, y, &z_names) {
                 let z_strings: Vec<String> = z_names.iter().map(|s| s.to_string()).collect();
                 all_minimal.push(z_strings);
@@ -290,10 +287,7 @@ pub fn find_frontdoor_set(dag: &CausalDAG, x: &str, y: &str) -> FrontdoorResult 
 
     for size in 1..=candidates.len() {
         for subset in subsets(&candidates, size) {
-            let m_names: Vec<&str> = subset
-                .iter()
-                .filter_map(|&i| dag.node_name(i))
-                .collect();
+            let m_names: Vec<&str> = subset.iter().filter_map(|&i| dag.node_name(i)).collect();
             if satisfies_frontdoor(dag, x, y, &m_names) {
                 let formula = frontdoor_formula(x, y, &m_names);
                 return FrontdoorResult {
@@ -329,7 +323,8 @@ pub fn id_algorithm(dag: &CausalDAG, y: &[&str], x: &[&str]) -> IdResult {
         return IdResult {
             identifiable: true,
             expression: format!("P({})", y.join(", ")),
-            explanation: "No intervention; trivially identified as the observational distribution.".to_owned(),
+            explanation: "No intervention; trivially identified as the observational distribution."
+                .to_owned(),
         };
     }
 
@@ -354,13 +349,8 @@ pub fn id_algorithm(dag: &CausalDAG, y: &[&str], x: &[&str]) -> IdResult {
             let z_str = bd.adjustment_set.join(", ");
             return IdResult {
                 identifiable: true,
-                expression: format!(
-                    "Σ_{{{}}} P({yv} | {xv}, {z_str}) P({z_str})",
-                    z_str, 
-                ),
-                explanation: format!(
-                    "Identified via backdoor adjustment on {{{z_str}}}."
-                ),
+                expression: format!("Σ_{{{}}} P({yv} | {xv}, {z_str}) P({z_str})", z_str,),
+                explanation: format!("Identified via backdoor adjustment on {{{z_str}}}."),
             };
         }
 
@@ -486,10 +476,7 @@ pub fn tian_pearl_id(dag: &CausalDAG, y: &[&str], x: &[&str]) -> IdResult {
 /// bidirected edges (latent common causes).
 ///
 /// Bidirected edges are represented as pairs of node names.
-pub fn c_components_with_hidden(
-    dag: &CausalDAG,
-    bidirected: &[(&str, &str)],
-) -> Vec<CComponent> {
+pub fn c_components_with_hidden(dag: &CausalDAG, bidirected: &[(&str, &str)]) -> Vec<CComponent> {
     let n = dag.n_nodes();
     let mut union_find: Vec<usize> = (0..n).collect();
 
@@ -534,29 +521,18 @@ pub fn c_components_with_hidden(
 
 /// Remove all incoming edges to nodes in `targets` from a DAG.
 fn remove_incoming_edges(dag: &mut CausalDAG, targets: &[&str]) {
-    let target_idxs: HashSet<usize> = targets
-        .iter()
-        .filter_map(|&t| dag.node_index(t))
-        .collect();
+    let target_idxs: HashSet<usize> = targets.iter().filter_map(|&t| dag.node_index(t)).collect();
     dag.remove_incoming_edges_for(&target_idxs);
 }
 
 /// Remove all outgoing edges from nodes in `targets`.
 fn remove_outgoing_edges(dag: &mut CausalDAG, targets: &[&str]) {
-    let target_idxs: HashSet<usize> = targets
-        .iter()
-        .filter_map(|&t| dag.node_index(t))
-        .collect();
+    let target_idxs: HashSet<usize> = targets.iter().filter_map(|&t| dag.node_index(t)).collect();
     dag.remove_outgoing_edges_for(&target_idxs);
 }
 
 /// Check d-separation for all pairs (y_i, z_j) given conditioning set.
-fn check_d_separation_all(
-    dag: &CausalDAG,
-    y: &[&str],
-    z: &[&str],
-    conditioning: &[&str],
-) -> bool {
+fn check_d_separation_all(dag: &CausalDAG, y: &[&str], z: &[&str], conditioning: &[&str]) -> bool {
     for &yi in y {
         for &zi in z {
             if !dag.is_d_separated(yi, zi, conditioning) {
@@ -589,10 +565,7 @@ fn intercepts_all_paths(dag: &CausalDAG, x: &str, y: &str, m_set: &[&str]) -> bo
         None => return true,
         Some(i) => i,
     };
-    let m_idxs: HashSet<usize> = m_set
-        .iter()
-        .filter_map(|&m| dag.node_index(m))
-        .collect();
+    let m_idxs: HashSet<usize> = m_set.iter().filter_map(|&m| dag.node_index(m)).collect();
 
     // DFS: can we reach y from x without going through m_set?
     let mut stack: Vec<usize> = vec![xi];
@@ -726,14 +699,8 @@ mod tests {
     #[test]
     fn test_do_calculus_rule1() {
         let dag = confounded_dag();
-        let applies = check_do_calculus_rule(
-            &dag,
-            &["Y"],
-            &["X"],
-            &["Z"],
-            &[],
-            DoCalculusRule::Rule1,
-        );
+        let applies =
+            check_do_calculus_rule(&dag, &["Y"], &["X"], &["Z"], &[], DoCalculusRule::Rule1);
         // In G_{X̄}: Z → Y only, Z is not d-sep from Y given X with no X incoming
         // Rule 1 may or may not apply — we just test it doesn't panic.
         let _ = applies;

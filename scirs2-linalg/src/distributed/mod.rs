@@ -42,6 +42,7 @@
 //! ```
 
 // Core modules
+pub mod algorithms;
 pub mod communication;
 pub mod distribution;
 pub mod computation;

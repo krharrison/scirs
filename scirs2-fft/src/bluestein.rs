@@ -218,10 +218,7 @@ pub fn bluestein_real(signal: &[f64]) -> FFTResult<Vec<Complex64>> {
             "bluestein_real: input signal is empty".to_string(),
         ));
     }
-    let complex_signal: Vec<Complex64> = signal
-        .iter()
-        .map(|&x| Complex64::new(x, 0.0))
-        .collect();
+    let complex_signal: Vec<Complex64> = signal.iter().map(|&x| Complex64::new(x, 0.0)).collect();
     bluestein_fft(&complex_signal)
 }
 
@@ -231,7 +228,7 @@ pub fn bluestein_real(signal: &[f64]) -> FFTResult<Vec<Complex64>> {
 
 /// Compute the inverse DFT of an arbitrary-length sequence using Bluestein's algorithm.
 ///
-/// Computes IDFT[k] = (1/N) Σ_{j=0}^{N-1} X[j] · exp(2πi·j·k/N)
+/// Computes `IDFT[k]` = (1/N) Σ_{j=0}^{N-1} `X[j]` · exp(2πi·j·k/N)
 ///
 /// # Arguments
 ///
@@ -385,10 +382,7 @@ mod tests {
         assert_eq!(a.len(), b.len(), "length mismatch");
         for (i, (ai, bi)) in a.iter().zip(b.iter()).enumerate() {
             let diff = (ai - bi).norm();
-            assert!(
-                diff < tol,
-                "index {i}: |{ai} - {bi}| = {diff} ≥ {tol}"
-            );
+            assert!(diff < tol, "index {i}: |{ai} - {bi}| = {diff} ≥ {tol}");
         }
     }
 
@@ -414,7 +408,7 @@ mod tests {
     fn test_bluestein_prime_length_5() {
         // Length-5 DFT of impulse at 0 = all ones
         let signal: Vec<Complex64> = std::iter::once(Complex64::new(1.0, 0.0))
-            .chain(std::iter::repeat(Complex64::zero()).take(4))
+            .chain(std::iter::repeat_n(Complex64::zero(), 4))
             .collect();
 
         let spectrum = bluestein_fft(&signal).expect("bluestein_fft");
@@ -427,18 +421,19 @@ mod tests {
     #[test]
     fn test_bluestein_prime_length_7() {
         let n = 7;
-        let signal: Vec<Complex64> = (0..n)
-            .map(|k| Complex64::new(k as f64, 0.0))
-            .collect();
+        let signal: Vec<Complex64> = (0..n).map(|k| Complex64::new(k as f64, 0.0)).collect();
 
         let blue = bluestein_fft(&signal).expect("bluestein_fft");
         // Verify via brute-force DFT
         let brute: Vec<Complex64> = (0..n)
             .map(|j| {
-                signal.iter().enumerate().fold(Complex64::zero(), |acc, (k, &xk)| {
-                    let phase = -2.0 * PI * j as f64 * k as f64 / n as f64;
-                    acc + xk * Complex64::new(phase.cos(), phase.sin())
-                })
+                signal
+                    .iter()
+                    .enumerate()
+                    .fold(Complex64::zero(), |acc, (k, &xk)| {
+                        let phase = -2.0 * PI * j as f64 * k as f64 / n as f64;
+                        acc + xk * Complex64::new(phase.cos(), phase.sin())
+                    })
             })
             .collect();
 
@@ -458,10 +453,13 @@ mod tests {
         let blue = bluestein_fft(&signal).expect("bluestein");
         let brute: Vec<Complex64> = (0..n)
             .map(|j| {
-                signal.iter().enumerate().fold(Complex64::zero(), |acc, (k, &xk)| {
-                    let phase = -2.0 * PI * j as f64 * k as f64 / n as f64;
-                    acc + xk * Complex64::new(phase.cos(), phase.sin())
-                })
+                signal
+                    .iter()
+                    .enumerate()
+                    .fold(Complex64::zero(), |acc, (k, &xk)| {
+                        let phase = -2.0 * PI * j as f64 * k as f64 / n as f64;
+                        acc + xk * Complex64::new(phase.cos(), phase.sin())
+                    })
             })
             .collect();
 
@@ -480,10 +478,13 @@ mod tests {
         let blue = bluestein_fft(&signal).expect("bluestein");
         let brute: Vec<Complex64> = (0..n)
             .map(|j| {
-                signal.iter().enumerate().fold(Complex64::zero(), |acc, (k, &xk)| {
-                    let phase = -2.0 * PI * j as f64 * k as f64 / n as f64;
-                    acc + xk * Complex64::new(phase.cos(), phase.sin())
-                })
+                signal
+                    .iter()
+                    .enumerate()
+                    .fold(Complex64::zero(), |acc, (k, &xk)| {
+                        let phase = -2.0 * PI * j as f64 * k as f64 / n as f64;
+                        acc + xk * Complex64::new(phase.cos(), phase.sin())
+                    })
             })
             .collect();
         assert_complex_close(&blue, &brute, 1e-9);
@@ -510,7 +511,7 @@ mod tests {
             .map(|k| Complex64::new(k as f64, -(k as f64) / 2.0))
             .collect();
 
-        let spectrum  = bluestein_fft(&original).expect("fft");
+        let spectrum = bluestein_fft(&original).expect("fft");
         let recovered = bluestein_ifft(&spectrum).expect("ifft");
 
         assert_complex_close(&original, &recovered, 1e-9);
@@ -523,7 +524,7 @@ mod tests {
             .map(|k| Complex64::new((k as f64).cos(), (k as f64).sin()))
             .collect();
 
-        let spectrum  = bluestein_fft(&original).expect("fft");
+        let spectrum = bluestein_fft(&original).expect("fft");
         let recovered = bluestein_ifft(&spectrum).expect("ifft");
 
         assert_complex_close(&original, &recovered, 1e-9);
@@ -540,10 +541,14 @@ mod tests {
 
         let spectrum = bluestein_fft(&signal).expect("bluestein");
 
-        let input_energy: f64  = signal.iter().map(|c| c.norm_sqr()).sum();
+        let input_energy: f64 = signal.iter().map(|c| c.norm_sqr()).sum();
         let output_energy: f64 = spectrum.iter().map(|c| c.norm_sqr()).sum::<f64>() / n as f64;
 
-        assert_relative_eq!(input_energy, output_energy, epsilon = 1e-9 * input_energy.max(1.0));
+        assert_relative_eq!(
+            input_energy,
+            output_energy,
+            epsilon = 1e-9 * input_energy.max(1.0)
+        );
     }
 
     // ── Empty input returns error ─────────────────────────────────────────────
@@ -559,7 +564,7 @@ mod tests {
 
     #[test]
     fn test_bluestein_single_element() {
-        let sig = vec![Complex64::new(3.14, 2.72)];
+        let sig = vec![Complex64::new(3.25, 2.72)];
         let out = bluestein_fft(&sig).expect("fft");
         assert_eq!(out.len(), 1);
         assert_relative_eq!(out[0].re, sig[0].re, epsilon = 1e-12);
@@ -571,9 +576,7 @@ mod tests {
     #[test]
     fn test_prime_length_fft() {
         let n = 19;
-        let signal: Vec<Complex64> = (0..n)
-            .map(|k| Complex64::new(k as f64, 0.0))
-            .collect();
+        let signal: Vec<Complex64> = (0..n).map(|k| Complex64::new(k as f64, 0.0)).collect();
         let spec = prime_length_fft(&signal).expect("prime_length_fft");
         assert_eq!(spec.len(), n);
     }

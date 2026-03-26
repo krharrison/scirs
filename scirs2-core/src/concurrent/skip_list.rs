@@ -67,7 +67,9 @@ impl LevelGen {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_nanos() as u64)
             .unwrap_or(12345678);
-        LevelGen { state: seed ^ 0xdeadbeef_cafebabe }
+        LevelGen {
+            state: seed ^ 0xdeadbeef_cafebabe,
+        }
     }
 
     fn next_u64(&mut self) -> u64 {
@@ -143,6 +145,7 @@ impl<K: Ord + Clone, V: Clone> SkipList<K, V> {
     /// Look up the value associated with `key`.
     ///
     /// Returns `None` if no matching key exists.
+    #[allow(clippy::while_let_loop)]
     pub fn get(&self, key: &K) -> Option<V> {
         // `current_node` is `Some(arc)` for a data node, or `None` meaning
         // "the head sentinel".  We keep a per-level forward-pointer vector
@@ -171,9 +174,8 @@ impl<K: Ord + Clone, V: Clone> SkipList<K, V> {
                         let node_fwd = guard.forward.clone();
                         drop(guard);
                         let node_height = node_fwd.len();
-                        for i in 0..node_height.min(forwards.len()) {
-                            forwards[i] = node_fwd[i].clone();
-                        }
+                        let copy_len = node_height.min(forwards.len());
+                        forwards[..copy_len].clone_from_slice(&node_fwd[..copy_len]);
                     }
                     Some(k) if k == key => {
                         return guard.value.clone();
@@ -186,6 +188,7 @@ impl<K: Ord + Clone, V: Clone> SkipList<K, V> {
     }
 
     /// Insert or replace the value for `key`.
+    #[allow(clippy::while_let_loop)]
     pub fn insert(&mut self, key: K, value: V) {
         let new_level = self.rng.random_level(MAX_LEVEL);
         if new_level > self.level {
@@ -220,9 +223,8 @@ impl<K: Ord + Clone, V: Clone> SkipList<K, V> {
                         let node_fwd = guard.forward.clone();
                         drop(guard);
                         let node_height = node_fwd.len();
-                        for i in 0..node_height.min(forwards.len()) {
-                            forwards[i] = node_fwd[i].clone();
-                        }
+                        let copy_len = node_height.min(forwards.len());
+                        forwards[..copy_len].clone_from_slice(&node_fwd[..copy_len]);
                         update[lvl] = Some(Arc::clone(&next));
                         current_node_arc = Some(next);
                     }
@@ -284,6 +286,7 @@ impl<K: Ord + Clone, V: Clone> SkipList<K, V> {
     }
 
     /// Remove the entry with the given key.  Returns `true` if a key was removed.
+    #[allow(clippy::while_let_loop)]
     pub fn remove(&mut self, key: &K) -> bool {
         let mut update: Vec<Option<Arc<Mutex<SkipNode<K, V>>>>> = vec![None; self.level];
 
@@ -311,9 +314,8 @@ impl<K: Ord + Clone, V: Clone> SkipList<K, V> {
                         let node_fwd = guard.forward.clone();
                         drop(guard);
                         let node_height = node_fwd.len();
-                        for i in 0..node_height.min(forwards.len()) {
-                            forwards[i] = node_fwd[i].clone();
-                        }
+                        let copy_len = node_height.min(forwards.len());
+                        forwards[..copy_len].clone_from_slice(&node_fwd[..copy_len]);
                         update[lvl] = Some(Arc::clone(&next));
                         current_node_arc = Some(next);
                     }
@@ -382,6 +384,7 @@ impl<K: Ord + Clone, V: Clone> SkipList<K, V> {
     }
 
     /// Return all key-value pairs whose keys fall within `[lo, hi)` in order.
+    #[allow(clippy::while_let_loop)]
     pub fn range(&self, lo: &K, hi: &K) -> Vec<(K, V)> {
         let mut result = Vec::new();
 
@@ -408,9 +411,8 @@ impl<K: Ord + Clone, V: Clone> SkipList<K, V> {
                         let node_fwd = guard.forward.clone();
                         drop(guard);
                         let node_height = node_fwd.len();
-                        for i in 0..node_height.min(forwards.len()) {
-                            forwards[i] = node_fwd[i].clone();
-                        }
+                        let copy_len = node_height.min(forwards.len());
+                        forwards[..copy_len].clone_from_slice(&node_fwd[..copy_len]);
                     }
                     _ => break,
                 }
@@ -448,6 +450,48 @@ impl<K: Ord + Clone, V: Clone> SkipList<K, V> {
         }
 
         result
+    }
+
+    /// Check whether the skip list contains the given key.
+    pub fn contains(&self, key: &K) -> bool {
+        self.get(key).is_some()
+    }
+
+    /// Collect all key-value pairs in sorted order.
+    ///
+    /// This traverses the bottom level of the skip list, so it is O(n).
+    pub fn iter(&self) -> Vec<(K, V)> {
+        let mut result = Vec::with_capacity(self.len);
+
+        let head_guard = match self.head.lock() {
+            Ok(g) => g,
+            Err(_) => return result,
+        };
+        let mut current = head_guard.forward.first().cloned().flatten();
+        drop(head_guard);
+
+        while let Some(node_arc) = current {
+            let guard = match node_arc.lock() {
+                Ok(g) => g,
+                Err(_) => break,
+            };
+            if let (Some(k), Some(v)) = (guard.key.clone(), guard.value.clone()) {
+                result.push((k, v));
+            }
+            current = guard.forward.first().cloned().flatten();
+        }
+
+        result
+    }
+
+    /// Remove the entry with the given key, returning the value if it existed.
+    pub fn remove_entry(&mut self, key: &K) -> Option<V> {
+        let value = self.get(key);
+        if value.is_some() && self.remove(key) {
+            value
+        } else {
+            None
+        }
     }
 }
 
@@ -539,6 +583,92 @@ mod tests {
         for (i, (k, v)) in r.iter().enumerate() {
             assert_eq!(*k, i as u32);
             assert_eq!(*v, i as u32);
+        }
+    }
+
+    #[test]
+    fn test_contains() {
+        let mut sl: SkipList<u32, u32> = SkipList::new();
+        sl.insert(10, 100);
+        sl.insert(20, 200);
+        assert!(sl.contains(&10));
+        assert!(sl.contains(&20));
+        assert!(!sl.contains(&30));
+    }
+
+    #[test]
+    fn test_iter_sorted_order() {
+        let mut sl: SkipList<u32, u32> = SkipList::new();
+        sl.insert(5, 50);
+        sl.insert(1, 10);
+        sl.insert(9, 90);
+        sl.insert(3, 30);
+        sl.insert(7, 70);
+
+        let items = sl.iter();
+        assert_eq!(items.len(), 5);
+        let keys: Vec<u32> = items.iter().map(|(k, _)| *k).collect();
+        assert_eq!(keys, vec![1, 3, 5, 7, 9]);
+    }
+
+    #[test]
+    fn test_remove_entry() {
+        let mut sl: SkipList<u32, String> = SkipList::new();
+        sl.insert(1, "one".to_string());
+        sl.insert(2, "two".to_string());
+
+        let removed = sl.remove_entry(&1);
+        assert_eq!(removed, Some("one".to_string()));
+        assert_eq!(sl.len(), 1);
+
+        let not_found = sl.remove_entry(&99);
+        assert!(not_found.is_none());
+    }
+
+    #[test]
+    fn test_iter_empty() {
+        let sl: SkipList<u32, u32> = SkipList::new();
+        assert!(sl.iter().is_empty());
+    }
+
+    #[test]
+    fn test_range_empty_result() {
+        let mut sl: SkipList<u32, u32> = SkipList::new();
+        for i in 0..10u32 {
+            sl.insert(i, i);
+        }
+        let r = sl.range(&10, &5);
+        assert!(r.is_empty());
+        let r2 = sl.range(&100, &200);
+        assert!(r2.is_empty());
+    }
+
+    #[test]
+    fn test_concurrent_read_access() {
+        use std::sync::Arc;
+        use std::thread;
+
+        let mut sl = SkipList::new();
+        for i in 0..100u32 {
+            sl.insert(i, i * 10);
+        }
+        let shared = Arc::new(sl);
+
+        let mut handles = Vec::new();
+        for t in 0..4 {
+            let sl_ref = Arc::clone(&shared);
+            handles.push(thread::spawn(move || {
+                for i in 0..100u32 {
+                    let val = sl_ref.get(&i);
+                    assert_eq!(val, Some(i * 10), "thread {t} failed for key {i}");
+                }
+            }));
+        }
+
+        for h in handles {
+            if let Err(e) = h.join() {
+                panic!("Thread panicked: {e:?}");
+            }
         }
     }
 }

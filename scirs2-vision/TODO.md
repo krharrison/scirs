@@ -90,11 +90,11 @@
 
 ## v0.4.0 Roadmap
 
-### NeRF (Neural Radiance Fields)
-- Implicit neural scene representation
-- Volume rendering with ray marching
-- Training pipeline for novel view synthesis
-- Integration with scirs2-neural for MLP backbone
+### NeRF (Neural Radiance Fields) — Implemented in v0.4.0
+- [x] Implicit neural scene representation
+- [x] Volume rendering with ray marching
+- [x] Training pipeline for novel view synthesis
+- [x] Integration with scirs2-neural for MLP backbone
 
 ### 3D Object Detection
 - Point cloud object detection (PointNet++ backbone)
@@ -114,10 +114,10 @@
 - Dense video captioning interfaces
 - Multi-object tracking (MOT) evaluation metrics
 
-### Advanced Depth Estimation
-- Monocular depth estimation (MiDaS-style interface)
-- Depth completion from sparse LiDAR
-- Confidence-weighted depth fusion
+### Advanced Depth Estimation — Implemented in v0.4.0
+- [x] Monocular depth estimation (MiDaS-style interface)
+- [x] Depth completion from sparse LiDAR
+- [x] Confidence-weighted depth fusion
 
 ### Camera Network Calibration
 - Multi-camera extrinsic calibration

@@ -75,14 +75,14 @@
 - [ ] Active learning for adaptive sampling: minimize interpolation error with fewest evaluations
 
 ### New Interpolation Methods
-- [ ] Hermite-Birkhoff interpolation: arbitrary derivative data at arbitrary points
-- [ ] Polyharmonic splines: higher-order thin-plate generalizations
-- [ ] Subdivision surfaces: Loop and Catmull-Clark subdivision for smooth surfaces
+- [x] Hermite-Birkhoff interpolation: arbitrary derivative data at arbitrary points — Implemented in v0.4.0
+- [x] Polyharmonic splines: higher-order thin-plate generalizations — Implemented in v0.4.0
+- [x] Subdivision surfaces: Loop and Catmull-Clark subdivision for smooth surfaces — Implemented in v0.4.0
 - [ ] Kernel interpolation on Lie groups and homogeneous spaces
 
 ### High-Dimensional and Tensor Methods
-- [ ] Sparse grid interpolation via Smolyak construction
-- [ ] Tensor-train / TT-cross interpolation for very high-dimensional grids
+- [x] Sparse grid interpolation via Smolyak construction — Implemented in v0.4.0 (`sparse_grid/smolyak.rs`)
+- [x] Tensor-train / TT-cross interpolation for very high-dimensional grids — Implemented in v0.4.0 (`tensor_train/` module)
 - [ ] ANOVA decomposition for variance-based adaptive sparse grids
 - [ ] Anchored-ANOVA: exploit low effective dimensionality
 

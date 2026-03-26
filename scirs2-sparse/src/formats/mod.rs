@@ -8,8 +8,12 @@
 //! - [`HybridMatrix`]: ELL+COO hybrid — handles irregular sparsity for GPU-friendly storage.
 //! - [`format_convert`] functions — zero-copy or minimal-copy conversions between all formats.
 
-pub mod bsr;
 pub mod bsc;
+pub mod bsr;
+pub mod csf;
+pub mod csr5;
+pub mod poly_precond;
+pub mod sell;
 
 use crate::csr::CsrMatrix;
 use crate::error::{SparseError, SparseResult};
@@ -233,8 +237,7 @@ where
             }
         }
         let offsets: Vec<i64> = offset_set.into_iter().collect();
-        let mut diag_map: std::collections::HashMap<i64, Vec<T>> =
-            std::collections::HashMap::new();
+        let mut diag_map: std::collections::HashMap<i64, Vec<T>> = std::collections::HashMap::new();
         for &k in &offsets {
             let len = diagonal_length(nrows, ncols, k);
             diag_map.insert(k, vec![T::sparse_zero(); len]);
@@ -862,7 +865,14 @@ mod tests {
             }
         }
         for (i, (&got, &exp)) in y_ref.iter().zip(ref_y.iter()).enumerate() {
-            assert!((got - exp).abs() < 1e-12, "{}[{}] mismatch: got={} exp={}", label, i, got, exp);
+            assert!(
+                (got - exp).abs() < 1e-12,
+                "{}[{}] mismatch: got={} exp={}",
+                label,
+                i,
+                got,
+                exp
+            );
         }
     }
 

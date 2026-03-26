@@ -19,7 +19,11 @@ impl Default for StorageConfig {
     fn default() -> Self {
         Self {
             storage_type: StorageType::FileSystem,
-            storage_path: "/tmp/scirs2_stats".to_string(),
+            storage_path: {
+                let mut p = std::env::temp_dir();
+                p.push("scirs2_stats");
+                p.to_string_lossy().into_owned()
+            },
             naming_strategy: NamingStrategy::UUID,
             fs_optimization: FileSystemConfig::default(),
         }

@@ -128,7 +128,11 @@ fn logistic_regression(
         let mut loss = 0.0_f64;
         for i in 0..n {
             let xi = x.row(i);
-            let linear: f64 = coef[0] + xi.iter().zip(coef.iter().skip(1)).map(|(a, b)| a * b).sum::<f64>();
+            let linear: f64 = coef[0]
+                + xi.iter()
+                    .zip(coef.iter().skip(1))
+                    .map(|(a, b)| a * b)
+                    .sum::<f64>();
             let prob = 1.0 / (1.0 + (-linear).exp());
             let err = prob - y[i];
             loss += -(y[i] * prob.ln() + (1.0 - y[i]) * (1.0 - prob).ln());
@@ -154,8 +158,11 @@ fn predict_proba(x: ArrayView2<f64>, coef: &Array1<f64>) -> Array1<f64> {
     let mut probs = Array1::<f64>::zeros(n);
     for i in 0..n {
         let xi = x.row(i);
-        let linear: f64 =
-            coef[0] + xi.iter().zip(coef.iter().skip(1)).map(|(a, b)| a * b).sum::<f64>();
+        let linear: f64 = coef[0]
+            + xi.iter()
+                .zip(coef.iter().skip(1))
+                .map(|(a, b)| a * b)
+                .sum::<f64>();
         probs[i] = 1.0 / (1.0 + (-linear).exp());
     }
     probs
@@ -234,7 +241,7 @@ impl IPWEstimator {
 
         let ate = if self.stabilised {
             let mu1 = ate_sum / n as f64 + (w0_sum / n as f64) * 0.0; // simplified
-            // Proper Hájek:
+                                                                      // Proper Hájek:
             let mu1_h: f64 = (0..n)
                 .map(|i| treatment[i] * outcome[i] / ps_clip[i])
                 .sum::<f64>()
@@ -258,8 +265,18 @@ impl IPWEstimator {
         // Bootstrap SE (50 resamples for speed)
         let se = bootstrap_se_ipw(&ps_clip, &treatment, &outcome, self.stabilised, 50);
 
-        Ok(EstimationResult::new(ate, se, "ATE", "IPW", n)
-            .with_diagnostic("mean_ps_treated", ps_clip.iter().zip(treatment.iter()).filter(|(_, &t)| t > 0.5).map(|(p, _)| p).sum::<f64>() / treatment.iter().filter(|&&t| t > 0.5).count().max(1) as f64))
+        Ok(
+            EstimationResult::new(ate, se, "ATE", "IPW", n).with_diagnostic(
+                "mean_ps_treated",
+                ps_clip
+                    .iter()
+                    .zip(treatment.iter())
+                    .filter(|(_, &t)| t > 0.5)
+                    .map(|(p, _)| p)
+                    .sum::<f64>()
+                    / treatment.iter().filter(|&&t| t > 0.5).count().max(1) as f64,
+            ),
+        )
     }
 }
 
@@ -279,7 +296,9 @@ fn bootstrap_se_ipw(
         let mut w1 = 0.0_f64;
         let mut w0 = 0.0_f64;
         for _ in 0..n {
-            rng_state = rng_state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            rng_state = rng_state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             let idx = (rng_state >> 33) as usize % n;
             let ti = treatment[idx];
             let yi = outcome[idx];
@@ -361,20 +380,22 @@ impl DoublyRobustEstimator {
             let yi = outcome[i];
             let ei = ps[i];
             // ψ_i = μ1(x_i) - μ0(x_i) + T_i(Y_i - μ1(x_i))/e(x_i) - (1-T_i)(Y_i - μ0(x_i))/(1-e(x_i))
-            aipw_scores[i] = mu1[i] - mu0[i]
-                + ti * (yi - mu1[i]) / ei
-                - (1.0 - ti) * (yi - mu0[i]) / (1.0 - ei);
+            aipw_scores[i] =
+                mu1[i] - mu0[i] + ti * (yi - mu1[i]) / ei - (1.0 - ti) * (yi - mu0[i]) / (1.0 - ei);
         }
 
         let ate = aipw_scores.mean().unwrap_or(0.0);
-        let variance = aipw_scores
-            .iter()
-            .map(|&s| (s - ate).powi(2))
-            .sum::<f64>()
-            / ((n - 1) as f64);
+        let variance =
+            aipw_scores.iter().map(|&s| (s - ate).powi(2)).sum::<f64>() / ((n - 1) as f64);
         let se = (variance / n as f64).sqrt();
 
-        Ok(EstimationResult::new(ate, se, "ATE", "AIPW (Doubly-Robust)", n))
+        Ok(EstimationResult::new(
+            ate,
+            se,
+            "ATE",
+            "AIPW (Doubly-Robust)",
+            n,
+        ))
     }
 }
 
@@ -437,9 +458,14 @@ fn gauss_jordan(mut a: Array2<f64>, mut b: Array1<f64>) -> StatsResult<Array1<f6
     let n = b.len();
     for col in 0..n {
         // Find pivot
-        let pivot_row = (col..n)
-            .max_by(|&i, &j| a[[i, col]].abs().partial_cmp(&a[[j, col]].abs()).unwrap_or(std::cmp::Ordering::Equal));
-        let pivot_row = pivot_row.ok_or_else(|| StatsError::ComputationError("Singular matrix".to_owned()))?;
+        let pivot_row = (col..n).max_by(|&i, &j| {
+            a[[i, col]]
+                .abs()
+                .partial_cmp(&a[[j, col]].abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        let pivot_row =
+            pivot_row.ok_or_else(|| StatsError::ComputationError("Singular matrix".to_owned()))?;
         // Swap rows in a
         for k in 0..n {
             let tmp = a[[col, k]];
@@ -452,7 +478,9 @@ fn gauss_jordan(mut a: Array2<f64>, mut b: Array1<f64>) -> StatsResult<Array1<f6
 
         let pivot = a[[col, col]];
         if pivot.abs() < 1e-12 {
-            return Err(StatsError::ComputationError("Singular matrix in OLS".to_owned()));
+            return Err(StatsError::ComputationError(
+                "Singular matrix in OLS".to_owned(),
+            ));
         }
         for k in col..n {
             a[[col, k]] /= pivot;
@@ -573,7 +601,9 @@ impl NearestNeighborMatching {
         }
 
         if att_contributions.is_empty() {
-            return Err(StatsError::InsufficientData("No matched pairs found".to_owned()));
+            return Err(StatsError::InsufficientData(
+                "No matched pairs found".to_owned(),
+            ));
         }
 
         let att = att_contributions.iter().sum::<f64>() / att_contributions.len() as f64;
@@ -720,18 +750,17 @@ impl RegressionDiscontinuity {
         let se = rdd_se(&running, &outcome, &in_window, self.cutoff, estimate);
 
         let mut res = EstimationResult::new(estimate, se, estimand, "RDD", n);
-        res.diagnostics.insert("n_above".to_string(), above.len() as f64);
-        res.diagnostics.insert("n_below".to_string(), below.len() as f64);
-        res.diagnostics.insert("bandwidth".to_string(), self.bandwidth);
+        res.diagnostics
+            .insert("n_above".to_string(), above.len() as f64);
+        res.diagnostics
+            .insert("n_below".to_string(), below.len() as f64);
+        res.diagnostics
+            .insert("bandwidth".to_string(), self.bandwidth);
         Ok(res)
     }
 
     /// Imbens-Kalyanaraman (2012) MSE-optimal bandwidth selector.
-    pub fn ik_bandwidth(
-        running: ArrayView1<f64>,
-        outcome: ArrayView1<f64>,
-        cutoff: f64,
-    ) -> f64 {
+    pub fn ik_bandwidth(running: ArrayView1<f64>, outcome: ArrayView1<f64>, cutoff: f64) -> f64 {
         let n = running.len() as f64;
         // Simple rule-of-thumb: h* = σ_x · n^{-1/5}
         let mean = running.mean().unwrap_or(cutoff);
@@ -872,7 +901,9 @@ impl SyntheticControlEstimator {
             ));
         }
         if j == 0 {
-            return Err(StatsError::InsufficientData("Need at least one donor unit".to_owned()));
+            return Err(StatsError::InsufficientData(
+                "Need at least one donor unit".to_owned(),
+            ));
         }
 
         // Minimise ||Y_1 - Y_0 w||^2 subject to w >= 0, sum(w) = 1
@@ -881,13 +912,13 @@ impl SyntheticControlEstimator {
 
         // Synthetic control outcomes
         let pre_synth: Array1<f64> = (0..t0)
-            .map(|t| {
-                (0..j).map(|k| donors_pre[[t, k]] * weights[k]).sum::<f64>()
-            })
+            .map(|t| (0..j).map(|k| donors_pre[[t, k]] * weights[k]).sum::<f64>())
             .collect();
         let post_synth: Array1<f64> = (0..t1)
             .map(|t| {
-                (0..j).map(|k| donors_post[[t, k]] * weights[k]).sum::<f64>()
+                (0..j)
+                    .map(|k| donors_post[[t, k]] * weights[k])
+                    .sum::<f64>()
             })
             .collect();
 
@@ -1131,7 +1162,8 @@ fn did_bootstrap_se(
         return 0.0;
     }
     let mean = ests.iter().sum::<f64>() / ests.len() as f64;
-    let var = ests.iter().map(|&e| (e - mean).powi(2)).sum::<f64>() / (ests.len() - 1).max(1) as f64;
+    let var =
+        ests.iter().map(|&e| (e - mean).powi(2)).sum::<f64>() / (ests.len() - 1).max(1) as f64;
     var.sqrt()
 }
 
@@ -1171,9 +1203,15 @@ fn parallel_trends_test(
     let n_c = control_changes.len();
     let mu_t = treated_changes.iter().sum::<f64>() / n_t as f64;
     let mu_c = control_changes.iter().sum::<f64>() / n_c as f64;
-    let var_t = treated_changes.iter().map(|&x| (x - mu_t).powi(2)).sum::<f64>()
+    let var_t = treated_changes
+        .iter()
+        .map(|&x| (x - mu_t).powi(2))
+        .sum::<f64>()
         / n_t.saturating_sub(1).max(1) as f64;
-    let var_c = control_changes.iter().map(|&x| (x - mu_c).powi(2)).sum::<f64>()
+    let var_c = control_changes
+        .iter()
+        .map(|&x| (x - mu_c).powi(2))
+        .sum::<f64>()
         / n_c.saturating_sub(1).max(1) as f64;
     let se = (var_t / n_t as f64 + var_c / n_c as f64).sqrt();
     if se < f64::EPSILON {
@@ -1197,7 +1235,11 @@ mod tests {
         // 10 units, treatment perfectly separates groups
         let cov = Array2::<f64>::from_shape_fn((20, 2), |(i, j)| {
             if j == 0 {
-                if i < 10 { 1.0 } else { 0.0 }
+                if i < 10 {
+                    1.0
+                } else {
+                    0.0
+                }
             } else {
                 (i as f64).sin()
             }
@@ -1205,7 +1247,9 @@ mod tests {
         let treat = Array1::from_iter((0..20).map(|i| if i < 10 { 1.0 } else { 0.0 }));
         let outcome = Array1::from_iter((0..20).map(|i| if i < 10 { 2.0 } else { 0.0 }));
         let est = IPWEstimator::default();
-        let res = est.estimate(cov.view(), treat.view(), outcome.view()).unwrap();
+        let res = est
+            .estimate(cov.view(), treat.view(), outcome.view())
+            .unwrap();
         // ATE should be close to 2.0
         assert!((res.estimate - 2.0).abs() < 1.0, "ATE={}", res.estimate);
     }
@@ -1216,10 +1260,16 @@ mod tests {
         let cov = Array2::<f64>::from_shape_fn((n, 1), |(i, _)| i as f64 / n as f64);
         let treat = Array1::from_iter((0..n).map(|i| if i < n / 2 { 1.0 } else { 0.0 }));
         let outcome = Array1::from_iter((0..n).map(|i| {
-            if i < n / 2 { 1.0 + i as f64 * 0.01 } else { i as f64 * 0.01 }
+            if i < n / 2 {
+                1.0 + i as f64 * 0.01
+            } else {
+                i as f64 * 0.01
+            }
         }));
         let est = DoublyRobustEstimator::default();
-        let res = est.estimate(cov.view(), treat.view(), outcome.view()).unwrap();
+        let res = est
+            .estimate(cov.view(), treat.view(), outcome.view())
+            .unwrap();
         assert!(res.estimate.is_finite());
     }
 
@@ -1230,7 +1280,9 @@ mod tests {
         let treat = Array1::from_iter((0..n).map(|i| if i % 2 == 0 { 1.0 } else { 0.0 }));
         let outcome = Array1::from_iter((0..n).map(|i| if i % 2 == 0 { 2.0 } else { 0.0 }));
         let est = NearestNeighborMatching::default();
-        let res = est.estimate(cov.view(), treat.view(), outcome.view()).unwrap();
+        let res = est
+            .estimate(cov.view(), treat.view(), outcome.view())
+            .unwrap();
         // ATT ≈ 2.0
         assert!((res.estimate - 2.0).abs() < 0.5, "ATT={}", res.estimate);
     }
@@ -1241,7 +1293,11 @@ mod tests {
         let n = 40;
         let running = Array1::from_iter((0..n).map(|i| -2.0 + i as f64 * 4.0 / n as f64));
         let outcome = Array1::from_iter((0..n).map(|i| {
-            if running[i] >= 0.0 { 3.0 + running[i] * 0.5 } else { running[i] * 0.5 }
+            if running[i] >= 0.0 {
+                3.0 + running[i] * 0.5
+            } else {
+                running[i] * 0.5
+            }
         }));
         let rdd = RegressionDiscontinuity {
             cutoff: 0.0,
@@ -1251,17 +1307,30 @@ mod tests {
         };
         let res = rdd.estimate(running.view(), outcome.view(), None).unwrap();
         // Jump at cutoff should be ≈ 3.0
-        assert!((res.estimate - 3.0).abs() < 1.0, "RDD estimate={}", res.estimate);
+        assert!(
+            (res.estimate - 3.0).abs() < 1.0,
+            "RDD estimate={}",
+            res.estimate
+        );
     }
 
     #[test]
     fn test_synthetic_control() {
         let treated_pre = array![1.0, 2.0, 3.0, 4.0, 5.0];
-        let donors_pre = Array2::from_shape_fn((5, 3), |(t, j)| (t + 1) as f64 * [1.1, 0.9, 1.0][j]);
+        let donors_pre =
+            Array2::from_shape_fn((5, 3), |(t, j)| (t + 1) as f64 * [1.1, 0.9, 1.0][j]);
         let treated_post = array![8.0, 9.0];
-        let donors_post = Array2::from_shape_fn((2, 3), |(t, j)| (t + 6) as f64 * [1.1, 0.9, 1.0][j]);
+        let donors_post =
+            Array2::from_shape_fn((2, 3), |(t, j)| (t + 6) as f64 * [1.1, 0.9, 1.0][j]);
         let est = SyntheticControlEstimator::default();
-        let res = est.estimate(treated_pre.view(), donors_pre.view(), treated_post.view(), donors_post.view()).unwrap();
+        let res = est
+            .estimate(
+                treated_pre.view(),
+                donors_pre.view(),
+                treated_post.view(),
+                donors_post.view(),
+            )
+            .unwrap();
         assert!((res.weights.sum() - 1.0).abs() < 1e-5);
         assert!(res.att_series.len() == 2);
     }
@@ -1270,12 +1339,14 @@ mod tests {
     fn test_did() {
         // Treated group benefits by +2 in post period
         let n = 20;
-        let pre = Array2::from_shape_fn((n, 3), |(i, t)| {
-            (i as f64 * 0.1) + t as f64 * 0.5
-        });
+        let pre = Array2::from_shape_fn((n, 3), |(i, t)| (i as f64 * 0.1) + t as f64 * 0.5);
         let post = Array2::from_shape_fn((n, 2), |(i, t)| {
             let base = (i as f64 * 0.1) + 1.5 + t as f64 * 0.5;
-            if i < 10 { base + 2.0 } else { base }
+            if i < 10 {
+                base + 2.0
+            } else {
+                base
+            }
         });
         let treat = Array1::from_iter((0..n).map(|i| if i < 10 { 1.0 } else { 0.0 }));
         let did = DifferenceInDifferences { n_pre_periods: 3 };

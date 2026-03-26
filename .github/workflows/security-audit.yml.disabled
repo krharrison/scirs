@@ -1,0 +1,221 @@
+name: Security Audit & Supply Chain
+
+# Triggered on:
+#   - any push that touches dependency manifests or lock files
+#   - pull requests that modify Cargo.lock (supply-chain review)
+#   - weekly schedule to catch newly published advisories
+on:
+  push:
+    paths:
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "**/Cargo.toml"
+      - "deny.toml"
+      - ".cargo/audit.toml"
+  pull_request:
+    paths:
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "**/Cargo.toml"
+  schedule:
+    # Every Monday at 06:00 UTC — catches newly published advisories
+    - cron: "0 6 * * 1"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # cargo-audit: scan Cargo.lock against RustSec advisory database
+  # ---------------------------------------------------------------------------
+  audit:
+    name: cargo-audit (RustSec advisories)
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write   # required for uploading SARIF to GitHub Security
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+
+      - name: Run cargo-audit
+        # --deny warnings treats unmaintained/notice advisories as failures too,
+        # matching the deny = ["warnings"] setting in .cargo/audit.toml.
+        run: cargo audit --deny warnings
+
+      - name: Run cargo-audit (JSON report for artifact)
+        if: always()
+        run: cargo audit --json > /tmp/audit-report.json || true
+
+      - name: Upload audit report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-audit-report
+          path: /tmp/audit-report.json
+          retention-days: 90
+
+  # ---------------------------------------------------------------------------
+  # cargo-deny: comprehensive dependency policy enforcement
+  # Checks advisories + licenses + banned crates + source origins in one pass.
+  # ---------------------------------------------------------------------------
+  deny:
+    name: cargo-deny (advisories + licenses + bans + sources)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+
+      - name: Run cargo deny (all checks)
+        run: cargo deny check advisories licenses bans sources
+
+  # ---------------------------------------------------------------------------
+  # SBOM generation via cargo-cyclonedx (CycloneDX JSON format)
+  # The SBOM is uploaded as a workflow artifact and retained for 90 days.
+  # ---------------------------------------------------------------------------
+  sbom:
+    name: SBOM Generation (CycloneDX)
+    runs-on: ubuntu-latest
+    # Run on push to main/release branches and on schedule; skip for PRs
+    # to avoid unnecessary SBOM churn during code review.
+    if: >
+      github.event_name == 'push' ||
+      github.event_name == 'schedule'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-sbom"
+
+      - name: Install cargo-cyclonedx
+        run: cargo install cargo-cyclonedx --locked --quiet
+
+      - name: Generate SBOM (CycloneDX JSON)
+        # cargo-cyclonedx writes to bom.json in the workspace root by default.
+        # We rename to include the git SHA for traceability.
+        run: |
+          cargo cyclonedx --format json --output-cdx
+          mv bom.json /tmp/scirs2-sbom-${{ github.sha }}.cdx.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scirs2-sbom-${{ github.sha }}
+          path: /tmp/scirs2-sbom-${{ github.sha }}.cdx.json
+          retention-days: 90
+
+  # ---------------------------------------------------------------------------
+  # Supply-chain: verify Cargo.lock is present and up-to-date.
+  # A missing or outdated lock file is a supply-chain risk because it prevents
+  # reproducible builds.
+  # ---------------------------------------------------------------------------
+  lockfile-check:
+    name: Cargo.lock Freshness
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Verify Cargo.lock is committed and up-to-date
+        run: |
+          if [ ! -f Cargo.lock ]; then
+            echo "ERROR: Cargo.lock is not committed. Reproducible builds require a committed lock file."
+            exit 1
+          fi
+          # Regenerate and check for drift
+          cargo update --workspace --locked 2>&1 || {
+            echo "ERROR: Cargo.lock is out-of-date. Run 'cargo update --workspace' and commit the result."
+            exit 1
+          }
+          echo "Cargo.lock is present and up-to-date."
+
+  # ---------------------------------------------------------------------------
+  # Dependency tree snapshot — uploaded for manual review / diff tracking.
+  # ---------------------------------------------------------------------------
+  dep-tree-snapshot:
+    name: Dependency Tree Snapshot
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'push' ||
+      github.event_name == 'schedule'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-deptree"
+
+      - name: Generate dependency tree
+        run: |
+          cargo tree --all-features \
+            --workspace \
+            --exclude scirs2-python \
+            > /tmp/scirs2-dep-tree.txt 2>&1 || true
+
+      - name: Upload dependency tree artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scirs2-dep-tree-${{ github.sha }}
+          path: /tmp/scirs2-dep-tree.txt
+          retention-days: 90
+
+  # ---------------------------------------------------------------------------
+  # Summary gate: all hard security checks must pass.
+  # ---------------------------------------------------------------------------
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs:
+      - audit
+      - deny
+      - lockfile-check
+    if: always()
+
+    steps:
+      - name: Check all security gates passed
+        shell: bash
+        run: |
+          FAILED=0
+          declare -A results=(
+            [cargo-audit]="${{ needs.audit.result }}"
+            [cargo-deny]="${{ needs.deny.result }}"
+            [lockfile-check]="${{ needs.lockfile-check.result }}"
+          )
+          for gate in "${!results[@]}"; do
+            if [[ "${results[$gate]}" != "success" ]]; then
+              echo "FAILED: $gate (result: ${results[$gate]})"
+              FAILED=$((FAILED+1))
+            fi
+          done
+          if [ "$FAILED" -gt 0 ]; then
+            echo ""
+            echo "ERROR: $FAILED security gate(s) failed."
+            exit 1
+          fi
+          echo "All security gates passed."

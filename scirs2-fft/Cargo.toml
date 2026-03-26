@@ -66,6 +66,7 @@ tempfile = { workspace = true }
 approx = { workspace = true }
 criterion = { workspace = true }
 plotly = { workspace = true }
+proptest = { workspace = true }
 
 [[bench]]
 name = "fft_benchmarks"

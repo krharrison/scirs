@@ -24,6 +24,7 @@ use statrs::statistics::Statistics;
 
 // Declare sub-modules
 pub mod change_detection;
+pub mod cointegration;
 pub mod config;
 pub mod forecasting;
 pub mod memory_management;

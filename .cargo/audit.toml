@@ -1,0 +1,23 @@
+# cargo-audit configuration for SciRS2
+# https://rustsec.org/
+#
+# This file controls the behaviour of `cargo audit` when run locally
+# or in CI (quality-gates.yml security-audit job).
+
+[advisories]
+# List RUSTSEC IDs to ignore here with a justification comment.
+# Example:
+#   "RUSTSEC-2021-0145"  # atty: not reachable in our binary surfaces
+ignore = []
+
+[output]
+# Set to true to suppress informational output; keep false so CI logs are useful.
+quiet = false
+# Deny all advisory levels (vulnerabilities, unmaintained, notices)
+# matching the quality-gates.yml `cargo audit --deny warnings` flag.
+deny = ["warnings"]
+
+[database]
+# Fetch the advisory DB on every run in CI; use cached copy locally by default.
+fetch = true
+stale = false

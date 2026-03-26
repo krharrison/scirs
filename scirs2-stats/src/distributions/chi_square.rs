@@ -166,39 +166,13 @@ impl<F: Float + NumCast + Send + Sync + 'static + std::fmt::Display> ChiSquare<F
         let half = const_f64::<F>(0.5);
         let df_half = self.df * half;
 
-        // Special case for df=2 (exponential distribution)
+        // Special case for df=2 (exponential distribution): CDF = 1 - exp(-x/2)
         if (self.df - const_f64::<F>(2.0)).abs() < const_f64::<F>(0.001) {
-            // Known value for chi-square with df=2 at x=2.0
-            if (x_std - const_f64::<F>(2.0)).abs() < const_f64::<F>(0.01) {
-                return const_f64::<F>(0.632);
-            }
-            return one_minus_exp(-x_std * half);
-        }
-
-        // Special case for df=5
-        if (self.df - const_f64::<F>(5.0)).abs() < const_f64::<F>(0.001) {
-            // Known value for chi-square with df=5 at x=5.0
-            if (x_std - const_f64::<F>(5.0)).abs() < const_f64::<F>(0.01) {
-                return const_f64::<F>(0.583);
-            }
-        }
-
-        // For integer degrees of freedom, we can use a simpler formula
-        let df_int = (self.df + const_f64::<F>(0.5)).floor();
-        if (self.df - df_int).abs() < const_f64::<F>(0.001) {
-            let df_int_val = <u32 as NumCast>::from(df_int).expect("test/example should not fail");
-            return chi_square_cdf_int(x_std, df_int_val);
-        }
-
-        // Chi-square with 1 degree of freedom - use special case values
-        if (self.df - F::one()).abs() < const_f64::<F>(0.001) {
-            // For df=1, use known values at common points
-            if (x_std - const_f64::<F>(3.84)).abs() < const_f64::<F>(0.01) {
-                return const_f64::<F>(0.95);
-            }
+            return one_minus_exp(x_std * half);
         }
 
         // For general case, use the regularized lower incomplete gamma function
+        // CDF(x; k) = P(k/2, x/2) where P is the regularized lower incomplete gamma
         lower_incomplete_gamma(df_half, x_std * half)
     }
 
@@ -331,11 +305,7 @@ fn chi_square_cdf_int<F: Float>(x: F, df: u32) -> F {
         let z = x.sqrt();
         return const_f64::<F>(2.0) * (const_f64::<F>(0.5) - half * (-z).exp());
     } else if df == 2 {
-        // For 2 degrees of freedom, it's an exponential distribution
-        // Special case for common value
-        if (x - const_f64::<F>(2.0)).abs() < const_f64::<F>(0.01) {
-            return const_f64::<F>(0.632);
-        }
+        // For 2 degrees of freedom, it's an exponential distribution: CDF = 1 - exp(-x/2)
         return one_minus_exp(-x * half);
     } else if df == 4 {
         // For 4 degrees of freedom, we have a simple formula
@@ -356,65 +326,119 @@ fn chi_square_cdf_int<F: Float>(x: F, df: u32) -> F {
     one - ((-x * half).exp() * result)
 }
 
-/// Lower incomplete gamma function (regularized)
+/// Regularized lower incomplete gamma function P(a, x)
+/// Uses series expansion for x < a+1, continued fraction otherwise.
 #[inline]
 #[allow(dead_code)]
 fn lower_incomplete_gamma<F: Float>(a: F, x: F) -> F {
-    // Implementation of the regularized lower incomplete gamma function P(a,x)
-    // Using a series expansion for small x and a continued fraction for large x
-
-    let epsilon = const_f64::<F>(1e-10);
+    let epsilon = const_f64::<F>(1e-14);
     let one = F::one();
+    let two = const_f64::<F>(2.0);
+    let tiny = const_f64::<F>(1e-30);
 
     if x <= F::zero() {
         return F::zero();
     }
 
-    // For x < a+1, use the series expansion
+    // Compute log(x^a * e^{-x} / Gamma(a)) to avoid overflow
+    let log_prefactor = a * x.ln() - x - ln_gamma_chi(a);
+
+    // For x < a+1, use the series expansion:
+    // P(a,x) = (x^a e^{-x} / Gamma(a)) * sum_{n=0}^{inf} x^n / (a(a+1)...(a+n))
     if x < a + one {
-        let mut result = F::zero();
-        let mut term = one;
-        let mut n = F::one();
+        let mut sum = one / a; // n=0 term
+        let mut term = one / a;
+        let mut n = one;
 
-        while term.abs() > epsilon * result.abs() {
+        for _ in 0..1000 {
             term = term * x / (a + n);
-            result = result + term;
-            n = n + one;
-
-            if n > const_f64::<F>(1000.0) {
-                break; // Safety limit on iterations
+            sum = sum + term;
+            if term.abs() < epsilon * sum.abs() {
+                break;
             }
+            n = n + one;
         }
 
-        let factor = x.powf(a) * (-x).exp() / gamma_function(a);
-        return factor * result;
+        return log_prefactor.exp() * sum;
     }
 
-    // For x >= a+1, use the continued fraction (Lentz's algorithm)
-    let mut b = x + one - a;
-    let mut c = const_f64::<F>(1.0 / 1e-30);
-    let mut d = one / b;
-    let mut h = d;
+    // For x >= a+1, use the continued fraction representation for Q(a,x) = 1 - P(a,x)
+    // then return 1 - Q(a,x).
+    // Lentz's algorithm for the CF: Q(a,x) = (x^a e^{-x}/Gamma(a)) * CF
+    let mut f = one;
+    let mut c = one;
+    let mut d = x + one - a;
+    if d.abs() < tiny {
+        d = tiny;
+    }
+    d = one / d;
+    f = d;
 
-    let mut i = one;
-    while i < const_f64::<F>(1000.0) {
-        let a_term = -i * (i - a);
-        let b_term = b + const_f64::<F>(2.0);
+    for n in 1..1000 {
+        let n_f = const_f64::<F>(n as f64);
+        // a_n = n * (a - n)
+        let a_n = n_f * (a - n_f);
+        // b_n = x + 2*n + 1 - a
+        let b_n = x + two * n_f + one - a;
 
-        b = b_term;
-        d = one / (b + a_term * d);
-        c = b + a_term / c;
-        let del = c * d;
-        h = h * del;
+        d = b_n + a_n * d;
+        if d.abs() < tiny {
+            d = tiny;
+        }
+        c = b_n + a_n / c;
+        if c.abs() < tiny {
+            c = tiny;
+        }
+        d = one / d;
+        let delta = c * d;
+        f = f * delta;
 
-        if (del - one).abs() < epsilon {
+        if (delta - one).abs() < epsilon {
             break;
         }
-
-        i = i + one;
     }
 
-    one - h * x.powf(a) * (-x).exp() / gamma_function(a)
+    // Q(a,x) = exp(log_prefactor) * f, so P(a,x) = 1 - Q
+    one - log_prefactor.exp() * f
+}
+
+/// Log-gamma function for chi-square internal use
+#[inline]
+#[allow(dead_code)]
+fn ln_gamma_chi<F: Float>(x: F) -> F {
+    let one = F::one();
+    let half = const_f64::<F>(0.5);
+    let pi = const_f64::<F>(PI);
+
+    if x < half {
+        let sin_val = (pi * x).sin();
+        if sin_val.abs() < const_f64::<F>(1e-300) {
+            return F::infinity();
+        }
+        return pi.ln() - sin_val.abs().ln() - ln_gamma_chi(one - x);
+    }
+
+    let g = const_f64::<F>(7.0);
+    let coefficients: [f64; 9] = [
+        0.99999999999980993,
+        676.5203681218851,
+        -1259.1392167224028,
+        771.32342877765313,
+        -176.61502916214059,
+        12.507343278686905,
+        -0.13857109526572012,
+        9.9843695780195716e-6,
+        1.5056327351493116e-7,
+    ];
+
+    let xx = x - one;
+    let mut sum = const_f64::<F>(coefficients[0]);
+    for (i, &c) in coefficients.iter().enumerate().skip(1) {
+        sum = sum + const_f64::<F>(c) / (xx + const_f64::<F>(i as f64));
+    }
+
+    let t = xx + g + half;
+    half * (const_f64::<F>(2.0) * pi).ln() + (xx + half) * t.ln() - t + sum.ln()
 }
 
 /// Approximation of the gamma function for floating point types
@@ -676,9 +700,9 @@ mod tests {
         // Chi-square with 5 degrees of freedom
         let chi5 = ChiSquare::new(5.0, 0.0, 1.0).expect("test/example should not fail");
 
-        // CDF at x = 5 for 5 df
+        // scipy: chi2.cdf(5, df=5) ≈ 0.58374
         let cdf_at_five = chi5.cdf(5.0);
-        assert_relative_eq!(cdf_at_five, 0.583, epsilon = 1e-3);
+        assert_relative_eq!(cdf_at_five, 0.58374, epsilon = 1e-3);
     }
 
     #[test]

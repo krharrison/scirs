@@ -20,7 +20,6 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 # Core dependencies - ALL numeric/array/random functionality from scirs2-core (SciRS2 POLICY)
 scirs2-core = { workspace = true, features = ["parallel", "simd", "random", "array"] }
-scirs2-sparse = { workspace = true }
 thiserror = { workspace = true }
 
 # Graph processing specific dependencies
@@ -31,7 +30,6 @@ ordered-float = { workspace = true }
 # rayon = "1.8"  # Now use scirs2-core parallel abstractions
 parking_lot = { workspace = true }
 sysinfo = { workspace = true }
-num_cpus = { workspace = true }
 
 # Serialization for attributes and embeddings
 serde = { workspace = true, features = ["derive"] }

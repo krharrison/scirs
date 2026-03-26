@@ -28,13 +28,13 @@ use crate::error::{OptimizeError, OptimizeResult};
 use scirs2_core::ndarray::{Array1, Array2};
 
 pub mod branch_and_bound;
-pub mod milp_branch_and_bound;
-pub mod knapsack;
 pub mod cutting_plane;
+pub mod knapsack;
 pub mod lp_relaxation;
+pub mod milp_branch_and_bound;
 
-pub use branch_and_bound::{BranchAndBoundSolver, BranchAndBoundOptions};
-pub use cutting_plane::{CuttingPlaneSolver, CuttingPlaneOptions};
+pub use branch_and_bound::{BranchAndBoundOptions, BranchAndBoundSolver};
+pub use cutting_plane::{CuttingPlaneOptions, CuttingPlaneSolver};
 pub use lp_relaxation::LpRelaxationSolver;
 
 /// Type of integer variable constraint

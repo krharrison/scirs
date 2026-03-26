@@ -101,7 +101,10 @@ impl<T> LockFreeStack<T> {
 
     /// Push `val` onto the top of the stack.
     pub fn push(&self, val: T) {
-        let node = Box::into_raw(Box::new(Node { value: val, next: 0 }));
+        let node = Box::into_raw(Box::new(Node {
+            value: val,
+            next: 0,
+        }));
 
         loop {
             let old_head = self.head.load(Ordering::Acquire);
@@ -239,13 +242,8 @@ mod tests {
                         s.push(1);
                     }
                     // Pop as many as we can.
-                    loop {
-                        match s.pop() {
-                            Some(v) => {
-                                c.fetch_add(v, std::sync::atomic::Ordering::Relaxed);
-                            }
-                            None => break,
-                        }
+                    while let Some(v) = s.pop() {
+                        c.fetch_add(v, std::sync::atomic::Ordering::Relaxed);
                         thread::yield_now();
                     }
                 })

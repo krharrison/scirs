@@ -26,7 +26,6 @@ lazy_static = { workspace = true }
 regex = { workspace = true, optional = true }
 plotters = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
 log = { workspace = true }
 statrs = { workspace = true }
 
@@ -81,3 +80,4 @@ tokio = { workspace = true, features = ["full"] }
 quickcheck = { workspace = true }
 quickcheck_macros = { workspace = true }
 chrono = { workspace = true }
+serde_json = { workspace = true }

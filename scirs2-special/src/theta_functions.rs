@@ -50,7 +50,7 @@ const THETA_MAX_TERMS: usize = 500;
 /// Validate that the nome `q` lies in [0, 1).
 #[inline]
 fn validate_nome(q: f64) -> SpecialResult<()> {
-    if q < 0.0 || q >= 1.0 {
+    if !(0.0..1.0).contains(&q) {
         return Err(SpecialError::DomainError(format!(
             "theta: nome q must satisfy 0 ≤ q < 1, got q = {q}"
         )));
@@ -88,10 +88,7 @@ fn validate_nome(q: f64) -> SpecialResult<()> {
 /// assert!((theta1(0.0, 0.3) - 0.0).abs() < 1e-14);
 /// ```
 pub fn theta1(z: f64, q: f64) -> f64 {
-    match theta1_impl(z, q) {
-        Ok(v) => v,
-        Err(_) => f64::NAN,
-    }
+    theta1_impl(z, q).unwrap_or(f64::NAN)
 }
 
 fn theta1_impl(z: f64, q: f64) -> SpecialResult<f64> {
@@ -139,10 +136,7 @@ fn theta1_impl(z: f64, q: f64) -> SpecialResult<f64> {
 /// assert!(val > 0.0);
 /// ```
 pub fn theta2(z: f64, q: f64) -> f64 {
-    match theta2_impl(z, q) {
-        Ok(v) => v,
-        Err(_) => f64::NAN,
-    }
+    theta2_impl(z, q).unwrap_or(f64::NAN)
 }
 
 fn theta2_impl(z: f64, q: f64) -> SpecialResult<f64> {
@@ -192,10 +186,7 @@ fn theta2_impl(z: f64, q: f64) -> SpecialResult<f64> {
 /// assert!((theta3(0.0, 0.0) - 1.0).abs() < 1e-14);
 /// ```
 pub fn theta3(z: f64, q: f64) -> f64 {
-    match theta3_impl(z, q) {
-        Ok(v) => v,
-        Err(_) => f64::NAN,
-    }
+    theta3_impl(z, q).unwrap_or(f64::NAN)
 }
 
 fn theta3_impl(z: f64, q: f64) -> SpecialResult<f64> {
@@ -240,10 +231,7 @@ fn theta3_impl(z: f64, q: f64) -> SpecialResult<f64> {
 /// assert!((theta4(0.0, 0.0) - 1.0).abs() < 1e-14);
 /// ```
 pub fn theta4(z: f64, q: f64) -> f64 {
-    match theta4_impl(z, q) {
-        Ok(v) => v,
-        Err(_) => f64::NAN,
-    }
+    theta4_impl(z, q).unwrap_or(f64::NAN)
 }
 
 fn theta4_impl(z: f64, q: f64) -> SpecialResult<f64> {
@@ -291,10 +279,7 @@ fn theta4_impl(z: f64, q: f64) -> SpecialResult<f64> {
 /// assert!(d > 0.0);
 /// ```
 pub fn theta1_derivative(z: f64, q: f64) -> f64 {
-    match theta1_derivative_impl(z, q) {
-        Ok(v) => v,
-        Err(_) => f64::NAN,
-    }
+    theta1_derivative_impl(z, q).unwrap_or(f64::NAN)
 }
 
 fn theta1_derivative_impl(z: f64, q: f64) -> SpecialResult<f64> {
@@ -339,10 +324,7 @@ fn theta1_derivative_impl(z: f64, q: f64) -> SpecialResult<f64> {
 /// assert!((theta2_derivative(0.0, 0.1)).abs() < 1e-14);
 /// ```
 pub fn theta2_derivative(z: f64, q: f64) -> f64 {
-    match theta2_derivative_impl(z, q) {
-        Ok(v) => v,
-        Err(_) => f64::NAN,
-    }
+    theta2_derivative_impl(z, q).unwrap_or(f64::NAN)
 }
 
 fn theta2_derivative_impl(z: f64, q: f64) -> SpecialResult<f64> {
@@ -386,10 +368,7 @@ fn theta2_derivative_impl(z: f64, q: f64) -> SpecialResult<f64> {
 /// assert!((theta3_derivative(0.0, 0.2)).abs() < 1e-14);
 /// ```
 pub fn theta3_derivative(z: f64, q: f64) -> f64 {
-    match theta3_derivative_impl(z, q) {
-        Ok(v) => v,
-        Err(_) => f64::NAN,
-    }
+    theta3_derivative_impl(z, q).unwrap_or(f64::NAN)
 }
 
 fn theta3_derivative_impl(z: f64, q: f64) -> SpecialResult<f64> {
@@ -431,10 +410,7 @@ fn theta3_derivative_impl(z: f64, q: f64) -> SpecialResult<f64> {
 /// assert!((theta4_derivative(0.0, 0.2)).abs() < 1e-14);
 /// ```
 pub fn theta4_derivative(z: f64, q: f64) -> f64 {
-    match theta4_derivative_impl(z, q) {
-        Ok(v) => v,
-        Err(_) => f64::NAN,
-    }
+    theta4_derivative_impl(z, q).unwrap_or(f64::NAN)
 }
 
 fn theta4_derivative_impl(z: f64, q: f64) -> SpecialResult<f64> {
@@ -481,7 +457,7 @@ fn theta4_derivative_impl(z: f64, q: f64) -> SpecialResult<f64> {
 /// assert!(q > 0.0 && q < 1.0);
 /// ```
 pub fn q_from_k(k: f64) -> f64 {
-    if k < 0.0 || k >= 1.0 {
+    if !(0.0..1.0).contains(&k) {
         return f64::NAN;
     }
     if k == 0.0 {
@@ -514,7 +490,7 @@ pub fn q_from_k(k: f64) -> f64 {
 /// assert!((k_back - k_orig).abs() < 1e-12);
 /// ```
 pub fn k_from_q(q: f64) -> f64 {
-    if q < 0.0 || q >= 1.0 {
+    if !(0.0..1.0).contains(&q) {
         return f64::NAN;
     }
     if q == 0.0 {
@@ -615,7 +591,7 @@ pub fn theta1_log_derivative(z: f64, q: f64) -> f64 {
 /// assert!(qp > 0.0 && qp < 1.0);
 /// ```
 pub fn complementary_nome(q: f64) -> f64 {
-    if q < 0.0 || q >= 1.0 {
+    if !(0.0..1.0).contains(&q) {
         return f64::NAN;
     }
     if q == 0.0 {
@@ -656,7 +632,7 @@ pub fn complementary_nome(q: f64) -> f64 {
 /// assert!((jacobi_sn(0.0, 0.5)).abs() < 1e-14);
 /// ```
 pub fn jacobi_sn(u: f64, k: f64) -> f64 {
-    if k < 0.0 || k >= 1.0 {
+    if !(0.0..1.0).contains(&k) {
         return f64::NAN;
     }
     if k == 0.0 {
@@ -703,7 +679,7 @@ pub fn jacobi_sn(u: f64, k: f64) -> f64 {
 /// assert!((jacobi_cn(0.0, 0.5) - 1.0).abs() < 1e-12);
 /// ```
 pub fn jacobi_cn(u: f64, k: f64) -> f64 {
-    if k < 0.0 || k >= 1.0 {
+    if !(0.0..1.0).contains(&k) {
         return f64::NAN;
     }
     if k == 0.0 {
@@ -749,7 +725,7 @@ pub fn jacobi_cn(u: f64, k: f64) -> f64 {
 /// assert!((jacobi_dn(0.0, 0.7) - 1.0).abs() < 1e-12);
 /// ```
 pub fn jacobi_dn(u: f64, k: f64) -> f64 {
-    if k < 0.0 || k >= 1.0 {
+    if !(0.0..1.0).contains(&k) {
         return f64::NAN;
     }
     if k == 0.0 {

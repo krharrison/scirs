@@ -32,7 +32,6 @@ libc = { workspace = true }
 matrixmultiply = { workspace = true }
 num = { workspace = true }
 special = { workspace = true }
-array-init = { workspace = true }
 parking_lot = { workspace = true }
 # Remove dependency on scirs2-linalg to avoid circular dependency
 # BLAS dependencies removed - using core abstractions

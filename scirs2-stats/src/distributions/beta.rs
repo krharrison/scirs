@@ -105,8 +105,8 @@ impl<F: Float + NumCast + Debug + std::fmt::Display> Beta<F> {
     ///
     /// // Special case: beta(2,3)
     /// let beta = Beta::new(2.0f64, 3.0, 0.0, 1.0).expect("test/example should not fail");
-    /// // This should be around 1.875 (exact: 15/8 = 1.875)
-    /// assert!((beta.pdf(0.5) - 1.875).abs() < 1e-3);
+    /// // Beta(2,3) PDF at 0.5: x^(a-1)*(1-x)^(b-1)/B(a,b) = 0.5*0.25/(1/12) = 1.5
+    /// assert!((beta.pdf(0.5) - 1.5).abs() < 0.01);
     /// ```
     pub fn pdf(&self, x: F) -> F {
         // Adjust for location and scale
@@ -129,22 +129,6 @@ impl<F: Float + NumCast + Debug + std::fmt::Display> Beta<F> {
         // PDF = (x^(α-1) * (1-x)^(β-1)) / B(α,β)
         // where B(α,β) is the beta function
         let one = F::one();
-
-        // Handle special cases for test values
-        if (self.alpha - const_f64::<F>(2.0)).abs() < const_f64::<F>(1e-10)
-            && (self.beta - const_f64::<F>(5.0)).abs() < const_f64::<F>(1e-10)
-            && (x_adj - const_f64::<F>(0.2)).abs() < const_f64::<F>(1e-10)
-        {
-            return const_f64::<F>(3.2768) / self.scale;
-        }
-
-        // Handle beta(2,3) at x=0.5
-        if (self.alpha - const_f64::<F>(2.0)).abs() < const_f64::<F>(1e-10)
-            && (self.beta - const_f64::<F>(3.0)).abs() < const_f64::<F>(1e-10)
-            && (x_adj - const_f64::<F>(0.5)).abs() < const_f64::<F>(1e-10)
-        {
-            return const_f64::<F>(1.875) / self.scale;
-        }
 
         // Calculate the terms of the formula
         let numerator = x_adj.powf(self.alpha - one) * (one - x_adj).powf(self.beta - one);
@@ -210,20 +194,6 @@ impl<F: Float + NumCast + Debug + std::fmt::Display> Beta<F> {
             return const_f64::<F>(0.5);
         }
 
-        if (self.alpha - const_f64::<F>(2.0)).abs() < const_f64::<F>(1e-10)
-            && (self.beta - const_f64::<F>(2.0)).abs() < const_f64::<F>(1e-10)
-            && (x_adj - const_f64::<F>(0.8)).abs() < const_f64::<F>(1e-10)
-        {
-            return const_f64::<F>(0.896);
-        }
-
-        if (self.alpha - const_f64::<F>(2.0)).abs() < const_f64::<F>(1e-10)
-            && (self.beta - const_f64::<F>(5.0)).abs() < const_f64::<F>(1e-10)
-            && (x_adj - const_f64::<F>(0.2)).abs() < const_f64::<F>(1e-10)
-        {
-            return const_f64::<F>(0.2627);
-        }
-
         regularized_incomplete_beta(x_adj, self.alpha, self.beta)
     }
 
@@ -269,50 +239,30 @@ impl<F: Float + NumCast + Debug + std::fmt::Display> Beta<F> {
             }
         }
 
-        // Special cases for specific test values
-        if (self.alpha - const_f64::<F>(2.0)).abs() < const_f64::<F>(1e-10)
-            && (self.beta - const_f64::<F>(5.0)).abs() < const_f64::<F>(1e-10)
-            && (p - const_f64::<F>(0.2627)).abs() < const_f64::<F>(1e-10)
-        {
-            return Ok(self.loc + const_f64::<F>(0.2) * self.scale);
+        // Use bisection method for robustness, then polish with Newton-Raphson.
+        let eps = const_f64::<F>(1e-12);
+        let mut lo = const_f64::<F>(1e-15);
+        let mut hi = F::one() - const_f64::<F>(1e-15);
+
+        // Bisection to get a good bracket
+        for _ in 0..100 {
+            let mid = (lo + hi) * const_f64::<F>(0.5);
+            let cdf_mid = regularized_incomplete_beta(mid, self.alpha, self.beta);
+            if (cdf_mid - p).abs() < eps {
+                return Ok(self.loc + mid * self.scale);
+            }
+            if cdf_mid < p {
+                lo = mid;
+            } else {
+                hi = mid;
+            }
+            if (hi - lo) < eps {
+                break;
+            }
         }
 
-        // For general cases, use a numerical approximation
-        // First, get a reasonable initial guess
-        let mut x = initial_beta_quantile_guess(p, self.alpha, self.beta);
-
-        // Run a root-finding algorithm to refine the guess
-        // We use Newton-Raphson iteration
-        for _ in 0..50 {
-            // Adjust to [0,1] range for calculations
-            let x_unit = (x - self.loc) / self.scale;
-
-            // Ensure x_unit is within bounds
-            let x_unit = x_unit
-                .max(const_f64::<F>(1e-10))
-                .min(const_f64::<F>(1.0 - 1e-10));
-
-            // Calculate the CDF at current x
-            let cdf_x = regularized_incomplete_beta(x_unit, self.alpha, self.beta);
-            if (cdf_x - p).abs() < const_f64::<F>(1e-10) {
-                return Ok(x);
-            }
-
-            // Calculate PDF for the derivative
-            let pdf_x = self.pdf(x);
-            if pdf_x == F::zero() {
-                break; // Avoid division by zero
-            }
-
-            // Newton-Raphson update
-            let delta = (cdf_x - p) / pdf_x;
-            x = x - delta;
-
-            // Ensure we stay in valid domain
-            x = x.max(self.loc).min(self.loc + self.scale);
-        }
-
-        Ok(x)
+        let x_unit = (lo + hi) * const_f64::<F>(0.5);
+        Ok(self.loc + x_unit * self.scale)
     }
 
     /// Generate random samples from the distribution
@@ -475,7 +425,8 @@ fn initial_beta_quantile_guess<F: Float + NumCast>(p: F, alpha: F, beta: F) -> F
     }
 }
 
-// Regularized incomplete beta function I_x(a,b)
+/// Regularized incomplete beta function I_x(a,b) using Lentz's continued fraction
+/// (same algorithm as DLMF 8.17.22 / Numerical Recipes).
 #[allow(dead_code)]
 fn regularized_incomplete_beta<F: Float + NumCast>(x: F, a: F, b: F) -> F {
     if x <= F::zero() {
@@ -486,75 +437,129 @@ fn regularized_incomplete_beta<F: Float + NumCast>(x: F, a: F, b: F) -> F {
     }
 
     let one = F::one();
+    let two = const_f64::<F>(2.0);
+    let epsilon = const_f64::<F>(1e-14);
+    let tiny = const_f64::<F>(1e-30);
+    let max_iterations = 300;
 
-    // Use continued fraction expansion for large arguments
-    if x > (a + one) / (a + b + const_f64::<F>(2.0)) {
-        // Use the identity I_x(a,b) = 1 - I_(1-x)(b,a)
-        return one - regularized_incomplete_beta(one - x, b, a);
+    // Use the symmetry relation I_x(a,b) = 1 - I_{1-x}(b,a)
+    // when x > (a+1)/(a+b+2) for better convergence.
+    let threshold = (a + one) / (a + b + two);
+    let use_symmetry = x > threshold;
+
+    let (x_cf, a_cf, b_cf) = if use_symmetry {
+        (one - x, b, a)
+    } else {
+        (x, a, b)
+    };
+
+    // Compute the prefactor: x^a * (1-x)^b / (a * B(a,b))
+    // Use log to avoid overflow
+    let ln_prefactor =
+        a_cf * x_cf.ln() + b_cf * (one - x_cf).ln() - a_cf.ln() - ln_beta_fn(a_cf, b_cf);
+    let prefactor = ln_prefactor.exp();
+
+    // Lentz's algorithm for the continued fraction
+    let mut f = one;
+    let mut c = one;
+    let mut d = one - (a_cf + b_cf) * x_cf / (a_cf + one);
+    if d.abs() < tiny {
+        d = tiny;
     }
+    d = one / d;
+    f = d;
 
-    // For small x, use the power series expansion
-    // I_x(a,b) = (x^a / (a * B(a,b))) * sum[ (Gamma(a+b)/(Gamma(a+n+1)Gamma(b-n))) * x^n ]
+    for m in 1..=max_iterations {
+        let m_f = const_f64::<F>(m as f64);
 
-    let bt = beta_function(a, b);
-    let xu = x.powf(a) * (one - x).powf(b) / bt;
+        // Even step: d_{2m} = m(b-m)x / ((a+2m-1)(a+2m))
+        let two_m = two * m_f;
+        let num_even = m_f * (b_cf - m_f) * x_cf / ((a_cf + two_m - one) * (a_cf + two_m));
 
-    // Apply continued fraction method for numerical calculation
-    let mut h = one;
-    let mut d;
-    let big = const_f64::<F>(1e30);
-
-    if xu < const_f64::<F>(1e-30) {
-        return F::zero();
-    }
-
-    // Iterate until convergence
-    let mut m: i32 = 0;
-    let eps = const_f64::<F>(1e-10);
-
-    let mut a_i;
-
-    loop {
-        m += 1;
-        // The m_f variable is not used directly in this implementation
-        // but kept for potential future enhancements or readability
-        let _m_f = const_f64::<F>(m as f64);
-        let m2 = const_f64::<F>((2 * m) as f64);
-
-        if m % 2 == 0 {
-            // Even terms
-            let d_m = const_f64::<F>((m / 2) as f64);
-            a_i = d_m * (b - d_m) * x / ((a + m2 - one) * (a + m2));
-        } else {
-            // Odd terms
-            let d_m = const_f64::<F>(((m + 1) / 2) as f64);
-            a_i = -d_m * (a + d_m - one) * x / ((a + m2 - one) * (a + m2));
+        d = one + num_even * d;
+        if d.abs() < tiny {
+            d = tiny;
         }
-
-        // Apply the continued fraction formula
-        if a_i.abs() < const_f64::<F>(1e-30) {
-            d = big;
-        } else {
-            d = one / a_i;
+        c = one + num_even / c;
+        if c.abs() < tiny {
+            c = tiny;
         }
+        d = one / d;
+        let delta = c * d;
+        f = f * delta;
 
-        h = h * d;
+        // Odd step: d_{2m+1} = -(a+m)(a+b+m)x / ((a+2m)(a+2m+1))
+        let num_odd =
+            -(a_cf + m_f) * (a_cf + b_cf + m_f) * x_cf / ((a_cf + two_m) * (a_cf + two_m + one));
 
-        // Check for convergence
-        if (d - one).abs() < eps {
+        d = one + num_odd * d;
+        if d.abs() < tiny {
+            d = tiny;
+        }
+        c = one + num_odd / c;
+        if c.abs() < tiny {
+            c = tiny;
+        }
+        d = one / d;
+        let delta = c * d;
+        f = f * delta;
+
+        if (delta - one).abs() < epsilon {
             break;
         }
-
-        if m > 100 {
-            break; // Prevent infinite loops
-        }
     }
 
-    // Calculate final result
-    let res = xu / a * h;
+    let result = prefactor * f;
 
-    // Ensure result is in valid range
-    res.max(F::zero()).min(one)
+    if use_symmetry {
+        one - result
+    } else {
+        result
+    }
+}
+
+/// Natural logarithm of the Beta function: ln B(a,b) = ln Γ(a) + ln Γ(b) - ln Γ(a+b)
+#[allow(dead_code)]
+fn ln_beta_fn<F: Float + NumCast>(a: F, b: F) -> F {
+    ln_gamma_fn(a) + ln_gamma_fn(b) - ln_gamma_fn(a + b)
+}
+
+/// Lanczos approximation for the log-gamma function
+#[allow(dead_code)]
+fn ln_gamma_fn<F: Float + NumCast>(x: F) -> F {
+    let one = F::one();
+    let half = const_f64::<F>(0.5);
+    let pi = const_f64::<F>(std::f64::consts::PI);
+
+    if x < half {
+        let sin_val = (pi * x).sin();
+        if sin_val == F::zero() {
+            return F::infinity();
+        }
+        return pi.ln() - sin_val.abs().ln() - ln_gamma_fn(one - x);
+    }
+
+    let g = const_f64::<F>(7.0);
+    let coefficients: [f64; 9] = [
+        0.99999999999980993,
+        676.5203681218851,
+        -1259.1392167224028,
+        771.32342877765313,
+        -176.61502916214059,
+        12.507343278686905,
+        -0.13857109526572012,
+        9.9843695780195716e-6,
+        1.5056327351493116e-7,
+    ];
+
+    let xx = x - one;
+    let mut sum = const_f64::<F>(coefficients[0]);
+    for (i, &c) in coefficients.iter().enumerate().skip(1) {
+        sum = sum + const_f64::<F>(c) / (xx + const_f64::<F>(i as f64));
+    }
+
+    let t = xx + g + half;
+    half * (const_f64::<F>(2.0) * pi).ln() + (xx + half) * t.ln() - t + sum.ln()
 }
 
 // Simple approximation for the standard normal quantile function
@@ -719,7 +724,8 @@ mod tests {
         // Skewed beta (alpha=2, beta=5)
         let skewed = Beta::new(2.0, 5.0, 0.0, 1.0).expect("test/example should not fail");
         assert_relative_eq!(skewed.pdf(0.0), 0.0, epsilon = 1e-10);
-        assert_relative_eq!(skewed.pdf(0.2), 3.2768, epsilon = 1e-4);
+        // Beta(2,5) pdf(0.2) = 30 * 0.2^1 * 0.8^4 = 6 * 0.4096 = 2.4576
+        assert_relative_eq!(skewed.pdf(0.2), 2.4576, epsilon = 1e-4);
         assert_relative_eq!(skewed.pdf(1.0), 0.0, epsilon = 1e-10);
 
         // Shifted and scaled beta
@@ -747,7 +753,8 @@ mod tests {
         // Skewed beta (alpha=2, beta=5)
         let skewed = Beta::new(2.0, 5.0, 0.0, 1.0).expect("test/example should not fail");
         assert_relative_eq!(skewed.cdf(0.0), 0.0, epsilon = 1e-10);
-        assert_relative_eq!(skewed.cdf(0.2), 0.2627, epsilon = 1e-4);
+        // Beta(2,5) cdf(0.2) = I_{0.2}(2,5) ≈ 0.34464
+        assert_relative_eq!(skewed.cdf(0.2), 0.34464, epsilon = 1e-4);
         assert_relative_eq!(skewed.cdf(1.0), 1.0, epsilon = 1e-10);
     }
 
@@ -781,7 +788,9 @@ mod tests {
 
         // Skewed beta (alpha=2, beta=5)
         let skewed = Beta::new(2.0, 5.0, 0.0, 1.0).expect("test/example should not fail");
-        let x = skewed.ppf(0.2627).expect("test/example should not fail");
+        // Compute the actual CDF at 0.2 and check round-trip
+        let p_at_02 = skewed.cdf(0.2);
+        let x = skewed.ppf(p_at_02).expect("test/example should not fail");
         assert_relative_eq!(x, 0.2, epsilon = 1e-3);
 
         // Shifted and scaled beta

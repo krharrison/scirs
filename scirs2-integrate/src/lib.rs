@@ -50,7 +50,7 @@
 //! Add to your `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! scirs2-integrate = "0.1.5"
+//! scirs2-integrate = "0.4.0"
 //! ```
 
 //!
@@ -324,6 +324,19 @@ pub mod sparse_grid;
 pub mod tanhsinh;
 pub mod utils;
 pub mod verification;
+
+// Adaptive mesh refinement
+pub mod amr;
+// Advanced discontinuous Galerkin methods
+pub mod dg_advanced;
+// Path integral Monte Carlo
+pub mod pimc;
+// Physics-informed neural networks
+pub mod pinn;
+// Polynomial chaos expansion
+pub mod polynomial_chaos;
+// Uncertainty quantification
+pub mod uncertainty;
 
 // Re-exports for convenience
 pub use acceleration::{AcceleratorOptions, AitkenAccelerator, AndersonAccelerator};

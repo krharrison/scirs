@@ -74,7 +74,10 @@ impl Semaphore {
 
     /// Acquire one permit, blocking if none are available.
     pub fn acquire(&self) -> CoreResult<()> {
-        let mut g = self.inner.lock().map_err(|e| lock_err("Semaphore::acquire", e))?;
+        let mut g = self
+            .inner
+            .lock()
+            .map_err(|e| lock_err("Semaphore::acquire", e))?;
         loop {
             if *g > 0 {
                 *g -= 1;
@@ -115,7 +118,10 @@ impl Semaphore {
 
     /// Try to acquire without blocking.  Returns `true` on success.
     pub fn try_acquire(&self) -> CoreResult<bool> {
-        let mut g = self.inner.lock().map_err(|e| lock_err("Semaphore::try_acquire", e))?;
+        let mut g = self
+            .inner
+            .lock()
+            .map_err(|e| lock_err("Semaphore::try_acquire", e))?;
         if *g > 0 {
             *g -= 1;
             Ok(true)
@@ -276,10 +282,7 @@ impl TokenBucketRateLimiter {
 
     /// Current token count (approximate).
     pub fn available_tokens(&self) -> f64 {
-        self.inner
-            .lock()
-            .map(|g| g.tokens)
-            .unwrap_or(0.0)
+        self.inner.lock().map(|g| g.tokens).unwrap_or(0.0)
     }
 }
 
@@ -366,11 +369,7 @@ impl RetryPolicy {
     }
 
     /// Execute `f` with a per-attempt timeout.
-    pub fn retry_with_timeout<T, E, F>(
-        &self,
-        total_timeout: Duration,
-        mut f: F,
-    ) -> CoreResult<T>
+    pub fn retry_with_timeout<T, E, F>(&self, total_timeout: Duration, mut f: F) -> CoreResult<T>
     where
         F: FnMut() -> Result<T, E>,
         E: std::fmt::Display,
@@ -388,10 +387,9 @@ impl RetryPolicy {
                 Err(e) => {
                     last_msg = e.to_string();
                     if attempt + 1 < self.max_attempts {
-                        let delay = self.compute_delay(attempt).min(
-                            deadline
-                                .saturating_duration_since(Instant::now()),
-                        );
+                        let delay = self
+                            .compute_delay(attempt)
+                            .min(deadline.saturating_duration_since(Instant::now()));
                         if !delay.is_zero() {
                             thread::sleep(delay);
                         }
@@ -410,8 +408,7 @@ impl RetryPolicy {
             BackoffStrategy::Constant => self.initial_delay,
             BackoffStrategy::Exponential | BackoffStrategy::ExponentialWithJitter => {
                 let factor = 1u64.checked_shl(attempt.min(30)).unwrap_or(u64::MAX);
-                self.initial_delay
-                    .saturating_mul(factor as u32)
+                self.initial_delay.saturating_mul(factor as u32)
             }
         };
 
@@ -474,24 +471,22 @@ impl FutureExecutor {
             let stop2 = Arc::clone(&stop);
             let handle = thread::Builder::new()
                 .name("future-exec-worker".into())
-                .spawn(move || {
-                    loop {
-                        let task = {
-                            let mut g = tx2.lock().expect("executor queue lock");
-                            loop {
-                                if let Some(t) = g.pop_front() {
-                                    break Some(t);
-                                }
-                                if stop2.load(Ordering::Relaxed) {
-                                    break None;
-                                }
-                                g = cond2.wait(g).expect("executor condvar wait");
+                .spawn(move || loop {
+                    let task = {
+                        let mut g = tx2.lock().expect("executor queue lock");
+                        loop {
+                            if let Some(t) = g.pop_front() {
+                                break Some(t);
                             }
-                        };
-                        match task {
-                            Some((_, f)) => f(),
-                            None => break,
+                            if stop2.load(Ordering::Relaxed) {
+                                break None;
+                            }
+                            g = cond2.wait(g).expect("executor condvar wait");
                         }
+                    };
+                    match task {
+                        Some((_, f)) => f(),
+                        None => break,
                     }
                 })
                 .expect("spawn executor worker");
@@ -527,7 +522,10 @@ impl FutureExecutor {
         });
 
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
-        let mut q = self.tx.lock().map_err(|e| lock_err("FutureExecutor::spawn", e))?;
+        let mut q = self
+            .tx
+            .lock()
+            .map_err(|e| lock_err("FutureExecutor::spawn", e))?;
         q.push_back((id, task));
         self.cond.notify_one();
 
@@ -655,7 +653,9 @@ mod tests {
                 s.release();
             }));
         }
-        for h in handles { h.join().expect("thread"); }
+        for h in handles {
+            h.join().expect("thread");
+        }
         assert_eq!(counter.load(AO::Relaxed), 8);
     }
 
@@ -672,14 +672,18 @@ mod tests {
     #[test]
     fn semaphore_acquire_timeout_succeeds() {
         let sem = Semaphore::new(1);
-        let ok = sem.acquire_timeout(Duration::from_millis(100)).expect("timeout acq");
+        let ok = sem
+            .acquire_timeout(Duration::from_millis(100))
+            .expect("timeout acq");
         assert!(ok);
     }
 
     #[test]
     fn semaphore_acquire_timeout_expires() {
         let sem = Semaphore::new(0); // no permits
-        let ok = sem.acquire_timeout(Duration::from_millis(20)).expect("timeout acq");
+        let ok = sem
+            .acquire_timeout(Duration::from_millis(20))
+            .expect("timeout acq");
         assert!(!ok);
     }
 
@@ -707,11 +711,7 @@ mod tests {
     #[test]
     fn retry_succeeds_on_nth_attempt() {
         let counter = std::sync::atomic::AtomicU32::new(0);
-        let policy = RetryPolicy::new(
-            5,
-            Duration::from_millis(1),
-            BackoffStrategy::Constant,
-        );
+        let policy = RetryPolicy::new(5, Duration::from_millis(1), BackoffStrategy::Constant);
         let result: Result<u32, &str> = policy.retry(|| {
             let n = counter.fetch_add(1, AO::Relaxed);
             if n < 3 {
@@ -732,11 +732,7 @@ mod tests {
 
     #[test]
     fn retry_exponential_backoff() {
-        let policy = RetryPolicy::new(
-            4,
-            Duration::from_millis(1),
-            BackoffStrategy::Exponential,
-        );
+        let policy = RetryPolicy::new(4, Duration::from_millis(1), BackoffStrategy::Exponential);
         let counter = std::sync::atomic::AtomicU32::new(0);
         let _: Result<u32, &str> = policy.retry(|| {
             counter.fetch_add(1, AO::Relaxed);
@@ -772,8 +768,10 @@ mod tests {
     #[test]
     fn future_join_timeout_succeeds() {
         let exec = FutureExecutor::new(2);
-        let h = exec.spawn(|| { 42u64 }).expect("spawn");
-        let v = h.join_timeout(Duration::from_secs(5)).expect("timeout join");
+        let h = exec.spawn(|| 42u64).expect("spawn");
+        let v = h
+            .join_timeout(Duration::from_secs(5))
+            .expect("timeout join");
         assert_eq!(v, Some(42));
         exec.shutdown().expect("shutdown");
     }

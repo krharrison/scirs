@@ -392,12 +392,7 @@ pub struct CDEVectorField<F: Float + Debug + FromPrimitive + Clone> {
 
 impl<F: Float + Debug + FromPrimitive + Clone> CDEVectorField<F> {
     /// Create with MLP width `mlp_hidden`.
-    pub fn new(
-        hidden_dim: usize,
-        control_channels: usize,
-        mlp_hidden: usize,
-        seed: u64,
-    ) -> Self {
+    pub fn new(hidden_dim: usize, control_channels: usize, mlp_hidden: usize, seed: u64) -> Self {
         let out_dim = hidden_dim * control_channels;
         let std1 = F::from((2.0 / (hidden_dim + mlp_hidden) as f64).sqrt()).expect("std");
         let std2 = F::from((2.0 / (mlp_hidden + out_dim) as f64).sqrt()).expect("std");
@@ -481,20 +476,19 @@ fn cde_rk4<F: Float + Debug + FromPrimitive + Clone>(
     let two = F::from(2.0).expect("2");
 
     // Compute the CDE drift at a given (z, t): f(z) dX/dt
-    let effective_drift =
-        |z: &Array1<F>, t: F| -> Result<Array1<F>> {
-            let fmat = field.forward(z)?;
-            let dxt = spline.derivative(t);
-            let mut drift = Array1::zeros(dim);
-            for i in 0..dim {
-                let mut s = F::zero();
-                for j in 0..fmat.ncols() {
-                    s = s + fmat[[i, j]] * dxt[j];
-                }
-                drift[i] = s;
+    let effective_drift = |z: &Array1<F>, t: F| -> Result<Array1<F>> {
+        let fmat = field.forward(z)?;
+        let dxt = spline.derivative(t);
+        let mut drift = Array1::zeros(dim);
+        for i in 0..dim {
+            let mut s = F::zero();
+            for j in 0..fmat.ncols() {
+                s = s + fmat[[i, j]] * dxt[j];
             }
-            Ok(drift)
-        };
+            drift[i] = s;
+        }
+        Ok(drift)
+    };
 
     let mut z = z0.clone();
     for step in 0..n_steps {
@@ -613,14 +607,10 @@ impl<F: Float + Debug + FromPrimitive + Clone> NeuralCDE<F> {
         }
 
         let s = config.seed;
-        let std_init = F::from(
-            (2.0 / (config.input_channels + config.hidden_dim) as f64).sqrt(),
-        )
-        .expect("std");
-        let std_out = F::from(
-            (2.0 / (config.hidden_dim + config.output_dim) as f64).sqrt(),
-        )
-        .expect("std");
+        let std_init = F::from((2.0 / (config.input_channels + config.hidden_dim) as f64).sqrt())
+            .expect("std");
+        let std_out =
+            F::from((2.0 / (config.hidden_dim + config.output_dim) as f64).sqrt()).expect("std");
 
         Ok(Self {
             vector_field: CDEVectorField::new(
@@ -629,9 +619,19 @@ impl<F: Float + Debug + FromPrimitive + Clone> NeuralCDE<F> {
                 config.mlp_hidden,
                 s,
             ),
-            init_w: random_matrix(config.hidden_dim, config.input_channels, std_init, s.wrapping_add(50)),
+            init_w: random_matrix(
+                config.hidden_dim,
+                config.input_channels,
+                std_init,
+                s.wrapping_add(50),
+            ),
             init_b: Array1::zeros(config.hidden_dim),
-            out_w: random_matrix(config.output_dim, config.hidden_dim, std_out, s.wrapping_add(60)),
+            out_w: random_matrix(
+                config.output_dim,
+                config.hidden_dim,
+                std_out,
+                s.wrapping_add(60),
+            ),
             out_b: Array1::zeros(config.output_dim),
             config,
         })
@@ -682,11 +682,7 @@ impl<F: Float + Debug + FromPrimitive + Clone> NeuralCDE<F> {
     /// # Arguments
     /// * `times` – observation timestamps (monotonically non-decreasing, ≥ 2 points).
     /// * `observations` – one `Array1` per timestamp, all of dimension `input_channels`.
-    pub fn solve(
-        &self,
-        times: &[F],
-        observations: &[Array1<F>],
-    ) -> Result<Array1<F>> {
+    pub fn solve(&self, times: &[F], observations: &[Array1<F>]) -> Result<Array1<F>> {
         if times.len() != observations.len() {
             return Err(TimeSeriesError::DimensionMismatch {
                 expected: times.len(),
@@ -699,31 +695,19 @@ impl<F: Float + Debug + FromPrimitive + Clone> NeuralCDE<F> {
         let t0 = times[0];
         let t1 = times[times.len() - 1];
         let duration = (t1 - t0).abs();
-        let n_steps = ((duration
-            * F::from(self.config.ode_steps_per_unit).expect("steps"))
-        .ceil()
-        .to_usize()
-        .unwrap_or(1))
+        let n_steps = ((duration * F::from(self.config.ode_steps_per_unit).expect("steps"))
+            .ceil()
+            .to_usize()
+            .unwrap_or(1))
         .max(1);
 
-        cde_rk4(
-            &self.vector_field,
-            &spline,
-            &z0,
-            t0,
-            t1,
-            n_steps,
-        )
+        cde_rk4(&self.vector_field, &spline, &z0, t0, t1, n_steps)
     }
 
     /// Forward pass: solve the CDE, then project `z(t_N)` to output space.
     ///
     /// Returns a prediction vector of dimension `output_dim`.
-    pub fn forward(
-        &self,
-        times: &[F],
-        observations: &[Array1<F>],
-    ) -> Result<Array1<F>> {
+    pub fn forward(&self, times: &[F], observations: &[Array1<F>]) -> Result<Array1<F>> {
         let z_final = self.solve(times, observations)?;
         Ok(self.project_output(&z_final))
     }
@@ -843,11 +827,7 @@ mod tests {
     fn test_forward_shape() {
         let model = make_model();
         let times = vec![0.0_f64, 1.0, 2.0];
-        let obs: Vec<Array1<f64>> = vec![
-            array![0.0, 0.0],
-            array![1.0, 0.5],
-            array![0.0, 1.0],
-        ];
+        let obs: Vec<Array1<f64>> = vec![array![0.0, 0.0], array![1.0, 0.5], array![0.0, 1.0]];
         let pred = model.forward(&times, &obs).expect("forward");
         assert_eq!(pred.len(), 1);
     }

@@ -451,6 +451,11 @@ impl RunLengthEncoding {
     }
 }
 
+// Arrow Flight protocol
+pub mod arrow_flight;
+// Kafka protocol
+pub mod kafka;
+
 // ─────────────────────────────── Tests ───────────────────────────────────────
 
 #[cfg(test)]

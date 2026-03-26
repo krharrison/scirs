@@ -18,6 +18,7 @@ pub mod algorithms;
 pub mod crossover;
 pub mod indicators;
 pub mod mutation;
+pub mod pareto;
 pub mod selection;
 pub mod solutions;
 

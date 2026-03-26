@@ -161,29 +161,55 @@ impl<F: Float + NumCast + std::fmt::Display> Normal<F> {
             return Ok(F::infinity());
         }
 
-        // Use Abramowitz and Stegun approximation for the inverse standard normal CDF
-        // We'll use a more accurate approximation than just inverse_erf
-
+        // Acklam's rational approximation for the inverse standard normal CDF.
+        // Maximum relative error ~1.15e-9 across the full range.
         let half = F::from(0.5).unwrap_or_else(|| F::zero());
 
-        // Coefficients for approximation (shared between both branches)
-        let c0 = F::from(2.515517).unwrap_or_else(|| F::zero());
-        let c1 = F::from(0.802853).unwrap_or_else(|| F::zero());
-        let c2 = F::from(0.010328).unwrap_or_else(|| F::zero());
-        let d1 = F::from(1.432788).unwrap_or_else(|| F::zero());
-        let d2 = F::from(0.189269).unwrap_or_else(|| F::zero());
-        let d3 = F::from(0.001308).unwrap_or_else(|| F::zero());
+        // Coefficients for the rational approximation
+        let a1 = F::from(-3.969683028665376e+01).unwrap_or_else(|| F::zero());
+        let a2 = F::from(2.209460984245205e+02).unwrap_or_else(|| F::zero());
+        let a3 = F::from(-2.759285104469687e+02).unwrap_or_else(|| F::zero());
+        let a4 = F::from(1.383577518672690e+02).unwrap_or_else(|| F::zero());
+        let a5 = F::from(-3.066479806614716e+01).unwrap_or_else(|| F::zero());
+        let a6 = F::from(2.506628277459239e+00).unwrap_or_else(|| F::zero());
 
-        let z = if p <= half {
-            // Lower region
-            let q = p;
-            let t = (-F::from(2.0).unwrap_or_else(|| F::zero()) * q.ln()).sqrt();
-            -t + (c0 + c1 * t + c2 * t * t) / (F::one() + d1 * t + d2 * t * t + d3 * t * t * t)
+        let b1 = F::from(-5.447609879822406e+01).unwrap_or_else(|| F::zero());
+        let b2 = F::from(1.615858368580409e+02).unwrap_or_else(|| F::zero());
+        let b3 = F::from(-1.556989798598866e+02).unwrap_or_else(|| F::zero());
+        let b4 = F::from(6.680131188771972e+01).unwrap_or_else(|| F::zero());
+        let b5 = F::from(-1.328068155288572e+01).unwrap_or_else(|| F::zero());
+
+        let c1 = F::from(-7.784894002430293e-03).unwrap_or_else(|| F::zero());
+        let c2 = F::from(-3.223964580411365e-01).unwrap_or_else(|| F::zero());
+        let c3 = F::from(-2.400758277161838e+00).unwrap_or_else(|| F::zero());
+        let c4 = F::from(-2.549732539343734e+00).unwrap_or_else(|| F::zero());
+        let c5 = F::from(4.374664141464968e+00).unwrap_or_else(|| F::zero());
+        let c6 = F::from(2.938163982698783e+00).unwrap_or_else(|| F::zero());
+
+        let d1c = F::from(7.784695709041462e-03).unwrap_or_else(|| F::zero());
+        let d2c = F::from(3.224671290700398e-01).unwrap_or_else(|| F::zero());
+        let d3c = F::from(2.445134137142996e+00).unwrap_or_else(|| F::zero());
+        let d4c = F::from(3.754408661907416e+00).unwrap_or_else(|| F::zero());
+
+        let p_low = F::from(0.02425).unwrap_or_else(|| F::zero());
+        let p_high = F::one() - p_low;
+
+        let z = if p < p_low {
+            // Lower tail: rational approximation
+            let q = (-F::from(2.0).unwrap_or_else(|| F::zero()) * p.ln()).sqrt();
+            (((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6)
+                / ((((d1c * q + d2c) * q + d3c) * q + d4c) * q + F::one())
+        } else if p <= p_high {
+            // Central region: rational approximation
+            let q = p - half;
+            let r = q * q;
+            (((((a1 * r + a2) * r + a3) * r + a4) * r + a5) * r + a6) * q
+                / (((((b1 * r + b2) * r + b3) * r + b4) * r + b5) * r + F::one())
         } else {
-            // Upper region
-            let q = F::one() - p;
-            let t = (-F::from(2.0).unwrap_or_else(|| F::zero()) * q.ln()).sqrt();
-            t - (c0 + c1 * t + c2 * t * t) / (F::one() + d1 * t + d2 * t * t + d3 * t * t * t)
+            // Upper tail: rational approximation (by symmetry)
+            let q = (-F::from(2.0).unwrap_or_else(|| F::zero()) * (F::one() - p).ln()).sqrt();
+            -(((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6)
+                / ((((d1c * q + d2c) * q + d3c) * q + d4c) * q + F::one())
         };
 
         // Scale and shift to get the quantile for the given parameters

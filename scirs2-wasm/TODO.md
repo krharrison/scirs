@@ -70,19 +70,19 @@
 ## v0.4.0 Roadmap
 
 ### WebGPU Compute Shaders
-- [ ] WebGPU backend for GPU-accelerated matrix multiply
-- [ ] WGSL compute shaders for batch operations
-- [ ] Fallback to WASM when WebGPU unavailable
+- [x] WebGPU backend for GPU-accelerated matrix multiply — Implemented in v0.4.0 (`webgpu/matmul.rs`)
+- [x] WGSL compute shaders for batch operations — Implemented in v0.4.0 (`webgpu/shader_gen.rs`, `webgpu/operations.rs`)
+- [x] Fallback to WASM when WebGPU unavailable — Implemented in v0.4.0 (`webgpu/backend.rs`)
 - [ ] Benchmark: target 10x speedup over WASM for large matrices
 
 ### SharedArrayBuffer / Zero-Copy
-- [ ] Zero-copy array sharing between main thread and workers via `SharedArrayBuffer`
+- [x] Zero-copy array sharing between main thread and workers via `SharedArrayBuffer` — Implemented in v0.4.0 (`parallel/` module)
 - [ ] `Atomics`-based synchronization for concurrent reads
 - [ ] Requires COOP/COEP headers (document in setup guide)
 
 ### Streaming Large Datasets
 - [ ] Async streaming API for datasets that do not fit in WASM memory
-- [ ] Lazy FFT for streaming audio/sensor data
+- [x] Lazy FFT for streaming audio/sensor data — Implemented in v0.4.0 (`streaming_fft/` module)
 - [ ] Incremental PCA on streaming data
 
 ### Expanded Signal Processing

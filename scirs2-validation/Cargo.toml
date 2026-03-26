@@ -1,0 +1,22 @@
+[package]
+name = "scirs2-validation"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Shared statistical validation framework for COOLJAPAN ecosystem"
+repository = "https://github.com/cool-japan/scirs"
+keywords = ["statistics", "validation", "testing", "distributions", "scientific"]
+categories = ["science", "mathematics", "development-tools::testing"]
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true, features = ["derive"], optional = true }
+serde_json = { workspace = true, optional = true }
+
+[features]
+default = []
+serialization = ["serde", "serde_json"]

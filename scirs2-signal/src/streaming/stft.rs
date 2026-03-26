@@ -33,7 +33,7 @@ pub enum WindowFunction {
 
 impl WindowFunction {
     /// Convert to the string key expected by [`crate::window::get_window`].
-    fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             Self::Rectangular => "rectangular",
             Self::Hann => "hann",

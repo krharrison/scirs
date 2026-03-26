@@ -844,9 +844,13 @@ fn save_and_load() {
     use std::collections::HashMap;
     use std::fs;
 
-    let dir = "/tmp/rust-autograd/test/save_and_load";
-    fs::create_dir_all(dir).expect("Operation failed");
-    let path = format!("{}/model.json", dir);
+    let dir = std::env::temp_dir()
+        .join("rust-autograd")
+        .join("test")
+        .join("save_and_load");
+    fs::create_dir_all(&dir).expect("Operation failed");
+    let path = dir.join("model.json");
+    let path = path.to_str().expect("Operation failed").to_string();
     let mut rng = ndarray_ext::ArrayRng::<f64>::default();
 
     let mut env = VariableEnvironment::new();
@@ -897,9 +901,13 @@ fn save_and_init() {
     use crate::ndarray_ext;
     use std::fs;
 
-    let dir = "/tmp/rust-autograd/test/save_and_init";
-    fs::create_dir_all(dir).expect("Operation failed");
-    let path = format!("{}/model.json", dir);
+    let dir = std::env::temp_dir()
+        .join("rust-autograd")
+        .join("test")
+        .join("save_and_init");
+    fs::create_dir_all(&dir).expect("Operation failed");
+    let path = dir.join("model.json");
+    let path = path.to_str().expect("Operation failed").to_string();
     let mut rng = ndarray_ext::ArrayRng::<f64>::default();
 
     let mut env = VariableEnvironment::new();

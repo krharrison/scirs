@@ -353,19 +353,33 @@ where
         return inv(a, workers);
     }
 
-    if n.abs() > 1 {
-        // For higher powers, we would implement more efficient algorithms
-        // using matrix decompositions or binary exponentiation
-        // This is a placeholder that will be replaced with a proper implementation
-        return Err(LinalgError::NotImplementedError(
-            "Matrix power for |n| > 1 not yet implemented".to_string(),
-        ));
+    // For negative powers with |n| > 1, compute inv(A)^|n|
+    let base = if n < 0 {
+        inv(a, workers)?
+    } else {
+        a.to_owned()
+    };
+
+    // Binary exponentiation for |n| >= 2
+    let mut exp = n.unsigned_abs();
+    let mut result = Array2::zeros((dim, dim));
+    for i in 0..dim {
+        result[[i, i]] = F::one();
+    }
+    let mut cur = base;
+
+    while exp > 0 {
+        if exp & 1 == 1 {
+            result = result.dot(&cur);
+        }
+        exp >>= 1;
+        if exp > 0 {
+            let tmp = cur.clone();
+            cur = tmp.dot(&cur);
+        }
     }
 
-    // This should never be reached
-    Err(LinalgError::ComputationError(
-        "Unexpected error in matrix power calculation".to_string(),
-    ))
+    Ok(result)
 }
 
 /// Compute the trace of a square matrix.

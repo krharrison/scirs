@@ -1,0 +1,45 @@
+# cargo-tarpaulin configuration for SciRS2
+# Used as a secondary coverage tool alongside cargo-llvm-cov.
+# Run: cargo tarpaulin --config tarpaulin.toml
+
+[default]
+# Files / directories to exclude from coverage measurement
+exclude-files = [
+    "*/tests/*",
+    "*/benches/*",
+    "*/examples/*",
+    "**/fuzz/**",
+    "tools/**",
+    "scripts/**",
+]
+
+# Workspace crates that cannot be tested in the standard way
+exclude = [
+    "scirs2-python",
+    "scirs2-datasets",
+]
+
+# Enable all default features; tests are run with the same feature set as CI
+features = "default"
+
+# Measure the whole workspace
+workspace = true
+
+# Per-test timeout (seconds)
+timeout = "300s"
+
+# Do not skip the clean step — ensures coverage data is fresh
+skip-clean = false
+
+# Output formats (can be overridden on the CLI)
+out = ["Lcov", "Html"]
+
+# LCOV output file
+output-dir = ".tarpaulin"
+
+# Run with cargo-test (not nextest, which tarpaulin cannot instrument)
+run-types = ["Tests", "Doctests"]
+
+# Minimum line coverage to consider the run a success.
+# Kept at 70% initially; raise toward 95% as test coverage grows.
+fail-under = 70

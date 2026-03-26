@@ -86,7 +86,11 @@ impl<T> LockFreeQueue<T> {
     ///
     /// The minimum capacity is 1; if `capacity` is 0 it is treated as 1.
     pub fn new(capacity: usize) -> Self {
-        let cap = capacity.max(1).next_power_of_two();
+        // The Vyukov MPMC queue requires capacity >= 2 to correctly
+        // distinguish "slot free for producer" from "slot has data for consumer."
+        // With capacity 1, the sequence-number check becomes ambiguous and the
+        // queue deadlocks.
+        let cap = capacity.max(2).next_power_of_two();
         let buffer: Vec<Slot<T>> = (0..cap).map(|i| Slot::new(i)).collect();
         LockFreeQueue {
             buffer,
@@ -120,8 +124,7 @@ impl<T> LockFreeQueue<T> {
                             unsafe {
                                 (*slot.value.get()).write(val);
                             }
-                            slot.sequence
-                                .store(pos.wrapping_add(1), Ordering::Release);
+                            slot.sequence.store(pos.wrapping_add(1), Ordering::Release);
                             return true;
                         }
                         Err(updated) => {
@@ -162,10 +165,8 @@ impl<T> LockFreeQueue<T> {
                         Ok(_) => {
                             // We own the slot; read value and free.
                             let val = unsafe { (*slot.value.get()).assume_init_read() };
-                            slot.sequence.store(
-                                pos.wrapping_add(self.capacity),
-                                Ordering::Release,
-                            );
+                            slot.sequence
+                                .store(pos.wrapping_add(self.capacity), Ordering::Release);
                             return Some(val);
                         }
                         Err(updated) => {
@@ -331,10 +332,15 @@ mod tests {
     #[test]
     fn test_zero_capacity_becomes_one() {
         let q: LockFreeQueue<u8> = LockFreeQueue::new(0);
-        // next_power_of_two(1) == 1
-        assert_eq!(q.capacity(), 1);
+        // Minimum capacity is 2 (Vyukov MPMC requires >= 2 to avoid
+        // sequence-number ambiguity); next_power_of_two(2) == 2.
+        assert_eq!(q.capacity(), 2);
         assert!(q.push(42));
-        assert!(!q.push(43));
+        assert!(q.push(43));
+        // Now full — third push must fail.
+        assert!(!q.push(44));
         assert_eq!(q.pop(), Some(42));
+        assert_eq!(q.pop(), Some(43));
+        assert_eq!(q.pop(), None);
     }
 }

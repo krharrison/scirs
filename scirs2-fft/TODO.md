@@ -113,16 +113,16 @@
 - [ ] Ring-buffer STFT for online/real-time applications
 
 ### Quantum FFT
-- [ ] Quantum Fourier Transform circuit simulation (via `scirs2-core` quantum primitives)
-- [ ] Phase estimation circuit using QFT
-- [ ] Shor's algorithm building blocks
+- [x] Quantum Fourier Transform circuit simulation (via `scirs2-core` quantum primitives) — Implemented in v0.4.0 (`quantum/qft.rs`)
+- [x] Phase estimation circuit using QFT — Implemented in v0.4.0 (`quantum/phase_estimation.rs`)
+- [x] Shor's algorithm building blocks — Implemented in v0.4.0 (`shor/mod.rs`)
 
 ### Additional Algorithms
-- [ ] Short-time fractional Fourier transform (STFRFT)
-- [ ] Wigner-Ville distribution (full, smoothed)
-- [ ] Ambiguity function computation
-- [ ] Cyclostationary spectral analysis
-- [ ] Ramanujan periodic transform
+- [x] Short-time fractional Fourier transform (STFRFT) — Implemented in v0.4.0 (`fractional/stfrft.rs`)
+- [x] Wigner-Ville distribution (full, smoothed) — Implemented in v0.4.0 (`wigner_ville/` module)
+- [x] Ambiguity function computation — Implemented in v0.4.0 (`ambiguity/mod.rs`)
+- [x] Cyclostationary spectral analysis — Implemented in v0.4.0 (`cyclostationary/` module)
+- [x] Ramanujan periodic transform — Implemented in v0.4.0 (`ramanujan/mod.rs`)
 
 ### Performance
 - [ ] AVX-512 butterfly kernels for radix-4 and radix-8 FFT stages

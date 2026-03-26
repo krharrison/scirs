@@ -112,10 +112,7 @@ pub fn bipower_variation(prices: &[f64]) -> Result<f64> {
         ));
     }
 
-    let returns: Vec<f64> = prices
-        .windows(2)
-        .map(|w| (w[1] / w[0]).ln())
-        .collect();
+    let returns: Vec<f64> = prices.windows(2).map(|w| (w[1] / w[0]).ln()).collect();
 
     let bv: f64 = returns
         .windows(2)
@@ -153,10 +150,7 @@ pub fn realized_kernel(prices: &[f64], bandwidth: usize) -> Result<f64> {
         ));
     }
 
-    let returns: Vec<f64> = prices
-        .windows(2)
-        .map(|w| (w[1] / w[0]).ln())
-        .collect();
+    let returns: Vec<f64> = prices.windows(2).map(|w| (w[1] / w[0]).ln()).collect();
 
     let m = returns.len();
 
@@ -275,7 +269,8 @@ pub fn har_regressors(rv_series: &[f64]) -> Result<(Vec<f64>, Vec<f64>, Vec<f64>
     let n = rv_series.len();
     if n < 24 {
         return Err(TimeSeriesError::InsufficientData {
-            message: "HAR regressors: need at least 24 RV observations (22 for monthly lag + 2)".into(),
+            message: "HAR regressors: need at least 24 RV observations (22 for monthly lag + 2)"
+                .into(),
             required: 24,
             actual: n,
         });
@@ -355,7 +350,11 @@ pub fn fit_har(rv_series: &[f64]) -> Result<HARModel> {
         ss_tot += (y[i] - y_mean).powi(2);
     }
 
-    let r_squared = if ss_tot > 0.0 { 1.0 - ss_res / ss_tot } else { 0.0 };
+    let r_squared = if ss_tot > 0.0 {
+        1.0 - ss_res / ss_tot
+    } else {
+        0.0
+    };
     let residual_std = (ss_res / (n_reg as f64 - 4.0).max(1.0)).sqrt();
 
     Ok(HARModel {
@@ -403,11 +402,8 @@ pub fn har_forecast(model: &HARModel, rv_series: &[f64], h: usize) -> Result<Vec
         let rv_d = history[m - 1];
         let rv_w = history[m - 5..m].iter().sum::<f64>() / 5.0;
         let rv_m = history[m - 22..m].iter().sum::<f64>() / 22.0;
-        let rv_next = (model.c
-            + model.phi_d * rv_d
-            + model.phi_w * rv_w
-            + model.phi_m * rv_m)
-            .max(0.0);
+        let rv_next =
+            (model.c + model.phi_d * rv_d + model.phi_w * rv_w + model.phi_m * rv_m).max(0.0);
         forecasts.push(rv_next);
         history.push(rv_next);
     }
@@ -494,16 +490,17 @@ pub fn fit_har_j(rv_series: &[f64], bv_series: &[f64]) -> Result<HARJModel> {
     let mut ss_res = 0.0_f64;
     let mut ss_tot = 0.0_f64;
     for i in 0..n_reg {
-        let y_hat = beta[0]
-            + beta[1] * rv_d[i]
-            + beta[2] * rv_w[i]
-            + beta[3] * rv_m[i]
-            + beta[4] * jump[i];
+        let y_hat =
+            beta[0] + beta[1] * rv_d[i] + beta[2] * rv_w[i] + beta[3] * rv_m[i] + beta[4] * jump[i];
         ss_res += (y[i] - y_hat).powi(2);
         ss_tot += (y[i] - y_mean).powi(2);
     }
 
-    let r_squared = if ss_tot > 0.0 { 1.0 - ss_res / ss_tot } else { 0.0 };
+    let r_squared = if ss_tot > 0.0 {
+        1.0 - ss_res / ss_tot
+    } else {
+        0.0
+    };
 
     Ok(HARJModel {
         c: beta[0],
@@ -536,12 +533,7 @@ pub fn fit_har_j(rv_series: &[f64], bv_series: &[f64]) -> Result<HARJModel> {
 /// * `h` — forecast horizon (used for Newey-West bandwidth)
 ///
 /// Returns `(DM_statistic, p_value_two_sided)`.
-pub fn diebold_mariano_test(
-    e1: &[f64],
-    e2: &[f64],
-    squared: bool,
-    h: usize,
-) -> Result<(f64, f64)> {
+pub fn diebold_mariano_test(e1: &[f64], e2: &[f64], squared: bool, h: usize) -> Result<(f64, f64)> {
     if e1.len() != e2.len() {
         return Err(TimeSeriesError::InvalidInput(
             "Diebold-Mariano: e1 and e2 must have the same length".into(),
@@ -557,7 +549,11 @@ pub fn diebold_mariano_test(
     }
 
     let loss = |e: f64| if squared { e * e } else { e.abs() };
-    let d: Vec<f64> = e1.iter().zip(e2.iter()).map(|(&a, &b)| loss(a) - loss(b)).collect();
+    let d: Vec<f64> = e1
+        .iter()
+        .zip(e2.iter())
+        .map(|(&a, &b)| loss(a) - loss(b))
+        .collect();
 
     let d_mean = d.iter().sum::<f64>() / n as f64;
 
@@ -602,9 +598,10 @@ fn erfc_approx(x: f64) -> f64 {
     }
     // Abramowitz & Stegun 7.1.26 polynomial approximation, max error |ε| < 1.5e-7
     let t = 1.0 / (1.0 + 0.3275911 * x);
-    let poly = t * (0.254_829_592
-        + t * (-0.284_496_736
-            + t * (1.421_413_741 + t * (-1.453_152_027 + t * 1.061_405_429))));
+    let poly = t
+        * (0.254_829_592
+            + t * (-0.284_496_736
+                + t * (1.421_413_741 + t * (-1.453_152_027 + t * 1.061_405_429))));
     (-x * x).exp() * poly
 }
 
@@ -625,11 +622,16 @@ fn solve_nxn(a_in: &[f64], b_in: &[f64], n: usize) -> Result<Vec<f64>> {
     for col in 0..n {
         // Find pivot
         let pivot_row = (col..n)
-            .max_by(|&i, &j| a[i * n + col].abs().partial_cmp(&a[j * n + col].abs()).unwrap_or(std::cmp::Ordering::Equal))
+            .max_by(|&i, &j| {
+                a[i * n + col]
+                    .abs()
+                    .partial_cmp(&a[j * n + col].abs())
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
             .unwrap_or(col);
 
         if a[pivot_row * n + col].abs() < 1e-14 {
-            return Err(TimeSeriesError::NumericalError(
+            return Err(TimeSeriesError::NumericalInstability(
                 "OLS solve: singular matrix (multicollinearity?)".into(),
             ));
         }
@@ -792,7 +794,9 @@ mod tests {
     fn test_fit_har_j_basic() {
         let rv = make_rv_series(60);
         // BV with varying fraction to break collinearity with RV
-        let bv: Vec<f64> = rv.iter().enumerate()
+        let bv: Vec<f64> = rv
+            .iter()
+            .enumerate()
             .map(|(i, &v)| v * (0.75 + 0.2 * ((i as f64 * 0.7).sin() * 0.5 + 0.5)))
             .collect();
         let model = fit_har_j(&rv, &bv).expect("HAR-J should fit");
@@ -804,8 +808,7 @@ mod tests {
     fn test_diebold_mariano_basic() {
         let e1: Vec<f64> = vec![0.01, -0.02, 0.03, -0.01, 0.02, -0.015, 0.025, -0.005];
         let e2: Vec<f64> = vec![0.015, -0.01, 0.02, -0.015, 0.025, -0.01, 0.015, -0.01];
-        let (dm, p) = diebold_mariano_test(&e1, &e2, true, 1)
-            .expect("DM test should compute");
+        let (dm, p) = diebold_mariano_test(&e1, &e2, true, 1).expect("DM test should compute");
         assert!(dm.is_finite());
         assert!((0.0..=1.0).contains(&p));
     }

@@ -215,8 +215,7 @@ impl GraphAttentionLayer {
         let head_attention: Vec<Array1<f64>> = (0..n_heads)
             .map(|_| {
                 Array1::from_iter(
-                    (0..2 * head_out_dim)
-                        .map(|_| rng.random::<f64>() * 2.0 * a_scale - a_scale),
+                    (0..2 * head_out_dim).map(|_| rng.random::<f64>() * 2.0 * a_scale - a_scale),
                 )
             })
             .collect();
@@ -388,7 +387,11 @@ mod tests {
         let adj = triangle_csr();
         let f = feats(3, 4);
         let w = Array2::from_shape_fn((4, 6), |(i, j)| (i as f64 - j as f64) * 0.05);
-        let a = Array1::from_vec((0..12).map(|i| if i % 2 == 0 { 0.3 } else { -0.3 }).collect());
+        let a = Array1::from_vec(
+            (0..12)
+                .map(|i| if i % 2 == 0 { 0.3 } else { -0.3 })
+                .collect(),
+        );
         let out = gat_forward(&adj, &f, &w, &a, 0.2).expect("gat_forward");
         for &v in out.iter() {
             assert!(v.is_finite(), "non-finite: {v}");
@@ -449,9 +452,12 @@ mod tests {
     fn test_attention_coefficients_sum_to_one() {
         // Build a star graph: node 0 connected to 1, 2, 3
         let coo = vec![
-            (0, 1, 1.0), (1, 0, 1.0),
-            (0, 2, 1.0), (2, 0, 1.0),
-            (0, 3, 1.0), (3, 0, 1.0),
+            (0, 1, 1.0),
+            (1, 0, 1.0),
+            (0, 2, 1.0),
+            (2, 0, 1.0),
+            (0, 3, 1.0),
+            (3, 0, 1.0),
         ];
         let adj = CsrMatrix::from_coo(4, 4, &coo).expect("star CSR");
         let f = feats(4, 3);

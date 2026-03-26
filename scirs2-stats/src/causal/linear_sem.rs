@@ -31,7 +31,7 @@
 //! ## Model
 //!
 //! The model is:
-//!   X_i = μ_i + Σ_j B[i,j] * X_j + ε_i,  ε_i ~ N(0, σ²_i)
+//!   `X_i = mu_i + Sum_j B[i,j] * X_j + eps_i`, eps\_i ~ N(0, sigma^2\_i)
 //!
 //! - `B` is the coefficient matrix: `B[i,j]` is the direct effect of X_j on X_i.
 //! - The diagonal of B must be zero (no self-loops).
@@ -48,10 +48,10 @@ use std::collections::VecDeque;
 
 use scirs2_core::ndarray::{Array1, Array2};
 
-use crate::StatsError;
-use crate::bayesian_network::dag::DAG;
 use super::sem::satisfies_backdoor;
 use crate::bayesian_network::approximate_inference::{LcgRng, Rng};
+use crate::bayesian_network::dag::DAG;
+use crate::StatsError;
 
 // ---------------------------------------------------------------------------
 // LinearSEM
@@ -77,9 +77,9 @@ use crate::bayesian_network::approximate_inference::{LcgRng, Rng};
 /// ```
 #[derive(Debug, Clone)]
 pub struct LinearSEM {
-    /// Coefficient matrix B where B[i][j] = effect of X_j on X_i.
+    /// Coefficient matrix B where `B[i][j]` = effect of X\_j on X\_i.
     pub coefficients: Array2<f64>,
-    /// Per-variable noise variances: ε_i ~ N(0, noise_variances[i]).
+    /// Per-variable noise variances: eps\_i ~ N(0, `noise_variances[i]`).
     pub noise_variances: Vec<f64>,
     /// Number of variables.
     pub n_vars: usize,
@@ -96,13 +96,15 @@ impl LinearSEM {
     /// - If any noise variance is negative.
     /// - If the diagonal is non-zero.
     /// - If the graph implied by `B` contains a cycle.
-    pub fn new(
-        coefficients: Array2<f64>,
-        noise_variances: Vec<f64>,
-    ) -> Result<Self, StatsError> {
+    pub fn new(coefficients: Array2<f64>, noise_variances: Vec<f64>) -> Result<Self, StatsError> {
         let n = validate_coefficient_matrix(&coefficients, &noise_variances)?;
         let topo_order = topo_sort_from_b(&coefficients, n)?;
-        Ok(Self { coefficients, noise_variances, n_vars: n, topo_order })
+        Ok(Self {
+            coefficients,
+            noise_variances,
+            n_vars: n,
+            topo_order,
+        })
     }
 
     /// Fit a `LinearSEM` from data using OLS, given an adjacency matrix.
@@ -111,10 +113,7 @@ impl LinearSEM {
     ///
     /// # Returns
     /// Fitted `LinearSEM` with OLS coefficients and residual variances.
-    pub fn fit(
-        data: &Array2<f64>,
-        adjacency: &Array2<f64>,
-    ) -> Result<Self, StatsError> {
+    pub fn fit(data: &Array2<f64>, adjacency: &Array2<f64>) -> Result<Self, StatsError> {
         let (b, noise_variances) = ols_fit_from_adjacency(data, adjacency)?;
         Self::new(b, noise_variances)
     }
@@ -122,12 +121,30 @@ impl LinearSEM {
     /// Simulate `n` observations using a fixed LCG seed (42).
     pub fn simulate(&self, n: usize) -> Result<Array2<f64>, StatsError> {
         let mut rng = LcgRng::new(42);
-        simulate_inner(&self.coefficients, &self.noise_variances, &[0.0; 0], &self.topo_order, n, &mut rng)
+        simulate_inner(
+            &self.coefficients,
+            &self.noise_variances,
+            &[0.0; 0],
+            &self.topo_order,
+            n,
+            &mut rng,
+        )
     }
 
     /// Simulate `n` observations with a provided RNG.
-    pub fn simulate_with_rng(&self, n: usize, rng: &mut impl Rng) -> Result<Array2<f64>, StatsError> {
-        simulate_inner(&self.coefficients, &self.noise_variances, &[0.0; 0], &self.topo_order, n, rng)
+    pub fn simulate_with_rng(
+        &self,
+        n: usize,
+        rng: &mut impl Rng,
+    ) -> Result<Array2<f64>, StatsError> {
+        simulate_inner(
+            &self.coefficients,
+            &self.noise_variances,
+            &[0.0; 0],
+            &self.topo_order,
+            n,
+            rng,
+        )
     }
 
     /// Apply a do-intervention, returning a [`LinearSEMWithIntercepts`].
@@ -228,7 +245,8 @@ impl LinearSEM {
     ) -> Result<(f64, f64, f64), StatsError> {
         if treatment >= self.n_vars || mediator >= self.n_vars || outcome >= self.n_vars {
             return Err(StatsError::InvalidInput(format!(
-                "Indices out of range: n_vars={}", self.n_vars
+                "Indices out of range: n_vars={}",
+                self.n_vars
             )));
         }
         let direct = self.coefficients[[outcome, treatment]];
@@ -247,7 +265,7 @@ impl LinearSEM {
 /// Linear Structural Equation Model with per-variable intercepts.
 ///
 /// The model is:
-///   X_i = μ_i + Σ_j B[i,j] * X_j + ε_i,  ε_i ~ N(0, σ²_i)
+///   `X_i = mu_i + Sum_j B[i,j] * X_j + eps_i`, eps\_i ~ N(0, sigma^2\_i)
 ///
 /// Intercepts are normally zero. After `do_intervention(var, value)`, the
 /// intercept for `var` is set to `value` and its incoming edges + noise are zeroed.
@@ -272,7 +290,7 @@ impl LinearSEM {
 /// ```
 #[derive(Debug, Clone)]
 pub struct LinearSEMWithIntercepts {
-    /// Coefficient matrix B: B[i][j] = direct effect of X_j on X_i.
+    /// Coefficient matrix B: `B[i][j]` = direct effect of X\_j on X\_i.
     pub coefficients: Array2<f64>,
     /// Per-variable noise variances.
     pub noise_variances: Vec<f64>,
@@ -288,10 +306,7 @@ pub struct LinearSEMWithIntercepts {
 
 impl LinearSEMWithIntercepts {
     /// Create a new `LinearSEMWithIntercepts` with zero intercepts.
-    pub fn new(
-        coefficients: Array2<f64>,
-        noise_variances: Vec<f64>,
-    ) -> Result<Self, StatsError> {
+    pub fn new(coefficients: Array2<f64>, noise_variances: Vec<f64>) -> Result<Self, StatsError> {
         let n = validate_coefficient_matrix(&coefficients, &noise_variances)?;
         let topo_order = topo_sort_from_b(&coefficients, n)?;
         Ok(Self {
@@ -305,10 +320,7 @@ impl LinearSEMWithIntercepts {
     }
 
     /// Fit from observational data and a known adjacency matrix using OLS.
-    pub fn fit(
-        data: &Array2<f64>,
-        adjacency: &Array2<f64>,
-    ) -> Result<Self, StatsError> {
+    pub fn fit(data: &Array2<f64>, adjacency: &Array2<f64>) -> Result<Self, StatsError> {
         let (b, noise_variances) = ols_fit_from_adjacency(data, adjacency)?;
         Self::new(b, noise_variances)
     }
@@ -327,7 +339,9 @@ impl LinearSEMWithIntercepts {
 
     /// Internal: mutably apply an intervention.
     fn apply_intervention(&mut self, var: usize, value: f64) {
-        if var >= self.n_vars { return; }
+        if var >= self.n_vars {
+            return;
+        }
         for j in 0..self.n_vars {
             self.coefficients[[var, j]] = 0.0;
         }
@@ -343,7 +357,11 @@ impl LinearSEMWithIntercepts {
     }
 
     /// Simulate `n` observations with a provided RNG.
-    pub fn simulate_with_rng(&self, n: usize, rng: &mut impl Rng) -> Result<Array2<f64>, StatsError> {
+    pub fn simulate_with_rng(
+        &self,
+        n: usize,
+        rng: &mut impl Rng,
+    ) -> Result<Array2<f64>, StatsError> {
         if n == 0 {
             return Err(StatsError::InvalidInput("n must be positive".to_string()));
         }
@@ -425,7 +443,8 @@ impl LinearSEMWithIntercepts {
     ) -> Result<(f64, f64, f64), StatsError> {
         if treatment >= self.n_vars || mediator >= self.n_vars || outcome >= self.n_vars {
             return Err(StatsError::InvalidInput(format!(
-                "Indices out of range: n_vars={}", self.n_vars
+                "Indices out of range: n_vars={}",
+                self.n_vars
             )));
         }
         let direct = self.coefficients[[outcome, treatment]];
@@ -468,13 +487,16 @@ fn validate_coefficient_matrix(
     let shape = b.shape();
     if shape[0] != shape[1] {
         return Err(StatsError::InvalidInput(format!(
-            "Coefficient matrix must be square, got {}×{}", shape[0], shape[1]
+            "Coefficient matrix must be square, got {}×{}",
+            shape[0], shape[1]
         )));
     }
     let n = shape[0];
     if noise_variances.len() != n {
         return Err(StatsError::InvalidInput(format!(
-            "noise_variances length {} != n_vars {}", noise_variances.len(), n
+            "noise_variances length {} != n_vars {}",
+            noise_variances.len(),
+            n
         )));
     }
     for (i, &v) in noise_variances.iter().enumerate() {
@@ -487,7 +509,8 @@ fn validate_coefficient_matrix(
     for i in 0..n {
         if b[[i, i]].abs() > 1e-12 {
             return Err(StatsError::InvalidInput(format!(
-                "Diagonal B[{i},{i}] = {} must be zero (no self-loops)", b[[i, i]]
+                "Diagonal B[{i},{i}] = {} must be zero (no self-loops)",
+                b[[i, i]]
             )));
         }
     }
@@ -520,7 +543,7 @@ fn topo_sort_from_b(b: &Array2<f64>, n: usize) -> Result<Vec<usize>, StatsError>
     }
     if order.len() != n {
         return Err(StatsError::InvalidInput(
-            "Coefficient matrix implies a cycle — not a valid linear DAG".to_string()
+            "Coefficient matrix implies a cycle — not a valid linear DAG".to_string(),
         ));
     }
     Ok(order)
@@ -534,12 +557,17 @@ fn ols_fit_from_adjacency(
     let n_samples = data.shape()[0];
     let n_vars = data.shape()[1];
     if n_samples < 2 {
-        return Err(StatsError::InvalidInput("Need at least 2 samples".to_string()));
+        return Err(StatsError::InvalidInput(
+            "Need at least 2 samples".to_string(),
+        ));
     }
     if adjacency.shape()[0] != n_vars || adjacency.shape()[1] != n_vars {
         return Err(StatsError::InvalidInput(format!(
             "adjacency must be {}×{}, got {}×{}",
-            n_vars, n_vars, adjacency.shape()[0], adjacency.shape()[1]
+            n_vars,
+            n_vars,
+            adjacency.shape()[0],
+            adjacency.shape()[1]
         )));
     }
     let mut b = Array2::<f64>::zeros((n_vars, n_vars));
@@ -553,7 +581,8 @@ fn ols_fit_from_adjacency(
             let col_mean = (0..n_samples).map(|s| data[[s, i]]).sum::<f64>() / n_samples as f64;
             let var = (0..n_samples)
                 .map(|s| (data[[s, i]] - col_mean).powi(2))
-                .sum::<f64>() / n_samples as f64;
+                .sum::<f64>()
+                / n_samples as f64;
             noise_variances[i] = var;
             continue;
         }
@@ -607,7 +636,11 @@ fn simulate_inner(
         for &node in topo_order {
             let std = noise_variances[node].sqrt();
             let noise = normal_sample(rng, 0.0, std);
-            let intercept = if has_intercepts { intercepts[node] } else { 0.0 };
+            let intercept = if has_intercepts {
+                intercepts[node]
+            } else {
+                0.0
+            };
             let mut val = intercept + noise;
             for j in 0..nv {
                 let c = b[[node, j]];
@@ -622,12 +655,7 @@ fn simulate_inner(
 }
 
 /// Compute the total causal effect of `cause` on `effect` via (I-B)^{-1}.
-fn compute_single_total_effect(
-    b: &Array2<f64>,
-    n: usize,
-    cause: usize,
-    effect: usize,
-) -> f64 {
+fn compute_single_total_effect(b: &Array2<f64>, n: usize, cause: usize, effect: usize) -> f64 {
     if cause >= n || effect >= n || cause == effect {
         return 0.0;
     }
@@ -650,19 +678,27 @@ fn compute_total_effects_matrix(b: &Array2<f64>, n: usize) -> Option<Array2<f64>
     // Gaussian elimination with partial pivoting
     for col in 0..n {
         let pivot_row = (col..n).max_by(|&a, &bb| {
-            aug[a][col].abs().partial_cmp(&aug[bb][col].abs())
+            aug[a][col]
+                .abs()
+                .partial_cmp(&aug[bb][col].abs())
                 .unwrap_or(std::cmp::Ordering::Equal)
         })?;
         aug.swap(col, pivot_row);
         let pv = aug[col][col];
-        if pv.abs() < 1e-14 { return None; }
+        if pv.abs() < 1e-14 {
+            return None;
+        }
         for k in 0..2 * n {
             aug[col][k] /= pv;
         }
         for row in 0..n {
-            if row == col { continue; }
+            if row == col {
+                continue;
+            }
             let factor = aug[row][col];
-            if factor.abs() < 1e-15 { continue; }
+            if factor.abs() < 1e-15 {
+                continue;
+            }
             for k in 0..2 * n {
                 let v = aug[col][k];
                 aug[row][k] -= factor * v;
@@ -713,7 +749,9 @@ fn backdoor_ols_estimate(
         )));
     }
     if n_samples < 2 {
-        return Err(StatsError::InvalidInput("Need at least 2 samples".to_string()));
+        return Err(StatsError::InvalidInput(
+            "Need at least 2 samples".to_string(),
+        ));
     }
     // Predictors: treatment first, then non-duplicate adjustment variables
     let mut predictors = vec![treatment];
@@ -735,7 +773,7 @@ fn backdoor_ols_estimate(
     }
     let coeffs = solve_linear_system(&xtx, &xty).ok_or_else(|| {
         StatsError::ComputationError(
-            "Backdoor adjustment: OLS singular (predictors are collinear)".to_string()
+            "Backdoor adjustment: OLS singular (predictors are collinear)".to_string(),
         )
     })?;
     Ok(coeffs[0])
@@ -757,23 +795,37 @@ fn b_to_dag(b: &Array2<f64>, n: usize) -> Result<DAG, StatsError> {
 /// Gaussian elimination with partial pivoting. Returns x such that Ax = b.
 fn solve_linear_system(a: &[Vec<f64>], b: &[f64]) -> Option<Vec<f64>> {
     let n = a.len();
-    if n == 0 { return Some(Vec::new()); }
-    let mut aug: Vec<Vec<f64>> = a.iter().zip(b).map(|(row, &bi)| {
-        let mut r = row.clone();
-        r.push(bi);
-        r
-    }).collect();
+    if n == 0 {
+        return Some(Vec::new());
+    }
+    let mut aug: Vec<Vec<f64>> = a
+        .iter()
+        .zip(b)
+        .map(|(row, &bi)| {
+            let mut r = row.clone();
+            r.push(bi);
+            r
+        })
+        .collect();
     for col in 0..n {
         let pivot = (col..n).max_by(|&i, &j| {
-            aug[i][col].abs().partial_cmp(&aug[j][col].abs())
+            aug[i][col]
+                .abs()
+                .partial_cmp(&aug[j][col].abs())
                 .unwrap_or(std::cmp::Ordering::Equal)
         })?;
         aug.swap(col, pivot);
         let pv = aug[col][col];
-        if pv.abs() < 1e-15 { return None; }
-        for k in col..=n { aug[col][k] /= pv; }
+        if pv.abs() < 1e-15 {
+            return None;
+        }
+        for k in col..=n {
+            aug[col][k] /= pv;
+        }
         for row in 0..n {
-            if row == col { continue; }
+            if row == col {
+                continue;
+            }
             let factor = aug[row][col];
             for k in col..=n {
                 let v = aug[col][k];
@@ -786,7 +838,9 @@ fn solve_linear_system(a: &[Vec<f64>], b: &[f64]) -> Option<Vec<f64>> {
 
 /// Box-Muller normal sample.
 fn normal_sample(rng: &mut impl Rng, mean: f64, std: f64) -> f64 {
-    if std < 1e-15 { return mean; }
+    if std < 1e-15 {
+        return mean;
+    }
     let u1 = rng.next_f64().max(1e-15);
     let u2 = rng.next_f64();
     let z = (-2.0 * u1.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos();
@@ -803,11 +857,7 @@ mod tests {
     use scirs2_core::ndarray::array;
 
     fn chain_b() -> Array2<f64> {
-        array![
-            [0.0, 0.0, 0.0],
-            [2.0, 0.0, 0.0],
-            [0.0, 3.0, 0.0],
-        ]
+        array![[0.0, 0.0, 0.0], [2.0, 0.0, 0.0], [0.0, 3.0, 0.0],]
     }
 
     #[test]
@@ -838,25 +888,36 @@ mod tests {
     #[test]
     fn test_total_effect_chain() {
         let sem = LinearSEM::new(chain_b(), vec![1.0, 0.25, 0.25]).unwrap();
-        assert!((sem.total_effect(0, 1) - 2.0).abs() < 1e-10, "Effect 0→1 should be 2.0");
-        assert!((sem.total_effect(1, 2) - 3.0).abs() < 1e-10, "Effect 1→2 should be 3.0");
-        assert!((sem.total_effect(0, 2) - 6.0).abs() < 1e-10, "Effect 0→2 should be 6.0");
-        assert!(sem.total_effect(2, 0).abs() < 1e-10, "Reverse has no effect");
+        assert!(
+            (sem.total_effect(0, 1) - 2.0).abs() < 1e-10,
+            "Effect 0→1 should be 2.0"
+        );
+        assert!(
+            (sem.total_effect(1, 2) - 3.0).abs() < 1e-10,
+            "Effect 1→2 should be 3.0"
+        );
+        assert!(
+            (sem.total_effect(0, 2) - 6.0).abs() < 1e-10,
+            "Effect 0→2 should be 6.0"
+        );
+        assert!(
+            sem.total_effect(2, 0).abs() < 1e-10,
+            "Reverse has no effect"
+        );
         assert!(sem.total_effect(1, 0).abs() < 1e-10, "No effect 1→0");
     }
 
     #[test]
     fn test_total_effect_fork() {
         // Z → X, Z → Y (Z=0, X=1, Y=2)
-        let b = array![
-            [0.0, 0.0, 0.0],
-            [2.0, 0.0, 0.0],
-            [3.0, 0.0, 0.0],
-        ];
+        let b = array![[0.0, 0.0, 0.0], [2.0, 0.0, 0.0], [3.0, 0.0, 0.0],];
         let sem = LinearSEM::new(b, vec![1.0, 1.0, 1.0]).unwrap();
         assert!((sem.total_effect(0, 1) - 2.0).abs() < 1e-10);
         assert!((sem.total_effect(0, 2) - 3.0).abs() < 1e-10);
-        assert!(sem.total_effect(1, 2).abs() < 1e-10, "X has no causal effect on Y");
+        assert!(
+            sem.total_effect(1, 2).abs() < 1e-10,
+            "X has no causal effect on Y"
+        );
     }
 
     #[test]
@@ -921,10 +982,17 @@ mod tests {
         let data = sem_do.simulate(2000).unwrap();
         // All X1 values must be exactly 5
         for s in 0..2000 {
-            assert!((data[[s, 1]] - 5.0).abs() < 1e-10, "X1[{s}] = {} != 5.0", data[[s, 1]]);
+            assert!(
+                (data[[s, 1]] - 5.0).abs() < 1e-10,
+                "X1[{s}] = {} != 5.0",
+                data[[s, 1]]
+            );
         }
         let mean_x2 = (0..2000).map(|s| data[[s, 2]]).sum::<f64>() / 2000.0;
-        assert!((mean_x2 - 15.0).abs() < 0.4, "E[X2|do(X1=5)] ≈ 15, got {mean_x2}");
+        assert!(
+            (mean_x2 - 15.0).abs() < 0.4,
+            "E[X2|do(X1=5)] ≈ 15, got {mean_x2}"
+        );
     }
 
     #[test]
@@ -944,9 +1012,9 @@ mod tests {
         // Z → X → Y, Z → Y (Z is confounder)
         // B[X, Z] = 1.0, B[Y, Z] = 1.5, B[Y, X] = 2.0
         let b = array![
-            [0.0, 0.0, 0.0],  // Z (0)
-            [1.0, 0.0, 0.0],  // X (1): X = Z + eps_X
-            [1.5, 2.0, 0.0],  // Y (2): Y = 1.5*Z + 2.0*X + eps_Y
+            [0.0, 0.0, 0.0], // Z (0)
+            [1.0, 0.0, 0.0], // X (1): X = Z + eps_X
+            [1.5, 2.0, 0.0], // Y (2): Y = 1.5*Z + 2.0*X + eps_Y
         ];
         let sem = LinearSEM::new(b, vec![1.0, 1.0, 1.0]).unwrap();
         let data = sem.simulate(5000).unwrap();
@@ -958,9 +1026,9 @@ mod tests {
     #[test]
     fn test_satisfies_backdoor_criterion() {
         let b = array![
-            [0.0, 0.0, 0.0],  // Z (0)
-            [1.0, 0.0, 0.0],  // X (1)
-            [1.5, 2.0, 0.0],  // Y (2)
+            [0.0, 0.0, 0.0], // Z (0)
+            [1.0, 0.0, 0.0], // X (1)
+            [1.5, 2.0, 0.0], // Y (2)
         ];
         let sem = LinearSEM::new(b, vec![1.0, 1.0, 1.0]).unwrap();
         // Z adjusts for confounding
@@ -971,23 +1039,21 @@ mod tests {
 
     #[test]
     fn test_fit_recovers_true_coefficients() {
-        let b_true = array![
-            [0.0, 0.0, 0.0],
-            [1.5, 0.0, 0.0],
-            [0.0, 2.5, 0.0],
-        ];
+        let b_true = array![[0.0, 0.0, 0.0], [1.5, 0.0, 0.0], [0.0, 2.5, 0.0],];
         let sem = LinearSEM::new(b_true.clone(), vec![1.0, 0.25, 0.25]).unwrap();
         let data = sem.simulate(5000).unwrap();
-        let adj = array![
-            [0.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-        ];
+        let adj = array![[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0],];
         let fitted = LinearSEM::fit(&data, &adj).unwrap();
-        assert!((fitted.coefficients[[1, 0]] - 1.5).abs() < 0.1,
-            "B[1,0] ≈ 1.5, got {}", fitted.coefficients[[1, 0]]);
-        assert!((fitted.coefficients[[2, 1]] - 2.5).abs() < 0.1,
-            "B[2,1] ≈ 2.5, got {}", fitted.coefficients[[2, 1]]);
+        assert!(
+            (fitted.coefficients[[1, 0]] - 1.5).abs() < 0.1,
+            "B[1,0] ≈ 1.5, got {}",
+            fitted.coefficients[[1, 0]]
+        );
+        assert!(
+            (fitted.coefficients[[2, 1]] - 2.5).abs() < 0.1,
+            "B[2,1] ≈ 2.5, got {}",
+            fitted.coefficients[[2, 1]]
+        );
     }
 
     #[test]
@@ -995,24 +1061,23 @@ mod tests {
         // X → M → Y, X → Y directly
         // B[M, X] = 2.0, B[Y, M] = 3.0, B[Y, X] = 1.0
         let b = array![
-            [0.0, 0.0, 0.0],  // X (0)
-            [2.0, 0.0, 0.0],  // M (1)
-            [1.0, 3.0, 0.0],  // Y (2)
+            [0.0, 0.0, 0.0], // X (0)
+            [2.0, 0.0, 0.0], // M (1)
+            [1.0, 3.0, 0.0], // Y (2)
         ];
         let sem = LinearSEM::new(b, vec![1.0, 1.0, 1.0]).unwrap();
         let (direct, indirect, total) = sem.mediation_analysis(0, 1, 2).unwrap();
         assert!((direct - 1.0).abs() < 1e-10, "Direct = 1.0, got {direct}");
-        assert!((indirect - 6.0).abs() < 1e-10, "Indirect = 2*3 = 6.0, got {indirect}");
+        assert!(
+            (indirect - 6.0).abs() < 1e-10,
+            "Indirect = 2*3 = 6.0, got {indirect}"
+        );
         assert!((total - 7.0).abs() < 1e-10, "Total = 7.0, got {total}");
     }
 
     #[test]
     fn test_ace_by_simulation() {
-        let b = array![
-            [0.0, 0.0, 0.0],
-            [2.0, 0.0, 0.0],
-            [0.0, 3.0, 0.0],
-        ];
+        let b = array![[0.0, 0.0, 0.0], [2.0, 0.0, 0.0], [0.0, 3.0, 0.0],];
         let sem = LinearSEMWithIntercepts::new(b, vec![1.0, 0.25, 0.25]).unwrap();
         // ACE of X0 on X1 = 2.0
         let ace = sem.average_causal_effect(0, 1, 5000).unwrap();

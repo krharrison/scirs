@@ -35,7 +35,7 @@
 //! Add to your `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! scirs2-interpolate = "0.1.5"
+//! scirs2-interpolate = "0.4.0"
 //! ```
 //!
 //! ### 1D Interpolation
@@ -352,6 +352,8 @@ pub mod adaptive_gp;
 pub mod adaptive_learning;
 pub mod adaptive_singularity;
 pub mod advanced;
+
+// Deep Kriging and GP Surrogate
 pub mod advanced_statistical;
 pub mod benchmarking;
 pub mod bezier;
@@ -362,6 +364,7 @@ pub mod bspline_modules;
 pub mod cache;
 pub mod cache_aware;
 pub mod constrained;
+pub mod deep_kriging;
 pub mod extrapolation;
 pub mod extrapolation_modules;
 pub mod fast_bspline;
@@ -375,6 +378,7 @@ pub mod high_dimensional;
 pub mod interp1d;
 pub mod interp2d;
 pub mod interpnd;
+pub mod kriging;
 pub mod local;
 pub mod memory_monitor;
 pub mod multiscale;
@@ -416,6 +420,11 @@ pub mod triangulation_interp;
 pub mod utils;
 pub mod voronoi;
 
+// Polyharmonic splines, Hermite-Birkhoff interpolation, and subdivision surfaces
+pub mod hermite_birkhoff;
+pub mod polyharmonic;
+pub mod subdivision;
+
 // N-dimensional scattered data interpolation
 pub mod scattered_nd;
 
@@ -424,6 +433,17 @@ pub mod monotone;
 pub mod rational_interpolation;
 pub mod rbf_interpolation;
 pub mod spline_calculus;
+
+// Nystrom approximation
+pub mod nystrom;
+// Random feature approximation for RBF
+pub mod random_features;
+// Resampling methods
+pub mod resampling;
+// Online/Streaming interpolation with incremental RBF updates (WS227)
+pub mod streaming_online;
+// Tensor train decomposition interpolation
+pub mod tensor_train;
 
 // SciPy compatibility validation
 pub mod scipy_compatibility;
@@ -443,6 +463,12 @@ pub mod scipy_compatibility;
 // pub mod scipy_parity_completion;
 
 // Re-exports for convenience
+
+// Deep Kriging and GP Surrogate re-exports
+pub use deep_kriging::{
+    AcquisitionFunction, Activation, DeepKrigingConfig, GPSurrogateConfig,
+    GaussianProcessSurrogate, KernelType as DeepKernelType, NeuralBasisKriging, SurrogateResult,
+};
 
 // Advanced mode coordinator for advanced AI-driven optimization
 pub use advanced_coordinator::{
@@ -733,6 +759,9 @@ pub use statistical::{
 // Note: AdvancedBootstrap, BcaBootstrap, BootstrapMethod, KernelParameters,
 // SavitzkyGolayFilter, StatisticalSpline, VariationalSparseGP, KernelType
 // are already imported above from statistical_advanced module
+pub use resampling::{
+    downsample, resample_scattered_2d, resample_to_irregular, resample_to_regular, upsample,
+};
 pub use scipy_compatibility::{
     create_compatibility_checker, quick_compatibility_check, ApiCoverageResults,
     BehaviorValidationResults, CompatibilityConfig, CompatibilityReport, DifferenceSeverity,
@@ -745,6 +774,7 @@ pub use streaming::{
     StreamingConfig, StreamingInterpolator, StreamingMethod, StreamingPoint,
     StreamingRBFInterpolator, StreamingStats,
 };
+pub use streaming_online::{OnlineConfig, OnlineRbfInterpolator, UpdateStrategy};
 pub use structured_matrix::{
     create_bspline_band_matrix, solve_band_system, solve_sparse_system,
     solve_structured_least_squares, BandMatrix, CSRMatrix,

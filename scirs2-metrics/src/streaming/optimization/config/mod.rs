@@ -420,7 +420,13 @@ impl Default for PersistenceConfig {
     fn default() -> Self {
         Self {
             enabled: false,
-            backend: PersistenceBackend::File { path: "/tmp/streaming_data".to_string() },
+            backend: PersistenceBackend::File {
+                path: {
+                    let mut p = std::env::temp_dir();
+                    p.push("streaming_data");
+                    p.to_string_lossy().into_owned()
+                },
+            },
             sync_interval: Duration::from_secs(60),
             compress_data: true,
             retention_policy: RetentionPolicy::TimeBasedRetention(Duration::from_secs(86400 * 7)), // 7 days

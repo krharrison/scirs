@@ -26,8 +26,8 @@
 
 use crate::error::{OptimizeError, OptimizeResult};
 use scirs2_core::ndarray::{Array1, Array2};
-use std::collections::BinaryHeap;
 use std::cmp::Ordering;
+use std::collections::BinaryHeap;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MILP Problem Definition
@@ -99,7 +99,14 @@ impl MilpProblem {
                 )));
             }
         }
-        Ok(MilpProblem { c, a, b, lb, ub, integer_vars })
+        Ok(MilpProblem {
+            c,
+            a,
+            b,
+            lb,
+            ub,
+            integer_vars,
+        })
     }
 
     /// Number of variables.
@@ -216,24 +223,32 @@ struct LpSolution {
 ///   (after adding `ub_shift = ub[j] - lb[j]` as an upper bound)
 /// - Adding artificial variables for Phase I (big-M method) to handle RHS < 0
 fn solve_lp(
-    c: &[f64],        // n
+    c: &[f64],         // n
     a_ub: &[Vec<f64>], // m × n
-    b_ub: &[f64],     // m
-    lb: &[f64],       // n
-    ub: &[f64],       // n
+    b_ub: &[f64],      // m
+    lb: &[f64],        // n
+    ub: &[f64],        // n
     max_iter: usize,
 ) -> LpSolution {
     let n = c.len();
     let m = a_ub.len();
 
     if n == 0 {
-        return LpSolution { x: Vec::new(), obj: 0.0, status: LpStatus::Optimal };
+        return LpSolution {
+            x: Vec::new(),
+            obj: 0.0,
+            status: LpStatus::Optimal,
+        };
     }
 
     // --- Bound feasibility check ----------------------------------------
     for i in 0..n {
         if lb[i] > ub[i] + 1e-10 {
-            return LpSolution { x: vec![0.0; n], obj: f64::INFINITY, status: LpStatus::Infeasible };
+            return LpSolution {
+                x: vec![0.0; n],
+                obj: f64::INFINITY,
+                status: LpStatus::Infeasible,
+            };
         }
     }
 
@@ -243,7 +258,12 @@ fn solve_lp(
     // Shift b_ub: A(y + lb) <= b => Ay <= b - A*lb
     let b_shifted: Vec<f64> = (0..m)
         .map(|i| {
-            b_ub[i] - a_ub[i].iter().zip(lb.iter()).map(|(&a, &l)| a * l).sum::<f64>()
+            b_ub[i]
+                - a_ub[i]
+                    .iter()
+                    .zip(lb.iter())
+                    .map(|(&a, &l)| a * l)
+                    .sum::<f64>()
         })
         .collect();
 
@@ -371,7 +391,11 @@ fn solve_lp(
     let sol = revised_simplex(&mut a_work, &mut b_work, &big_m_c, &mut basis, max_iter);
 
     if sol.status == LpStatus::Infeasible || sol.status == LpStatus::Unbounded {
-        return LpSolution { x: vec![0.0; n], obj: f64::INFINITY, status: LpStatus::Infeasible };
+        return LpSolution {
+            x: vec![0.0; n],
+            obj: f64::INFINITY,
+            status: LpStatus::Infeasible,
+        };
     }
 
     // Check that no artificial is in the basis with positive value
@@ -388,13 +412,23 @@ fn solve_lp(
 
     // Extract solution: y (shifted) from sol.x (only first n_total variables)
     let y = &sol.x;
-    let x: Vec<f64> = (0..n).map(|j| {
-        let yj = if j < y.len() { y[j] } else { 0.0 };
-        (lb[j] + yj).max(lb[j]).min(ub[j])
-    }).collect();
-    let obj = c.iter().zip(x.iter()).map(|(&ci, &xi)| ci * xi).sum::<f64>();
+    let x: Vec<f64> = (0..n)
+        .map(|j| {
+            let yj = if j < y.len() { y[j] } else { 0.0 };
+            (lb[j] + yj).max(lb[j]).min(ub[j])
+        })
+        .collect();
+    let obj = c
+        .iter()
+        .zip(x.iter())
+        .map(|(&ci, &xi)| ci * xi)
+        .sum::<f64>();
 
-    LpSolution { x, obj, status: LpStatus::Optimal }
+    LpSolution {
+        x,
+        obj,
+        status: LpStatus::Optimal,
+    }
 }
 
 /// Simplified revised simplex method (tableau form).
@@ -413,7 +447,11 @@ fn revised_simplex(
         let n = c.len();
         let mut x = vec![0.0_f64; n];
         // Minimise: set vars to lb (which is 0 after shift)
-        return LpSolution { x, obj: 0.0, status: LpStatus::Optimal };
+        return LpSolution {
+            x,
+            obj: 0.0,
+            status: LpStatus::Optimal,
+        };
     }
     let n_total = if m > 0 { a[0].len() } else { 0 };
 
@@ -441,7 +479,7 @@ fn revised_simplex(
         // Actually the initial basis columns may not be unit vectors if rows were flipped.
         // Pivot to make basis[col] a unit vector in column col.
         let pivot_row = col; // assume basis variable for row col is in position col
-        // Find pivot in this column among rows
+                             // Find pivot in this column among rows
         let pivot_val = tableau[pivot_row][basic];
         if pivot_val.abs() < 1e-12 {
             // Try to find a different row for this basis element
@@ -483,14 +521,21 @@ fn revised_simplex(
     // Simplex iterations
     for _iter in 0..max_iter {
         // Compute reduced costs
-        let c_b: Vec<f64> = basis.iter().map(|&b| c.get(b).copied().unwrap_or(0.0)).collect();
+        let c_b: Vec<f64> = basis
+            .iter()
+            .map(|&b| c.get(b).copied().unwrap_or(0.0))
+            .collect();
 
         let mut enter = None;
         let mut min_rc = -1e-8_f64;
         for j in 0..n_total {
             // rc = c[j] - c_B^T B^{-1} A_j = c[j] - c_B^T tableau_col
             let rc = c.get(j).copied().unwrap_or(0.0)
-                - c_b.iter().zip(tableau.iter()).map(|(&cb, row)| cb * row[j]).sum::<f64>();
+                - c_b
+                    .iter()
+                    .zip(tableau.iter())
+                    .map(|(&cb, row)| cb * row[j])
+                    .sum::<f64>();
             if rc < min_rc {
                 min_rc = rc;
                 enter = Some(j);
@@ -525,7 +570,11 @@ fn revised_simplex(
                         x[b] = tableau[i][n_total].max(0.0);
                     }
                 }
-                return LpSolution { x, obj: f64::NEG_INFINITY, status: LpStatus::Unbounded };
+                return LpSolution {
+                    x,
+                    obj: f64::NEG_INFINITY,
+                    status: LpStatus::Unbounded,
+                };
             }
             Some(r) => r,
         };
@@ -565,7 +614,11 @@ fn revised_simplex(
     }
 
     let obj: f64 = c.iter().zip(x.iter()).map(|(&ci, &xi)| ci * xi).sum();
-    LpSolution { x, obj, status: LpStatus::Optimal }
+    LpSolution {
+        x,
+        obj,
+        status: LpStatus::Optimal,
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -770,15 +823,14 @@ fn select_strong_branching(
 /// let res = branch_and_bound(&prob, &cfg).expect("valid input");
 /// assert!(res.success);
 /// ```
-pub fn branch_and_bound(
-    problem: &MilpProblem,
-    config: &BnbConfig,
-) -> OptimizeResult<MilpResult> {
+pub fn branch_and_bound(problem: &MilpProblem, config: &BnbConfig) -> OptimizeResult<MilpResult> {
     let n = problem.n_vars();
     let m = problem.n_constraints();
 
     if n == 0 {
-        return Err(OptimizeError::InvalidInput("Problem has no variables".to_string()));
+        return Err(OptimizeError::InvalidInput(
+            "Problem has no variables".to_string(),
+        ));
     }
 
     let start_time = std::time::Instant::now();
@@ -843,9 +895,10 @@ pub fn branch_and_bound(
 
     // Check if root LP is already integer feasible
     let root_x = root_lp.x;
-    let all_int = problem.integer_vars.iter().all(|&j| {
-        is_integer_valued_local(root_x[j], config.int_tol)
-    });
+    let all_int = problem
+        .integer_vars
+        .iter()
+        .all(|&j| is_integer_valued_local(root_x[j], config.int_tol));
     if all_int {
         let obj = eval_obj_vec(&c_vec, &root_x);
         return Ok(MilpResult {
@@ -867,7 +920,10 @@ pub fn branch_and_bound(
     };
 
     let mut pq: BinaryHeap<PqEntry> = BinaryHeap::new();
-    pq.push(PqEntry { neg_lb: -root_node.lp_lb, node: root_node });
+    pq.push(PqEntry {
+        neg_lb: -root_node.lp_lb,
+        node: root_node,
+    });
 
     while let Some(PqEntry { node, .. }) = pq.pop() {
         nodes_explored += 1;
@@ -919,9 +975,10 @@ pub fn branch_and_bound(
         let lp_x = lp.x;
 
         // Check integrality
-        let int_feasible = problem.integer_vars.iter().all(|&j| {
-            is_integer_valued_local(lp_x[j], config.int_tol)
-        });
+        let int_feasible = problem
+            .integer_vars
+            .iter()
+            .all(|&j| is_integer_valued_local(lp_x[j], config.int_tol));
 
         if int_feasible {
             let obj = eval_obj_vec(&c_vec, &lp_x);
@@ -941,17 +998,15 @@ pub fn branch_and_bound(
             BranchingStrategy::FirstFractional => {
                 select_first_fractional(&lp_x, &problem.integer_vars, config.int_tol)
             }
-            BranchingStrategy::StrongBranching => {
-                select_strong_branching(
-                    &lp_x,
-                    &problem.integer_vars,
-                    config.int_tol,
-                    config,
-                    problem,
-                    &node.lb,
-                    &node.ub,
-                )
-            }
+            BranchingStrategy::StrongBranching => select_strong_branching(
+                &lp_x,
+                &problem.integer_vars,
+                config.int_tol,
+                config,
+                problem,
+                &node.lb,
+                &node.ub,
+            ),
         };
 
         let branch_var = match branch_var {
@@ -1057,10 +1112,7 @@ mod tests {
     fn make_knapsack(values: &[f64], weights: &[f64], cap: f64) -> MilpProblem {
         let n = values.len();
         let c = Array1::from_vec(values.iter().map(|&v| -v).collect());
-        let a = Array2::from_shape_vec(
-            (1, n),
-            weights.to_vec(),
-        ).expect("shape");
+        let a = Array2::from_shape_vec((1, n), weights.to_vec()).expect("shape");
         let b = array![cap];
         let lb = Array1::zeros(n);
         let ub = Array1::ones(n);
@@ -1070,7 +1122,7 @@ mod tests {
 
     #[test]
     fn test_milp_binary_knapsack() {
-        let values  = vec![4.0, 3.0, 5.0, 2.0, 6.0];
+        let values = vec![4.0, 3.0, 5.0, 2.0, 6.0];
         let weights = vec![2.0, 3.0, 4.0, 1.0, 5.0];
         let prob = make_knapsack(&values, &weights, 8.0);
         let cfg = BnbConfig::default();
@@ -1118,7 +1170,7 @@ mod tests {
 
     #[test]
     fn test_milp_strong_branching() {
-        let values  = vec![6.0, 5.0, 4.0, 3.0];
+        let values = vec![6.0, 5.0, 4.0, 3.0];
         let weights = vec![3.0, 3.0, 2.0, 1.0];
         let prob = make_knapsack(&values, &weights, 6.0);
         let cfg = BnbConfig {

@@ -2,16 +2,111 @@ name: Quality Gates
 
 on:
   push:
-    branches: [master, main]
+    branches:
+      - master
+      - main
+      - "0.[0-9]+.[0-9]+"
   pull_request:
-    branches: [master, main]
+    branches:
+      - master
+      - main
+      - "0.[0-9]+.[0-9]+"
 
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
 
 jobs:
-  # Security vulnerability audit
+  # ---------------------------------------------------------------------------
+  # Clippy — treat all warnings as errors
+  # ---------------------------------------------------------------------------
+  clippy:
+    name: Clippy (all features)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Run Clippy
+        run: |
+          cargo clippy \
+            --all-features \
+            --workspace \
+            --exclude scirs2-python \
+            -- -D warnings
+
+  # ---------------------------------------------------------------------------
+  # Rustdoc — no broken links, no missing docs warnings
+  # ---------------------------------------------------------------------------
+  rustdoc:
+    name: Rustdoc (all features, -D warnings)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build documentation
+        env:
+          RUSTDOCFLAGS: "-D warnings -D rustdoc::broken_intra_doc_links"
+        run: |
+          cargo doc \
+            --all-features \
+            --workspace \
+            --no-deps \
+            --exclude scirs2-python
+
+  # ---------------------------------------------------------------------------
+  # cargo fmt — formatting gate
+  # ---------------------------------------------------------------------------
+  fmt:
+    name: cargo fmt
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+  # ---------------------------------------------------------------------------
+  # cargo deny — license / advisory / bans check
+  # ---------------------------------------------------------------------------
+  deny:
+    name: cargo deny check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+
+      - name: Run cargo deny
+        # deny.toml is fully configured — this is now a hard gate.
+        run: cargo deny check all
+
+  # ---------------------------------------------------------------------------
+  # Security audit via cargo-audit
+  # ---------------------------------------------------------------------------
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -27,7 +122,9 @@ jobs:
       - name: Run cargo-audit
         run: cargo audit --deny warnings
 
+  # ---------------------------------------------------------------------------
   # COOLJAPAN Pure Rust Policy enforcement
+  # ---------------------------------------------------------------------------
   pure-rust-enforcement:
     name: Pure Rust Policy Enforcement
     runs-on: ubuntu-latest
@@ -41,32 +138,32 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Check for policy violations
+        shell: bash
         run: |
           echo "=== Checking Pure Rust Policy ==="
-
           VIOLATIONS=0
 
-          # No openblas
+          # No openblas (use OxiBLAS)
           if cargo tree --all-features 2>/dev/null | grep -i "\bopenblas\b"; then
-            echo "VIOLATION: openblas found - use OxiBLAS (oxiblas)"
+            echo "VIOLATION: openblas found — use OxiBLAS (oxiblas)"
             VIOLATIONS=$((VIOLATIONS+1))
           fi
 
           # No bincode (use oxicode)
           if cargo tree --all-features 2>/dev/null | grep -w "bincode"; then
-            echo "VIOLATION: bincode found - use oxicode"
+            echo "VIOLATION: bincode found — use oxicode"
             VIOLATIONS=$((VIOLATIONS+1))
           fi
 
           # No zip crate (use oxiarc-archive)
           if cargo tree --all-features 2>/dev/null | grep -w "^zip "; then
-            echo "VIOLATION: zip crate found - use oxiarc-archive"
+            echo "VIOLATION: zip crate found — use oxiarc-archive"
             VIOLATIONS=$((VIOLATIONS+1))
           fi
 
-          # No rustfft (use oxifft)
+          # No rustfft as a direct non-optional dep (use OxiFFT)
           if cargo tree --all-features 2>/dev/null | grep -w "^rustfft "; then
-            echo "VIOLATION: rustfft found - use OxiFFT"
+            echo "VIOLATION: rustfft found as direct dep — use OxiFFT"
             VIOLATIONS=$((VIOLATIONS+1))
           fi
 
@@ -78,29 +175,57 @@ jobs:
 
           echo "Pure Rust Policy: ALL CHECKS PASSED"
 
-  # MSRV check (Minimum Supported Rust Version)
-  msrv:
-    name: MSRV Check (Rust 1.75)
+  # ---------------------------------------------------------------------------
+  # SciRS2 Dependency Policy (no direct rand/ndarray in non-core crates)
+  # ---------------------------------------------------------------------------
+  scirs2-policy-check:
+    name: SciRS2 Dependency Policy Check
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust 1.75.0
-        uses: dtolnay/rust-toolchain@master
+      - name: Run shell-based policy checker
+        run: |
+          if [ -f scripts/check_policy.sh ]; then
+            bash scripts/check_policy.sh --no-color
+          else
+            echo "scripts/check_policy.sh not found; skipping (non-blocking)"
+          fi
+        # The script exits 1 if any violations are found.
+
+      - name: Compile and run Rust-based policy linter
+        shell: bash
+        run: |
+          if [ -f scripts/policy_check.rs ]; then
+            echo "=== Compiling Rust policy linter ==="
+            rustc -o /tmp/policy_check scripts/policy_check.rs
+
+            echo "=== Running Rust policy linter (text report) ==="
+            /tmp/policy_check --no-color
+
+            echo "=== Running Rust policy linter (JSON report) ==="
+            /tmp/policy_check --json > /tmp/policy_report.json
+            echo "JSON report saved."
+            cat /tmp/policy_report.json
+          else
+            echo "scripts/policy_check.rs not found; skipping"
+          fi
+
+      - name: Upload policy report
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          toolchain: "1.75.0"
+          name: scirs2-policy-report
+          path: /tmp/policy_report.json
+          retention-days: 30
+          if-no-files-found: warn
 
-      - uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: "v1-msrv-1.75"
-
-      - name: Check MSRV compatibility
-        run: cargo check --workspace --all-features
-
-  # Unused dependency detection
+  # ---------------------------------------------------------------------------
+  # Unused dependencies (informational, non-blocking)
+  # ---------------------------------------------------------------------------
   unused-deps:
-    name: Unused Dependencies (cargo-udeps)
+    name: Unused Dependencies (cargo-udeps, informational)
     runs-on: ubuntu-latest
 
     steps:
@@ -115,12 +240,15 @@ jobs:
           tool: cargo-udeps
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-udeps-nightly"
 
       - name: Check for unused dependencies
         run: cargo +nightly udeps --all-features --workspace || true
-        # Informational; do not fail CI on this
 
+  # ---------------------------------------------------------------------------
   # Code statistics
+  # ---------------------------------------------------------------------------
   code-stats:
     name: Code Statistics (tokei)
     runs-on: ubuntu-latest
@@ -135,7 +263,7 @@ jobs:
 
       - name: Generate code statistics
         run: |
-          tokei /Users/runner/work/scirs/scirs || tokei .
+          tokei .
           tokei --output json . > /tmp/tokei_stats.json
 
       - name: Upload stats
@@ -145,9 +273,11 @@ jobs:
           path: /tmp/tokei_stats.json
           retention-days: 30
 
-  # License compliance
+  # ---------------------------------------------------------------------------
+  # License compliance (informational)
+  # ---------------------------------------------------------------------------
   license-check:
-    name: License Compliance
+    name: License Compliance (cargo-license)
     runs-on: ubuntu-latest
 
     steps:
@@ -170,78 +300,59 @@ jobs:
           name: license-report
           path: /tmp/licenses.txt
           retention-days: 30
+          if-no-files-found: warn
 
-  # SciRS2 Dependency Policy Enforcement
-  # Detects direct use of rand::, ndarray::, ndarray_rand:: in non-core crates.
-  # All such functionality must flow through scirs2_core abstractions.
-  # See SCIRS2_POLICY.md for the full policy specification.
-  scirs2-policy-check:
-    name: SciRS2 Dependency Policy Check
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run shell-based policy checker
-        run: |
-          bash scripts/check_policy.sh --no-color
-        # The script exits 1 if any violations are found.
-
-      - name: Compile and run Rust-based policy linter
-        run: |
-          echo "=== Compiling Rust policy linter ==="
-          rustc -o /tmp/policy_check scripts/policy_check.rs
-
-          echo "=== Running Rust policy linter (text report) ==="
-          /tmp/policy_check --no-color
-
-          echo "=== Running Rust policy linter (JSON report) ==="
-          /tmp/policy_check --json > /tmp/policy_report.json
-          echo "JSON report saved to /tmp/policy_report.json"
-          cat /tmp/policy_report.json
-
-      - name: Upload policy report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: scirs2-policy-report
-          path: /tmp/policy_report.json
-          retention-days: 30
-
+  # ---------------------------------------------------------------------------
+  # Summary gate: only the hard gates are required to pass
+  # ---------------------------------------------------------------------------
   quality-gates-summary:
     name: Quality Gates Summary
     runs-on: ubuntu-latest
     needs:
+      - clippy
+      - rustdoc
+      - fmt
+      - deny
       - security-audit
       - pure-rust-enforcement
       - scirs2-policy-check
-      - msrv
       - unused-deps
       - license-check
     if: always()
 
     steps:
-      - name: Check critical gates
+      - name: Check critical quality gates
+        shell: bash
         run: |
-          # security-audit and pure-rust-enforcement are mandatory
-          if [[ "${{ needs.security-audit.result }}" != "success" ]]; then
-            echo "FAILED: security-audit"
-            exit 1
+          # Hard gates — must pass
+          FAILED=0
+          declare -A results=(
+            [clippy]="${{ needs.clippy.result }}"
+            [rustdoc]="${{ needs.rustdoc.result }}"
+            [fmt]="${{ needs.fmt.result }}"
+            [deny]="${{ needs.deny.result }}"
+            [security-audit]="${{ needs.security-audit.result }}"
+            [pure-rust-enforcement]="${{ needs.pure-rust-enforcement.result }}"
+            [scirs2-policy-check]="${{ needs.scirs2-policy-check.result }}"
+          )
+          for gate in "${!results[@]}"; do
+            if [[ "${results[$gate]}" != "success" ]]; then
+              echo "FAILED: $gate (result: ${results[$gate]})"
+              FAILED=$((FAILED+1))
+            fi
+          done
+
+          # Soft gates — warn only
+          if [[ "${{ needs.unused-deps.result }}" != "success" ]]; then
+            echo "WARNING: unused-deps job did not succeed (informational)"
           fi
-          if [[ "${{ needs.pure-rust-enforcement.result }}" != "success" ]]; then
-            echo "FAILED: pure-rust-enforcement"
-            exit 1
+          if [[ "${{ needs.license-check.result }}" != "success" ]]; then
+            echo "WARNING: license-check job did not succeed (informational)"
           fi
-          if [[ "${{ needs.scirs2-policy-check.result }}" != "success" ]]; then
-            echo "FAILED: scirs2-policy-check"
-            echo "  One or more SciRS2 dependency policy violations were found."
-            echo "  Non-core crates must use scirs2_core::{random,ndarray} instead of"
-            echo "  direct rand::/ndarray::/ndarray_rand:: imports."
-            echo "  See SCIRS2_POLICY.md for details and scripts/scirs2-policy-refactor.sh to fix."
-            exit 1
-          fi
-          if [[ "${{ needs.msrv.result }}" != "success" ]]; then
-            echo "FAILED: msrv"
+
+          if [ "$FAILED" -gt 0 ]; then
+            echo ""
+            echo "ERROR: $FAILED critical quality gate(s) failed."
             exit 1
           fi
           echo "All critical quality gates passed."

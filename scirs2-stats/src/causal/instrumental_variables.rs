@@ -270,9 +270,7 @@ fn ln_gamma(x: f64) -> f64 {
         1.5056_327_351_493_116e-7,
     ];
     if x < 0.5 {
-        std::f64::consts::PI.ln()
-            - (std::f64::consts::PI * x).sin().ln()
-            - ln_gamma(1.0 - x)
+        std::f64::consts::PI.ln() - (std::f64::consts::PI * x).sin().ln() - ln_gamma(1.0 - x)
     } else {
         let z = x - 1.0;
         let mut s = C[0];
@@ -280,10 +278,7 @@ fn ln_gamma(x: f64) -> f64 {
             s += ci / (z + (i as f64) + 1.0);
         }
         let t = z + G + 0.5;
-        0.5 * (2.0 * std::f64::consts::PI).ln()
-            + (z + 0.5) * t.ln()
-            - t
-            + s.ln()
+        0.5 * (2.0 * std::f64::consts::PI).ln() + (z + 0.5) * t.ln() - t + s.ln()
     }
 }
 
@@ -299,12 +294,8 @@ fn regularized_incomplete_beta(x: f64, a: f64, b: f64) -> f64 {
     if x > (a + 1.0) / (a + b + 2.0) {
         return 1.0 - regularized_incomplete_beta(1.0 - x, b, a);
     }
-    let log_beta_cf = (a * x.ln() + b * (1.0 - x).ln()
-        - ln_gamma(a)
-        - ln_gamma(b)
-        + ln_gamma(a + b))
-        .exp()
-        / a;
+    let log_beta_cf =
+        (a * x.ln() + b * (1.0 - x).ln() - ln_gamma(a) - ln_gamma(b) + ln_gamma(a + b)).exp() / a;
     log_beta_cf * beta_cf(x, a, b)
 }
 
@@ -447,7 +438,7 @@ impl IVEstimator {
         // --- First stage: project X on Z ---
         // X_hat = Z (Z'Z)^{-1} Z' X
         let (_, _, zt_z_inv) = ols_fit(&z.view(), &y)?; // we only need (Z'Z)^{-1}
-        // Actually we need to run OLS of X on Z to get X_hat columns
+                                                        // Actually we need to run OLS of X on Z to get X_hat columns
         let mut x_hat = Array2::<f64>::zeros((n, k_total));
         let mut first_stage_f = None;
         let mut partial_r2 = None;
@@ -529,9 +520,7 @@ impl IVEstimator {
             xhtx_inv.mapv(|v| v * s2)
         };
 
-        let std_errors: Array1<f64> = (0..k_total)
-            .map(|i| vcov[[i, i]].max(0.0).sqrt())
-            .collect();
+        let std_errors: Array1<f64> = (0..k_total).map(|i| vcov[[i, i]].max(0.0).sqrt()).collect();
         let t_stats: Array1<f64> = (0..k_total)
             .map(|i| {
                 if std_errors[i] > 0.0 {
@@ -541,10 +530,7 @@ impl IVEstimator {
                 }
             })
             .collect();
-        let p_values: Array1<f64> = t_stats
-            .iter()
-            .map(|&t| t_dist_p_value(t, df))
-            .collect();
+        let p_values: Array1<f64> = t_stats.iter().map(|&t| t_dist_p_value(t, df)).collect();
 
         // 95 % confidence intervals
         let mut conf_intervals = Array2::<f64>::zeros((k_total, 2));
@@ -721,7 +707,7 @@ impl LIML {
         // The LIML eigenvalue is the minimum eigenvalue.
         // W'M₀W and W'MW are (1+k_endog+k_exog) × (1+k_endog+k_exog)
         let a = m0_w.t().dot(&m0_w); // W'M₀'M₀W = W'M₀W (M₀ idempotent)
-        let b = m_w.t().dot(&m_w);   // W'M'MW = W'MW
+        let b = m_w.t().dot(&m_w); // W'M'MW = W'MW
 
         // We want min λ s.t. A v = λ B v  => min λ s.t. (A - λB) v = 0
         // Lambda_LIML = min eigenvalue of B^{-1} A
@@ -766,11 +752,15 @@ impl LIML {
         let s2 = if df > 0.0 { rss / df } else { rss };
 
         let vcov = lhs_inv.mapv(|v| v * s2);
-        let std_errors: Array1<f64> = (0..k_total)
-            .map(|i| vcov[[i, i]].max(0.0).sqrt())
-            .collect();
+        let std_errors: Array1<f64> = (0..k_total).map(|i| vcov[[i, i]].max(0.0).sqrt()).collect();
         let t_stats: Array1<f64> = (0..k_total)
-            .map(|i| if std_errors[i] > 0.0 { beta[i] / std_errors[i] } else { 0.0 })
+            .map(|i| {
+                if std_errors[i] > 0.0 {
+                    beta[i] / std_errors[i]
+                } else {
+                    0.0
+                }
+            })
             .collect();
         let p_values: Array1<f64> = t_stats
             .iter()
@@ -846,8 +836,7 @@ fn min_eigenvalue(a: &ArrayView2<f64>) -> StatsResult<f64> {
     let norm: f64 = v.iter().map(|&x| x * x).sum::<f64>().sqrt();
     v.mapv_inplace(|x| x / norm);
 
-    let a_neg_inv = cholesky_invert(&a_neg.view())
-        .unwrap_or_else(|_| Array2::eye(n));
+    let a_neg_inv = cholesky_invert(&a_neg.view()).unwrap_or_else(|_| Array2::eye(n));
 
     let mut lambda = 0.0_f64;
     for _ in 0..200 {
@@ -871,7 +860,11 @@ fn min_eigenvalue(a: &ArrayView2<f64>) -> StatsResult<f64> {
     // min eigen of A = shift - dominant(A_shifted_negated)
     // Recompute more carefully using standard Rayleigh quotient
     let av_direct = a.dot(&v);
-    let rayleigh: f64 = v.iter().zip(av_direct.iter()).map(|(&vi, &avi)| vi * avi).sum();
+    let rayleigh: f64 = v
+        .iter()
+        .zip(av_direct.iter())
+        .map(|(&vi, &avi)| vi * avi)
+        .sum();
     Ok(rayleigh)
 }
 
@@ -936,16 +929,18 @@ impl HausmanTest {
         // Variance of the difference: V(beta_IV) - V(beta_OLS) (restricted to endog block)
         let mut var_diff = Array2::<f64>::zeros((k, k));
         for j in 0..k {
-            var_diff[[j, j]] = (iv_res.std_errors[j] * iv_res.std_errors[j]
-                - vcov_ols[[j, j]])
-            .max(1e-15);
+            var_diff[[j, j]] =
+                (iv_res.std_errors[j] * iv_res.std_errors[j] - vcov_ols[[j, j]]).max(1e-15);
         }
-        let var_diff_inv = cholesky_invert(&var_diff.view())
-            .unwrap_or_else(|_| Array2::eye(k));
+        let var_diff_inv = cholesky_invert(&var_diff.view()).unwrap_or_else(|_| Array2::eye(k));
 
         // H = diff' V^{-1} diff ~ chi²(k)
         let h_stat: f64 = (0..k)
-            .map(|r| (0..k).map(|c| diff[r] * var_diff_inv[[r, c]] * diff[c]).sum::<f64>())
+            .map(|r| {
+                (0..k)
+                    .map(|c| diff[r] * var_diff_inv[[r, c]] * diff[c])
+                    .sum::<f64>()
+            })
             .sum();
         let p_val = chi2_p_value(h_stat.max(0.0), k);
 
@@ -1011,7 +1006,8 @@ impl WeakInstrumentTest {
         // number of instruments and the desired size distortion; we use 10 as
         // a conservative approximation.
         let critical_value_10pct = 10.0_f64;
-        let instruments_weak: Vec<bool> = f_stats.iter().map(|&f| f < critical_value_10pct).collect();
+        let instruments_weak: Vec<bool> =
+            f_stats.iter().map(|&f| f < critical_value_10pct).collect();
 
         Ok(WeakInstrumentResult {
             f_statistics: f_stats,
@@ -1046,18 +1042,31 @@ mod tests {
         let y_vals: Array1<f64> = x_vals.mapv(|x| 2.0 * x + 0.5);
 
         let mut x_endog = Array2::<f64>::zeros((n, 1));
-        for i in 0..n { x_endog[[i, 0]] = x_vals[i]; }
+        for i in 0..n {
+            x_endog[[i, 0]] = x_vals[i];
+        }
         let x_exog = ones_col(n);
         let mut z_excl = Array2::<f64>::zeros((n, 1));
-        for i in 0..n { z_excl[[i, 0]] = z_vals[i]; }
+        for i in 0..n {
+            z_excl[[i, 0]] = z_vals[i];
+        }
 
         let est = IVEstimator::new(false);
-        let res = est.fit(&y_vals.view(), &x_endog.view(), &x_exog.view(), &z_excl.view())
+        let res = est
+            .fit(
+                &y_vals.view(),
+                &x_endog.view(),
+                &x_exog.view(),
+                &z_excl.view(),
+            )
             .expect("2SLS fit should succeed");
 
         // Check the endogenous coefficient is close to 2.0
-        assert!((res.coefficients[0] - 2.0).abs() < 0.1,
-            "Expected beta≈2.0, got {}", res.coefficients[0]);
+        assert!(
+            (res.coefficients[0] - 2.0).abs() < 0.1,
+            "Expected beta≈2.0, got {}",
+            res.coefficients[0]
+        );
         assert_eq!(res.estimator, "2SLS");
     }
 
@@ -1068,10 +1077,14 @@ mod tests {
         let x: Array1<f64> = z.mapv(|zi| 0.01 * zi); // very weak relationship
 
         let mut x_endog = Array2::<f64>::zeros((n, 1));
-        for i in 0..n { x_endog[[i, 0]] = x[i]; }
+        for i in 0..n {
+            x_endog[[i, 0]] = x[i];
+        }
         let x_exog = ones_col(n);
         let mut z_excl = Array2::<f64>::zeros((n, 1));
-        for i in 0..n { z_excl[[i, 0]] = z[i]; }
+        for i in 0..n {
+            z_excl[[i, 0]] = z[i];
+        }
 
         let res = WeakInstrumentTest::test(&x_endog.view(), &x_exog.view(), &z_excl.view())
             .expect("Weak instrument test should succeed");

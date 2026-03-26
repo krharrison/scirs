@@ -81,11 +81,7 @@ fn linear<F: Float + FromPrimitive>(w: &Array2<F>, b: &Array1<F>, x: &Array1<F>)
 }
 
 /// Dense layer with tanh: `y = tanh(W x + b)`.
-fn linear_tanh<F: Float + FromPrimitive>(
-    w: &Array2<F>,
-    b: &Array1<F>,
-    x: &Array1<F>,
-) -> Array1<F> {
+fn linear_tanh<F: Float + FromPrimitive>(w: &Array2<F>, b: &Array1<F>, x: &Array1<F>) -> Array1<F> {
     let mut y = linear(w, b, x);
     for v in y.iter_mut() {
         *v = tanh_act(*v);
@@ -137,9 +133,7 @@ fn random_vec<F: Float + FromPrimitive>(len: usize, std_dev: F, seed: u64) -> Ar
 /// Create a sparse binary adjacency matrix (Erdős–Rényi style) for the reservoir.
 fn sparse_adjacency(size: usize, sparsity: f64, seed: u64) -> Array2<f64> {
     let mut mat = Array2::<f64>::zeros((size, size));
-    let mut state = seed
-        .wrapping_mul(6364136223846793005)
-        .wrapping_add(1);
+    let mut state = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
     for i in 0..size {
         for j in 0..size {
             if i == j {
@@ -301,11 +295,7 @@ impl<F: Float + Debug + FromPrimitive + Clone> LtcCell<F> {
     /// Process a sequence of inputs with a given time-step `dt`.
     ///
     /// Returns the sequence of hidden states (one per input).
-    pub fn forward_sequence(
-        &self,
-        inputs: &[Array1<F>],
-        dt: F,
-    ) -> Result<Vec<LtcState<F>>> {
+    pub fn forward_sequence(&self, inputs: &[Array1<F>], dt: F) -> Result<Vec<LtcState<F>>> {
         let mut state = LtcState::zeros(self.hidden_dim);
         let mut states = Vec::with_capacity(inputs.len());
         for u in inputs {
@@ -320,11 +310,7 @@ impl<F: Float + Debug + FromPrimitive + Clone> LtcCell<F> {
     /// # Arguments
     /// * `times` – timestamps (monotonically non-decreasing).
     /// * `inputs` – input vectors at those timestamps.
-    pub fn forward_irregular(
-        &self,
-        times: &[F],
-        inputs: &[Array1<F>],
-    ) -> Result<Vec<LtcState<F>>> {
+    pub fn forward_irregular(&self, times: &[F], inputs: &[Array1<F>]) -> Result<Vec<LtcState<F>>> {
         if times.len() != inputs.len() {
             return Err(TimeSeriesError::DimensionMismatch {
                 expected: times.len(),
@@ -454,11 +440,7 @@ impl<F: Float + Debug + FromPrimitive + Clone> CfCCell<F> {
     }
 
     /// Process a sequence with uniform time step.
-    pub fn forward_sequence(
-        &self,
-        inputs: &[Array1<F>],
-        dt: F,
-    ) -> Result<Vec<Array1<F>>> {
+    pub fn forward_sequence(&self, inputs: &[Array1<F>], dt: F) -> Result<Vec<Array1<F>>> {
         let mut x = Array1::zeros(self.hidden_dim);
         let mut out = Vec::with_capacity(inputs.len());
         for u in inputs {
@@ -469,11 +451,7 @@ impl<F: Float + Debug + FromPrimitive + Clone> CfCCell<F> {
     }
 
     /// Process an irregularly-sampled sequence.
-    pub fn forward_irregular(
-        &self,
-        times: &[F],
-        inputs: &[Array1<F>],
-    ) -> Result<Vec<Array1<F>>> {
+    pub fn forward_irregular(&self, times: &[F], inputs: &[Array1<F>]) -> Result<Vec<Array1<F>>> {
         if times.len() != inputs.len() {
             return Err(TimeSeriesError::DimensionMismatch {
                 expected: times.len(),
@@ -586,11 +564,14 @@ impl<F: Float + Debug + FromPrimitive + Clone> LiquidSNN<F> {
             (Some(cell), None)
         };
 
-        let std_out = F::from(
-            (2.0 / (config.reservoir_size + config.output_dim) as f64).sqrt(),
-        )
-        .expect("std");
-        let readout_w = random_matrix(config.output_dim, config.reservoir_size, std_out, s.wrapping_add(99));
+        let std_out = F::from((2.0 / (config.reservoir_size + config.output_dim) as f64).sqrt())
+            .expect("std");
+        let readout_w = random_matrix(
+            config.output_dim,
+            config.reservoir_size,
+            std_out,
+            s.wrapping_add(99),
+        );
         let readout_b = Array1::zeros(config.output_dim);
 
         let _ = dt_f; // will be used during inference
@@ -607,10 +588,7 @@ impl<F: Float + Debug + FromPrimitive + Clone> LiquidSNN<F> {
     /// Run the reservoir on a uniformly-sampled input sequence.
     ///
     /// Returns reservoir state trajectories for each input step.
-    pub fn run_reservoir(
-        &self,
-        inputs: &[Array1<F>],
-    ) -> Result<Vec<Array1<F>>> {
+    pub fn run_reservoir(&self, inputs: &[Array1<F>]) -> Result<Vec<Array1<F>>> {
         let dt = F::from(self.config.dt).expect("dt");
         if let Some(ltc) = &self.ltc_cell {
             let states = ltc.forward_sequence(inputs, dt)?;
@@ -659,15 +637,9 @@ impl<F: Float + Debug + FromPrimitive + Clone> LiquidSNN<F> {
     }
 
     /// Full forward pass: reservoir → readout for each time step.
-    pub fn forward(
-        &self,
-        inputs: &[Array1<F>],
-    ) -> Result<Vec<Array1<F>>> {
+    pub fn forward(&self, inputs: &[Array1<F>]) -> Result<Vec<Array1<F>>> {
         let reservoir_states = self.run_reservoir(inputs)?;
-        reservoir_states
-            .iter()
-            .map(|s| self.readout(s))
-            .collect()
+        reservoir_states.iter().map(|s| self.readout(s)).collect()
     }
 
     /// Return config reference.
@@ -718,9 +690,7 @@ mod tests {
     #[test]
     fn test_ltc_sequence() {
         let cell = LtcCell::<f64>::new(1, 4, 0.5, 2);
-        let inputs: Vec<Array1<f64>> = (0..10)
-            .map(|i| array![(i as f64) * 0.1])
-            .collect();
+        let inputs: Vec<Array1<f64>> = (0..10).map(|i| array![(i as f64) * 0.1]).collect();
         let states = cell.forward_sequence(&inputs, 0.05).expect("seq");
         assert_eq!(states.len(), 10);
     }
@@ -745,9 +715,7 @@ mod tests {
             ..Default::default()
         })
         .expect("snn");
-        let inputs: Vec<Array1<f64>> = (0..5)
-            .map(|i| array![(i as f64) * 0.1, 0.0])
-            .collect();
+        let inputs: Vec<Array1<f64>> = (0..5).map(|i| array![(i as f64) * 0.1, 0.0]).collect();
         let outs = snn.forward(&inputs).expect("fwd");
         assert_eq!(outs.len(), 5);
         for o in &outs {
@@ -766,9 +734,7 @@ mod tests {
             ..Default::default()
         })
         .expect("snn cfc");
-        let inputs: Vec<Array1<f64>> = (0..6)
-            .map(|_| array![0.5_f64])
-            .collect();
+        let inputs: Vec<Array1<f64>> = (0..6).map(|_| array![0.5_f64]).collect();
         let outs = snn.forward(&inputs).expect("fwd");
         assert_eq!(outs.len(), 6);
         for o in &outs {

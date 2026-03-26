@@ -190,7 +190,11 @@ where
         }
     }
 
-    // ── Step 5: Q_B * W then SVD ──────────────────────────────────────────────
+    // ── Step 5: Compute Q_B * W ─────────────────────────────────────────────
+    // By the CS decomposition, Q_A^T Q_A + Q_B^T Q_B = I (orthonormal columns
+    // of the stacked Q).  After rotating by W we have:
+    //   Σ_A^2 + (Q_B W)^T (Q_B W) = I
+    // so beta_i = sqrt(1 - alpha_i^2), which correctly pairs with alpha_i.
     let w_eff_cols = w_cols.min(k);
     let mut q_b_w = Array2::<F>::zeros((p, w_eff_cols));
     for i in 0..p {
@@ -198,30 +202,54 @@ where
             let mut sum = F::zero();
             for kk in 0..k {
                 if kk < q_b.ncols() && kk < w.nrows() {
-                    sum = sum + q_b[[i, kk]] * w[[kk, j]];
+                    sum += q_b[[i, kk]] * w[[kk, j]];
                 }
             }
             q_b_w[[i, j]] = sum;
         }
     }
 
-    let (v1, sigma_b, _z_t) = svd(&q_b_w.view(), true, None)?;
-
-    // ── Step 6: Normalise generalized singular values ─────────────────────────
-    let len = sigma_a.len().min(sigma_b.len()).min(k);
+    // ── Step 6: Normalise using CS decomposition identity ─────────────────────
+    let len = sigma_a.len().min(w_eff_cols).min(k);
     let mut alpha_vec = Vec::with_capacity(len);
     let mut beta_vec = Vec::with_capacity(len);
 
     for i in 0..len {
         let a_val = sigma_a[i];
-        let b_val = sigma_b[i];
-        let norm = (a_val * a_val + b_val * b_val).sqrt();
+        // Clamp to [0, 1] in case of floating-point overshoot
+        let a_clamped = if a_val > F::one() { F::one() } else { a_val };
+        let b_val = (F::one() - a_clamped * a_clamped).max(F::zero()).sqrt();
+        let norm = (a_clamped * a_clamped + b_val * b_val).sqrt();
         if norm > F::epsilon() {
-            alpha_vec.push(a_val / norm);
+            alpha_vec.push(a_clamped / norm);
             beta_vec.push(b_val / norm);
         } else {
             alpha_vec.push(F::zero());
             beta_vec.push(F::zero());
+        }
+    }
+
+    // ── Step 6b: Build V from Q_B * W ─────────────────────────────────────────
+    // V is obtained by normalising each column of Q_B * W by beta_i.
+    // When beta_i ≈ 0 the column is arbitrary (the corresponding GSV → ∞ but
+    // the factorization still holds); we use the column as-is or a unit vector.
+    let mut v1 = Array2::<F>::zeros((p, len));
+    for j in 0..len {
+        // Compute the norm of column j of Q_B * W
+        let mut col_norm_sq = F::zero();
+        for i in 0..p {
+            col_norm_sq += q_b_w[[i, j]] * q_b_w[[i, j]];
+        }
+        let col_norm = col_norm_sq.sqrt();
+        if col_norm > F::epsilon() {
+            for i in 0..p {
+                v1[[i, j]] = q_b_w[[i, j]] / col_norm;
+            }
+        } else {
+            // Degenerate column: use unit vector
+            if j < p {
+                v1[[j, j]] = F::one();
+            }
         }
     }
 
@@ -242,7 +270,7 @@ where
     })
 }
 
-/// Compute the generalised singular values alpha[i] / beta[i].
+/// Compute the generalised singular values `alpha[i] / beta[i]`.
 ///
 /// Values are returned in the same order as `result.alpha` / `result.beta`.
 /// When `beta[i] == 0` the corresponding generalised singular value is
@@ -252,7 +280,7 @@ where
 ///
 /// ```
 /// use scirs2_core::ndarray::array;
-/// use scirs2_linalg::decomposition::gsvd::{gsvd, generalized_singular_values};
+/// use scirs2_linalg::factorization::gsvd::{gsvd, generalized_singular_values};
 ///
 /// let a = array![[3.0_f64, 0.0], [0.0, 2.0]];
 /// let b = array![[1.0_f64, 0.0], [0.0, 1.0]];
@@ -559,10 +587,10 @@ mod tests {
         let result = gsvd(&a.view(), &b.view()).expect("gsvd unit interval");
 
         for &v in &result.alpha {
-            assert!(v >= 0.0 && v <= 1.0 + 1e-10, "alpha out of [0,1]: {v}");
+            assert!((0.0..=1.0 + 1e-10).contains(&v), "alpha out of [0,1]: {v}");
         }
         for &v in &result.beta {
-            assert!(v >= 0.0 && v <= 1.0 + 1e-10, "beta out of [0,1]: {v}");
+            assert!((0.0..=1.0 + 1e-10).contains(&v), "beta out of [0,1]: {v}");
         }
     }
 }

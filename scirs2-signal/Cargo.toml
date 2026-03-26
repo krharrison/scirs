@@ -20,7 +20,6 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 # Core dependencies
 scirs2-core = { workspace = true, features = ["array", "random", "parallel", "simd"] }
-num-integer = { workspace = true }
 thiserror = { workspace = true }
 # BLAS dependencies handled through scirs2-core
 
@@ -30,7 +29,6 @@ scirs2-fft = { workspace = true, features = ["oxifft"] }
 scirs2-linalg = { workspace = true }
 scirs2-special = { workspace = true }
 rand_chacha = { workspace = true }
-plotly = { workspace = true }
 statrs = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
@@ -39,7 +37,6 @@ num_cpus = { workspace = true }
 approx = { workspace = true }
 # BLAS dependencies removed - using core abstractions
 # ndarray-linalg = { workspace = true }
-ndarray-rand = { workspace = true }
 # Optional rayon dependency for parallel processing - now handled by scirs2-core
 # rayon = { workspace = true, optional = true }
 
@@ -51,3 +48,5 @@ unstable_avx512 = []  # Experimental AVX-512 support
 [dev-dependencies]
 approx = { workspace = true }
 criterion = { workspace = true }
+plotly = { workspace = true }
+ndarray-rand = { workspace = true }

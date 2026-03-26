@@ -3,9 +3,12 @@
 //! This module provides GPU acceleration support for sparse matrix operations
 //! across multiple backends including CUDA, OpenCL, Metal, ROCm, and WGPU.
 
+pub mod construction;
 pub mod cuda;
 pub mod metal;
 pub mod opencl;
+pub mod solvers;
+pub mod spmv;
 pub mod vulkan;
 
 // Re-export common types and traits

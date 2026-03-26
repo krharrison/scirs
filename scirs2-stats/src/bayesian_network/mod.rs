@@ -91,8 +91,11 @@ pub mod structure_learning;
 // Top-level re-exports for convenience
 // ---------------------------------------------------------------------------
 
+pub use approximate_inference::{GibbsSampler, LcgRng, LikelihoodWeighting, MeanFieldVI, Rng};
+pub use cpd::{ConditionalLinear, GaussianCPD, MixtureCPD, TabularCPD, CPD};
 pub use dag::DAG;
-pub use cpd::{CPD, TabularCPD, GaussianCPD, MixtureCPD, ConditionalLinear};
-pub use exact_inference::{BayesianNetwork, Factor, VariableElimination, BeliefPropagation};
-pub use approximate_inference::{GibbsSampler, LikelihoodWeighting, MeanFieldVI, Rng, LcgRng};
-pub use structure_learning::{PCAlgorithm, HillClimbing, BIC, Operator, fisherz_test, partial_correlation, count_cardinalities};
+pub use exact_inference::{BayesianNetwork, BeliefPropagation, Factor, VariableElimination};
+pub use structure_learning::{
+    count_cardinalities, fisherz_test, partial_correlation, HillClimbing, Operator, PCAlgorithm,
+    BIC,
+};

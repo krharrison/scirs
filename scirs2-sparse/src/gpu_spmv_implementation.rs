@@ -362,7 +362,7 @@ impl GpuSpMV {
 
                 for idx in start..end {
                     let col = indices[idx];
-                    sum = sum + data[idx] * x[col];
+                    sum += data[idx] * x[col];
                 }
                 y[row] = sum;
             }

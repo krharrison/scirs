@@ -203,11 +203,7 @@ impl<T: Clone + Send + 'static> TaskGraph<T> {
     ///
     /// Returns `Err` if either task does not exist or if adding this edge would
     /// create a cycle.
-    pub fn add_dependency(
-        &mut self,
-        dependent: TaskId,
-        dependency: TaskId,
-    ) -> CoreResult<()> {
+    pub fn add_dependency(&mut self, dependent: TaskId, dependency: TaskId) -> CoreResult<()> {
         if !self.nodes.contains_key(&dependent) {
             return Err(CoreError::InvalidInput(ErrorContext::new(format!(
                 "add_dependency: {dependent} not found"
@@ -231,7 +227,10 @@ impl<T: Clone + Send + 'static> TaskGraph<T> {
             ))));
         }
         self.deps.entry(dependent).or_default().insert(dependency);
-        self.dependents.entry(dependency).or_default().insert(dependent);
+        self.dependents
+            .entry(dependency)
+            .or_default()
+            .insert(dependent);
         Ok(())
     }
 
@@ -339,9 +338,7 @@ impl CriticalPath {
     /// Compute the critical path for `graph`.
     ///
     /// Uses dynamic programming over the topological order.
-    pub fn compute<T: Clone + Send + 'static>(
-        graph: &TaskGraph<T>,
-    ) -> CoreResult<Self> {
+    pub fn compute<T: Clone + Send + 'static>(graph: &TaskGraph<T>) -> CoreResult<Self> {
         let order = graph.topological_order()?;
 
         // `earliest_finish[id]` = earliest finish time (in ms) for task `id`.
@@ -366,14 +363,11 @@ impl CriticalPath {
             earliest_finish.insert(id, ef);
 
             // Record which predecessor gave the maximum finish time
-            let pred = graph
-                .deps
-                .get(&id)
-                .and_then(|deps| {
-                    deps.iter()
-                        .max_by_key(|d| earliest_finish.get(d).copied().unwrap_or(0))
-                        .copied()
-                });
+            let pred = graph.deps.get(&id).and_then(|deps| {
+                deps.iter()
+                    .max_by_key(|d| earliest_finish.get(d).copied().unwrap_or(0))
+                    .copied()
+            });
             predecessor.insert(id, pred);
         }
 
@@ -702,6 +696,9 @@ impl<T: Clone + Send + 'static> ResourceConstrainedScheduler<T> {
         Ok(results)
     }
 }
+
+// Enhanced dependency graph analysis
+pub mod dependency_graph;
 
 // ============================================================================
 // Tests

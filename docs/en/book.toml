@@ -1,0 +1,15 @@
+[book]
+authors = ["COOLJAPAN OU (Team Kitasan)"]
+language = "en"
+src = "src"
+title = "SciRS2 -- Scientific Computing in Rust"
+description = "Comprehensive guide to the SciRS2 scientific computing library"
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "rust"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/cool-japan/scirs"
+edit-url-template = "https://github.com/cool-japan/scirs/edit/master/docs/en/{path}"

@@ -23,10 +23,8 @@
 //! ```rust
 //! use scirs2_core::reactive::{InfiniteStream, Stream};
 //!
-//! let mut s = InfiniteStream::from_iter(0..10);
-//! let evens: Vec<i32> = s
-//!     .by_ref()
-//!     .filter(|x| x % 2 == 0)
+//! let s = InfiniteStream::from_iter(0..10);
+//! let evens: Vec<i32> = Stream::filter(s, |x| x % 2 == 0)
 //!     .take(3)
 //!     .collect_stream();
 //! assert_eq!(evens, vec![0, 2, 4]);
@@ -301,6 +299,7 @@ pub struct InfiniteStream<I: Iterator> {
 
 impl<I: Iterator> InfiniteStream<I> {
     /// Wrap an `Iterator` as a `Stream`.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_iter(iter: I) -> Self {
         Self { iter }
     }
@@ -479,11 +478,8 @@ impl<T: Clone + Send + 'static> SubjectReceiver<T> {
     /// Drain all buffered and future values until the subject is completed.
     pub fn collect_all(self) -> Vec<T> {
         let mut result = Vec::new();
-        loop {
-            match self.recv() {
-                Some(v) => result.push(v),
-                None => break,
-            }
+        while let Some(v) = self.recv() {
+            result.push(v);
         }
         result
     }
@@ -736,9 +732,7 @@ impl<T: Send> BackpressureBuffer<T> {
 
         while g.len() >= self.capacity {
             g = self.not_full.wait(g).map_err(|_| {
-                CoreError::InvalidInput(ErrorContext::new(
-                    "BackpressureBuffer: condvar poisoned",
-                ))
+                CoreError::InvalidInput(ErrorContext::new("BackpressureBuffer: condvar poisoned"))
             })?;
         }
         g.push_back(item);
@@ -815,6 +809,11 @@ impl<T: Send> BackpressureBuffer<T> {
     }
 }
 
+// Push-pull dataflow (Map/Filter/Zip/Buffer)
+pub mod dataflow;
+// Reactive signal/slot pattern
+pub mod signal;
+
 // ============================================================================
 // Tests
 // ============================================================================
@@ -870,12 +869,7 @@ mod tests {
         let windows: Vec<Vec<i32>> = WindowedStream::sliding(s, 3, 1).collect_stream();
         assert_eq!(
             windows,
-            vec![
-                vec![0, 1, 2],
-                vec![1, 2, 3],
-                vec![2, 3, 4],
-                vec![3, 4, 5],
-            ]
+            vec![vec![0, 1, 2], vec![1, 2, 3], vec![2, 3, 4], vec![3, 4, 5],]
         );
     }
 

@@ -1353,7 +1353,8 @@ impl MetadataExtractor {
     }
 
     fn register_defaults(&mut self) {
-        // Image metadata extractor
+        // Image metadata extractor (requires image_io feature)
+        #[cfg(feature = "image_io")]
         self.register(
             "image",
             Box::new(|path| {

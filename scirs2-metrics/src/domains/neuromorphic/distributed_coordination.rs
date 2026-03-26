@@ -801,7 +801,11 @@ impl<F: Float> CheckpointSystem<F> {
         Self {
             strategy: CheckpointingStrategy::Periodic,
             frequency: 60.0, // Every 60 seconds
-            storage_location: "/tmp/checkpoints".to_string(),
+            storage_location: {
+                let mut p = std::env::temp_dir();
+                p.push("checkpoints");
+                p.to_string_lossy().into_owned()
+            },
             compression: HashMap::new(),
         }
     }

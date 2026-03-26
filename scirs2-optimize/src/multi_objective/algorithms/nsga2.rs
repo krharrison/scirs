@@ -55,8 +55,8 @@ impl NSGAII {
             use std::time::{SystemTime, UNIX_EPOCH};
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .expect("Operation failed")
-                .as_secs()
+                .map(|d| d.as_secs())
+                .unwrap_or(42)
         });
 
         let rng = StdRng::seed_from_u64(seed);
@@ -432,5 +432,113 @@ mod tests {
         let config = MultiObjectiveConfig::default();
         let nsga2 = NSGAII::new(config, 2, 2).expect("Operation failed");
         assert_eq!(nsga2.name(), "NSGA-II");
+    }
+
+    #[test]
+    fn test_nsga2_zdt1_pareto_front_convergence() {
+        // ZDT1: bi-objective problem, test that NSGA-II produces a valid result
+        let mut config = MultiObjectiveConfig::default();
+        config.max_generations = 30;
+        config.population_size = 40;
+        config.bounds = Some((Array1::zeros(2), Array1::ones(2)));
+        config.random_seed = Some(123);
+
+        let mut nsga2 = NSGAII::new(config, 2, 2).expect("should create NSGA-II");
+        let result = nsga2.optimize(zdt1).expect("should optimize");
+
+        assert!(result.success);
+        assert!(!result.pareto_front.is_empty());
+        assert!(result.n_evaluations > 0);
+        assert!(result.n_generations > 0);
+
+        // All solutions should have 2 objectives
+        for sol in &result.pareto_front {
+            assert_eq!(sol.objectives.len(), 2);
+        }
+    }
+
+    #[test]
+    fn test_nsga2_population_diversity() {
+        // Check that the final population has multiple solutions
+        let mut config = MultiObjectiveConfig::default();
+        config.max_generations = 10;
+        config.population_size = 20;
+        config.bounds = Some((Array1::zeros(2), Array1::ones(2)));
+        config.random_seed = Some(99);
+
+        let mut nsga2 = NSGAII::new(config, 2, 2).expect("should create NSGA-II");
+        let result = nsga2.optimize(zdt1).expect("should optimize");
+
+        // Population should have the configured number of solutions
+        assert_eq!(
+            result.population.len(),
+            20,
+            "Population size should match config"
+        );
+
+        // Pareto front should exist (at least 1 solution)
+        assert!(
+            !result.pareto_front.is_empty(),
+            "Pareto front should not be empty"
+        );
+
+        // Population should have varied objectives (not all identical)
+        let unique_f1: std::collections::HashSet<u64> = result
+            .population
+            .iter()
+            .map(|s| s.objectives[0].to_bits())
+            .collect();
+        assert!(
+            unique_f1.len() > 1,
+            "Population should have more than 1 unique f1 value"
+        );
+    }
+
+    #[test]
+    fn test_nsga2_deterministic_evaluation_count() {
+        // With fixed parameters, evaluation count should be deterministic
+        let mut config = MultiObjectiveConfig::default();
+        config.max_generations = 5;
+        config.population_size = 10;
+        config.bounds = Some((Array1::zeros(2), Array1::ones(2)));
+        config.random_seed = Some(42);
+
+        let mut nsga2 = NSGAII::new(config, 2, 2).expect("should create");
+        let result = nsga2.optimize(zdt1).expect("should optimize");
+
+        // With 10 pop size and 5 generations:
+        // Initial: 10 evals, then 5 * 10 offspring = 50, total ~60
+        assert!(result.n_evaluations > 10, "Should have > 10 evaluations");
+        assert!(
+            result.n_evaluations <= 100,
+            "Should have <= 100 evaluations"
+        );
+    }
+
+    #[test]
+    fn test_nsga2_three_objectives() {
+        // DTLZ1-like problem with 3 objectives
+        fn three_obj(x: &ArrayView1<f64>) -> Array1<f64> {
+            let f1 = x[0] * x[1];
+            let f2 = x[0] * (1.0 - x[1]);
+            let f3 = 1.0 - x[0];
+            array![f1, f2, f3]
+        }
+
+        let mut config = MultiObjectiveConfig::default();
+        config.max_generations = 10;
+        config.population_size = 20;
+        config.bounds = Some((Array1::zeros(2), Array1::ones(2)));
+        config.random_seed = Some(55);
+
+        let mut nsga2 = NSGAII::new(config, 3, 2).expect("should create");
+        let result = nsga2.optimize(three_obj).expect("should optimize");
+
+        assert!(result.success);
+        assert!(!result.pareto_front.is_empty());
+        // Each solution should have 3 objectives
+        for sol in &result.pareto_front {
+            assert_eq!(sol.objectives.len(), 3);
+        }
     }
 }

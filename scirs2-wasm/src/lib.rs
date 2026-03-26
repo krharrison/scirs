@@ -67,6 +67,19 @@ pub mod signal;
 pub mod stats;
 pub mod utils;
 
+// Incremental PCA for WASM
+pub mod incremental_pca;
+// MFCC feature extraction for WASM
+pub mod mfcc;
+// Parallel WASM (SharedArrayBuffer)
+pub mod parallel;
+// Streaming FFT for WASM
+pub mod streaming_fft;
+// Wavelet transforms for WASM
+pub mod wavelets;
+// WebGPU compute shaders
+pub mod webgpu;
+
 /// Initialize the WASM module with panic hooks and logging
 #[wasm_bindgen(start)]
 pub fn init() {

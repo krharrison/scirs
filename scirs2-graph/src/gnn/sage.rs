@@ -25,9 +25,10 @@ use crate::gnn::gcn::CsrMatrix;
 // ============================================================================
 
 /// Aggregation strategy used to collect neighbor messages in GraphSAGE.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum SageAggregation {
     /// Element-wise arithmetic mean over the neighborhood
+    #[default]
     Mean,
     /// Element-wise maximum (max-pooling)
     Max,
@@ -35,12 +36,6 @@ pub enum SageAggregation {
     Sum,
     /// Gated LSTM-style sequential aggregation over neighbors
     Lstm,
-}
-
-impl Default for SageAggregation {
-    fn default() -> Self {
-        SageAggregation::Mean
-    }
 }
 
 // ============================================================================
@@ -388,15 +383,18 @@ impl GraphSage {
         let mut layers = Vec::with_capacity(dims.len() - 1);
         for i in 0..(dims.len() - 1) {
             let is_last = i == dims.len() - 2;
-            let mut layer = GraphSageLayer::new(dims[i], dims[i + 1])
-                .with_aggregation(aggr.clone());
+            let mut layer =
+                GraphSageLayer::new(dims[i], dims[i + 1]).with_aggregation(aggr.clone());
             if is_last {
                 layer = layer.without_activation();
             }
             layers.push(layer);
         }
         let neighbor_samples = vec![None; dims.len() - 1];
-        Ok(GraphSage { layers, neighbor_samples })
+        Ok(GraphSage {
+            layers,
+            neighbor_samples,
+        })
     }
 
     /// Set the maximum number of neighbors sampled at each layer.

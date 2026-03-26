@@ -44,6 +44,15 @@ pub trait Variogram: Send + Sync {
     /// Semi-variance at lag `h`.
     fn gamma(&self, h: f64) -> f64;
 
+    /// Whether the variogram is bounded (has a finite sill).
+    ///
+    /// Bounded models (spherical, exponential, Gaussian) approach a finite
+    /// sill and can use the covariance formulation `C = c0 − γ`.
+    /// Unbounded models (power/fractal) require the direct γ-formulation.
+    fn is_bounded(&self) -> bool {
+        true
+    }
+
     /// Clone into a boxed trait object.
     fn clone_box(&self) -> Box<dyn Variogram>;
 }
@@ -142,6 +151,10 @@ impl Variogram for PowerVariogram {
             return 0.0;
         }
         self.nugget + self.slope * h.powf(self.power)
+    }
+
+    fn is_bounded(&self) -> bool {
+        false
     }
 
     fn clone_box(&self) -> Box<dyn Variogram> {
@@ -246,6 +259,8 @@ pub struct OrdinaryKriging {
     c0: f64,
     /// Number of data points.
     n: usize,
+    /// Whether the variogram is bounded (covariance formulation) or not (γ formulation).
+    bounded: bool,
 }
 
 impl Clone for OrdinaryKriging {
@@ -258,6 +273,7 @@ impl Clone for OrdinaryKriging {
             lu_piv: self.lu_piv.clone(),
             c0: self.c0,
             n: self.n,
+            bounded: self.bounded,
         }
     }
 }
@@ -301,9 +317,15 @@ impl OrdinaryKriging {
             });
         }
 
-        // C(0) = γ(∞) for bounded models, or a large value for Power.
-        // We estimate it as γ(very_large_distance).
-        let c0 = variogram.gamma(1e12);
+        let bounded = variogram.is_bounded();
+
+        // For bounded variograms: covariance formulation C[i,j] = c0 − γ(h)
+        // For unbounded variograms: direct γ-formulation   Γ[i,j] = γ(h)
+        let c0 = if bounded {
+            variogram.gamma(1e12)
+        } else {
+            0.0 // not used in γ-formulation
+        };
 
         // Build (n+1)×(n+1) kriging matrix
         let m = n + 1;
@@ -312,8 +334,7 @@ impl OrdinaryKriging {
             for j in 0..n {
                 let h = euclidean_dist(&points[i], &points[j]);
                 let gamma = variogram.gamma(h);
-                // Covariance = c0 - γ(h)
-                mat[i * m + j] = c0 - gamma;
+                mat[i * m + j] = if bounded { c0 - gamma } else { gamma };
             }
             // Lagrange multiplier row/col
             mat[i * m + n] = 1.0;
@@ -332,6 +353,7 @@ impl OrdinaryKriging {
             lu_piv,
             c0,
             n,
+            bounded,
         })
     }
 
@@ -352,11 +374,11 @@ impl OrdinaryKriging {
         }
 
         let m = self.n + 1;
-        // Build right-hand side: [c0 - γ(||x - xᵢ||)] for i=1..n, then 1
         let mut rhs = vec![0.0_f64; m];
         for i in 0..self.n {
             let h = euclidean_dist(x, &self.points[i]);
-            rhs[i] = self.c0 - self.variogram.gamma(h);
+            let gamma = self.variogram.gamma(h);
+            rhs[i] = if self.bounded { self.c0 - gamma } else { gamma };
         }
         rhs[self.n] = 1.0;
 
@@ -366,10 +388,15 @@ impl OrdinaryKriging {
         // Estimate: Σ wᵢ · zᵢ
         let estimate: f64 = (0..self.n).map(|i| sol[i] * self.values[i]).sum();
 
-        // Kriging variance: σ² = c0 - Σ wᵢ·(c0 - γᵢ) - μ
-        //   = c0 - c^T w - μ   (μ = sol[n])
-        let ct_w: f64 = (0..self.n).map(|i| rhs[i] * sol[i]).sum();
-        let variance = (self.c0 - ct_w - sol[self.n]).max(0.0);
+        // Kriging variance
+        let rhs_dot_w: f64 = (0..self.n).map(|i| rhs[i] * sol[i]).sum();
+        let variance = if self.bounded {
+            // σ² = c0 − cᵀw − μ
+            (self.c0 - rhs_dot_w - sol[self.n]).max(0.0)
+        } else {
+            // γ-formulation: σ² = γᵀw + μ
+            (rhs_dot_w + sol[self.n]).max(0.0)
+        };
 
         Ok((estimate, variance))
     }
@@ -405,9 +432,13 @@ mod tests {
     #[test]
     fn test_spherical_kriging_interpolates_data() {
         let (pts, vals) = make_1d_data();
-        let vgm = SphericalVariogram { nugget: 0.0, sill: 20.0, range: 10.0 };
-        let ok = OrdinaryKriging::fit(pts.clone(), vals.clone(), Box::new(vgm))
-            .expect("fit failed");
+        let vgm = SphericalVariogram {
+            nugget: 0.0,
+            sill: 20.0,
+            range: 10.0,
+        };
+        let ok =
+            OrdinaryKriging::fit(pts.clone(), vals.clone(), Box::new(vgm)).expect("fit failed");
 
         for (p, &v) in pts.iter().zip(vals.iter()) {
             let (est, _var) = ok.predict(p).expect("predict failed");
@@ -424,9 +455,13 @@ mod tests {
     #[test]
     fn test_exponential_kriging_interpolates_data() {
         let (pts, vals) = make_1d_data();
-        let vgm = ExponentialVariogram { nugget: 0.0, sill: 20.0, range: 10.0 };
-        let ok = OrdinaryKriging::fit(pts.clone(), vals.clone(), Box::new(vgm))
-            .expect("fit failed");
+        let vgm = ExponentialVariogram {
+            nugget: 0.0,
+            sill: 20.0,
+            range: 10.0,
+        };
+        let ok =
+            OrdinaryKriging::fit(pts.clone(), vals.clone(), Box::new(vgm)).expect("fit failed");
 
         for (p, &v) in pts.iter().zip(vals.iter()) {
             let (est, _) = ok.predict(p).expect("predict");
@@ -437,9 +472,13 @@ mod tests {
     #[test]
     fn test_gaussian_kriging_interpolates_data() {
         let (pts, vals) = make_1d_data();
-        let vgm = GaussianVariogram { nugget: 0.0, sill: 20.0, range: 10.0 };
-        let ok = OrdinaryKriging::fit(pts.clone(), vals.clone(), Box::new(vgm))
-            .expect("fit failed");
+        let vgm = GaussianVariogram {
+            nugget: 0.0,
+            sill: 20.0,
+            range: 10.0,
+        };
+        let ok =
+            OrdinaryKriging::fit(pts.clone(), vals.clone(), Box::new(vgm)).expect("fit failed");
 
         for (p, &v) in pts.iter().zip(vals.iter()) {
             let (est, _) = ok.predict(p).expect("predict");
@@ -450,9 +489,13 @@ mod tests {
     #[test]
     fn test_power_variogram() {
         let (pts, vals) = make_1d_data();
-        let vgm = PowerVariogram { nugget: 0.0, slope: 1.0, power: 1.5 };
-        let ok = OrdinaryKriging::fit(pts.clone(), vals.clone(), Box::new(vgm))
-            .expect("fit failed");
+        let vgm = PowerVariogram {
+            nugget: 0.0,
+            slope: 1.0,
+            power: 1.5,
+        };
+        let ok =
+            OrdinaryKriging::fit(pts.clone(), vals.clone(), Box::new(vgm)).expect("fit failed");
 
         for (p, &v) in pts.iter().zip(vals.iter()) {
             let (est, _) = ok.predict(p).expect("predict");
@@ -463,7 +506,11 @@ mod tests {
     #[test]
     fn test_variance_is_nonnegative() {
         let (pts, vals) = make_1d_data();
-        let vgm = SphericalVariogram { nugget: 0.01, sill: 20.0, range: 10.0 };
+        let vgm = SphericalVariogram {
+            nugget: 0.01,
+            sill: 20.0,
+            range: 10.0,
+        };
         let ok = OrdinaryKriging::fit(pts, vals, Box::new(vgm)).expect("fit failed");
         let test_pts = vec![vec![0.5_f64], vec![1.5], vec![2.5]];
         for p in &test_pts {
@@ -474,26 +521,50 @@ mod tests {
 
     #[test]
     fn test_variogram_gamma_at_zero() {
-        let svgm = SphericalVariogram { nugget: 0.1, sill: 1.0, range: 2.0 };
+        let svgm = SphericalVariogram {
+            nugget: 0.1,
+            sill: 1.0,
+            range: 2.0,
+        };
         assert_eq!(svgm.gamma(0.0), 0.0);
-        let evgm = ExponentialVariogram { nugget: 0.1, sill: 1.0, range: 2.0 };
+        let evgm = ExponentialVariogram {
+            nugget: 0.1,
+            sill: 1.0,
+            range: 2.0,
+        };
         assert_eq!(evgm.gamma(0.0), 0.0);
-        let gvgm = GaussianVariogram { nugget: 0.1, sill: 1.0, range: 2.0 };
+        let gvgm = GaussianVariogram {
+            nugget: 0.1,
+            sill: 1.0,
+            range: 2.0,
+        };
         assert_eq!(gvgm.gamma(0.0), 0.0);
-        let pvgm = PowerVariogram { nugget: 0.1, slope: 1.0, power: 1.5 };
+        let pvgm = PowerVariogram {
+            nugget: 0.1,
+            slope: 1.0,
+            power: 1.5,
+        };
         assert_eq!(pvgm.gamma(0.0), 0.0);
     }
 
     #[test]
     fn test_spherical_reaches_sill() {
-        let vgm = SphericalVariogram { nugget: 0.0, sill: 5.0, range: 2.0 };
+        let vgm = SphericalVariogram {
+            nugget: 0.0,
+            sill: 5.0,
+            range: 2.0,
+        };
         let v = vgm.gamma(100.0);
         assert!((v - 5.0).abs() < 1e-10, "should reach sill: {}", v);
     }
 
     #[test]
     fn test_error_on_empty() {
-        let vgm = SphericalVariogram { nugget: 0.0, sill: 1.0, range: 1.0 };
+        let vgm = SphericalVariogram {
+            nugget: 0.0,
+            sill: 1.0,
+            range: 1.0,
+        };
         let r = OrdinaryKriging::fit(vec![], vec![], Box::new(vgm));
         assert!(r.is_err());
     }
@@ -502,7 +573,11 @@ mod tests {
     fn test_error_on_dim_mismatch_predict() {
         let pts = vec![vec![0.0_f64, 0.0], vec![1.0, 1.0]];
         let vals = vec![0.0_f64, 1.0];
-        let vgm = GaussianVariogram { nugget: 0.0, sill: 1.0, range: 5.0 };
+        let vgm = GaussianVariogram {
+            nugget: 0.0,
+            sill: 1.0,
+            range: 5.0,
+        };
         let ok = OrdinaryKriging::fit(pts, vals, Box::new(vgm)).expect("fit");
         let r = ok.predict(&[0.5]); // wrong dim
         assert!(r.is_err());

@@ -165,12 +165,7 @@ fn arch_log_likelihood(
 /// Nelder-Mead simplex optimiser (pure Rust, no external dependency).
 ///
 /// Minimises `f(x)`.  Returns `(best_x, best_value)`.
-fn nelder_mead<F>(
-    f: F,
-    x0: Vec<f64>,
-    max_iter: usize,
-    tol: f64,
-) -> (Vec<f64>, f64)
+fn nelder_mead<F>(f: F, x0: Vec<f64>, max_iter: usize, tol: f64) -> (Vec<f64>, f64)
 where
     F: Fn(&[f64]) -> f64,
 {
@@ -180,7 +175,11 @@ where
     simplex.push(x0.clone());
     for i in 0..n {
         let mut vertex = x0.clone();
-        vertex[i] += if vertex[i].abs() > 1e-5 { 0.05 * vertex[i].abs() } else { 0.00025 };
+        vertex[i] += if vertex[i].abs() > 1e-5 {
+            0.05 * vertex[i].abs()
+        } else {
+            0.00025
+        };
         simplex.push(vertex);
     }
 
@@ -189,7 +188,11 @@ where
     for _iter in 0..max_iter {
         // Sort
         let mut order: Vec<usize> = (0..n + 1).collect();
-        order.sort_by(|&a, &b| fvals[a].partial_cmp(&fvals[b]).unwrap_or(std::cmp::Ordering::Equal));
+        order.sort_by(|&a, &b| {
+            fvals[a]
+                .partial_cmp(&fvals[b])
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         let best = order[0];
         let worst = order[n];
         let second_worst = order[n - 1];
@@ -251,8 +254,7 @@ where
                 for i in 0..n + 1 {
                     if i != best {
                         for j in 0..n {
-                            simplex[i][j] =
-                                best_vertex[j] + 0.5 * (simplex[i][j] - best_vertex[j]);
+                            simplex[i][j] = best_vertex[j] + 0.5 * (simplex[i][j] - best_vertex[j]);
                         }
                         fvals[i] = f(&simplex[i]);
                     }
@@ -262,7 +264,11 @@ where
     }
 
     let mut order: Vec<usize> = (0..n + 1).collect();
-    order.sort_by(|&a, &b| fvals[a].partial_cmp(&fvals[b]).unwrap_or(std::cmp::Ordering::Equal));
+    order.sort_by(|&a, &b| {
+        fvals[a]
+            .partial_cmp(&fvals[b])
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     let best = order[0];
     (simplex[best].clone(), fvals[best])
 }
@@ -356,12 +362,7 @@ pub fn fit_arch(residuals: &Array1<f64>, p: usize) -> Result<ARCHModel> {
 
     let obj = move |raw: &[f64]| {
         let (omega, alpha) = project_params_arch(raw, p);
-        let (ll, _) = arch_log_likelihood(
-            &Array1::from(resid_clone.clone()),
-            omega,
-            &alpha,
-            p,
-        );
+        let (ll, _) = arch_log_likelihood(&Array1::from(resid_clone.clone()), omega, &alpha, p);
         -ll // minimise negative log-likelihood
     };
 
@@ -710,9 +711,7 @@ pub(crate) fn ln_gamma(x: f64) -> f64 {
     ];
 
     if x < 0.5 {
-        std::f64::consts::PI.ln()
-            - ((std::f64::consts::PI * x).sin()).ln()
-            - ln_gamma(1.0 - x)
+        std::f64::consts::PI.ln() - ((std::f64::consts::PI * x).sin()).ln() - ln_gamma(1.0 - x)
     } else {
         let z = x - 1.0;
         let mut sum = coeffs[0];
@@ -720,10 +719,7 @@ pub(crate) fn ln_gamma(x: f64) -> f64 {
             sum += c / (z + i as f64);
         }
         let t = z + 7.5; // g + 0.5
-        (2.0 * std::f64::consts::PI).sqrt().ln()
-            + (t.ln() * (z + 0.5))
-            - t
-            + sum.ln()
+        (2.0 * std::f64::consts::PI).sqrt().ln() + (t.ln() * (z + 0.5)) - t + sum.ln()
     }
 }
 
@@ -738,9 +734,9 @@ mod tests {
 
     fn sample_returns() -> Array1<f64> {
         Array1::from(vec![
-            0.01, -0.02, 0.015, -0.008, 0.012, 0.005, -0.018, 0.009, -0.003, 0.007, 0.025,
-            -0.014, 0.008, -0.006, 0.011, -0.019, 0.022, 0.003, -0.011, 0.017, -0.005, 0.031,
-            -0.013, 0.009, 0.002, -0.027, 0.016, -0.007, 0.013, 0.004,
+            0.01, -0.02, 0.015, -0.008, 0.012, 0.005, -0.018, 0.009, -0.003, 0.007, 0.025, -0.014,
+            0.008, -0.006, 0.011, -0.019, 0.022, 0.003, -0.011, 0.017, -0.005, 0.031, -0.013,
+            0.009, 0.002, -0.027, 0.016, -0.007, 0.013, 0.004,
         ])
     }
 

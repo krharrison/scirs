@@ -67,31 +67,31 @@
 ## v0.4.0 — Planned
 
 ### GPU Sparse BLAS
-- [ ] CSR SpMV on GPU via compute shaders (OxiFFT GPU backend model)
-- [ ] GPU-accelerated COO/CSR construction from triplets
-- [ ] GPU BiCGSTAB and CG solvers
+- [x] CSR SpMV on GPU via compute shaders (OxiFFT GPU backend model) — Implemented in v0.4.0 (`gpu/spmv.rs`)
+- [x] GPU-accelerated COO/CSR construction from triplets — Implemented in v0.4.0 (`gpu/construction.rs`)
+- [x] GPU BiCGSTAB and CG solvers — Implemented in v0.4.0 (`gpu/solvers.rs`)
 - [ ] Mixed CPU/GPU preconditioning (ILU on CPU, SpMV on GPU)
 
 ### Distributed Sparse Solvers
-- [ ] Distributed CSR with row-based partitioning
-- [ ] Distributed SpMV with halo exchange
-- [ ] Distributed AMG via `scirs2-core` ring allreduce
+- [x] Distributed CSR with row-based partitioning — Implemented in v0.4.0 (`distributed/csr.rs`, `distributed/partition.rs`)
+- [x] Distributed SpMV with halo exchange — Implemented in v0.4.0 (`distributed/halo_exchange.rs`)
+- [x] Distributed AMG via `scirs2-core` ring allreduce — Implemented in v0.4.0 (`distributed/dist_amg.rs`)
 
 ### Graph Algorithm Enhancements
-- [ ] Approximate graph coloring for parallel Gauss-Seidel
-- [ ] Nested dissection reordering (via graph partitioning)
-- [ ] Cuthill-McKee and reverse Cuthill-McKee reordering
-- [ ] Approximate minimum degree (AMD) reordering
+- [x] Approximate graph coloring for parallel Gauss-Seidel — Implemented in v0.4.0
+- [x] Nested dissection reordering (via graph partitioning) — Implemented in v0.4.0
+- [x] Cuthill-McKee and reverse Cuthill-McKee reordering — Implemented in v0.4.0
+- [x] Approximate minimum degree (AMD) reordering — Implemented in v0.4.0
 
 ### Format Enhancements
-- [ ] Sliced ELLPACK (SELL) for variable nnz-per-row with GPU padding
-- [ ] CSR5 format for GPU-friendly SpMV
-- [ ] Compressed sparse fiber (CSF) for sparse tensors
+- [x] Sliced ELLPACK (SELL) for variable nnz-per-row with GPU padding — Implemented in v0.4.0
+- [x] CSR5 format for GPU-friendly SpMV — Implemented in v0.4.0
+- [x] Compressed sparse fiber (CSF) for sparse tensors — Implemented in v0.4.0
 
 ### Additional Preconditioners
-- [ ] Multilevel ILU (MILUE) with coarse correction
-- [ ] Sparse approximate inverse via AINV (robust incomplete factorization)
-- [ ] Polynomial preconditioner (Chebyshev acceleration)
+- [x] Multilevel ILU (MILUE) with coarse correction — Implemented in v0.4.0 (`preconditioners/milue.rs`)
+- [x] Sparse approximate inverse via AINV (robust incomplete factorization) — Implemented in v0.4.0 (`preconditioners/ainv.rs`)
+- [x] Polynomial preconditioner (Chebyshev acceleration) — Implemented in v0.4.0
 
 ---
 

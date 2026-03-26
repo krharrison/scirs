@@ -27,7 +27,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-datasets = "0.1.5"
+//! scirs2-datasets = "0.4.0"
 //! ```
 //!
 //! ```rust
@@ -41,9 +41,9 @@
 //! let data = make_classification(100, 5, 3, 2, 4, Some(42)).expect("Operation failed");
 //! ```
 //!
-//! ## 🔒 Version: 0.2.0 (February 8, 2026)
+//! ## 🔒 Version: 0.4.0
 //!
-//! ### v0.2.0 New Features
+//! ### v0.4.0 New Features
 //!
 //! - **Lazy Loading**: Memory-mapped datasets with zero-copy views
 //! - **Data Augmentation**: GPU-accelerated augmentation pipeline
@@ -210,6 +210,17 @@ pub mod distributed_loading;
 /// columnar and scientific formats.
 pub mod formats;
 
+// Benchmarks module (named to avoid conflict with benchmarks)
+pub mod benchmarks_module;
+// HuggingFace Hub metadata integration
+pub mod hub_metadata;
+// Dataset sharding API
+pub mod sharding;
+// Mini-batch sampling
+pub mod sampling;
+// Streaming CSV loader
+pub mod streaming_csv;
+
 // Re-export commonly used functionality
 pub use adaptive_streaming_engine::{
     create_adaptive_engine, create_adaptive_engine_with_config, AdaptiveStreamConfig,
@@ -298,6 +309,30 @@ pub use generators::structured::{
     make_biclusters, make_checkerboard, make_sparse_coded_signal, make_sparse_spd_matrix,
     make_spd_matrix,
 };
+// Advanced generators: low-rank, sparse classification, multilabel, heterogeneous, concept drift
+pub use generators::concept_drift::{
+    detect_drift_accuracy, make_concept_drift, ConceptDriftConfig, ConceptDriftDataset, DriftType,
+};
+pub use generators::heterogeneous::{
+    encode_one_hot, make_heterogeneous, FeatureType, HeteroConfig, HeteroDataset,
+    HeteroFeatureValue,
+};
+pub use generators::low_rank::{
+    make_low_rank as make_low_rank_completion, observed_rmse, reconstruction_error, LowRankConfig,
+    LowRankDataset,
+};
+pub use generators::multilabel_advanced::{
+    hamming_loss, label_cardinality, label_density_score, make_advanced_multilabel_classification,
+    AdvancedMultilabelConfig, AdvancedMultilabelDataset,
+};
+pub use generators::sparse_classification::{
+    make_sparse_classification as make_sparse_class, sparsity_ratio, SparseClassConfig,
+    SparseClassDataset,
+};
+// Sharding (data-carrying)
+pub use sharding::{merge_shards, shard_dataset, shuffled_shard, stratified_shard, DatasetShard};
+// Mini-batch sampling
+pub use sampling::{iter_batches, MiniBatch, MiniBatchSampler, SamplerConfig, SamplerStrategy};
 // Standard datasets
 pub use gpu::{
     get_optimal_gpu_config, is_cuda_available, is_opencl_available, list_gpu_devices,

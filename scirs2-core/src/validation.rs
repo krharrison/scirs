@@ -1514,3 +1514,9 @@ pub mod cross_platform;
 /// Comprehensive data validation system with schema validation and constraint enforcement
 #[cfg(feature = "data_validation")]
 pub mod data;
+
+/// Benchmark harness for validation
+pub mod benchmark_harness;
+
+/// Numerical validation framework
+pub mod numerical_validation;

@@ -89,7 +89,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-ndimage = "0.1.5"
+//! scirs2-ndimage = "0.4.0"
 //! ```
 //!
 //! ```rust,no_run
@@ -158,6 +158,17 @@ pub mod active_contours;
 pub mod distance_transforms;
 pub mod regionprops;
 pub mod watershed;
+
+// 4D spatiotemporal processing
+pub mod array4d;
+// Dense CRF segmentation
+pub mod crf;
+// Level set methods (Chan-Vese, geodesic active contours)
+pub mod level_set;
+// Radiomics features (GLSZM, NGTDM, Laws)
+pub mod radiomics;
+// 3D watershed segmentation
+pub mod watershed3d;
 
 // Re-exports
 pub use self::error::*;

@@ -39,7 +39,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-sparse = "0.2.0"
+//! scirs2-sparse = "0.4.0"
 //! ```
 //!
 //! ```rust
@@ -322,6 +322,15 @@ pub use dia_enhanced::{banded_solve, dia_tridiagonal_solve, tridiagonal_solve, E
 pub mod csf_tensor;
 pub use csf_tensor::CsfTensor;
 
+// Advanced sparse formats (v0.4.0): SELL-C-sigma, CSR5, CSF (standalone), Polynomial Preconditioners
+pub mod formats;
+pub use formats::csf::CsfTensor as CsfTensorStandalone;
+pub use formats::csr5::Csr5Matrix;
+pub use formats::poly_precond::{
+    ChebyshevPreconditioner, NeumannPreconditioner as NeumannPreconditionerPoly, PolyPrecondConfig,
+};
+pub use formats::sell::SellMatrix;
+
 // Sparse matrix utility functions (v0.3.0)
 pub mod sparse_functions;
 pub use sparse_functions::{
@@ -436,6 +445,18 @@ pub use sparse_qr::{
     sparse_qr as sparse_qr_factorize, SparseLeastSquaresResult, SparseQrConfig, SparseQrResult,
 };
 
+// Sparse matrix reordering algorithms (v0.4.0)
+pub mod reorder;
+pub use reorder::{
+    amd, amd_simple, apply_permutation as reorder_apply_permutation, apply_permutation_csr_array,
+    bandwidth as reorder_bandwidth, cuthill_mckee, cuthill_mckee_full, distance2_color,
+    dsatur_color, greedy_color, nested_dissection, nested_dissection_full,
+    nested_dissection_with_config, profile as reorder_profile,
+    reverse_cuthill_mckee as reorder_rcm, reverse_cuthill_mckee_full, verify_coloring,
+    verify_distance2_coloring, AdjacencyGraph, AmdResult, ColoringResult, CuthillMcKeeResult,
+    GreedyOrdering, NestedDissectionConfig, NestedDissectionResult,
+};
+
 // Unified sparse eigenvalue interface (v0.3.0)
 pub mod sparse_eigen;
 pub use sparse_eigen::{
@@ -475,6 +496,19 @@ pub use realtime_performance_monitor::{
     Alert, AlertSeverity, PerformanceMonitorConfig, PerformanceSample, ProcessorType,
     RealTimePerformanceMonitor,
 };
+
+// Cholesky update/downdate
+pub mod cholesky_update;
+// Distributed sparse operations (SpMV halo exchange, dist AMG)
+pub mod distributed;
+// Learned multigrid smoother
+pub mod learned_smoother;
+// Low-rank sparse update
+pub mod low_rank_update;
+// ML-based preconditioner
+pub mod ml_preconditioner;
+// Parallel AMG
+pub mod parallel_amg;
 
 // Compressed sparse graph algorithms
 pub mod csgraph;

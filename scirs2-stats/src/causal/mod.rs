@@ -40,8 +40,8 @@ pub mod regression_discontinuity;
 // ---------------------------------------------------------------------------
 
 pub use instrumental_variables::{
-    HausmanResult, HausmanTest, IVEstimator, IVResult, LIML, WeakInstrumentResult,
-    WeakInstrumentTest,
+    HausmanResult, HausmanTest, IVEstimator, IVResult, WeakInstrumentResult, WeakInstrumentTest,
+    LIML,
 };
 
 // ---------------------------------------------------------------------------
@@ -79,21 +79,16 @@ pub use propensity_score::ps_estimate;
 
 pub mod sem;
 
-pub use sem::{
-    LinearEquation,
-    SEM,
-    SEMWithIntercepts,
-    IdentificationResult,
-    satisfies_backdoor,
-};
+pub use sem::{satisfies_backdoor, IdentificationResult, LinearEquation, SEMWithIntercepts, SEM};
 
 // ---------------------------------------------------------------------------
 // Linear SEM with ndarray interface
 // ---------------------------------------------------------------------------
 
+pub mod hedge;
+pub mod id_algorithm;
 pub mod linear_sem;
+pub mod semi_markov_graph;
+pub mod symbolic_prob;
 
-pub use linear_sem::{
-    LinearSEM,
-    LinearSEMWithIntercepts,
-};
+pub use linear_sem::{LinearSEM, LinearSEMWithIntercepts};

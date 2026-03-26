@@ -494,6 +494,12 @@ pub fn dd_sincos(x: DD) -> CoreResult<(DD, DD)> {
     Ok((s, c))
 }
 
+// Quad-double precision arithmetic
+pub mod qd_functions;
+pub mod quad_double;
+// Solver integration for extended precision
+pub mod solver_integration;
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]

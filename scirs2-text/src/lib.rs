@@ -34,7 +34,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-text = "0.1.5"
+//! scirs2-text = "0.4.0"
 //! ```
 //!
 //! ```rust,no_run
@@ -108,6 +108,8 @@
 
 #![warn(missing_docs)]
 
+/// Batch tokenization with padding and attention masks.
+pub mod batch_tokenizer;
 pub mod classification;
 pub mod cleansing;
 pub mod distance;
@@ -115,6 +117,9 @@ pub mod domain_processors;
 pub mod embeddings;
 pub mod enhanced_vectorize;
 pub mod error;
+pub mod evaluation;
+/// GPT-2 byte-level BPE tokenizer.
+pub mod gpt_bpe;
 pub mod huggingface_compat;
 pub mod information_extraction;
 pub mod language_model;
@@ -131,6 +136,8 @@ pub mod pipeline;
 pub mod pos_tagging;
 pub mod preprocess;
 pub mod semantic_similarity;
+/// SentencePiece Unigram Language Model tokenizer.
+pub mod sentencepiece;
 pub mod sentiment;
 pub mod simd_ops;
 pub mod sparse;
@@ -160,6 +167,23 @@ pub mod language_detection;
 pub mod named_entity_recognition;
 pub mod text_similarity;
 pub mod text_summarization;
+
+// BERT fine-tuning
+pub mod bert_finetune;
+// Cross-lingual NER and transliteration
+pub mod crosslingual;
+// Correlated topic model
+pub mod ctm;
+// Dynamic topic model
+pub mod dtm;
+// Sentence embeddings
+pub mod sentence_embeddings;
+// Semantic similarity with embedding-based search
+pub mod similarity;
+// Tokenizer implementations (HuggingFace, byte-level BPE)
+pub mod tokenizers;
+// Transliteration
+pub mod transliteration;
 
 // Re-export commonly used items
 pub use classification::{

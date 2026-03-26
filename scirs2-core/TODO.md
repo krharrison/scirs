@@ -109,9 +109,9 @@
 
 ### Additional Data Structures
 - [ ] Persistent vector (RRB-tree)
-- [ ] Concurrent skip list
-- [ ] Compressed trie for string keys
-- [ ] Bloom filter and counting Bloom filter
+- [x] Concurrent skip list — Implemented in v0.4.0
+- [x] Compressed trie for string keys — Implemented in v0.4.0
+- [x] Bloom filter and counting Bloom filter — Implemented in v0.4.0 (includes count-min sketch, HyperLogLog)
 
 ---
 

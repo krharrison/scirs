@@ -1,0 +1,49 @@
+# Codecov configuration for SciRS2
+# https://docs.codecov.com/docs/codecov-yaml
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    project:
+      default:
+        # Minimum overall project coverage (raised toward 95% over releases)
+        target: 70%
+        # Allow a 2% drop without failing CI
+        threshold: 2%
+        # Only consider changes — do not block if untouched files regress
+        if_not_found: success
+        if_ci_failed: error
+    patch:
+      default:
+        # New code introduced in a PR should be ≥60% covered
+        target: 60%
+        threshold: 5%
+        if_not_found: success
+        if_ci_failed: error
+
+# Group coverage results by top-level crate for clearer PR comments
+flag_management:
+  default_rules:
+    carryforward: true
+
+# Pull-request comment layout
+comment:
+  layout: "reach,diff,flags,tree,footer"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+  show_carryforward_flags: false
+
+# Paths to exclude from coverage calculations
+ignore:
+  - "*/tests/*"
+  - "*/benches/*"
+  - "*/examples/*"
+  - "**/fuzz/**"
+  - "tools/**"
+  - "scripts/**"
+  - "baselines/**"

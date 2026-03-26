@@ -301,7 +301,9 @@ mod tests {
 
         // Test CSV export (to a temporary file path that we won't actually create)
         // In a real test, you'd use tempfile crate
-        let csv_result = profiler.export_to_csv("/tmp/test_profile.csv");
+        let csv_path = std::env::temp_dir().join("test_profile.csv");
+        let csv_result =
+            profiler.export_to_csv(csv_path.to_str().unwrap_or("/tmp/test_profile.csv"));
         // We expect this to work or fail gracefully
         drop(csv_result);
     }

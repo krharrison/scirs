@@ -532,7 +532,11 @@ impl MPICheckpointManager {
     pub fn new(config: &FaultToleranceConfig) -> Self {
         Self {
             checkpoint_storage: CheckpointStorage::LocalDisk {
-                base_path: PathBuf::from("/tmp/mpi_checkpoints"),
+                base_path: {
+                    let mut p = std::env::temp_dir();
+                    p.push("mpi_checkpoints");
+                    p
+                },
             },
             active_checkpoints: HashMap::new(),
             checkpoint_schedule: CheckpointSchedule::new(config.checkpoint_frequency),

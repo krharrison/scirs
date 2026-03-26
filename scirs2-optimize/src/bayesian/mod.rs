@@ -112,7 +112,7 @@ pub use acquisition::{
 // Optimizer
 pub use optimizer::{
     optimize, BayesianOptResult, BayesianOptimizer, BayesianOptimizerConfig, Constraint,
-    Observation,
+    DimensionType, Observation,
 };
 
 // Sampling

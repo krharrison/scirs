@@ -44,7 +44,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-special = "0.1.5"
+//! scirs2-special = "0.4.0"
 //! ```
 //!
 //!
@@ -128,6 +128,7 @@ pub mod distributions;
 pub mod edge_case_tests;
 mod ellipsoidal;
 mod elliptic;
+pub mod elliptic_ext;
 pub mod erf;
 #[cfg(test)]
 mod extended_property_tests;
@@ -144,6 +145,7 @@ pub mod incomplete_gamma;
 pub mod information_theory;
 mod kelvin;
 mod lambert;
+pub mod legendre_elliptic;
 mod logint;
 mod mathieu;
 pub mod memory_efficient;
@@ -152,6 +154,7 @@ mod orthogonal;
 mod parabolic;
 pub mod performance_benchmarks;
 pub mod physics_engineering;
+pub mod polylogarithm;
 pub mod precision;
 mod property_tests;
 pub mod python_interop;
@@ -179,6 +182,36 @@ mod clausen;
 mod debye;
 mod scipy_compat;
 mod spherical_bessel_extended;
+
+// Theta functions (Jacobi theta)
+pub mod theta_functions;
+
+// Chromatic polynomial
+pub mod chromatic;
+// Clebsch-Gordan coefficients
+pub mod clebsch_gordan;
+// Dedekind zeta function
+pub mod dedekind_zeta;
+// Symbolic differentiation
+pub mod differentiation;
+// Elliptic modular functions
+pub mod elliptic_modular;
+// Dirichlet L-functions
+pub mod l_functions;
+// Lame functions
+pub mod lame;
+// Nield-Kuznetsov functions
+pub mod nield_kuznetsov;
+// Painleve transcendents
+pub mod painleve;
+// Schur polynomials
+pub mod schur;
+// Selberg zeta function
+pub mod selberg_zeta;
+// Symbolic expression system
+pub mod symbolic;
+// Tutte polynomial
+pub mod tutte;
 
 // Re-export common functions
 // Note: These functions require various trait bounds in their implementation,

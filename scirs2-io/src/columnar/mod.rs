@@ -36,8 +36,12 @@
 //! assert_eq!(loaded.num_columns(), 4);
 //! ```
 
+pub mod delta;
+pub mod dictionary;
 pub mod encoding;
+pub mod fsst;
 pub mod reader;
+pub mod rle;
 /// Column statistics, row groups, and predicate pushdown support
 pub mod statistics;
 pub mod types;

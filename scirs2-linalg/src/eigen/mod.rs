@@ -45,10 +45,12 @@
 //! ```
 
 // Re-export submodules
+pub mod feast;
 pub mod generalized;
 pub mod iterative;
 pub mod sparse;
 pub mod standard;
+pub mod zolotarev;
 
 // Re-export key types for convenience
 use crate::error::{LinalgError, LinalgResult};

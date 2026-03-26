@@ -6,10 +6,10 @@
 //!   do-interventions, and average causal effect estimation
 //! - [`IdentificationResult`] — backdoor adjustment set identification
 
-use std::collections::HashSet;
-use crate::StatsError;
-use crate::bayesian_network::dag::DAG;
 use crate::bayesian_network::approximate_inference::Rng;
+use crate::bayesian_network::dag::DAG;
+use crate::StatsError;
+use std::collections::HashSet;
 
 // ---------------------------------------------------------------------------
 // LinearEquation
@@ -46,15 +46,15 @@ impl LinearEquation {
 /// Structural Equation Model (SEM).
 ///
 /// Each variable is generated as:
-///   X_i = Σ_{j ∈ pa(i)} a_{ij} * X_j + ε_i
-/// where ε_i ~ N(0, noise_vars[i]).
+///   `X_i = Sum_{j in pa(i)} a_{ij} * X_j + eps_i`
+/// where eps\_i ~ N(0, `noise_vars[i]`).
 #[derive(Debug, Clone)]
 pub struct SEM {
     /// The DAG representing the causal structure.
     pub dag: DAG,
     /// One linear equation per node.
     pub equations: Vec<LinearEquation>,
-    /// Noise variance for each node (ε_i ~ N(0, noise_vars[i])).
+    /// Noise variance for each node (eps\_i ~ N(0, `noise_vars[i]`)).
     pub noise_vars: Vec<f64>,
 }
 
@@ -68,12 +68,14 @@ impl SEM {
         let n = dag.n_nodes;
         if equations.len() != n {
             return Err(StatsError::InvalidInput(format!(
-                "Expected {n} equations, got {}", equations.len()
+                "Expected {n} equations, got {}",
+                equations.len()
             )));
         }
         if noise_vars.len() != n {
             return Err(StatsError::InvalidInput(format!(
-                "Expected {n} noise variances, got {}", noise_vars.len()
+                "Expected {n} noise variances, got {}",
+                noise_vars.len()
             )));
         }
         for (i, &v) in noise_vars.iter().enumerate() {
@@ -83,7 +85,11 @@ impl SEM {
                 )));
             }
         }
-        Ok(Self { dag, equations, noise_vars })
+        Ok(Self {
+            dag,
+            equations,
+            noise_vars,
+        })
     }
 
     /// Fit a linear SEM to data using OLS for each equation.
@@ -98,7 +104,8 @@ impl SEM {
         if data[0].len() != n {
             return Err(StatsError::InvalidInput(format!(
                 "Data has {} columns, DAG has {} nodes",
-                data[0].len(), n
+                data[0].len(),
+                n
             )));
         }
 
@@ -121,7 +128,7 @@ impl SEM {
     /// Simulate `n_samples` observations from the SEM.
     ///
     /// Follows topological order. Each variable is generated as:
-    ///   X_i = Σ a_{ij} * X_j + ε_i  where ε_i ~ N(0, noise_vars[i])
+    ///   `X_i = Sum a_{ij} * X_j + eps_i` where eps\_i ~ N(0, `noise_vars[i]`)
     pub fn simulate(&self, n_samples: usize, rng: &mut impl Rng) -> Vec<Vec<f64>> {
         let n = self.dag.n_nodes;
         let topo = self.dag.topological_sort();
@@ -131,7 +138,9 @@ impl SEM {
             let noise_std = self.noise_vars[node].sqrt();
             let eq = &self.equations[node];
             for s in 0..n_samples {
-                let parent_vals: Vec<(usize, f64)> = eq.coefficients.iter()
+                let parent_vals: Vec<(usize, f64)> = eq
+                    .coefficients
+                    .iter()
                     .map(|&(p, _)| (p, data[s][p]))
                     .collect();
                 let det = eq.evaluate(&parent_vals);
@@ -172,7 +181,8 @@ impl SEM {
             },
             intervened_node: node,
             intervened_value: value,
-        }.into_sem()
+        }
+        .into_sem()
     }
 
     /// Average Causal Effect: E[Y | do(X=1)] - E[Y | do(X=0)].
@@ -192,17 +202,19 @@ impl SEM {
         // E[Y | do(X=1)]
         let sem_treat = self.do_intervention(treatment, 1.0);
         let data_treat = sem_treat.simulate(n_samples, rng);
-        let mean_treat: f64 = data_treat.iter().map(|row| row[outcome]).sum::<f64>() / n_samples as f64;
+        let mean_treat: f64 =
+            data_treat.iter().map(|row| row[outcome]).sum::<f64>() / n_samples as f64;
 
         // E[Y | do(X=0)]
         let sem_ctrl = self.do_intervention(treatment, 0.0);
         let data_ctrl = sem_ctrl.simulate(n_samples, rng);
-        let mean_ctrl: f64 = data_ctrl.iter().map(|row| row[outcome]).sum::<f64>() / n_samples as f64;
+        let mean_ctrl: f64 =
+            data_ctrl.iter().map(|row| row[outcome]).sum::<f64>() / n_samples as f64;
 
         Ok(mean_treat - mean_ctrl)
     }
 
-    /// Return the coefficient matrix A where A[i][j] = causal effect of j on i.
+    /// Return the coefficient matrix A where `A[i][j]` = causal effect of j on i.
     pub fn coefficient_matrix(&self) -> Vec<Vec<f64>> {
         let n = self.dag.n_nodes;
         let mut a = vec![vec![0.0f64; n]; n];
@@ -313,7 +325,12 @@ impl SEMWithIntercepts {
                 "All arrays must have length {n}"
             )));
         }
-        Ok(Self { dag, equations, noise_vars, intercepts })
+        Ok(Self {
+            dag,
+            equations,
+            noise_vars,
+            intercepts,
+        })
     }
 
     /// Fit via OLS with intercepts.
@@ -326,7 +343,8 @@ impl SEMWithIntercepts {
         if data[0].len() != n {
             return Err(StatsError::InvalidInput(format!(
                 "Data has {} columns, DAG has {} nodes",
-                data[0].len(), n
+                data[0].len(),
+                n
             )));
         }
         let mut equations = Vec::with_capacity(n);
@@ -335,7 +353,8 @@ impl SEMWithIntercepts {
 
         for node in 0..n {
             let parents = &dag.parents[node];
-            let (intercept, coeffs, noise_var) = ols_regression_with_intercept(data, node, parents, n_samples)?;
+            let (intercept, coeffs, noise_var) =
+                ols_regression_with_intercept(data, node, parents, n_samples)?;
             equations.push(LinearEquation {
                 node,
                 coefficients: parents.iter().copied().zip(coeffs).collect(),
@@ -357,7 +376,9 @@ impl SEMWithIntercepts {
             let eq = &self.equations[node];
             let intercept = self.intercepts[node];
             for s in 0..n_samples {
-                let parent_vals: Vec<(usize, f64)> = eq.coefficients.iter()
+                let parent_vals: Vec<(usize, f64)> = eq
+                    .coefficients
+                    .iter()
                     .map(|&(p, _)| (p, data[s][p]))
                     .collect();
                 let det = intercept + eq.evaluate(&parent_vals);
@@ -376,7 +397,10 @@ impl SEMWithIntercepts {
             new_dag.remove_edge(parent, node);
         }
         let mut new_equations = self.equations.clone();
-        new_equations[node] = LinearEquation { node, coefficients: vec![] };
+        new_equations[node] = LinearEquation {
+            node,
+            coefficients: vec![],
+        };
         let mut new_noise_vars = self.noise_vars.clone();
         new_noise_vars[node] = 0.0;
         let mut new_intercepts = self.intercepts.clone();
@@ -514,9 +538,10 @@ fn ols_regression(
     }
     let p = predictors.len();
     // Build X matrix (n_samples × p) and y vector (n_samples)
-    let x: Vec<Vec<f64>> = data.iter().map(|row| {
-        predictors.iter().map(|&j| row[j]).collect()
-    }).collect();
+    let x: Vec<Vec<f64>> = data
+        .iter()
+        .map(|row| predictors.iter().map(|&j| row[j]).collect())
+        .collect();
     let y: Vec<f64> = data.iter().map(|row| row[target]).collect();
 
     // OLS: beta = (X^T X)^{-1} X^T y
@@ -564,11 +589,14 @@ fn ols_regression_with_intercept(
     }
     // Augment with column of 1s
     let p_aug = predictors.len() + 1;
-    let x_aug: Vec<Vec<f64>> = data.iter().map(|row| {
-        let mut aug = vec![1.0f64];
-        aug.extend(predictors.iter().map(|&j| row[j]));
-        aug
-    }).collect();
+    let x_aug: Vec<Vec<f64>> = data
+        .iter()
+        .map(|row| {
+            let mut aug = vec![1.0f64];
+            aug.extend(predictors.iter().map(|&j| row[j]));
+            aug
+        })
+        .collect();
     let y: Vec<f64> = data.iter().map(|row| row[target]).collect();
 
     let mut xtx = vec![vec![0.0f64; p_aug]; p_aug];
@@ -602,24 +630,35 @@ fn ols_regression_with_intercept(
 /// Solve Ax = b via Gaussian elimination with partial pivoting.
 fn solve_linear(a: &[Vec<f64>], b: &[f64]) -> Option<Vec<f64>> {
     let n = a.len();
-    let mut aug: Vec<Vec<f64>> = a.iter().zip(b).map(|(row, &bi)| {
-        let mut r = row.clone();
-        r.push(bi);
-        r
-    }).collect();
+    let mut aug: Vec<Vec<f64>> = a
+        .iter()
+        .zip(b)
+        .map(|(row, &bi)| {
+            let mut r = row.clone();
+            r.push(bi);
+            r
+        })
+        .collect();
 
     for col in 0..n {
         let pivot = (col..n).max_by(|&i, &j| {
-            aug[i][col].abs().partial_cmp(&aug[j][col].abs()).unwrap_or(std::cmp::Ordering::Equal)
+            aug[i][col]
+                .abs()
+                .partial_cmp(&aug[j][col].abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
         })?;
         aug.swap(col, pivot);
         let pv = aug[col][col];
-        if pv.abs() < 1e-15 { return None; }
+        if pv.abs() < 1e-15 {
+            return None;
+        }
         for j in col..=n {
             aug[col][j] /= pv;
         }
         for row in 0..n {
-            if row == col { continue; }
+            if row == col {
+                continue;
+            }
             let factor = aug[row][col];
             for j in col..=n {
                 let v = aug[col][j];
@@ -636,7 +675,9 @@ fn solve_linear(a: &[Vec<f64>], b: &[f64]) -> Option<Vec<f64>> {
 
 /// Sample from N(mean, std) using Box-Muller transform.
 fn normal_sample(rng: &mut impl Rng, mean: f64, std: f64) -> f64 {
-    if std < 1e-15 { return mean; }
+    if std < 1e-15 {
+        return mean;
+    }
     let u1 = rng.next_f64().max(1e-15);
     let u2 = rng.next_f64();
     let z = (-2.0 * u1.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos();
@@ -648,8 +689,12 @@ fn normal_sample(rng: &mut impl Rng, mean: f64, std: f64) -> f64 {
 // ---------------------------------------------------------------------------
 
 fn subsets_by_idx<T: Copy>(items: &[T], k: usize) -> Vec<Vec<T>> {
-    if k == 0 { return vec![Vec::new()]; }
-    if k > items.len() { return Vec::new(); }
+    if k == 0 {
+        return vec![Vec::new()];
+    }
+    if k > items.len() {
+        return Vec::new();
+    }
     let mut result = Vec::new();
     for i in 0..=(items.len() - k) {
         for mut rest in subsets_by_idx(&items[i + 1..], k - 1) {
@@ -676,9 +721,18 @@ mod tests {
         dag.add_edge(0, 1).unwrap();
         dag.add_edge(1, 2).unwrap();
         let equations = vec![
-            LinearEquation { node: 0, coefficients: vec![] },
-            LinearEquation { node: 1, coefficients: vec![(0, 2.0)] },
-            LinearEquation { node: 2, coefficients: vec![(1, 3.0)] },
+            LinearEquation {
+                node: 0,
+                coefficients: vec![],
+            },
+            LinearEquation {
+                node: 1,
+                coefficients: vec![(0, 2.0)],
+            },
+            LinearEquation {
+                node: 2,
+                coefficients: vec![(1, 3.0)],
+            },
         ];
         let noise_vars = vec![1.0, 0.25, 0.25];
         let intercepts = vec![0.0, 0.0, 0.0];
@@ -708,7 +762,10 @@ mod tests {
         let mut rng = LcgRng::new(42);
         let data = sem_do.simulate(2000, &mut rng);
         let mean_x2: f64 = data.iter().map(|r| r[2]).sum::<f64>() / 2000.0;
-        assert!((mean_x2 - 15.0).abs() < 0.5, "E[X2 | do(X1=5)] ≈ 15, got {mean_x2}");
+        assert!(
+            (mean_x2 - 15.0).abs() < 0.5,
+            "E[X2 | do(X1=5)] ≈ 15, got {mean_x2}"
+        );
     }
 
     #[test]
@@ -727,11 +784,16 @@ mod tests {
         let data = sem.simulate(1000, &mut rng);
         let fitted = SEMWithIntercepts::fit_ols(&sem.dag, &data).unwrap();
         // Coefficient of X0 on X1 should be ≈ 2.0
-        let coeff_01 = fitted.equations[1].coefficients.iter()
+        let coeff_01 = fitted.equations[1]
+            .coefficients
+            .iter()
             .find(|&&(p, _)| p == 0)
             .map(|&(_, c)| c)
             .unwrap_or(0.0);
-        assert!((coeff_01 - 2.0).abs() < 0.2, "Coeff X0→X1 ≈ 2.0, got {coeff_01}");
+        assert!(
+            (coeff_01 - 2.0).abs() < 0.2,
+            "Coeff X0→X1 ≈ 2.0, got {coeff_01}"
+        );
     }
 
     #[test]
@@ -741,7 +803,7 @@ mod tests {
         dag.add_edge(0, 1).unwrap(); // Z → X
         dag.add_edge(0, 2).unwrap(); // Z → Y
         dag.add_edge(1, 2).unwrap(); // X → Y
-        // Backdoor adjustment for X→Y: Z (blocks path X←Z→Y)
+                                     // Backdoor adjustment for X→Y: Z (blocks path X←Z→Y)
         let result = IdentificationResult::backdoor_adjustment(&dag, 1, 2);
         assert!(result.identified, "Should find backdoor adjustment set");
         let adj = result.adjustment_set.unwrap();
@@ -773,7 +835,7 @@ mod tests {
         let mut dag = DAG::new(3);
         dag.add_edge(0, 1).unwrap(); // X → Y
         dag.add_edge(0, 2).unwrap(); // X → M (descendant)
-        // M is a descendant of X, so cannot be used
+                                     // M is a descendant of X, so cannot be used
         assert!(!satisfies_backdoor(&dag, 0, 1, &[2]));
     }
 }

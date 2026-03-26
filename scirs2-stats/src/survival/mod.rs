@@ -15,6 +15,7 @@
 //! - Cox, D.R. (1972). Regression models and life tables.
 
 pub mod cox;
+pub mod frailty;
 pub mod legacy;
 
 use crate::error::{StatsError, StatsResult};

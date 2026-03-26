@@ -95,11 +95,12 @@
 - Online Voronoi diagram updates with vertex event processing
 - Pub/sub interface for spatial change notifications
 
-### Advanced Spatial Statistics
-- Local Indicators of Spatial Association (LISA)
-- Kernel density estimation (KDE) with spatial bandwidth selection
+### Advanced Spatial Statistics — Implemented in v0.4.0
+- [x] Local Indicators of Spatial Association (LISA)
+- [x] Kernel density estimation (KDE) with spatial bandwidth selection
 - Spatial regression models (spatial lag, spatial error)
-- Spatial scan statistics for cluster detection
+- [x] Spatial scan statistics for cluster detection
+- [x] Getis-Ord Gi* statistic
 
 ### Large-Scale Geospatial Processing
 - Efficient handling of billion-point datasets via chunked R*-Tree

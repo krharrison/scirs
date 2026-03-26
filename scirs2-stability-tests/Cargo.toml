@@ -1,0 +1,23 @@
+[package]
+name = "scirs2-stability-tests"
+version.workspace = true
+edition.workspace = true
+description = "Compile-fail tests for public API stability"
+license.workspace = true
+publish = false
+
+[[bench]]
+name = "numerical"
+harness = false
+
+[dev-dependencies]
+trybuild = "1"
+criterion = { workspace = true }
+ndarray = { workspace = true }
+scirs2-core = { path = "../scirs2-core", features = [] }
+scirs2-linalg = { path = "../scirs2-linalg", features = [] }
+scirs2-stats = { path = "../scirs2-stats", features = [] }
+scirs2-io = { path = "../scirs2-io", features = [] }
+scirs2-text = { path = "../scirs2-text", features = [] }
+tempfile = { workspace = true }
+serde_json = { workspace = true }

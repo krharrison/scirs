@@ -95,9 +95,7 @@ impl<K: Ord, V> FlatMap<K, V> {
 
     /// Returns `true` if `k` is present in the map.
     pub fn contains_key(&self, k: &K) -> bool {
-        self.pairs
-            .binary_search_by(|(pk, _)| pk.cmp(k))
-            .is_ok()
+        self.pairs.binary_search_by(|(pk, _)| pk.cmp(k)).is_ok()
     }
 
     /// Removes `k` from the map, returning its value if it was present.
@@ -154,6 +152,7 @@ impl<K: Ord, V> FlatMap<K, V> {
     }
 
     /// Returns an iterator over `(K, V)` pairs consuming the map, in key order.
+    #[allow(clippy::should_implement_trait)]
     pub fn into_iter(self) -> impl Iterator<Item = (K, V)> {
         self.pairs.into_iter()
     }
@@ -326,10 +325,7 @@ mod tests {
 
     #[test]
     fn test_first_last() {
-        let m: FlatMap<i32, &str> = [(1, "a"), (3, "b"), (2, "c")]
-            .iter()
-            .cloned()
-            .collect();
+        let m: FlatMap<i32, &str> = [(1, "a"), (3, "b"), (2, "c")].iter().cloned().collect();
         assert_eq!(m.first(), Some((&1, &"a")));
         assert_eq!(m.last(), Some((&3, &"b")));
     }

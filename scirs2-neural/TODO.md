@@ -82,9 +82,10 @@
 
 ## v0.4.0 Roadmap
 
-### Attention
-- Flash Attention v2 (tiled memory-efficient attention)
-- Multi-query attention (MQA)
+### Attention — Implemented in v0.4.0
+- [x] Flash Attention v2 (tiled memory-efficient attention)
+- [x] Multi-query attention (MQA)
+- [x] Grouped Query Attention (GQA)
 
 ### Quantization
 - INT4 weight-only quantization

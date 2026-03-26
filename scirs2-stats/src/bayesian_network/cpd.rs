@@ -7,8 +7,8 @@
 //! - [`MixtureCPD`] — mixture of TabularCPDs
 //! - [`ConditionalLinear`] — conditional linear Gaussian for continuous parents
 
-use std::f64::consts::PI;
 use crate::StatsError;
+use std::f64::consts::PI;
 
 // ---------------------------------------------------------------------------
 // Trait
@@ -40,7 +40,11 @@ pub trait CPD: Send + Sync {
     /// Log-probability: default implementation wraps `prob`.
     fn log_prob(&self, value: usize, parent_values: &[usize]) -> f64 {
         let p = self.prob(value, parent_values);
-        if p <= 0.0 { f64::NEG_INFINITY } else { p.ln() }
+        if p <= 0.0 {
+            f64::NEG_INFINITY
+        } else {
+            p.ln()
+        }
     }
 }
 
@@ -55,8 +59,8 @@ pub trait CPD: Send + Sync {
 ///
 /// Row indexing follows *column-major* (rightmost parent cycles fastest),
 /// matching pgmpy convention:
-///   row = Σ_i (parent_values[i] * stride[i])
-/// where stride[i] = product of cardinalities of parents to the right.
+///   `row = Sum_i (parent_values[i] * stride[i])`
+/// where `stride[i]` = product of cardinalities of parents to the right.
 #[derive(Debug, Clone)]
 pub struct TabularCPD {
     /// Index of the node this CPD belongs to.
@@ -227,12 +231,24 @@ impl GaussianCPD {
                 "beta and parent_indices must have the same length".to_string(),
             ));
         }
-        Ok(Self { node_idx, mu, sigma, beta, parent_indices })
+        Ok(Self {
+            node_idx,
+            mu,
+            sigma,
+            beta,
+            parent_indices,
+        })
     }
 
     /// Compute the conditional mean given parent values (as continuous f64).
     pub fn conditional_mean(&self, parent_vals: &[f64]) -> f64 {
-        self.mu + self.beta.iter().zip(parent_vals).map(|(b, v)| b * v).sum::<f64>()
+        self.mu
+            + self
+                .beta
+                .iter()
+                .zip(parent_vals)
+                .map(|(b, v)| b * v)
+                .sum::<f64>()
     }
 
     /// Compute the conditional density p(x | pa(X)) given continuous value x.
@@ -309,10 +325,16 @@ impl MixtureCPD {
         }
         for w in &weights {
             if *w < 0.0 {
-                return Err(StatsError::InvalidInput("weights must be non-negative".to_string()));
+                return Err(StatsError::InvalidInput(
+                    "weights must be non-negative".to_string(),
+                ));
             }
         }
-        Ok(Self { node_idx, components, weights })
+        Ok(Self {
+            node_idx,
+            components,
+            weights,
+        })
     }
 }
 
@@ -344,15 +366,15 @@ impl CPD for MixtureCPD {
 
 /// Conditional Linear Gaussian for continuous parents and discrete output.
 ///
-/// P(X=k | pa(X)) = softmax(W[k] · pa(X) + b[k])
-/// sigma[k] stores standard deviations (for density evaluation).
+/// `P(X=k | pa(X)) = softmax(W[k] * pa(X) + b[k])`
+/// `sigma[k]` stores standard deviations (for density evaluation).
 #[derive(Debug, Clone)]
 pub struct ConditionalLinear {
     /// Index of this node.
     pub node_idx: usize,
-    /// Weight matrix: W[k] has length = number of parents.
+    /// Weight matrix: `W[k]` has length = number of parents.
     pub w: Vec<Vec<f64>>,
-    /// Bias vector: b[k] for each class k.
+    /// Bias vector: `b[k]` for each class k.
     pub b: Vec<f64>,
     /// Standard deviations (used if output is also continuous).
     pub sigma: Vec<f64>,
@@ -377,14 +399,30 @@ impl ConditionalLinear {
                 "w, b, sigma must all have length n_classes".to_string(),
             ));
         }
-        Ok(Self { node_idx, w, b, sigma, n_classes, parent_indices })
+        Ok(Self {
+            node_idx,
+            w,
+            b,
+            sigma,
+            n_classes,
+            parent_indices,
+        })
     }
 
     /// Compute softmax probabilities.
     pub fn softmax(&self, parent_values: &[f64]) -> Vec<f64> {
-        let logits: Vec<f64> = self.w.iter().zip(&self.b).map(|(wk, bk)| {
-            bk + wk.iter().zip(parent_values).map(|(wi, xi)| wi * xi).sum::<f64>()
-        }).collect();
+        let logits: Vec<f64> = self
+            .w
+            .iter()
+            .zip(&self.b)
+            .map(|(wk, bk)| {
+                bk + wk
+                    .iter()
+                    .zip(parent_values)
+                    .map(|(wi, xi)| wi * xi)
+                    .sum::<f64>()
+            })
+            .collect();
         let max_l = logits.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
         let exps: Vec<f64> = logits.iter().map(|l| (l - max_l).exp()).collect();
         let sum: f64 = exps.iter().sum();
@@ -446,7 +484,8 @@ mod tests {
     fn wetgrass_cpd() -> TabularCPD {
         // P(WG | Rain, Sprinkler) — 4 rows
         TabularCPD::new(
-            2, 2,
+            2,
+            2,
             vec![0, 1], // Rain, Sprinkler
             vec![2, 2],
             vec![
@@ -455,7 +494,8 @@ mod tests {
                 vec![0.01, 0.99], // R=1, S=0
                 vec![0.01, 0.99], // R=1, S=1
             ],
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     #[test]
@@ -504,11 +544,12 @@ mod tests {
         let cpd = ConditionalLinear::new(
             0,
             vec![vec![1.0], vec![-1.0]], // w
-            vec![0.0, 0.0],               // b
-            vec![1.0, 1.0],               // sigma
+            vec![0.0, 0.0],              // b
+            vec![1.0, 1.0],              // sigma
             2,
             vec![1],
-        ).unwrap();
+        )
+        .unwrap();
         // parent_val = 0 → logits = [0, 0] → softmax = [0.5, 0.5]
         assert!((cpd.prob(0, &[0]) - 0.5).abs() < 1e-9);
     }

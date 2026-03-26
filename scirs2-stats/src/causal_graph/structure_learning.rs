@@ -94,7 +94,11 @@ fn pearson_r(
     let n = a.len() as f64;
     let ma = a.mean().unwrap_or(0.0);
     let mb = b.mean().unwrap_or(0.0);
-    let cov: f64 = a.iter().zip(b.iter()).map(|(&ai, &bi)| (ai - ma) * (bi - mb)).sum::<f64>();
+    let cov: f64 = a
+        .iter()
+        .zip(b.iter())
+        .map(|(&ai, &bi)| (ai - ma) * (bi - mb))
+        .sum::<f64>();
     let va: f64 = a.iter().map(|&ai| (ai - ma).powi(2)).sum::<f64>();
     let vb: f64 = b.iter().map(|&bi| (bi - mb).powi(2)).sum::<f64>();
     cov / (va * vb).sqrt().max(f64::EPSILON)
@@ -131,11 +135,17 @@ fn t_dist_two_sided_p(t: f64, df: f64) -> f64 {
 /// Regularised incomplete beta I_x(a,b) via a continued-fraction expansion
 /// (Lentz algorithm) which is more numerically stable than the series.
 fn inc_beta_series(a: f64, b: f64, x: f64) -> f64 {
-    if !x.is_finite() || x <= 0.0 { return 0.0; }
-    if x >= 1.0 { return 1.0; }
+    if !x.is_finite() || x <= 0.0 {
+        return 0.0;
+    }
+    if x >= 1.0 {
+        return 1.0;
+    }
     // Log of the beta function prefix
     let log_prefix = a * x.ln() + b * (1.0 - x).ln() - log_beta(a, b);
-    if !log_prefix.is_finite() { return 0.5; }
+    if !log_prefix.is_finite() {
+        return 0.5;
+    }
     let prefix = log_prefix.exp();
     // Use continued fraction if x > (a+1)/(a+b+2), else series
     if x < (a + 1.0) / (a + b + 2.0) {
@@ -147,7 +157,9 @@ fn inc_beta_series(a: f64, b: f64, x: f64) -> f64 {
         for k in 1..200_usize {
             t_term *= x * (a + b + k as f64 - 1.0) / ((a + k as f64) * k as f64);
             s += t_term;
-            if t_term.abs() < 1e-12 { break; }
+            if t_term.abs() < 1e-12 {
+                break;
+            }
         }
         (prefix * s).clamp(0.0, 1.0)
     } else {
@@ -166,8 +178,15 @@ fn normal_cdf(x: f64) -> f64 {
 
 fn erf(x: f64) -> f64 {
     let t = 1.0 / (1.0 + 0.3275911 * x.abs());
-    let poly = t * (0.254_829_592 + t * (-0.284_496_736 + t * (1.421_413_741 + t * (-1.453_152_027 + t * 1.061_405_429))));
-    if x >= 0.0 { 1.0 - poly * (-x * x).exp() } else { -(1.0 - poly * (-x * x).exp()) }
+    let poly = t
+        * (0.254_829_592
+            + t * (-0.284_496_736
+                + t * (1.421_413_741 + t * (-1.453_152_027 + t * 1.061_405_429))));
+    if x >= 0.0 {
+        1.0 - poly * (-x * x).exp()
+    } else {
+        -(1.0 - poly * (-x * x).exp())
+    }
 }
 
 // regularised_beta is replaced by inc_beta_series above
@@ -247,7 +266,9 @@ fn gauss_jordan_solve(mut a: Array2<f64>, mut b: Array1<f64>) -> StatsResult<Arr
     for col in 0..n {
         let pivot_row = (col..n)
             .max_by(|&i, &j| {
-                a[[i, col]].abs().partial_cmp(&a[[j, col]].abs())
+                a[[i, col]]
+                    .abs()
+                    .partial_cmp(&a[[j, col]].abs())
                     .unwrap_or(std::cmp::Ordering::Equal)
             })
             .ok_or_else(|| StatsError::ComputationError("Singular matrix".to_owned()))?;
@@ -263,15 +284,20 @@ fn gauss_jordan_solve(mut a: Array2<f64>, mut b: Array1<f64>) -> StatsResult<Arr
 
         let pivot = a[[col, col]];
         if pivot.abs() < 1e-12 {
-            return Err(StatsError::ComputationError("Singular OLS system".to_owned()));
+            return Err(StatsError::ComputationError(
+                "Singular OLS system".to_owned(),
+            ));
         }
-        for k in col..n { a[[col, k]] /= pivot; }
+        for k in col..n {
+            a[[col, k]] /= pivot;
+        }
         b[col] /= pivot;
         for row in 0..n {
             if row != col {
                 let factor = a[[row, col]];
                 for k in col..n {
-                    let av = a[[col, k]]; a[[row, k]] -= factor * av;
+                    let av = a[[col, k]];
+                    a[[row, k]] -= factor * av;
                 }
                 b[row] -= factor * b[col];
             }
@@ -313,7 +339,11 @@ impl PcAlgorithm {
     /// Run the PC algorithm on the data matrix (rows = observations, cols = variables).
     ///
     /// Returns a CPDAG (Completed Partially Directed Acyclic Graph).
-    pub fn fit(&self, data: ArrayView2<f64>, var_names: &[&str]) -> StatsResult<StructureLearningResult> {
+    pub fn fit(
+        &self,
+        data: ArrayView2<f64>,
+        var_names: &[&str],
+    ) -> StatsResult<StructureLearningResult> {
         let p = data.ncols();
         if var_names.len() != p {
             return Err(StatsError::DimensionMismatch(
@@ -324,7 +354,9 @@ impl PcAlgorithm {
         // Phase 1: skeleton discovery
         // Start with fully connected skeleton
         let mut adj: Vec<Vec<bool>> = vec![vec![true; p]; p];
-        for i in 0..p { adj[i][i] = false; }
+        for i in 0..p {
+            adj[i][i] = false;
+        }
 
         // Separation sets
         let mut sep_sets: HashMap<(usize, usize), Vec<usize>> = HashMap::new();
@@ -344,9 +376,8 @@ impl PcAlgorithm {
                 .collect();
             for (x, y) in edges {
                 // Collect adjacent nodes of x, excluding y
-                let z_candidates: Vec<usize> = (0..p)
-                    .filter(|&k| k != x && k != y && adj[x][k])
-                    .collect();
+                let z_candidates: Vec<usize> =
+                    (0..p).filter(|&k| k != x && k != y && adj[x][k]).collect();
                 if z_candidates.len() < ord {
                     continue;
                 }
@@ -354,8 +385,7 @@ impl PcAlgorithm {
                 let mut found_sep = false;
                 'cond: for z_set in subsets(&z_candidates, ord) {
                     n_tests += 1;
-                    let p_val = partial_correlation_test(data, x, y, &z_set)
-                        .unwrap_or(1.0);
+                    let p_val = partial_correlation_test(data, x, y, &z_set).unwrap_or(1.0);
                     if p_val > self.alpha {
                         // Conditionally independent → remove edge
                         adj[x][y] = false;
@@ -380,7 +410,9 @@ impl PcAlgorithm {
                 for j in (i + 1)..neighbours.len() {
                     let x = neighbours[i];
                     let y = neighbours[j];
-                    if adj[x][y] { continue; } // x - y edge exists, no v-structure
+                    if adj[x][y] {
+                        continue;
+                    } // x - y edge exists, no v-structure
                     let key = (x.min(y), x.max(y));
                     let sep = sep_sets.get(&key).cloned().unwrap_or_default();
                     if !sep.contains(&z) {
@@ -397,12 +429,16 @@ impl PcAlgorithm {
 
         // Build DAG
         let mut dag = CausalDAG::new();
-        for name in var_names { dag.add_node(name); }
+        for name in var_names {
+            dag.add_node(name);
+        }
         let mut edge_info: HashMap<(usize, usize), EdgeType> = HashMap::new();
 
         for i in 0..p {
             for j in 0..p {
-                if i == j || !adj[i][j] { continue; }
+                if i == j || !adj[i][j] {
+                    continue;
+                }
                 let et = directed.get(&(i, j)).cloned();
                 match et {
                     Some(EdgeType::Directed) => {
@@ -441,11 +477,19 @@ fn meek_rules(p: usize, adj: &[Vec<bool>], directed: &mut HashMap<(usize, usize)
         // R1: if a → b - c and a - c absent, orient b → c
         for b in 0..p {
             for a in 0..p {
-                if !adj[a][b] { continue; }
-                if directed.get(&(a, b)) != Some(&EdgeType::Directed) { continue; }
+                if !adj[a][b] {
+                    continue;
+                }
+                if directed.get(&(a, b)) != Some(&EdgeType::Directed) {
+                    continue;
+                }
                 for c in 0..p {
-                    if c == a || !adj[b][c] { continue; }
-                    if directed.contains_key(&(b, c)) { continue; }
+                    if c == a || !adj[b][c] {
+                        continue;
+                    }
+                    if directed.contains_key(&(b, c)) {
+                        continue;
+                    }
                     if !adj[a][c] {
                         directed.insert((b, c), EdgeType::Directed);
                         changed = true;
@@ -456,9 +500,13 @@ fn meek_rules(p: usize, adj: &[Vec<bool>], directed: &mut HashMap<(usize, usize)
         // R2: if a → b → c and a - c, orient a → c
         for a in 0..p {
             for b in 0..p {
-                if directed.get(&(a, b)) != Some(&EdgeType::Directed) { continue; }
+                if directed.get(&(a, b)) != Some(&EdgeType::Directed) {
+                    continue;
+                }
                 for c in 0..p {
-                    if directed.get(&(b, c)) != Some(&EdgeType::Directed) { continue; }
+                    if directed.get(&(b, c)) != Some(&EdgeType::Directed) {
+                        continue;
+                    }
                     if adj[a][c] && !directed.contains_key(&(a, c)) {
                         directed.insert((a, c), EdgeType::Directed);
                         changed = true;
@@ -496,7 +544,11 @@ impl Default for FciAlgorithm {
 
 impl FciAlgorithm {
     /// Run FCI on the data, returning a PAG-like structure.
-    pub fn fit(&self, data: ArrayView2<f64>, var_names: &[&str]) -> StatsResult<StructureLearningResult> {
+    pub fn fit(
+        &self,
+        data: ArrayView2<f64>,
+        var_names: &[&str],
+    ) -> StatsResult<StructureLearningResult> {
         // Phase 1: same skeleton discovery as PC
         let pc = PcAlgorithm {
             alpha: self.alpha,
@@ -514,7 +566,9 @@ impl FciAlgorithm {
         let directed_clone = result.edge_info.clone();
         for i in 0..p {
             for j in 0..p {
-                if i == j { continue; }
+                if i == j {
+                    continue;
+                }
                 // If both i→j and j→i are NOT in directed, mark as bidirected candidate
                 let ij = directed_clone.get(&(i, j));
                 let ji = directed_clone.get(&(j, i));
@@ -536,18 +590,17 @@ impl FciAlgorithm {
 // ---------------------------------------------------------------------------
 
 /// BIC score for a variable given its parents.
-fn bic_score(
-    data: ArrayView2<f64>,
-    node: usize,
-    parents: &[usize],
-    bic_penalty: f64,
-) -> f64 {
+fn bic_score(data: ArrayView2<f64>, node: usize, parents: &[usize], bic_penalty: f64) -> f64 {
     let n = data.nrows() as f64;
     let k = parents.len() as f64;
 
+    // Compute residuals: (y - predicted) for each observation
     let residuals = if parents.is_empty() {
         let mean = data.column(node).mean().unwrap_or(0.0);
-        data.column(node).iter().map(|&y| (y - mean).powi(2)).collect::<Vec<_>>()
+        data.column(node)
+            .iter()
+            .map(|&y| y - mean)
+            .collect::<Vec<_>>()
     } else {
         match ols_residuals(data, node, parents) {
             Ok(r) => r.to_vec(),
@@ -557,7 +610,9 @@ fn bic_score(
 
     let rss: f64 = residuals.iter().map(|r| r * r).sum();
     let sigma2 = rss / n;
-    if sigma2 < 1e-12 { return 0.0; }
+    if sigma2 < 1e-12 {
+        return 0.0;
+    }
     // BIC = -2 log L + k log n = n log(σ²) + k log(n)
     -(n * sigma2.ln() + bic_penalty * (k + 1.0) * n.ln())
 }
@@ -587,14 +642,22 @@ impl Default for BicGreedySearch {
 
 impl BicGreedySearch {
     /// Fit the structure by greedy BIC hill climbing.
-    pub fn fit(&self, data: ArrayView2<f64>, var_names: &[&str]) -> StatsResult<StructureLearningResult> {
+    pub fn fit(
+        &self,
+        data: ArrayView2<f64>,
+        var_names: &[&str],
+    ) -> StatsResult<StructureLearningResult> {
         let p = data.ncols();
         if var_names.len() != p {
-            return Err(StatsError::DimensionMismatch("var_names length mismatch".to_owned()));
+            return Err(StatsError::DimensionMismatch(
+                "var_names length mismatch".to_owned(),
+            ));
         }
 
         let mut best_dag = CausalDAG::new();
-        for name in var_names { best_dag.add_node(name); }
+        for name in var_names {
+            best_dag.add_node(name);
+        }
         let mut best_score = self.compute_total_bic(data, &vec![vec![]; p]);
         let mut best_parents = vec![vec![]; p];
 
@@ -609,11 +672,19 @@ impl BicGreedySearch {
             // Try adding each edge not already present
             for i in 0..p {
                 for j in 0..p {
-                    if i == j { continue; }
-                    if current_parents[j].contains(&i) { continue; }
-                    if current_parents[j].len() >= self.max_parents { continue; }
+                    if i == j {
+                        continue;
+                    }
+                    if current_parents[j].contains(&i) {
+                        continue;
+                    }
+                    if current_parents[j].len() >= self.max_parents {
+                        continue;
+                    }
                     // Check acyclicity: i should not be a descendant of j
-                    if self.creates_cycle(&current_parents, i, j, p) { continue; }
+                    if self.creates_cycle(&current_parents, i, j, p) {
+                        continue;
+                    }
 
                     let mut trial = current_parents.clone();
                     trial[j].push(i);
@@ -653,7 +724,9 @@ impl BicGreedySearch {
 
         // Build DAG from best parents
         let mut dag = CausalDAG::new();
-        for name in var_names { dag.add_node(name); }
+        for name in var_names {
+            dag.add_node(name);
+        }
         for (j, parents) in best_parents.iter().enumerate() {
             for &i in parents {
                 let _ = dag.add_edge(var_names[i], var_names[j]);
@@ -676,13 +749,23 @@ impl BicGreedySearch {
     }
 
     /// Simple cycle check via DFS on the parent-set representation.
-    fn creates_cycle(&self, parents: &[Vec<usize>], new_parent: usize, child: usize, p: usize) -> bool {
+    fn creates_cycle(
+        &self,
+        parents: &[Vec<usize>],
+        new_parent: usize,
+        child: usize,
+        p: usize,
+    ) -> bool {
         // Check if `child` is an ancestor of `new_parent` in current parents graph
         let mut visited = HashSet::new();
         let mut stack = vec![new_parent];
         while let Some(cur) = stack.pop() {
-            if cur == child { return true; }
-            if !visited.insert(cur) { continue; }
+            if cur == child {
+                return true;
+            }
+            if !visited.insert(cur) {
+                continue;
+            }
             for &pa in &parents[cur] {
                 stack.push(pa);
             }
@@ -728,7 +811,7 @@ impl Default for LiNGAM {
 pub struct LiNGAMResult {
     /// Estimated causal ordering of variables (topological sort).
     pub causal_order: Vec<usize>,
-    /// Estimated connection strength matrix B (B[i,j] = effect of j on i).
+    /// Estimated connection strength matrix B (`B[i,j]` = effect of j on i).
     pub b_matrix: Array2<f64>,
     /// Learned DAG.
     pub dag: CausalDAG,
@@ -739,11 +822,15 @@ impl LiNGAM {
     pub fn fit(&self, data: ArrayView2<f64>, var_names: &[&str]) -> StatsResult<LiNGAMResult> {
         let (n, p) = data.dim();
         if var_names.len() != p {
-            return Err(StatsError::DimensionMismatch("var_names must equal ncols".to_owned()));
+            return Err(StatsError::DimensionMismatch(
+                "var_names must equal ncols".to_owned(),
+            ));
         }
 
         // Centre the data
-        let means: Array1<f64> = (0..p).map(|j| data.column(j).mean().unwrap_or(0.0)).collect();
+        let means: Array1<f64> = (0..p)
+            .map(|j| data.column(j).mean().unwrap_or(0.0))
+            .collect();
         let mut xc = data.to_owned();
         for i in 0..n {
             for j in 0..p {
@@ -769,10 +856,14 @@ impl LiNGAM {
 
         // Build DAG
         let mut dag = CausalDAG::new();
-        for name in var_names { dag.add_node(name); }
+        for name in var_names {
+            dag.add_node(name);
+        }
         for j in 0..p {
             for i in 0..p {
-                if i == j { continue; }
+                if i == j {
+                    continue;
+                }
                 if b_matrix[[i, j]].abs() > self.threshold {
                     // j causes i (b[i,j] = effect of j on i)
                     let _ = dag.add_edge(var_names[j], var_names[i]);
@@ -809,7 +900,11 @@ fn whiten(data: ArrayView2<f64>) -> StatsResult<(Array2<f64>, Array2<f64>)> {
     // W = D^{-1/2} V'  (whitening matrix)
     let mut w = Array2::<f64>::zeros((p, p));
     for i in 0..p {
-        let scale = if eigvals[i] > 1e-10 { eigvals[i].sqrt().recip() } else { 0.0 };
+        let scale = if eigvals[i] > 1e-10 {
+            eigvals[i].sqrt().recip()
+        } else {
+            0.0
+        };
         for j in 0..p {
             w[[i, j]] = scale * eigvecs[[j, i]]; // eigvecs[:,i] is i-th eigenvector
         }
@@ -828,10 +923,7 @@ fn whiten(data: ArrayView2<f64>) -> StatsResult<(Array2<f64>, Array2<f64>)> {
 }
 
 /// One-sided Jacobi eigendecomposition (symmetric matrix).
-fn jacobi_eigen(
-    a: ArrayView2<f64>,
-    max_iter: usize,
-) -> StatsResult<(Array1<f64>, Array2<f64>)> {
+fn jacobi_eigen(a: ArrayView2<f64>, max_iter: usize) -> StatsResult<(Array1<f64>, Array2<f64>)> {
     let n = a.nrows();
     let mut d = a.to_owned();
     let mut v = Array2::<f64>::eye(n);
@@ -841,10 +933,16 @@ fn jacobi_eigen(
         let (mut p, mut q) = (0, 1);
         for i in 0..n {
             for j in (i + 1)..n {
-                if d[[i, j]].abs() > max_val { max_val = d[[i, j]].abs(); p = i; q = j; }
+                if d[[i, j]].abs() > max_val {
+                    max_val = d[[i, j]].abs();
+                    p = i;
+                    q = j;
+                }
             }
         }
-        if max_val < 1e-12 { break; }
+        if max_val < 1e-12 {
+            break;
+        }
         let theta = if (d[[p, p]] - d[[q, q]]).abs() < 1e-12 {
             std::f64::consts::FRAC_PI_4
         } else {
@@ -855,7 +953,8 @@ fn jacobi_eigen(
         let (dpp, dqq, dpq) = (d[[p, p]], d[[q, q]], d[[p, q]]);
         d[[p, p]] = c * c * dpp - 2.0 * s * c * dpq + s * s * dqq;
         d[[q, q]] = s * s * dpp + 2.0 * s * c * dpq + c * c * dqq;
-        d[[p, q]] = 0.0; d[[q, p]] = 0.0;
+        d[[p, q]] = 0.0;
+        d[[q, p]] = 0.0;
         for k in 0..n {
             if k != p && k != q {
                 let dpk = d[[p, k]];
@@ -876,11 +975,7 @@ fn jacobi_eigen(
 }
 
 /// Simplified FastICA (deflation, neg-entropy approximation).
-fn fast_ica(
-    xw: ArrayView2<f64>,
-    max_iter: usize,
-    tol: f64,
-) -> StatsResult<Array2<f64>> {
+fn fast_ica(xw: ArrayView2<f64>, max_iter: usize, tol: f64) -> StatsResult<Array2<f64>> {
     let (n, p) = xw.dim();
     let mut w_mat = Array2::<f64>::eye(p);
 
@@ -890,7 +985,12 @@ fn fast_ica(
         for _ in 0..max_iter {
             // Project
             let wx: Vec<f64> = (0..n)
-                .map(|i| w.iter().zip(xw.row(i).iter()).map(|(a, b)| a * b).sum::<f64>())
+                .map(|i| {
+                    w.iter()
+                        .zip(xw.row(i).iter())
+                        .map(|(a, b)| a * b)
+                        .sum::<f64>()
+                })
                 .collect();
 
             // Non-linearity g(u) = tanh(u), g'(u) = 1 - tanh(u)^2
@@ -919,12 +1019,24 @@ fn fast_ica(
             }
 
             // Normalise
-            let norm: f64 = w_new.iter().map(|x| x * x).sum::<f64>().sqrt().max(f64::EPSILON);
+            let norm: f64 = w_new
+                .iter()
+                .map(|x| x * x)
+                .sum::<f64>()
+                .sqrt()
+                .max(f64::EPSILON);
             w_new.mapv_inplace(|x| x / norm);
 
-            let diff: f64 = w.iter().zip(w_new.iter()).map(|(a, b)| (a - b).powi(2)).sum::<f64>().sqrt();
+            let diff: f64 = w
+                .iter()
+                .zip(w_new.iter())
+                .map(|(a, b)| (a - b).powi(2))
+                .sum::<f64>()
+                .sqrt();
             w = w_new;
-            if diff < tol { break; }
+            if diff < tol {
+                break;
+            }
         }
         for j in 0..p {
             w_mat[[comp, j]] = w[j];
@@ -938,24 +1050,40 @@ fn pseudo_inverse_2x2_general(w: &Array2<f64>, p: usize) -> StatsResult<Array2<f
     // For small p, direct Gauss-Jordan inversion works
     let mut aug = Array2::<f64>::zeros((p, 2 * p));
     for i in 0..p {
-        for j in 0..p { aug[[i, j]] = w[[i, j]]; }
+        for j in 0..p {
+            aug[[i, j]] = w[[i, j]];
+        }
         aug[[i, p + i]] = 1.0;
     }
     for col in 0..p {
         let pivot = (col..p)
-            .max_by(|&i, &j| aug[[i, col]].abs().partial_cmp(&aug[[j, col]].abs()).unwrap_or(std::cmp::Ordering::Equal))
-            .ok_or_else(|| StatsError::ComputationError("Singular ICA unmixing matrix".to_owned()))?;
+            .max_by(|&i, &j| {
+                aug[[i, col]]
+                    .abs()
+                    .partial_cmp(&aug[[j, col]].abs())
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
+            .ok_or_else(|| {
+                StatsError::ComputationError("Singular ICA unmixing matrix".to_owned())
+            })?;
         for k in 0..(2 * p) {
-            let tmp = aug[[col, k]]; aug[[col, k]] = aug[[pivot, k]]; aug[[pivot, k]] = tmp;
+            let tmp = aug[[col, k]];
+            aug[[col, k]] = aug[[pivot, k]];
+            aug[[pivot, k]] = tmp;
         }
         let piv_val = aug[[col, col]];
-        if piv_val.abs() < 1e-12 { return Err(StatsError::ComputationError("Singular".to_owned())); }
-        for k in 0..(2 * p) { aug[[col, k]] /= piv_val; }
+        if piv_val.abs() < 1e-12 {
+            return Err(StatsError::ComputationError("Singular".to_owned()));
+        }
+        for k in 0..(2 * p) {
+            aug[[col, k]] /= piv_val;
+        }
         for row in 0..p {
             if row != col {
                 let factor = aug[[row, col]];
                 for k in 0..(2 * p) {
-                    let av = aug[[col, k]]; aug[[row, k]] -= factor * av;
+                    let av = aug[[col, k]];
+                    aug[[row, k]] -= factor * av;
                 }
             }
         }
@@ -973,10 +1101,14 @@ fn normalise_lingam(mut b: Array2<f64>, p: usize) -> Array2<f64> {
     for i in 0..p {
         let diag = b[[i, i]];
         if diag.abs() > 1e-10 {
-            for j in 0..p { b[[i, j]] /= diag; }
+            for j in 0..p {
+                b[[i, j]] /= diag;
+            }
         }
     }
-    for i in 0..p { b[[i, i]] = 0.0; }
+    for i in 0..p {
+        b[[i, i]] = 0.0;
+    }
     b
 }
 
@@ -989,8 +1121,16 @@ fn lingam_order(b: &Array2<f64>, p: usize) -> Vec<usize> {
         let best = remaining
             .iter()
             .min_by(|&&i, &&j| {
-                let li: f64 = remaining.iter().filter(|&&k| k != i).map(|&k| b[[i, k]].abs()).sum();
-                let lj: f64 = remaining.iter().filter(|&&k| k != j).map(|&k| b[[j, k]].abs()).sum();
+                let li: f64 = remaining
+                    .iter()
+                    .filter(|&&k| k != i)
+                    .map(|&k| b[[i, k]].abs())
+                    .sum();
+                let lj: f64 = remaining
+                    .iter()
+                    .filter(|&&k| k != j)
+                    .map(|&k| b[[j, k]].abs())
+                    .sum();
                 li.partial_cmp(&lj).unwrap_or(std::cmp::Ordering::Equal)
             })
             .copied()
@@ -1038,17 +1178,27 @@ impl Default for Notears {
 
 impl Notears {
     /// Fit NOTEARS on the data matrix.
-    pub fn fit(&self, data: ArrayView2<f64>, var_names: &[&str]) -> StatsResult<StructureLearningResult> {
+    pub fn fit(
+        &self,
+        data: ArrayView2<f64>,
+        var_names: &[&str],
+    ) -> StatsResult<StructureLearningResult> {
         let (n, p) = data.dim();
         if var_names.len() != p {
-            return Err(StatsError::DimensionMismatch("var_names mismatch".to_owned()));
+            return Err(StatsError::DimensionMismatch(
+                "var_names mismatch".to_owned(),
+            ));
         }
 
         // Centre the data
-        let means: Array1<f64> = (0..p).map(|j| data.column(j).mean().unwrap_or(0.0)).collect();
+        let means: Array1<f64> = (0..p)
+            .map(|j| data.column(j).mean().unwrap_or(0.0))
+            .collect();
         let mut xc = data.to_owned();
         for i in 0..n {
-            for j in 0..p { xc[[i, j]] -= means[j]; }
+            for j in 0..p {
+                xc[[i, j]] -= means[j];
+            }
         }
 
         // Augmented Lagrangian with penalty ρ
@@ -1071,17 +1221,23 @@ impl Notears {
 
             // Update multiplier and penalty
             alpha += rho * h_val;
-            if h_val > 0.25 * h_prev { rho = (rho * 10.0).min(rho_max); }
+            if h_val > 0.25 * h_prev {
+                rho = (rho * 10.0).min(rho_max);
+            }
             h_prev = h_val;
         }
 
         // Threshold and build DAG
         let mut dag = CausalDAG::new();
-        for name in var_names { dag.add_node(name); }
+        for name in var_names {
+            dag.add_node(name);
+        }
         let mut edge_info = HashMap::new();
         for i in 0..p {
             for j in 0..p {
-                if i == j { continue; }
+                if i == j {
+                    continue;
+                }
                 if w[[i, j]].abs() > self.w_threshold {
                     let _ = dag.add_edge(var_names[i], var_names[j]);
                     edge_info.insert((i, j), EdgeType::Directed);
@@ -1116,7 +1272,9 @@ impl Notears {
             let mut w_new = Array2::<f64>::zeros((p, p));
             for i in 0..p {
                 for j in 0..p {
-                    if i == j { continue; }
+                    if i == j {
+                        continue;
+                    }
                     let u = w[[i, j]] - lr * grad[[i, j]];
                     // Soft thresholding
                     w_new[[i, j]] = if u > lr * self.lambda {
@@ -1138,7 +1296,9 @@ impl Notears {
                 d.sqrt()
             };
             w = w_new;
-            if diff < 1e-6 { break; }
+            if diff < 1e-6 {
+                break;
+            }
         }
         Ok(w)
     }
@@ -1160,7 +1320,9 @@ impl Notears {
         let xw = x_times_w(x, w, n, p);
         for i in 0..p {
             for j in 0..p {
-                if i == j { continue; }
+                if i == j {
+                    continue;
+                }
                 let mut g = 0.0_f64;
                 for k in 0..n {
                     g += x[[k, i]] * (xw[[k, j]] - x[[k, j]]);
@@ -1171,7 +1333,13 @@ impl Notears {
 
         // Acyclicity gradient: ∂h/∂W = (e^{W◦W})' ◦ 2W
         let exp_ww = notears_exp_ww(w, p);
-        let h = exp_ww.iter().enumerate().filter(|(i, _)| i / p == i % p).map(|(_, &v)| v).sum::<f64>() - p as f64;
+        let h = exp_ww
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| i / p == i % p)
+            .map(|(_, &v)| v)
+            .sum::<f64>()
+            - p as f64;
         let dh_dw = notears_dh_dw(&exp_ww, w, p);
         for i in 0..p {
             for j in 0..p {
@@ -1225,7 +1393,9 @@ fn notears_exp_ww(w: &Array2<f64>, p: usize) -> Array2<f64> {
                 result[[i, j]] += term[[i, j]] / factorial;
             }
         }
-        if term.iter().map(|x| x.abs()).fold(0.0_f64, f64::max) < 1e-12 { break; }
+        if term.iter().map(|x| x.abs()).fold(0.0_f64, f64::max) < 1e-12 {
+            break;
+        }
     }
     result
 }
@@ -1257,8 +1427,12 @@ fn notears_loss(x: ArrayView2<f64>, w: &Array2<f64>, n: usize, p: usize) -> f64 
 // ---------------------------------------------------------------------------
 
 fn subsets<T: Copy>(items: &[T], k: usize) -> Vec<Vec<T>> {
-    if k == 0 { return vec![Vec::new()]; }
-    if k > items.len() { return Vec::new(); }
+    if k == 0 {
+        return vec![Vec::new()];
+    }
+    if k > items.len() {
+        return Vec::new();
+    }
     let mut result = Vec::new();
     for i in 0..=(items.len() - k) {
         for mut rest in subsets(&items[i + 1..], k - 1) {
@@ -1279,15 +1453,18 @@ mod tests {
     use scirs2_core::ndarray::Array2;
 
     fn chain_data() -> Array2<f64> {
-        // X → Y → Z  with independent Gaussian noise
+        // X -> Y -> Z  with independent Gaussian noise
         let n = 100;
         let mut data = Array2::<f64>::zeros((n, 3));
         let mut lcg: u64 = 12345;
         let next = |s: &mut u64| -> f64 {
+            // Advance LCG twice to get two independent uniform samples
             *s = s.wrapping_mul(6364136223846793005).wrapping_add(1);
-            let u = (*s >> 33) as f64 / u32::MAX as f64;
-            // Box-Muller
-            let v = ((*s >> 1) as f64 / u32::MAX as f64).max(1e-10);
+            let u = (*s >> 33) as f64 / (1u64 << 31) as f64;
+            *s = s.wrapping_mul(6364136223846793005).wrapping_add(1);
+            // v must be in (0, 1] for Box-Muller log
+            let v = ((*s >> 33) as f64 / (1u64 << 31) as f64).max(1e-10);
+            // Box-Muller transform
             (-2.0 * v.ln()).sqrt() * (2.0 * std::f64::consts::PI * u).cos()
         };
         for i in 0..n {
@@ -1323,7 +1500,8 @@ mod tests {
             ..Default::default()
         };
         let res = learner.fit(data.view(), &["X", "Y", "Z"]).unwrap();
-        assert!(!res.score.is_nan() || res.dag.n_edges() >= 0);
+        // n_edges() returns usize (always >= 0); just check score is valid
+        assert!(!res.score.is_nan());
     }
 
     #[test]

@@ -160,6 +160,18 @@ impl Space {
         self.transformed_n_dims
     }
 
+    /// Return dimension types for use with `BayesianOptimizer::set_dimension_types`.
+    pub fn dimension_types(&self) -> Vec<crate::bayesian::optimizer::DimensionType> {
+        use crate::bayesian::optimizer::DimensionType;
+        self.parameters
+            .iter()
+            .map(|(_, param)| match param {
+                Parameter::Integer(_, _) => DimensionType::Integer,
+                _ => DimensionType::Continuous,
+            })
+            .collect()
+    }
+
     /// Sample random points from the space
     pub fn sample(&self, n_samples: usize, rng: &mut StdRng) -> Vec<Array1<f64>> {
         let n_dims = self.n_dims();

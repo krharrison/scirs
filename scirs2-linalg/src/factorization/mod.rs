@@ -7,7 +7,7 @@
 //!
 //! | Module | Contents |
 //! |--------|----------|
-//! | [`gsvd`] | Generalized Singular Value Decomposition |
+//! | [`gsvd()`] | Generalized Singular Value Decomposition |
 //!
 //! # Quick Start
 //!
@@ -27,5 +27,14 @@
 //! ```
 
 pub mod gsvd;
+pub mod iterative_refinement;
+pub mod rrqr;
+pub mod urv;
 
 pub use gsvd::{generalized_singular_values, gsvd, GsvdResult};
+pub use iterative_refinement::{
+    generic_iterative_refinement, lu_iterative_refinement, qr_iterative_refinement,
+    IterativeRefinementResult, RefinementConfig,
+};
+pub use rrqr::{perm_to_matrix, rrqr, rrqr_rank, strong_rrqr, RRQRResult};
+pub use urv::{urv, urv_lstsq, URVResult};

@@ -9,6 +9,8 @@
 //! coordinates, vibration problems, and other physical systems with elliptical
 //! symmetry.
 
+pub mod advanced;
+
 use crate::error::SpecialResult;
 use scirs2_core::numeric::{Float, FromPrimitive};
 use std::f64::consts::PI;

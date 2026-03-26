@@ -118,6 +118,20 @@ pub struct Constraint {
 }
 
 // ---------------------------------------------------------------------------
+// Dimension type
+// ---------------------------------------------------------------------------
+
+/// Describes whether a dimension is continuous or integer-valued.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DimensionType {
+    /// Continuous (real-valued) dimension.
+    Continuous,
+    /// Integer-valued dimension — candidates will be rounded to the nearest integer
+    /// and clamped to the declared bounds.
+    Integer,
+}
+
+// ---------------------------------------------------------------------------
 // BayesianOptimizer
 // ---------------------------------------------------------------------------
 
@@ -140,6 +154,9 @@ pub struct BayesianOptimizer {
     constraints: Vec<Constraint>,
     /// Random number generator.
     rng: StdRng,
+    /// Optional per-dimension type info (Continuous or Integer).
+    /// When set, integer dimensions are rounded & clamped after every candidate generation.
+    dim_types: Option<Vec<DimensionType>>,
 }
 
 impl BayesianOptimizer {
@@ -180,6 +197,7 @@ impl BayesianOptimizer {
             best_idx: None,
             constraints: Vec::new(),
             rng,
+            dim_types: None,
         })
     }
 
@@ -203,6 +221,33 @@ impl BayesianOptimizer {
             func: Box::new(func),
             name: name.to_string(),
         });
+    }
+
+    /// Declare dimension types so integer dimensions are automatically rounded.
+    ///
+    /// The length of `types` must equal the number of dimensions (bounds).
+    pub fn set_dimension_types(&mut self, types: Vec<DimensionType>) -> OptimizeResult<()> {
+        if types.len() != self.bounds.len() {
+            return Err(OptimizeError::InvalidInput(format!(
+                "dimension_types length ({}) must match bounds length ({})",
+                types.len(),
+                self.bounds.len()
+            )));
+        }
+        self.dim_types = Some(types);
+        Ok(())
+    }
+
+    /// Round integer dimensions to the nearest integer and clamp to bounds.
+    fn enforce_dim_types(&self, x: &mut Array1<f64>) {
+        if let Some(ref types) = self.dim_types {
+            for (d, dt) in types.iter().enumerate() {
+                if *dt == DimensionType::Integer {
+                    let (lo, hi) = self.bounds[d];
+                    x[d] = x[d].round().clamp(lo, hi);
+                }
+            }
+        }
     }
 
     /// Warm-start from previous evaluations.
@@ -274,7 +319,8 @@ impl BayesianOptimizer {
             )?;
 
             for i in 0..initial_points.nrows() {
-                let x = initial_points.row(i).to_owned();
+                let mut x = initial_points.row(i).to_owned();
+                self.enforce_dim_types(&mut x);
                 let y = objective(&x.view());
                 self.record_observation(x, y);
             }
@@ -357,7 +403,8 @@ impl BayesianOptimizer {
             )?;
 
             for i in 0..initial_points.nrows() {
-                let x = initial_points.row(i).to_owned();
+                let mut x = initial_points.row(i).to_owned();
+                self.enforce_dim_types(&mut x);
                 let y = objective(&x.view());
                 self.record_observation(x, y);
             }
@@ -459,7 +506,8 @@ impl BayesianOptimizer {
             )?;
 
             for i in 0..initial_points.nrows() {
-                let x = initial_points.row(i).to_owned();
+                let mut x = initial_points.row(i).to_owned();
+                self.enforce_dim_types(&mut x);
                 let obj_vals: Vec<f64> = objectives.iter().map(|f| f(&x.view())).collect();
 
                 // ParEGO scalarization with uniform weight (initial)
@@ -794,6 +842,9 @@ impl BayesianOptimizer {
         for (d, &(lo, hi)) in self.bounds.iter().enumerate() {
             best_x[d] = best_x[d].clamp(lo, hi);
         }
+
+        // Enforce integer rounding for integer dimensions
+        self.enforce_dim_types(&mut best_x);
 
         Ok(best_x)
     }
@@ -1247,5 +1298,55 @@ mod tests {
             result.x_best[0]
         );
         assert!(result.f_best < 2.0);
+    }
+
+    #[test]
+    fn test_integer_dimension_enforcement() {
+        // Define 1D integer search space: x in {0, 1, 2, 3}
+        let bounds = vec![(0.0, 3.0)];
+        let config = BayesianOptimizerConfig {
+            n_initial: 4,
+            seed: Some(42),
+            acq_n_candidates: 50,
+            ..Default::default()
+        };
+        let mut opt = BayesianOptimizer::new(bounds, config).expect("Failed to create optimizer");
+        opt.set_dimension_types(vec![DimensionType::Integer])
+            .expect("Failed to set dim types");
+
+        // Objective: f(x) = (x - 2)^2, minimum at x=2
+        let result = opt
+            .optimize(
+                |x| {
+                    let v = x[0];
+                    (v - 2.0).powi(2)
+                },
+                6,
+            )
+            .expect("Optimization failed");
+
+        // All evaluated points must be integers in [0, 3]
+        for obs in &result.observations {
+            let v = obs.x[0];
+            assert!(v >= 0.0 && v <= 3.0, "Out of bounds: {}", v);
+            assert!((v - v.round()).abs() < 1e-12, "Not integer: {}", v);
+        }
+
+        // Best should be x=2
+        assert!(
+            (result.x_best[0] - 2.0).abs() < 1e-12,
+            "Best x should be 2, got {}",
+            result.x_best[0]
+        );
+    }
+
+    #[test]
+    fn test_set_dimension_types_length_mismatch() {
+        let bounds = vec![(0.0, 5.0), (0.0, 5.0)];
+        let config = BayesianOptimizerConfig::default();
+        let mut opt = BayesianOptimizer::new(bounds, config).expect("Failed to create optimizer");
+        // Wrong length should error
+        let result = opt.set_dimension_types(vec![DimensionType::Integer]);
+        assert!(result.is_err());
     }
 }

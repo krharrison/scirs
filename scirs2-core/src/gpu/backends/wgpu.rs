@@ -144,9 +144,12 @@ impl WebGPUContext {
             // Real WebGPU implementation
             let instance_desc = InstanceDescriptor {
                 backends: Backends::all(),
-                ..Default::default()
+                flags: wgpu::InstanceFlags::default(),
+                memory_budget_thresholds: Default::default(),
+                backend_options: Default::default(),
+                display: None,
             };
-            let instance = Instance::new(&instance_desc);
+            let instance = Instance::new(instance_desc);
 
             let adapter = pollster::block_on(instance.request_adapter(&RequestAdapterOptions {
                 power_preference: PowerPreference::HighPerformance,
@@ -195,9 +198,12 @@ impl WebGPUContext {
             // Real WebGPU implementation - try to create an instance and adapter
             let instance_desc = InstanceDescriptor {
                 backends: Backends::all(),
-                ..Default::default()
+                flags: wgpu::InstanceFlags::default(),
+                memory_budget_thresholds: Default::default(),
+                backend_options: Default::default(),
+                display: None,
             };
-            let instance = Instance::new(&instance_desc);
+            let instance = Instance::new(instance_desc);
 
             // Try to get an adapter (this is async, so we use a simple runtime check)
             pollster::block_on(async {
@@ -240,7 +246,7 @@ impl WebGPUContext {
                 self.device
                     .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                         label: Some(&format!("{}_layout", name)),
-                        bind_group_layouts: &[&bind_group_layout],
+                        bind_group_layouts: &[Some(&bind_group_layout)],
                         // wgpu 28+: immediate_size replaces push_constant_ranges
                         ..Default::default()
                     });

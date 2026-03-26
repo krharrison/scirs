@@ -1,0 +1,22 @@
+[package]
+name = "cargo-scirs2-policy"
+version.workspace = true
+edition.workspace = true
+description = "Policy linter for SciRS2 workspace compliance"
+license.workspace = true
+authors.workspace = true
+
+[lib]
+name = "cargo_scirs2_policy"
+path = "src/lib.rs"
+
+[[bin]]
+name = "cargo-scirs2-policy"
+path = "src/main.rs"
+
+[dependencies]
+clap = { workspace = true, features = ["derive"] }
+toml = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+walkdir = "2"

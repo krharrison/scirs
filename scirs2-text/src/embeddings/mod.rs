@@ -131,8 +131,11 @@
 //! sampling negative examples, making training much more efficient.
 
 // Sub-modules
+pub mod contrastive;
+pub mod crosslingual;
 pub mod fasttext;
 pub mod glove;
+pub mod sentence;
 
 // Re-export
 pub use fasttext::{FastText, FastTextConfig};

@@ -13,12 +13,14 @@
 pub mod array;
 pub mod cluster;
 pub mod communication;
+pub mod compression;
 pub mod fault_tolerance;
 pub mod load_balancing;
 pub mod lock_free;
 pub mod orchestration;
 pub mod par_iter;
 pub mod parallel_scan;
+pub mod param_server;
 pub mod primitives;
 pub mod scheduler;
 pub mod task_graph;

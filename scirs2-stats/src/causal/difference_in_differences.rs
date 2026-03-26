@@ -124,11 +124,15 @@ fn libm_erf(x: f64) -> f64 {
     // Abramowitz & Stegun approximation 7.1.26, max |error| < 1.5e-7
     let t = 1.0 / (1.0 + 0.3275911 * x.abs());
     let y = 1.0
-        - (0.254829592 + (-0.284496736 + (1.421413741 + (-1.453152027 + 1.061405429 * t) * t) * t)
-            * t)
+        - (0.254829592
+            + (-0.284496736 + (1.421413741 + (-1.453152027 + 1.061405429 * t) * t) * t) * t)
             * t
             * (-x * x).exp();
-    if x >= 0.0 { y } else { -y }
+    if x >= 0.0 {
+        y
+    } else {
+        -y
+    }
 }
 
 fn normal_p_value(z: f64) -> f64 {
@@ -146,16 +150,23 @@ fn t_dist_p_value_did(t: f64, df: f64) -> f64 {
     }
     // Regularized incomplete beta I_x(df/2, 0.5) at x = df/(df+t²)
     let x = df / (df + t * t);
-    regularized_incomplete_beta(x, df / 2.0, 0.5).min(1.0).max(0.0)
+    regularized_incomplete_beta(x, df / 2.0, 0.5)
+        .min(1.0)
+        .max(0.0)
 }
 
 fn regularized_incomplete_beta(x: f64, a: f64, b: f64) -> f64 {
-    if x <= 0.0 { return 0.0; }
-    if x >= 1.0 { return 1.0; }
+    if x <= 0.0 {
+        return 0.0;
+    }
+    if x >= 1.0 {
+        return 1.0;
+    }
     if x > (a + 1.0) / (a + b + 2.0) {
         return 1.0 - regularized_incomplete_beta(1.0 - x, b, a);
     }
-    let log_cf = (a * x.ln() + b * (1.0 - x).ln() - ln_gamma(a) - ln_gamma(b) + ln_gamma(a + b)).exp() / a;
+    let log_cf =
+        (a * x.ln() + b * (1.0 - x).ln() - ln_gamma(a) - ln_gamma(b) + ln_gamma(a + b)).exp() / a;
     log_cf * beta_cf(x, a, b)
 }
 
@@ -166,27 +177,39 @@ fn beta_cf(x: f64, a: f64, b: f64) -> f64 {
     let qam = a - 1.0;
     let mut c = 1.0_f64;
     let mut d = 1.0 - qab * x / qap;
-    if d.abs() < fpmin { d = fpmin; }
+    if d.abs() < fpmin {
+        d = fpmin;
+    }
     d = 1.0 / d;
     let mut h = d;
     for m in 1..=200_i32 {
         let mf = m as f64;
         let aa = mf * (b - mf) * x / ((qam + 2.0 * mf) * (a + 2.0 * mf));
         d = 1.0 + aa * d;
-        if d.abs() < fpmin { d = fpmin; }
+        if d.abs() < fpmin {
+            d = fpmin;
+        }
         c = 1.0 + aa / c;
-        if c.abs() < fpmin { c = fpmin; }
+        if c.abs() < fpmin {
+            c = fpmin;
+        }
         d = 1.0 / d;
         h *= d * c;
         let aa2 = -(a + mf) * (qab + mf) * x / ((a + 2.0 * mf) * (qap + 2.0 * mf));
         d = 1.0 + aa2 * d;
-        if d.abs() < fpmin { d = fpmin; }
+        if d.abs() < fpmin {
+            d = fpmin;
+        }
         c = 1.0 + aa2 / c;
-        if c.abs() < fpmin { c = fpmin; }
+        if c.abs() < fpmin {
+            c = fpmin;
+        }
         d = 1.0 / d;
         let del = d * c;
         h *= del;
-        if (del - 1.0).abs() < 3e-15 { break; }
+        if (del - 1.0).abs() < 3e-15 {
+            break;
+        }
     }
     h
 }
@@ -247,7 +270,9 @@ fn cholesky_invert_did(a: &ArrayView2<f64>) -> StatsResult<Array2<f64>> {
     for i in 0..n {
         for j in 0..=i {
             let mut s = a[[i, j]];
-            for p in 0..j { s -= l[[i, p]] * l[[j, p]]; }
+            for p in 0..j {
+                s -= l[[i, p]] * l[[j, p]];
+            }
             if i == j {
                 if s <= 0.0 {
                     return Err(StatsError::ComputationError(
@@ -265,7 +290,9 @@ fn cholesky_invert_did(a: &ArrayView2<f64>) -> StatsResult<Array2<f64>> {
         linv[[j, j]] = 1.0 / l[[j, j]];
         for i in (j + 1)..n {
             let mut s = 0.0_f64;
-            for p in j..i { s += l[[i, p]] * linv[[p, j]]; }
+            for p in j..i {
+                s += l[[i, p]] * linv[[p, j]];
+            }
             linv[[i, j]] = -s / l[[i, i]];
         }
     }
@@ -282,9 +309,13 @@ fn t_critical_did(alpha: f64, df: usize) -> f64 {
         let err = p - target;
         let delta = 1e-6;
         let dp = (t_dist_p_value_did(t + delta, df_f) - p) / delta;
-        if dp.abs() < 1e-15 { break; }
+        if dp.abs() < 1e-15 {
+            break;
+        }
         t -= err / dp;
-        if err.abs() < 1e-10 { break; }
+        if err.abs() < 1e-10 {
+            break;
+        }
     }
     t.max(0.0)
 }
@@ -388,7 +419,13 @@ impl DiD {
         // Parallel-trends pre-test:
         // Regress pre-treatment trends on treated*time (should be zero)
         let parallel_p = if treat_period > 1 {
-            Some(Self::parallel_trends_test(y, treated, n_units, n_periods, treat_period)?)
+            Some(Self::parallel_trends_test(
+                y,
+                treated,
+                n_units,
+                n_periods,
+                treat_period,
+            )?)
         } else {
             None
         };
@@ -429,9 +466,9 @@ impl DiD {
         for i in 0..n_units {
             for t in 0..treat_period {
                 y_pre[row] = y[i * n_periods + t];
-                x_pre[[row, 0]] = 1.0;                        // intercept
-                x_pre[[row, 1]] = t as f64;                   // time trend
-                x_pre[[row, 2]] = treated[i] * (t as f64);   // treat × time
+                x_pre[[row, 0]] = 1.0; // intercept
+                x_pre[[row, 1]] = t as f64; // time trend
+                x_pre[[row, 2]] = treated[i] * (t as f64); // treat × time
                 row += 1;
             }
         }
@@ -440,7 +477,11 @@ impl DiD {
         let s2_pre = resid_pre.iter().map(|&r| r * r).sum::<f64>() / df_pre.max(1.0);
         let var_coef = xtx_inv_pre[[k_pre - 1, k_pre - 1]] * s2_pre;
         let se = var_coef.max(0.0).sqrt();
-        let t = if se > 0.0 { beta_pre[k_pre - 1] / se } else { 0.0 };
+        let t = if se > 0.0 {
+            beta_pre[k_pre - 1] / se
+        } else {
+            0.0
+        };
         Ok(t_dist_p_value_did(t, df_pre))
     }
 }
@@ -464,7 +505,10 @@ pub struct SyntheticControl {
 impl SyntheticControl {
     /// Create a new SyntheticControl estimator.
     pub fn new() -> Self {
-        Self { max_iter: 2000, tol: 1e-8 }
+        Self {
+            max_iter: 2000,
+            tol: 1e-8,
+        }
     }
 
     /// Fit the synthetic control weights.
@@ -488,7 +532,9 @@ impl SyntheticControl {
             ));
         }
         if n_donors == 0 {
-            return Err(StatsError::InvalidArgument("Need at least one donor unit".into()));
+            return Err(StatsError::InvalidArgument(
+                "Need at least one donor unit".into(),
+            ));
         }
 
         // Minimize ||y_treated - Y_donors w||² s.t. w >= 0, sum(w) = 1
@@ -497,8 +543,8 @@ impl SyntheticControl {
         let yd_t = y_donors.t(); // n_donors × T_pre
 
         // Pre-compute Y'Y and Y'y for gradient
-        let ytd_y: Array2<f64> = yd_t.dot(y_donors);      // n_donors × n_donors
-        let ytd_yt: Array1<f64> = yd_t.dot(y_treated);    // n_donors
+        let ytd_y: Array2<f64> = yd_t.dot(y_donors); // n_donors × n_donors
+        let ytd_yt: Array1<f64> = yd_t.dot(y_treated); // n_donors
 
         // Step size: 1 / max eigenvalue of Y'Y (Gershgorin bound)
         let step_denom: f64 = ytd_y
@@ -506,7 +552,11 @@ impl SyntheticControl {
             .into_iter()
             .map(|row| row.iter().map(|&v| v.abs()).sum::<f64>())
             .fold(f64::NEG_INFINITY, f64::max);
-        let lr = if step_denom > 0.0 { 0.5 / step_denom } else { 1e-3 };
+        let lr = if step_denom > 0.0 {
+            0.5 / step_denom
+        } else {
+            1e-3
+        };
 
         for _ in 0..self.max_iter {
             // Gradient of ||y - Yw||² w.r.t. w: 2 (Y'Y w - Y'y)
@@ -638,9 +688,13 @@ impl EventStudy {
                 let row = i * n_periods + t;
                 y_vec[row] = y[row];
                 // Unit FE
-                if i > 0 { xmat[[row, i - 1]] = 1.0; }
+                if i > 0 {
+                    xmat[[row, i - 1]] = 1.0;
+                }
                 // Time FE
-                if t > 0 { xmat[[row, n_units - 1 + t - 1]] = 1.0; }
+                if t > 0 {
+                    xmat[[row, n_units - 1 + t - 1]] = 1.0;
+                }
                 // Event-time dummies
                 if treated[i] > 0.5 {
                     let rel_time = (t as i64) - (treat_period as i64);
@@ -693,7 +747,9 @@ impl EventStudy {
             let cols_r: Vec<usize> = (0..k).filter(|c| !pre_coef_idxs.contains(c)).collect();
             let mut xr = Array2::<f64>::zeros((n, cols_r.len()));
             for (new_j, &old_j) in cols_r.iter().enumerate() {
-                for i in 0..n { xr[[i, new_j]] = xmat[[i, old_j]]; }
+                for i in 0..n {
+                    xr[[i, new_j]] = xmat[[i, old_j]];
+                }
             }
             let (_br, resid_r, _) = ols_fit_did(&xr.view(), &y_vec.view())?;
             let rss_r = resid_r.iter().map(|&r| r * r).sum::<f64>();
@@ -716,8 +772,12 @@ impl EventStudy {
 }
 
 fn regularized_gamma_lower_did(a: f64, x: f64) -> f64 {
-    if x < 0.0 { return 0.0; }
-    if x == 0.0 { return 0.0; }
+    if x < 0.0 {
+        return 0.0;
+    }
+    if x == 0.0 {
+        return 0.0;
+    }
     if x < a + 1.0 {
         let mut ap = a;
         let mut del = 1.0 / a;
@@ -726,7 +786,9 @@ fn regularized_gamma_lower_did(a: f64, x: f64) -> f64 {
             ap += 1.0;
             del *= x / ap;
             sum += del;
-            if del.abs() < sum.abs() * 3e-15 { break; }
+            if del.abs() < sum.abs() * 3e-15 {
+                break;
+            }
         }
         sum * (-x + a * x.ln() - ln_gamma(a)).exp()
     } else {
@@ -744,13 +806,19 @@ fn regularized_gamma_upper_did(a: f64, x: f64) -> f64 {
         let an = -(i as f64) * ((i as f64) - a);
         b += 2.0;
         d = an * d + b;
-        if d.abs() < fpmin { d = fpmin; }
+        if d.abs() < fpmin {
+            d = fpmin;
+        }
         c = b + an / c;
-        if c.abs() < fpmin { c = fpmin; }
+        if c.abs() < fpmin {
+            c = fpmin;
+        }
         d = 1.0 / d;
         let del = d * c;
         h *= del;
-        if (del - 1.0).abs() < 3e-15 { break; }
+        if (del - 1.0).abs() < 3e-15 {
+            break;
+        }
     }
     (-x + a * x.ln() - ln_gamma(a)).exp() * h
 }
@@ -783,8 +851,8 @@ impl StaggeredDiD {
     ///
     /// # Arguments
     /// * `y`           – outcome matrix (n_units × n_periods)
-    /// * `g`           – cohort vector: g[i] = first treatment period of unit i;
-    ///                   set g[i] = i64::MAX for never-treated units.
+    /// * `g`           – cohort vector: `g[i]` = first treatment period of unit i;
+    ///                   set `g[i]` = i64::MAX for never-treated units.
     /// * `n_units`     – number of units
     /// * `n_periods`   – number of calendar periods
     pub fn estimate(
@@ -842,13 +910,7 @@ impl StaggeredDiD {
                 // Doubly-robust DiD: IPW on propensity score
                 // Simple implementation: use difference-in-means with propensity weighting
                 // P(treated | baseline characteristics) estimated via logistic on y at t_ref
-                let (att, se) = self.compute_att_gt(
-                    y,
-                    &treated_ids,
-                    &control_ids,
-                    t,
-                    t_ref,
-                )?;
+                let (att, se) = self.compute_att_gt(y, &treated_ids, &control_ids, t, t_ref)?;
 
                 let p = normal_p_value(if se > 0.0 { att / se } else { 0.0 });
                 att_gt_vec.push(AttGt {
@@ -884,9 +946,11 @@ impl StaggeredDiD {
             let var_sum: f64 = post_atts.iter().map(|ag| ag.std_error * ag.std_error).sum();
             (var_sum / (post_atts.len() * post_atts.len()) as f64).sqrt()
         };
-        let aggregate_p = normal_p_value(
-            if aggregate_se > 0.0 { aggregate_att / aggregate_se } else { 0.0 },
-        );
+        let aggregate_p = normal_p_value(if aggregate_se > 0.0 {
+            aggregate_att / aggregate_se
+        } else {
+            0.0
+        });
 
         Ok(StaggeredDiDResult {
             att_gt: att_gt_vec,
@@ -909,9 +973,15 @@ impl StaggeredDiD {
         let n_c = control_ids.len();
 
         // Delta Y for treated: y_t - y_{t_ref}
-        let delta_treated: Vec<f64> = treated_ids.iter().map(|&i| y[[i, t]] - y[[i, t_ref]]).collect();
+        let delta_treated: Vec<f64> = treated_ids
+            .iter()
+            .map(|&i| y[[i, t]] - y[[i, t_ref]])
+            .collect();
         // Delta Y for control: y_t - y_{t_ref}
-        let delta_control: Vec<f64> = control_ids.iter().map(|&i| y[[i, t]] - y[[i, t_ref]]).collect();
+        let delta_control: Vec<f64> = control_ids
+            .iter()
+            .map(|&i| y[[i, t]] - y[[i, t_ref]])
+            .collect();
 
         let mean_t = delta_treated.iter().sum::<f64>() / n_t as f64;
         let mean_c = delta_control.iter().sum::<f64>() / n_c as f64;
@@ -919,12 +989,20 @@ impl StaggeredDiD {
 
         // Variance via delta method
         let var_t = if n_t > 1 {
-            delta_treated.iter().map(|&v| (v - mean_t).powi(2)).sum::<f64>() / (n_t * (n_t - 1)) as f64
+            delta_treated
+                .iter()
+                .map(|&v| (v - mean_t).powi(2))
+                .sum::<f64>()
+                / (n_t * (n_t - 1)) as f64
         } else {
             0.0
         };
         let var_c = if n_c > 1 {
-            delta_control.iter().map(|&v| (v - mean_c).powi(2)).sum::<f64>() / (n_c * (n_c - 1)) as f64
+            delta_control
+                .iter()
+                .map(|&v| (v - mean_c).powi(2))
+                .sum::<f64>()
+                / (n_c * (n_c - 1)) as f64
         } else {
             0.0
         };
@@ -960,9 +1038,19 @@ mod tests {
                 y_vec[i * n_periods + t] = unit_fe[i] + time_fe[t];
             }
         }
-        let res = DiD::estimate(&y_vec.view(), &treated.view(), n_units, n_periods, treat_period)
-            .expect("DiD estimate should succeed");
-        assert!(res.att.abs() < 0.1, "ATT should be ~0 when there is no effect, got {}", res.att);
+        let res = DiD::estimate(
+            &y_vec.view(),
+            &treated.view(),
+            n_units,
+            n_periods,
+            treat_period,
+        )
+        .expect("DiD estimate should succeed");
+        assert!(
+            res.att.abs() < 0.1,
+            "ATT should be ~0 when there is no effect, got {}",
+            res.att
+        );
         assert_eq!(res.n_treated, 2);
         assert_eq!(res.n_control, 2);
     }
@@ -979,14 +1067,27 @@ mod tests {
         let mut y_vec = Array1::<f64>::zeros(n_units * n_periods);
         for i in 0..n_units {
             for t in 0..n_periods {
-                let te = if treated[i] > 0.5 && t >= treat_period { treatment_effect } else { 0.0 };
+                let te = if treated[i] > 0.5 && t >= treat_period {
+                    treatment_effect
+                } else {
+                    0.0
+                };
                 y_vec[i * n_periods + t] = unit_fe[i] + time_fe[t] + te;
             }
         }
-        let res = DiD::estimate(&y_vec.view(), &treated.view(), n_units, n_periods, treat_period)
-            .expect("DiD estimate should succeed");
-        assert!((res.att - treatment_effect).abs() < 0.5,
-            "ATT should be ~5.0, got {}", res.att);
+        let res = DiD::estimate(
+            &y_vec.view(),
+            &treated.view(),
+            n_units,
+            n_periods,
+            treat_period,
+        )
+        .expect("DiD estimate should succeed");
+        assert!(
+            (res.att - treatment_effect).abs() < 0.5,
+            "ATT should be ~5.0, got {}",
+            res.att
+        );
     }
 
     #[test]
@@ -997,17 +1098,22 @@ mod tests {
         // Donors: first donor perfectly matches
         let mut donors = Array2::<f64>::zeros((t_pre, n_donors));
         for t in 0..t_pre {
-            donors[[t, 0]] = t as f64;     // perfect match
+            donors[[t, 0]] = t as f64; // perfect match
             donors[[t, 1]] = t as f64 * 2.0;
             donors[[t, 2]] = (t as f64).powi(2);
             donors[[t, 3]] = 0.0;
         }
         let sc = SyntheticControl::new();
-        let weights = sc.fit_weights(&treated.view(), &donors.view())
+        let weights = sc
+            .fit_weights(&treated.view(), &donors.view())
             .expect("SyntheticControl fit should succeed");
         // Weights should sum to 1
         let sum: f64 = weights.iter().sum();
-        assert!((sum - 1.0).abs() < 1e-6, "Weights should sum to 1, got {}", sum);
+        assert!(
+            (sum - 1.0).abs() < 1e-6,
+            "Weights should sum to 1, got {}",
+            sum
+        );
         // All weights non-negative
         assert!(weights.iter().all(|&w| w >= -1e-10));
     }
@@ -1023,17 +1129,33 @@ mod tests {
         let mut y_vec = Array1::<f64>::zeros(n_units * n_periods);
         for i in 0..n_units {
             for t in 0..n_periods {
-                let te = if treated[i] > 0.5 && t >= treat_period { treatment_effect } else { 0.0 };
+                let te = if treated[i] > 0.5 && t >= treat_period {
+                    treatment_effect
+                } else {
+                    0.0
+                };
                 y_vec[i * n_periods + t] = te;
             }
         }
         let es = EventStudy::new(2, 3);
-        let res = es.estimate(&y_vec.view(), &treated.view(), n_units, n_periods, treat_period)
+        let res = es
+            .estimate(
+                &y_vec.view(),
+                &treated.view(),
+                n_units,
+                n_periods,
+                treat_period,
+            )
             .expect("EventStudy should succeed");
         // Check post-treatment coefficients are positive
-        let post_coefs: Vec<&EventCoefficient> = res.coefficients.iter()
+        let post_coefs: Vec<&EventCoefficient> = res
+            .coefficients
+            .iter()
             .filter(|c| c.relative_time >= 0)
             .collect();
-        assert!(!post_coefs.is_empty(), "Should have post-treatment coefficients");
+        assert!(
+            !post_coefs.is_empty(),
+            "Should have post-treatment coefficients"
+        );
     }
 }

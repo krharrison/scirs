@@ -1065,7 +1065,7 @@ mod tests {
 
     #[test]
     fn test_nonexistent_file() {
-        let result = MappedFile::open(Path::new("/tmp/this_file_should_not_exist_scirs2_test"));
+        let result = MappedFile::open(&std::env::temp_dir().join("this_file_should_not_exist_scirs2_test"));
         assert!(result.is_err());
     }
 
@@ -1079,7 +1079,8 @@ mod tests {
 
     #[test]
     fn test_lazy_mapped_path() {
-        let lazy = LazyMappedFile::new("/tmp/lazy_test");
-        assert_eq!(lazy.path(), Path::new("/tmp/lazy_test"));
+        let lazy_path = std::env::temp_dir().join("lazy_test");
+        let lazy = LazyMappedFile::new(&lazy_path);
+        assert_eq!(lazy.path(), lazy_path.as_path());
     }
 }

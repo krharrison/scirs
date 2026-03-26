@@ -58,7 +58,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-io = "0.1.5"
+//! scirs2-io = "0.4.0"
 //! ```
 //!
 //! ```rust,no_run
@@ -250,6 +250,7 @@ pub mod idl;
 /// - Metadata extraction and manipulation
 /// - Conversion between different image formats
 /// - Basic image processing operations
+#[cfg(feature = "image_io")]
 pub mod image;
 pub mod jsonl;
 pub mod matlab;
@@ -562,6 +563,23 @@ pub mod workflow;
 /// - Binary data reading without copying
 /// - Minimized memory allocations for large datasets
 pub mod zero_copy;
+
+// Adaptive compression
+pub mod adaptive_compression;
+// Delta Lake integration
+pub mod delta;
+// Lance columnar format
+pub mod lance;
+// MQTT broker
+pub mod mqtt_broker;
+// Schema registry
+pub mod schema_registry;
+// Table provider (DataFusion integration)
+pub mod table_provider;
+// Tensor serialization (SafeTensors, ONNX, TFRecord)
+pub mod tensors;
+// TileDB array storage
+pub mod tiledb;
 
 // Re-export commonly used functionality
 pub use advanced_coordinator::{

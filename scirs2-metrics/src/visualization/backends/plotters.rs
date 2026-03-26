@@ -144,7 +144,11 @@ impl PlottingBackend for PlottersBackend {
         {
             // For PNG, we need to write to a file first, then read it back
             // This is a limitation of the current plotters bitmap backend
-            let temp_path = format!("/tmp/temp_plot_{}.png", std::process::id());
+            let temp_path = {
+                let mut p = std::env::temp_dir();
+                p.push(format!("temp_plot_{}.png", std::process::id()));
+                p.to_string_lossy().into_owned()
+            };
             let root =
                 BitMapBackend::new(&temp_path, (options.width as u32, options.height as u32))
                     .into_drawing_area();

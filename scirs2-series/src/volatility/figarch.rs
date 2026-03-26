@@ -42,7 +42,10 @@
 //!     0.01, -0.02, 0.015, -0.008, 0.012, 0.005, -0.018, 0.009,
 //!     -0.003, 0.007, 0.025, -0.014, 0.008, -0.006, 0.011, -0.019,
 //!     0.022, 0.003, -0.011, 0.017, -0.004, 0.008, -0.013, 0.019,
-//!     0.001, -0.009, 0.016, -0.002, 0.011, 0.006,
+//!     0.001, -0.009, 0.016, -0.002, 0.011, 0.006, -0.017, 0.013,
+//!     0.004, -0.021, 0.009, 0.014, -0.007, 0.018, -0.005, 0.023,
+//!     -0.012, 0.006, 0.010, -0.015, 0.020, -0.003, 0.008, -0.011,
+//!     0.016, 0.002, -0.008, 0.019, -0.006, 0.013, 0.007, -0.014,
 //! ]);
 //! let model = fit_figarch(&returns, 1, 0.4, 1, 50).expect("FIGARCH fitting failed");
 //! println!("d={:.4}, omega={:.6}", model.d, model.omega);
@@ -100,7 +103,9 @@ impl FIGARCHModel {
             )));
         }
         if omega <= 0.0 {
-            return Err(TimeSeriesError::InvalidModel("FIGARCH: ω must be positive".into()));
+            return Err(TimeSeriesError::InvalidModel(
+                "FIGARCH: ω must be positive".into(),
+            ));
         }
         if phi.len() != p {
             return Err(TimeSeriesError::InvalidModel(format!(
@@ -257,7 +262,7 @@ pub fn figarch_log_likelihood(
     for t in burn_in..n {
         let s2 = sigma2[t];
         if s2 <= 0.0 || !s2.is_finite() {
-            return Err(TimeSeriesError::NumericalError(
+            return Err(TimeSeriesError::NumericalInstability(
                 "FIGARCH: non-positive conditional variance".into(),
             ));
         }
@@ -266,7 +271,7 @@ pub fn figarch_log_likelihood(
     }
 
     if !ll.is_finite() {
-        return Err(TimeSeriesError::NumericalError(
+        return Err(TimeSeriesError::NumericalInstability(
             "FIGARCH: log-likelihood not finite".into(),
         ));
     }
@@ -331,13 +336,19 @@ pub fn fit_figarch(
 
     let objective = |th: &[f64]| -> f64 {
         let d = th[0];
-        if !(0.01..0.99).contains(&d) { return 1e15; }
+        if !(0.01..0.99).contains(&d) {
+            return 1e15;
+        }
         let omega = th[1];
-        if omega <= 0.0 { return 1e15; }
+        if omega <= 0.0 {
+            return 1e15;
+        }
         let phi: Vec<f64> = th[2..2 + p].to_vec();
         let beta: Vec<f64> = th[2 + p..].to_vec();
 
-        if beta.iter().any(|&b| b < 0.0 || b >= 1.0) { return 1e15; }
+        if beta.iter().any(|&b| b < 0.0 || b >= 1.0) {
+            return 1e15;
+        }
 
         // Build a temporary model to compute lambda weights
         let tmp = match FIGARCHModel::new(p, d, q, omega, phi.clone(), beta.clone(), truncation) {
@@ -347,7 +358,13 @@ pub fn fit_figarch(
         let lambda = tmp.lambda_weights();
 
         match figarch_log_likelihood(returns, omega, &lambda, &beta) {
-            Ok((ll, _)) => if ll.is_finite() { -ll } else { 1e15 },
+            Ok((ll, _)) => {
+                if ll.is_finite() {
+                    -ll
+                } else {
+                    1e15
+                }
+            }
             Err(_) => 1e15,
         }
     };
@@ -372,14 +389,20 @@ pub fn fit_figarch(
 // ============================================================
 
 /// Compute the conditional volatility series (σ_t) from a FIGARCH model.
-pub fn figarch_conditional_volatility(model: &FIGARCHModel, returns: &Array1<f64>) -> Result<Vec<f64>> {
+pub fn figarch_conditional_volatility(
+    model: &FIGARCHModel,
+    returns: &Array1<f64>,
+) -> Result<Vec<f64>> {
     let lambda = model.lambda_weights();
     let sigma2 = figarch_variance(returns, model.omega, &lambda, &model.beta)?;
     Ok(sigma2.into_iter().map(|v| v.sqrt()).collect())
 }
 
 /// Compute standardised residuals from a FIGARCH model.
-pub fn figarch_standardised_residuals(model: &FIGARCHModel, returns: &Array1<f64>) -> Result<Vec<f64>> {
+pub fn figarch_standardised_residuals(
+    model: &FIGARCHModel,
+    returns: &Array1<f64>,
+) -> Result<Vec<f64>> {
     let mean = returns.mean().unwrap_or(0.0);
     let lambda = model.lambda_weights();
     let sigma2 = figarch_variance(returns, model.omega, &lambda, &model.beta)?;
@@ -424,10 +447,13 @@ pub fn gph_estimator(series: &Array1<f64>, m: usize) -> Result<(f64, f64)> {
     let mut periodogram = Vec::with_capacity(m);
     for j in 1..=m {
         let omega = 2.0 * std::f64::consts::PI * j as f64 / n as f64;
-        let (re, im) = x.iter().enumerate().fold((0.0_f64, 0.0_f64), |(re, im), (t, &xt)| {
-            let angle = omega * t as f64;
-            (re + xt * angle.cos(), im - xt * angle.sin())
-        });
+        let (re, im) = x
+            .iter()
+            .enumerate()
+            .fold((0.0_f64, 0.0_f64), |(re, im), (t, &xt)| {
+                let angle = omega * t as f64;
+                (re + xt * angle.cos(), im - xt * angle.sin())
+            });
         let i_omega = (re * re + im * im) / n as f64;
         periodogram.push(i_omega.max(1e-30).ln());
     }
@@ -454,7 +480,7 @@ pub fn gph_estimator(series: &Array1<f64>, m: usize) -> Result<(f64, f64)> {
         .sum();
 
     if sxx.abs() < 1e-15 {
-        return Err(TimeSeriesError::NumericalError(
+        return Err(TimeSeriesError::NumericalInstability(
             "GPH: degenerate regressor matrix (all ω_j equal?)".into(),
         ));
     }
@@ -505,8 +531,8 @@ mod tests {
 
     #[test]
     fn test_lambda_weights_positive() {
-        let m = FIGARCHModel::new(1, 0.4, 1, 1e-5, vec![0.2], vec![0.3], 30)
-            .expect("Should create");
+        let m =
+            FIGARCHModel::new(1, 0.4, 1, 1e-5, vec![0.2], vec![0.3], 30).expect("Should create");
         let lam = m.lambda_weights();
         assert_eq!(lam.len(), 30);
         // All weights must be non-negative (after clamping)
@@ -518,8 +544,8 @@ mod tests {
     #[test]
     fn test_figarch_variance_positive() {
         let r = make_returns(80);
-        let model = FIGARCHModel::new(1, 0.4, 1, 1e-5, vec![0.1], vec![0.3], 20)
-            .expect("Should create");
+        let model =
+            FIGARCHModel::new(1, 0.4, 1, 1e-5, vec![0.1], vec![0.3], 20).expect("Should create");
         let lambda = model.lambda_weights();
         let s2 = figarch_variance(&r, model.omega, &lambda, &model.beta)
             .expect("Should compute variance");
@@ -532,8 +558,8 @@ mod tests {
     #[test]
     fn test_figarch_log_likelihood() {
         let r = make_returns(80);
-        let model = FIGARCHModel::new(1, 0.4, 1, 1e-5, vec![0.1], vec![0.3], 20)
-            .expect("Should create");
+        let model =
+            FIGARCHModel::new(1, 0.4, 1, 1e-5, vec![0.1], vec![0.3], 20).expect("Should create");
         let lambda = model.lambda_weights();
         let (ll, _) = figarch_log_likelihood(&r, model.omega, &lambda, &model.beta)
             .expect("Should compute LL");
@@ -553,8 +579,8 @@ mod tests {
     #[test]
     fn test_figarch_conditional_volatility() {
         let r = make_returns(80);
-        let model = FIGARCHModel::new(1, 0.4, 1, 1e-5, vec![0.1], vec![0.3], 20)
-            .expect("Should create");
+        let model =
+            FIGARCHModel::new(1, 0.4, 1, 1e-5, vec![0.1], vec![0.3], 20).expect("Should create");
         let vol = figarch_conditional_volatility(&model, &r).expect("Should compute");
         assert_eq!(vol.len(), r.len());
         for &v in &vol {

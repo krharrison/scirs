@@ -11,7 +11,10 @@ pub mod algorithms;
 pub mod basis_sets;
 pub mod core;
 pub mod entanglement;
+pub mod gaussian_integrals;
 pub mod gpu;
+pub mod lindblad;
+pub mod tdhf;
 
 // Re-export all public types for backward compatibility
 pub use algorithms::*;

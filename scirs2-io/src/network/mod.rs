@@ -340,11 +340,10 @@ mod tests {
         let client = NetworkClient::new();
         assert!(client.cloud_provider.is_none());
 
-        let client_with_cache = NetworkClient::new().with_cache_dir("/tmp/cache");
-        assert_eq!(
-            client_with_cache.config.cache_dir,
-            Some("/tmp/cache".to_string())
-        );
+        let cache_dir = std::env::temp_dir().join("cache");
+        let cache_dir_str = cache_dir.to_string_lossy().into_owned();
+        let client_with_cache = NetworkClient::new().with_cache_dir(&cache_dir_str);
+        assert_eq!(client_with_cache.config.cache_dir, Some(cache_dir_str));
     }
 
     #[test]

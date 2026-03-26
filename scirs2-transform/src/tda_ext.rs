@@ -8,8 +8,8 @@
 //! - [`compute_persistence`]: distance-matrix-based persistent homology.
 //! - [`persistence_landscape_fn`]: evaluate persistence landscapes over a grid.
 //! - [`persistence_image_fn`]: Gaussian-kernel persistence image from a diagram.
-//! - [`wasserstein_distance_p`]: p-Wasserstein distance between diagrams.
-//! - [`bottleneck_distance_fn`]: bottleneck distance as a free function.
+//! - `wasserstein_distance_p`: p-Wasserstein distance between diagrams.
+//! - `bottleneck_distance_fn`: bottleneck distance as a free function.
 //!
 //! ## References
 //!
@@ -112,11 +112,7 @@ impl VietorisRipsComplex {
         }
 
         // Sort: by dimension first, then lexicographically within each dimension
-        simplices.sort_by(|a, b| {
-            a.len()
-                .cmp(&b.len())
-                .then_with(|| a.cmp(b))
-        });
+        simplices.sort_by(|a, b| a.len().cmp(&b.len()).then_with(|| a.cmp(b)));
 
         Ok(Self {
             points: points.to_vec(),
@@ -129,10 +125,7 @@ impl VietorisRipsComplex {
     ///
     /// Dimension 0 = vertices, 1 = edges, 2 = triangles.
     pub fn n_simplices(&self, dim: usize) -> usize {
-        self.simplices
-            .iter()
-            .filter(|s| s.len() == dim + 1)
-            .count()
+        self.simplices.iter().filter(|s| s.len() == dim + 1).count()
     }
 
     /// Compute the Euler characteristic χ = Σ_k (-1)^k * C_k,
@@ -205,9 +198,7 @@ pub fn compute_persistence(
     let n = distance_matrix.len();
     if n == 0 {
         // Return empty diagrams
-        return Ok((0..=max_dim)
-            .map(|d| PersistenceDiagram::new(d))
-            .collect());
+        return Ok((0..=max_dim).map(|d| PersistenceDiagram::new(d)).collect());
     }
 
     // Validate distance matrix
@@ -408,9 +399,8 @@ pub fn compute_persistence(
     }
 
     // Extract persistence pairs
-    let mut diagrams: Vec<PersistenceDiagram> = (0..=max_dim)
-        .map(|d| PersistenceDiagram::new(d))
-        .collect();
+    let mut diagrams: Vec<PersistenceDiagram> =
+        (0..=max_dim).map(|d| PersistenceDiagram::new(d)).collect();
 
     let mut paired: Vec<bool> = vec![false; total];
 
@@ -454,7 +444,7 @@ pub fn compute_persistence(
 /// * `x`        — evaluation points (must be sorted in ascending order)
 ///
 /// # Returns
-/// Matrix of shape (n_layers × len(x)), where entry [k, i] = λ_{k+1}(x[i]).
+/// Matrix of shape (n_layers × len(x)), where entry \[k, i\] = λ_{k+1}(x\[i\]).
 ///
 /// # Example
 ///
@@ -500,7 +490,11 @@ pub fn persistence_landscape_fn(
             .iter()
             .map(|&(b, d)| {
                 let v = (t - b).min(d - t);
-                if v < 0.0 { 0.0 } else { v }
+                if v < 0.0 {
+                    0.0
+                } else {
+                    v
+                }
             })
             .collect();
         // Sort descending and take top n_layers
@@ -710,7 +704,11 @@ mod tests {
         let pts = square_points();
         // At epsilon = 2.0: all 6 edges present → 4 triangles
         let vrc = VietorisRipsComplex::new(&pts, 2.0).expect("new");
-        assert_eq!(vrc.n_simplices(1), 6, "Complete graph on 4 vertices has 6 edges");
+        assert_eq!(
+            vrc.n_simplices(1),
+            6,
+            "Complete graph on 4 vertices has 6 edges"
+        );
         assert_eq!(vrc.n_simplices(2), 4, "4 triangles in K4");
     }
 
@@ -868,7 +866,10 @@ mod tests {
         dgm.add_point(0.0, 1.0, 0);
         let img = persistence_image_fn(&dgm, 0.15, (6, 6), 1.5, 1.5);
         let has_positive = img.iter().flat_map(|row| row.iter()).any(|&v| v > 0.0);
-        assert!(has_positive, "image should have nonzero pixels for a nonempty diagram");
+        assert!(
+            has_positive,
+            "image should have nonzero pixels for a nonempty diagram"
+        );
     }
 
     #[test]

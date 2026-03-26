@@ -9,6 +9,7 @@ use std::fmt;
 pub mod expression;
 pub mod rules;
 pub mod simplify;
+pub mod symbolic_tape;
 
 /// Symbolic expression representation
 #[derive(Debug, Clone, PartialEq)]

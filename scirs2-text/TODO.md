@@ -135,15 +135,15 @@
 ## v0.4.0 Roadmap
 
 ### Transformer Tokenizers
-- [ ] SentencePiece tokenizer (Unigram LM-based, used by T5/LLaMA)
-- [ ] BERT/RoBERTa tokenizer (WordPiece with special tokens: [CLS], [SEP], [MASK])
-- [ ] GPT-2/GPT-4 tokenizer (BPE with byte-level encoding)
-- [ ] LLaMA tokenizer (SentencePiece + BPE hybrid)
-- [ ] Tokenizer serialization compatible with HuggingFace `tokenizers` JSON format
-- [ ] Batch tokenization with padding and truncation
+- [x] SentencePiece tokenizer (Unigram LM-based, used by T5/LLaMA) — Implemented in v0.4.0
+- [x] BERT/RoBERTa tokenizer (WordPiece with special tokens: [CLS], [SEP], [MASK]) — Implemented in v0.4.0 (`tokenizers/bert.rs`, `tokenizers/roberta.rs`)
+- [x] GPT-2/GPT-4 tokenizer (BPE with byte-level encoding) — Implemented in v0.4.0 (`tokenization/byte_level_bpe.rs`, `gpt_bpe.rs`)
+- [x] LLaMA tokenizer (SentencePiece + BPE hybrid) — Implemented in v0.4.0 (`tokenization/llama.rs`)
+- [x] Tokenizer serialization compatible with HuggingFace `tokenizers` JSON format — Implemented in v0.4.0 (`tokenizers/hf_json.rs`)
+- [x] Batch tokenization with padding and truncation — Implemented in v0.4.0
 
 ### Sentence Embeddings
-- [ ] Sentence-BERT-style aggregation (mean pooling of token embeddings)
+- [x] Sentence-BERT-style aggregation (mean pooling of token embeddings) — Implemented in v0.4.0 (`embeddings/sentence.rs`)
 - [ ] Universal Sentence Encoder-style (transformer + pooling)
 - [ ] Contrastive sentence representation learning (SimCSE-style)
 - [ ] Semantic similarity via sentence embeddings
@@ -151,15 +151,15 @@
 
 ### Multilingual Models
 - [ ] Language-agnostic tokenization (Unicode-based, no language assumptions)
-- [ ] Multilingual vocabulary (shared BPE across 50+ languages)
-- [ ] Cross-lingual NER transfer
+- [x] Multilingual vocabulary (shared BPE across 50+ languages) — Implemented in v0.4.0 (`tokenization/multilingual_bpe.rs`)
+- [x] Cross-lingual NER transfer — Implemented in v0.4.0 (`crosslingual/mod.rs`)
 - [ ] Transliteration utilities for CJK and Cyrillic scripts
 
 ### Enhanced Topic Modeling
-- [ ] Online LDA for streaming corpora
+- [x] Online LDA for streaming corpora — Implemented in v0.4.0
 - [ ] Hierarchical Dirichlet Process (HDP) for automatic topic number selection
-- [ ] Correlated Topic Model (CTM) with logistic-normal prior
-- [ ] Dynamic Topic Model (DTM) for temporal analysis
+- [x] Correlated Topic Model (CTM) with logistic-normal prior — Implemented in v0.4.0 (`ctm/` module)
+- [x] Dynamic Topic Model (DTM) for temporal analysis — Implemented in v0.4.0 (`dtm/` module)
 
 ### Neural NLP Integration
 - [ ] Bridge to `scirs2-neural` for transformer-based NLP
@@ -168,8 +168,8 @@
 - [ ] Named entity recognition via neural sequence labeler
 
 ### Evaluation and Benchmarks
-- [ ] CoNLL-2003 NER evaluation protocol (span-level F1)
-- [ ] BLEU, ROUGE, METEOR for generation/summarization
+- [x] CoNLL-2003 NER evaluation protocol (span-level F1) — Implemented in v0.4.0 (`evaluation/ner.rs`)
+- [x] BLEU, ROUGE, METEOR for generation/summarization — Implemented in v0.4.0
 - [ ] STS benchmark integration (semantic textual similarity)
 - [ ] Perplexity benchmarks on standard corpora (PTB, WikiText)
 

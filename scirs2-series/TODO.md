@@ -121,33 +121,33 @@
 ## v0.4.0 Roadmap
 
 ### Foundation Model Interface
-- [ ] Fine-tuning interface for pre-trained time series foundation models (TimeGPT-style)
-- [ ] Zero-shot forecasting adapter layer
+- [x] Fine-tuning interface for pre-trained time series foundation models (TimeGPT-style) — Implemented in v0.4.0 (`foundation/fine_tuning.rs`)
+- [x] Zero-shot forecasting adapter layer — Implemented in v0.4.0 (`foundation/zero_shot.rs`)
 - [ ] Prompt-based time series conditioning API
 
 ### Neural ODE for Time Series
-- [ ] Latent ODE / ODE-RNN for irregular time series
-- [ ] Continuous normalizing flow models for density estimation
+- [x] Latent ODE / ODE-RNN for irregular time series — Implemented in v0.4.0 (`neural_ode/latent_ode.rs`, `neural_ode/ode_rnn.rs`)
+- [x] Continuous normalizing flow models for density estimation — Implemented in v0.4.0 (`neural_ode/cnf.rs`, `neural_ode/ffjord.rs`)
 - [ ] Physics-informed neural time series models
 
 ### Ultra-Long Context Handling
-- [ ] FlashAttention integration for TFT with very long lookback windows (10k+)
-- [ ] State-space sequence models (Mamba / S4) for linear-time long-range dependencies
+- [x] FlashAttention integration for TFT with very long lookback windows (10k+) — Implemented in v0.4.0 (`tft/flash_attention_tft.rs`)
+- [x] State-space sequence models (Mamba / S4) for linear-time long-range dependencies — Implemented in v0.4.0 (`ssm/s4.rs`, `ssm/mamba.rs`, `state_space/s4.rs`, `state_space/mamba.rs`)
 - [ ] Hierarchical attention with sparse patterns for ultra-long sequences
 
-### Advanced Causality
+### Advanced Causality — Note: PCMCI implemented in v0.4.0 Wave 1
 - [ ] PC algorithm for causal structure learning from time series
-- [ ] PCMCI algorithm (Peter and Clark Momentary Conditional Independence)
-- [ ] Causal discovery with latent confounders (FCI for time series)
+- [x] PCMCI algorithm (Peter and Clark Momentary Conditional Independence) — Implemented in v0.4.0
+- [x] Causal discovery with latent confounders (FCI for time series) — Implemented in v0.4.0 (`causality/fci.rs`)
 
 ### Bayesian Nonparametric Time Series
-- [ ] GP-state-space models (GP-SSM) with particle MCMC fitting
-- [ ] Infinite hidden Markov model (iHMM) via stick-breaking construction
-- [ ] Nonparametric GARCH via GP volatility functions
+- [x] GP-state-space models (GP-SSM) with particle MCMC fitting — Implemented in v0.4.0 (`gp_ssm/` module, `state_space/gp_ssm.rs`)
+- [x] Infinite hidden Markov model (iHMM) via stick-breaking construction — Implemented in v0.4.0 (`state_space/ihmm.rs`)
+- [x] Nonparametric GARCH via GP volatility functions — Implemented in v0.4.0 (`volatility/gp_garch.rs`)
 
 ### Streaming Enhancements
 - [ ] RIVER integration bridge for additional online learners
-- [ ] Incremental cointegration testing in streaming VAR
+- [x] Incremental cointegration testing in streaming VAR — Implemented in v0.4.0 (`streaming/cointegration.rs`)
 - [ ] Online hierarchical reconciliation with incremental MinT
 
 ---

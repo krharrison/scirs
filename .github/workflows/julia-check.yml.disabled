@@ -1,0 +1,303 @@
+name: Julia Bindings
+
+on:
+  push:
+    branches: [master, "0.*"]
+    paths:
+      - "julia/**"
+      - "scirs2-julia/**"
+      - "scirs2-core/src/ffi/**"
+      - ".github/workflows/julia-check.yml"
+  pull_request:
+    paths:
+      - "julia/**"
+      - "scirs2-julia/**"
+      - "scirs2-core/src/ffi/**"
+      - ".github/workflows/julia-check.yml"
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+  # Cache keys
+  RUST_CACHE_KEY: v1
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: Verify the Rust scirs2-julia crate compiles cleanly
+  # ---------------------------------------------------------------------------
+  rust-check:
+    name: Rust crate (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ env.RUST_CACHE_KEY }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ env.RUST_CACHE_KEY }}-
+
+      - name: Check scirs2-julia (default features)
+        run: cargo check -p scirs2-julia
+
+      - name: Check scirs2-julia (all features)
+        run: cargo check -p scirs2-julia --all-features
+
+      - name: Run Rust unit tests for scirs2-julia
+        run: cargo test -p scirs2-julia --lib
+
+      - name: Check scirs2-core FFI feature (used by scirs2-julia)
+        run: cargo check -p scirs2-core --features ffi,linalg
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Build the shared library from source
+  # ---------------------------------------------------------------------------
+  build-shared-lib:
+    name: Build libscirs2_julia (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [rust-check]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ env.RUST_CACHE_KEY }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ env.RUST_CACHE_KEY }}-
+
+      - name: Build scirs2-julia release shared library
+        run: cargo build -p scirs2-julia --features full --release
+
+      - name: Verify shared library exists
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            LIB="target/release/libscirs2_julia.dylib"
+          else
+            LIB="target/release/libscirs2_julia.so"
+          fi
+          if [[ ! -f "$LIB" ]]; then
+            echo "ERROR: expected shared library not found: $LIB"
+            ls -la target/release/*.{so,dylib,dll} 2>/dev/null || echo "(no shared libs found)"
+            exit 1
+          fi
+          echo "Found shared library: $LIB"
+          ls -lh "$LIB"
+
+      - name: Check exported JLL symbols
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            LIB="target/release/libscirs2_julia.dylib"
+            nm -gU "$LIB" | grep -E "scirs2_julia_version|scirs2_julia_abi_version|scirs2_julia_capabilities|scirs2_batch_mean|sci_mean|sci_det" || true
+          else
+            LIB="target/release/libscirs2_julia.so"
+            nm -D "$LIB" | grep -E "scirs2_julia_version|scirs2_julia_abi_version|scirs2_julia_capabilities|scirs2_batch_mean|sci_mean|sci_det" || true
+          fi
+
+      - name: Copy library to Julia deps/ for testing
+        shell: bash
+        run: |
+          mkdir -p julia/SciRS2/deps
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            cp target/release/libscirs2_julia.dylib julia/SciRS2/deps/libscirs2_julia.dylib
+            # Legacy compat symlink: libscirs2_core.dylib points to libscirs2_julia.dylib
+            ln -sf libscirs2_julia.dylib julia/SciRS2/deps/libscirs2_core.dylib
+          else
+            cp target/release/libscirs2_julia.so julia/SciRS2/deps/libscirs2_julia.so
+            ln -sf libscirs2_julia.so julia/SciRS2/deps/libscirs2_core.so
+          fi
+          ls -lh julia/SciRS2/deps/
+
+      # Write a minimal deps.jl so Julia can find the library
+      - name: Write deps/deps.jl for Julia tests
+        shell: bash
+        run: |
+          DEPS_DIR="$(pwd)/julia/SciRS2/deps"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            LIB_PATH="${DEPS_DIR}/libscirs2_julia.dylib"
+          else
+            LIB_PATH="${DEPS_DIR}/libscirs2_julia.so"
+          fi
+          cat > julia/SciRS2/deps/deps.jl <<EOF
+          # Auto-generated by julia-check.yml CI workflow.
+          const _SCIRS2_JULIA_LIB_DIR  = "${DEPS_DIR}"
+          const _SCIRS2_JULIA_LIB_PATH = "${LIB_PATH}"
+          EOF
+          echo "Written deps.jl:"
+          cat julia/SciRS2/deps/deps.jl
+
+      - name: Upload shared library artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libscirs2_julia-${{ runner.os }}
+          path: julia/SciRS2/deps/libscirs2_julia.*
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Job 3: Run the Julia test suite
+  # ---------------------------------------------------------------------------
+  julia-tests:
+    name: Julia tests (Julia ${{ matrix.julia-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [build-shared-lib]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        julia-version: ["1.9", "1.10"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Julia ${{ matrix.julia-version }}
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.julia-version }}
+
+      - name: Download compiled shared library
+        uses: actions/download-artifact@v4
+        with:
+          name: libscirs2_julia-${{ runner.os }}
+          path: julia/SciRS2/deps/
+
+      - name: List downloaded artifacts
+        run: ls -lh julia/SciRS2/deps/
+
+      - name: Restore deps.jl (download strips it — recreate from artifact path)
+        shell: bash
+        run: |
+          DEPS_DIR="$(pwd)/julia/SciRS2/deps"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            LIB_PATH="${DEPS_DIR}/libscirs2_julia.dylib"
+          else
+            LIB_PATH="${DEPS_DIR}/libscirs2_julia.so"
+          fi
+          cat > julia/SciRS2/deps/deps.jl <<EOF
+          const _SCIRS2_JULIA_LIB_DIR  = "${DEPS_DIR}"
+          const _SCIRS2_JULIA_LIB_PATH = "${LIB_PATH}"
+          EOF
+
+      - name: Run Julia pure-algorithm tests (no native library required)
+        run: |
+          julia --project=julia/SciRS2 julia/SciRS2/test/test_pure_algorithms.jl
+        continue-on-error: false
+
+      - name: Run full Julia test suite (requires native library)
+        env:
+          SCIRS2_JULIA_LIB: "${{ github.workspace }}/julia/SciRS2/deps/libscirs2_julia.${{ runner.os == 'macOS' && 'dylib' || 'so' }}"
+        run: |
+          julia --project=julia/SciRS2 julia/SciRS2/test/runtests.jl
+        continue-on-error: true  # Non-fatal: library may fail on some CI configs
+
+  # ---------------------------------------------------------------------------
+  # Job 4: Validate Artifacts.toml structure
+  # ---------------------------------------------------------------------------
+  validate-artifacts-toml:
+    name: Validate Artifacts.toml
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Julia
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: "1.10"
+
+      - name: Validate Artifacts.toml is parseable
+        run: |
+          julia --eval '
+            using TOML
+            artifacts = TOML.parsefile("julia/SciRS2/Artifacts.toml")
+            @assert haskey(artifacts, "SciRS2") "Artifacts.toml must have a [SciRS2] section"
+            println("Artifacts.toml is valid TOML with keys: ", keys(artifacts))
+          '
+
+  # ---------------------------------------------------------------------------
+  # Job 5: Validate JLL package structure
+  # ---------------------------------------------------------------------------
+  validate-package-structure:
+    name: Validate Julia package structure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Julia
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: "1.10"
+
+      - name: Check Project.toml fields
+        run: |
+          julia --eval '
+            using TOML, Pkg
+            proj = TOML.parsefile("julia/SciRS2/Project.toml")
+            for key in ["name", "uuid", "version", "deps"]
+                @assert haskey(proj, key) "Project.toml missing key: $key"
+            end
+            # Verify version matches workspace 0.4.x
+            @assert startswith(proj["version"], "0.4") "Expected version 0.4.x, got $(proj["version"])"
+            # Verify required stdlib deps are present
+            @assert haskey(proj["deps"], "Libdl") "Project.toml must declare Libdl dep"
+            @assert haskey(proj["deps"], "Pkg")   "Project.toml must declare Pkg dep"
+            println("Project.toml validation passed. Version: ", proj["version"])
+          '
+
+      - name: Check required files exist
+        run: |
+          for f in \
+            "julia/SciRS2/Project.toml" \
+            "julia/SciRS2/Artifacts.toml" \
+            "julia/SciRS2/deps/build.jl" \
+            "julia/SciRS2/src/SciRS2.jl" \
+            "julia/SciRS2/src/JLLCompat.jl" \
+            "julia/SciRS2/src/PureAlgorithms.jl" \
+            "julia/SciRS2/src/ExtendedLinalg.jl" \
+            "julia/SciRS2/src/ExtendedStats.jl" \
+            "julia/SciRS2/src/ExtendedFFT.jl" \
+            "julia/SciRS2/src/ExtendedOptimize.jl" \
+            "julia/SciRS2/src/Interpolate.jl" \
+            "julia/SciRS2/test/runtests.jl" \
+            "julia/SciRS2/test/test_pure_algorithms.jl" \
+            "scirs2-julia/Cargo.toml" \
+            "scirs2-julia/src/lib.rs"; do
+            if [[ ! -f "$f" ]]; then
+              echo "MISSING: $f"
+              exit 1
+            fi
+            echo "OK: $f"
+          done

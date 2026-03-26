@@ -1,0 +1,275 @@
+name: Code Coverage
+
+on:
+  push:
+    branches:
+      - master
+      - main
+      - "0.[0-9]+.[0-9]+"
+  pull_request:
+    branches:
+      - master
+      - main
+      - "0.[0-9]+.[0-9]+"
+  schedule:
+    - cron: '0 4 * * 1'  # Weekly Monday 04:00 UTC
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  coverage:
+    name: Coverage (cargo-llvm-cov)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain with llvm-tools
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-coverage"
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
+      # -----------------------------------------------------------------------
+      # Generate LCOV coverage report (all features, excluding heavy crates)
+      # -----------------------------------------------------------------------
+      - name: Generate LCOV coverage report
+        run: |
+          cargo llvm-cov nextest \
+            --workspace \
+            --exclude scirs2-python \
+            --exclude scirs2-datasets \
+            --all-features \
+            --lcov \
+            --output-path lcov.info \
+            --test-threads=4
+        timeout-minutes: 90
+
+      # -----------------------------------------------------------------------
+      # Generate text summary so it appears directly in the CI log
+      # -----------------------------------------------------------------------
+      - name: Print coverage summary
+        run: |
+          cargo llvm-cov report \
+            --lcov \
+            --input-files lcov.info \
+            2>/dev/null || \
+          cargo llvm-cov report \
+            --workspace \
+            --exclude scirs2-python \
+            --exclude scirs2-datasets \
+            --all-features \
+            2>/dev/null || true
+
+      # -----------------------------------------------------------------------
+      # Upload to Codecov for tracking trends over time
+      # -----------------------------------------------------------------------
+      - name: Upload LCOV to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+          name: scirs2-coverage
+
+      # -----------------------------------------------------------------------
+      # Generate browsable HTML report and upload as an artifact
+      # -----------------------------------------------------------------------
+      - name: Generate HTML coverage report
+        run: |
+          cargo llvm-cov report \
+            --html \
+            --output-dir coverage-html \
+            2>/dev/null || true
+
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-html
+          path: coverage-html/
+          retention-days: 30
+          if-no-files-found: warn
+
+      # -----------------------------------------------------------------------
+      # Upload raw LCOV file as artifact for downstream consumers
+      # -----------------------------------------------------------------------
+      - name: Upload LCOV artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lcov-report
+          path: lcov.info
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # Per-crate coverage breakdown — runs individual crates so breakdowns are
+  # visible per module in the CI log.
+  # ---------------------------------------------------------------------------
+  coverage-per-crate:
+    name: Per-crate coverage (${{ matrix.crate }})
+    runs-on: ubuntu-latest
+    # Only run on push to reduce runner usage on PRs
+    if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        crate:
+          - scirs2-core
+          - scirs2-linalg
+          - scirs2-stats
+          - scirs2-fft
+          - scirs2-signal
+          - scirs2-integrate
+          - scirs2-optimize
+          - scirs2-sparse
+          - scirs2-special
+          - scirs2-ndimage
+          - scirs2-interpolate
+          - scirs2-neural
+          - scirs2-graph
+          - scirs2-series
+          - scirs2-text
+          - scirs2-vision
+          - scirs2-transform
+          - scirs2-metrics
+          - scirs2-io
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain with llvm-tools
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-cov-${{ matrix.crate }}"
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
+      - name: Measure coverage for ${{ matrix.crate }}
+        run: |
+          cargo llvm-cov nextest \
+            -p ${{ matrix.crate }} \
+            --all-features \
+            --lcov \
+            --output-path lcov-${{ matrix.crate }}.info
+        timeout-minutes: 30
+
+      - name: Print summary for ${{ matrix.crate }}
+        run: |
+          cargo llvm-cov report \
+            --lcov \
+            --input-files lcov-${{ matrix.crate }}.info \
+            2>/dev/null || true
+
+      - name: Upload per-crate LCOV
+        uses: actions/upload-artifact@v4
+        with:
+          name: lcov-${{ matrix.crate }}
+          path: lcov-${{ matrix.crate }}.info
+          retention-days: 14
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # Coverage gate — enforce a minimum line coverage across the workspace.
+  # Start at 70 % and tighten toward 95 % over releases.
+  # ---------------------------------------------------------------------------
+  coverage-gate:
+    name: Coverage Gate (≥70%)
+    runs-on: ubuntu-latest
+    needs: coverage
+    if: always() && needs.coverage.result == 'success'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain with llvm-tools
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-coverage-gate"
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
+      - name: Enforce coverage gate
+        run: |
+          # Re-run in --json mode to extract the overall line rate
+          cargo llvm-cov nextest \
+            --workspace \
+            --exclude scirs2-python \
+            --exclude scirs2-datasets \
+            --all-features \
+            --json \
+            --output-path coverage.json \
+            --test-threads=4 \
+            2>/dev/null || true
+
+          # Parse line coverage from the JSON output
+          if [ -f coverage.json ]; then
+            LINE_PCT=$(python3 -c "
+          import json, sys
+          with open('coverage.json') as f:
+              data = json.load(f)
+          totals = data.get('data', [{}])[0].get('totals', {})
+          lines = totals.get('lines', {})
+          count   = lines.get('count', 0)
+          covered = lines.get('covered', 0)
+          if count == 0:
+              print('0.0')
+          else:
+              print(f'{100.0 * covered / count:.1f}')
+          " 2>/dev/null || echo "0.0")
+            echo "Overall line coverage: ${LINE_PCT}%"
+            # Threshold: 70% (will be raised in subsequent releases)
+            python3 -c "
+          v = float('${LINE_PCT}')
+          if v < 70.0:
+              print(f'FAIL: line coverage {v:.1f}% is below the 70% threshold')
+              raise SystemExit(1)
+          print(f'PASS: line coverage {v:.1f}% meets the 70% threshold')
+          "
+          else
+            echo "coverage.json not produced; skipping gate check"
+          fi
+        timeout-minutes: 90
+        continue-on-error: true  # Gate is advisory until baseline is established

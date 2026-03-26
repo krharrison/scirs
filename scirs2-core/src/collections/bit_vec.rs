@@ -74,7 +74,12 @@ impl BitVec {
     ///
     /// Panics if `i >= self.n_bits()`.
     pub fn set(&mut self, i: usize, val: bool) {
-        assert!(i < self.n_bits, "BitVec::set: index {} out of range (len={})", i, self.n_bits);
+        assert!(
+            i < self.n_bits,
+            "BitVec::set: index {} out of range (len={})",
+            i,
+            self.n_bits
+        );
         let (chunk_idx, bit_idx) = Self::locate(i);
         if val {
             self.chunks[chunk_idx] |= 1u64 << bit_idx;

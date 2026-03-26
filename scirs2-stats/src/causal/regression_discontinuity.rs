@@ -90,17 +90,29 @@ pub enum BandwidthMethod {
 
 /// Triangular kernel (default for local RD)
 fn triangular_kernel(u: f64) -> f64 {
-    if u.abs() < 1.0 { 1.0 - u.abs() } else { 0.0 }
+    if u.abs() < 1.0 {
+        1.0 - u.abs()
+    } else {
+        0.0
+    }
 }
 
 /// Epanechnikov kernel
 fn epanechnikov_kernel(u: f64) -> f64 {
-    if u.abs() < 1.0 { 0.75 * (1.0 - u * u) } else { 0.0 }
+    if u.abs() < 1.0 {
+        0.75 * (1.0 - u * u)
+    } else {
+        0.0
+    }
 }
 
 /// Uniform kernel
 fn uniform_kernel(u: f64) -> f64 {
-    if u.abs() <= 1.0 { 0.5 } else { 0.0 }
+    if u.abs() <= 1.0 {
+        0.5
+    } else {
+        0.0
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -166,7 +178,9 @@ fn cholesky_invert_rdd(a: &scirs2_core::ndarray::ArrayView2<f64>) -> StatsResult
     for i in 0..n {
         for j in 0..=i {
             let mut s = a[[i, j]];
-            for p in 0..j { s -= l[[i, p]] * l[[j, p]]; }
+            for p in 0..j {
+                s -= l[[i, p]] * l[[j, p]];
+            }
             if i == j {
                 if s <= 0.0 {
                     return Err(StatsError::ComputationError(
@@ -184,7 +198,9 @@ fn cholesky_invert_rdd(a: &scirs2_core::ndarray::ArrayView2<f64>) -> StatsResult
         linv[[j, j]] = 1.0 / l[[j, j]];
         for i in (j + 1)..n {
             let mut s = 0.0_f64;
-            for p in j..i { s += l[[i, p]] * linv[[p, j]]; }
+            for p in j..i {
+                s += l[[i, p]] * linv[[p, j]];
+            }
             linv[[i, j]] = -s / l[[i, i]];
         }
     }
@@ -202,11 +218,15 @@ fn normal_cdf_rdd(x: f64) -> f64 {
 fn erf_approx(x: f64) -> f64 {
     let t = 1.0 / (1.0 + 0.3275911 * x.abs());
     let y = 1.0
-        - (0.254829592 + (-0.284496736 + (1.421413741 + (-1.453152027 + 1.061405429 * t) * t) * t)
-            * t)
+        - (0.254829592
+            + (-0.284496736 + (1.421413741 + (-1.453152027 + 1.061405429 * t) * t) * t) * t)
             * t
             * (-x * x).exp();
-    if x >= 0.0 { y } else { -y }
+    if x >= 0.0 {
+        y
+    } else {
+        -y
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -254,7 +274,10 @@ impl BandwidthSelector {
         let h_pilot = 1.84 * x_std * (n as f64).powf(-1.0 / 5.0);
 
         // Step 2: Density of X at cutoff (kernel estimate)
-        let f_x = x.iter().filter(|&&xi| (xi - cutoff).abs() < h_pilot).count() as f64
+        let f_x = x
+            .iter()
+            .filter(|&&xi| (xi - cutoff).abs() < h_pilot)
+            .count() as f64
             / (n as f64 * 2.0 * h_pilot).max(1e-15);
 
         if f_x < 1e-10 {
@@ -286,7 +309,8 @@ impl BandwidthSelector {
         // where C_K depends on the kernel and polynomial order
         let p = poly_order as f64;
         let c_k = 3.4375_f64; // for triangular kernel, local linear
-        let h_opt = c_k * (sigma2 / (f_x * m2_sq)).powf(1.0 / (2.0 * p + 3.0))
+        let h_opt = c_k
+            * (sigma2 / (f_x * m2_sq)).powf(1.0 / (2.0 * p + 3.0))
             * (n as f64).powf(-1.0 / (2.0 * p + 3.0));
 
         Ok(h_opt.max(0.01 * x_std))
@@ -359,7 +383,10 @@ fn loocv_rdd(
             .filter(|&j| ((x[j] - cutoff) / h).abs() < 1.0)
             .map(|j| y[j])
             .collect();
-        let w_in: Vec<f64> = x_in.iter().map(|&xj| triangular_kernel((xj - cutoff) / h)).collect();
+        let w_in: Vec<f64> = x_in
+            .iter()
+            .map(|&xj| triangular_kernel((xj - cutoff) / h))
+            .collect();
 
         if x_in.len() < poly_order + 1 {
             continue;
@@ -382,7 +409,9 @@ fn loocv_rdd(
 
 fn std_dev(x: &ArrayView1<f64>) -> f64 {
     let n = x.len();
-    if n < 2 { return 1.0; }
+    if n < 2 {
+        return 1.0;
+    }
     let mean = x.iter().sum::<f64>() / n as f64;
     let var = x.iter().map(|&xi| (xi - mean).powi(2)).sum::<f64>() / (n - 1) as f64;
     var.sqrt().max(1e-15)
@@ -393,11 +422,18 @@ fn split_at_cutoff(
     y: &ArrayView1<f64>,
     cutoff: f64,
 ) -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
-    let mut x_l = Vec::new(); let mut y_l = Vec::new();
-    let mut x_r = Vec::new(); let mut y_r = Vec::new();
+    let mut x_l = Vec::new();
+    let mut y_l = Vec::new();
+    let mut x_r = Vec::new();
+    let mut y_r = Vec::new();
     for (&xi, &yi) in x.iter().zip(y.iter()) {
-        if xi < cutoff { x_l.push(xi); y_l.push(yi); }
-        else           { x_r.push(xi); y_r.push(yi); }
+        if xi < cutoff {
+            x_l.push(xi);
+            y_l.push(yi);
+        } else {
+            x_r.push(xi);
+            y_r.push(yi);
+        }
     }
     (x_l, y_l, x_r, y_r)
 }
@@ -409,7 +445,10 @@ fn conditional_variance_at_boundary(
     h: f64,
     poly_order: usize,
 ) -> StatsResult<f64> {
-    let weights: Vec<f64> = x.iter().map(|&xi| triangular_kernel((xi - cutoff) / h)).collect();
+    let weights: Vec<f64> = x
+        .iter()
+        .map(|&xi| triangular_kernel((xi - cutoff) / h))
+        .collect();
     let in_bw: Vec<usize> = (0..x.len()).filter(|&i| weights[i] > 0.0).collect();
     if in_bw.len() < poly_order + 2 {
         return Ok(1.0); // fallback
@@ -439,7 +478,11 @@ fn conditional_variance_at_boundary(
     let fitted = xmat.dot(&beta);
     let resid = &y_vec - &fitted;
     let df = (n - k) as f64;
-    Ok(if df > 0.0 { resid.iter().map(|&r| r * r).sum::<f64>() / df } else { 1.0 })
+    Ok(if df > 0.0 {
+        resid.iter().map(|&r| r * r).sum::<f64>() / df
+    } else {
+        1.0
+    })
 }
 
 /// Estimate the second derivative of E[Y|X] at the cutoff.
@@ -520,13 +563,15 @@ impl RDD {
 
         let h = match bandwidth {
             Some(bw) => bw,
-            None => BandwidthSelector::select(x, y, self.cutoff, BandwidthMethod::IK, self.poly_order)?,
+            None => {
+                BandwidthSelector::select(x, y, self.cutoff, BandwidthMethod::IK, self.poly_order)?
+            }
         };
 
         let k_fn: Box<dyn Fn(f64) -> f64> = match self.kernel.as_str() {
             "epanechnikov" => Box::new(epanechnikov_kernel),
-            "uniform"      => Box::new(uniform_kernel),
-            _              => Box::new(triangular_kernel),
+            "uniform" => Box::new(uniform_kernel),
+            _ => Box::new(triangular_kernel),
         };
 
         // Left side: x < cutoff, within bandwidth
@@ -538,10 +583,15 @@ impl RDD {
                 let w = k_fn((xi - self.cutoff) / h);
                 (xi, yi, w)
             })
-            .fold((Vec::new(), Vec::new(), Vec::new()), |(mut ax, mut ay, mut aw), (xi, yi, wi)| {
-                ax.push(xi); ay.push(yi); aw.push(wi);
-                (ax, ay, aw)
-            });
+            .fold(
+                (Vec::new(), Vec::new(), Vec::new()),
+                |(mut ax, mut ay, mut aw), (xi, yi, wi)| {
+                    ax.push(xi);
+                    ay.push(yi);
+                    aw.push(wi);
+                    (ax, ay, aw)
+                },
+            );
 
         // Right side: x >= cutoff, within bandwidth
         let (x_r, y_r, w_r): (Vec<f64>, Vec<f64>, Vec<f64>) = x
@@ -552,10 +602,15 @@ impl RDD {
                 let w = k_fn((xi - self.cutoff) / h);
                 (xi, yi, w)
             })
-            .fold((Vec::new(), Vec::new(), Vec::new()), |(mut ax, mut ay, mut aw), (xi, yi, wi)| {
-                ax.push(xi); ay.push(yi); aw.push(wi);
-                (ax, ay, aw)
-            });
+            .fold(
+                (Vec::new(), Vec::new(), Vec::new()),
+                |(mut ax, mut ay, mut aw), (xi, yi, wi)| {
+                    ax.push(xi);
+                    ay.push(yi);
+                    aw.push(wi);
+                    (ax, ay, aw)
+                },
+            );
 
         let n_left = x_l.len();
         let n_right = x_r.len();
@@ -578,7 +633,11 @@ impl RDD {
 
         let estimate = mu_r - mu_l;
         let std_error = (se_l * se_l + se_r * se_r).sqrt();
-        let t_stat = if std_error > 0.0 { estimate / std_error } else { 0.0 };
+        let t_stat = if std_error > 0.0 {
+            estimate / std_error
+        } else {
+            0.0
+        };
         let p_value = normal_p_value_rdd(t_stat);
         let ci = [estimate - 1.96 * std_error, estimate + 1.96 * std_error];
 
@@ -610,7 +669,9 @@ impl RDD {
     ) -> StatsResult<RDDPlot> {
         let n = x.len();
         if n < 2 {
-            return Err(StatsError::InsufficientData("Need at least 2 observations".into()));
+            return Err(StatsError::InsufficientData(
+                "Need at least 2 observations".into(),
+            ));
         }
 
         let x_min = x.iter().cloned().fold(f64::INFINITY, f64::min);
@@ -626,7 +687,9 @@ impl RDD {
             let lo = x_min + b as f64 * step_l;
             let hi = lo + step_l;
             let mid = (lo + hi) / 2.0;
-            let vals: Vec<f64> = x.iter().zip(y.iter())
+            let vals: Vec<f64> = x
+                .iter()
+                .zip(y.iter())
                 .filter(|(&xi, _)| xi >= lo && xi < hi)
                 .map(|(_, &yi)| yi)
                 .collect();
@@ -640,7 +703,9 @@ impl RDD {
                     let var = vals.iter().map(|&v| (v - m).powi(2)).sum::<f64>()
                         / (vals.len() * (vals.len() - 1)) as f64;
                     var.sqrt()
-                } else { 0.0 };
+                } else {
+                    0.0
+                };
                 x_bins.push(mid);
                 y_means.push(m);
                 y_se.push(se);
@@ -653,7 +718,9 @@ impl RDD {
             let lo = self.cutoff + b as f64 * step_r;
             let hi = lo + step_r;
             let mid = (lo + hi) / 2.0;
-            let vals: Vec<f64> = x.iter().zip(y.iter())
+            let vals: Vec<f64> = x
+                .iter()
+                .zip(y.iter())
                 .filter(|(&xi, _)| xi >= lo && xi < hi)
                 .map(|(_, &yi)| yi)
                 .collect();
@@ -667,7 +734,9 @@ impl RDD {
                     let var = vals.iter().map(|&v| (v - m).powi(2)).sum::<f64>()
                         / (vals.len() * (vals.len() - 1)) as f64;
                     var.sqrt()
-                } else { 0.0 };
+                } else {
+                    0.0
+                };
                 x_bins.push(mid);
                 y_means.push(m);
                 y_se.push(se);
@@ -740,7 +809,9 @@ impl FuzzyRDD {
 
         let h = match bandwidth {
             Some(bw) => bw,
-            None => BandwidthSelector::select(x, y, self.cutoff, BandwidthMethod::IK, self.poly_order)?,
+            None => {
+                BandwidthSelector::select(x, y, self.cutoff, BandwidthMethod::IK, self.poly_order)?
+            }
         };
 
         // Reduced-form: RD in Y
@@ -763,10 +834,14 @@ impl FuzzyRDD {
         // Delta method: Var(Y/D) ≈ (1/D)² Var(Y) + (Y/D²)² Var(D)
         let d_hat = first_stage;
         let y_hat = res_y.estimate;
-        let var_wald = (res_y.std_error / d_hat).powi(2)
-            + (y_hat / d_hat.powi(2) * res_d.std_error).powi(2);
+        let var_wald =
+            (res_y.std_error / d_hat).powi(2) + (y_hat / d_hat.powi(2) * res_d.std_error).powi(2);
         let std_error = var_wald.sqrt();
-        let t_stat = if std_error > 0.0 { estimate / std_error } else { 0.0 };
+        let t_stat = if std_error > 0.0 {
+            estimate / std_error
+        } else {
+            0.0
+        };
         let p_value = normal_p_value_rdd(t_stat);
         let ci = [estimate - 1.96 * std_error, estimate + 1.96 * std_error];
 
@@ -795,12 +870,17 @@ mod tests {
     use scirs2_core::ndarray::Array1;
 
     fn make_rdd_data(n: usize, cutoff: f64, effect: f64) -> (Array1<f64>, Array1<f64>) {
-        let x: Array1<f64> = (0..n).map(|i| (i as f64) / (n as f64) * 2.0 - 1.0).collect();
-        let y: Array1<f64> = x.iter().map(|&xi| {
-            let base = 1.0 + 0.5 * xi;
-            let jump = if xi >= cutoff { effect } else { 0.0 };
-            base + jump
-        }).collect();
+        let x: Array1<f64> = (0..n)
+            .map(|i| (i as f64) / (n as f64) * 2.0 - 1.0)
+            .collect();
+        let y: Array1<f64> = x
+            .iter()
+            .map(|&xi| {
+                let base = 1.0 + 0.5 * xi;
+                let jump = if xi >= cutoff { effect } else { 0.0 };
+                base + jump
+            })
+            .collect();
         (x, y)
     }
 
@@ -808,10 +888,14 @@ mod tests {
     fn test_sharp_rdd_recovers_effect() {
         let (x, y) = make_rdd_data(500, 0.0, 2.0);
         let rdd = RDD::new(0.0, 1, "triangular");
-        let res = rdd.estimate(&x.view(), &y.view(), None)
+        let res = rdd
+            .estimate(&x.view(), &y.view(), None)
             .expect("Sharp RDD should succeed");
-        assert!((res.estimate - 2.0).abs() < 0.3,
-            "Expected effect≈2.0, got {}", res.estimate);
+        assert!(
+            (res.estimate - 2.0).abs() < 0.3,
+            "Expected effect≈2.0, got {}",
+            res.estimate
+        );
         assert_eq!(res.estimator, "Sharp-RDD");
     }
 
@@ -827,7 +911,8 @@ mod tests {
     fn test_rdd_plot_data() {
         let (x, y) = make_rdd_data(200, 0.0, 1.0);
         let rdd = RDD::new(0.0, 1, "triangular");
-        let plot = rdd.plot_data(&x.view(), &y.view(), 5)
+        let plot = rdd
+            .plot_data(&x.view(), &y.view(), 5)
             .expect("Plot data should succeed");
         assert_eq!(plot.x_bins.len(), 10);
         assert_eq!(plot.n_bins_each_side, 5);
@@ -839,12 +924,23 @@ mod tests {
         let cutoff = 0.0_f64;
         let x: Array1<f64> = (0..n).map(|i| (i as f64) / n as f64 * 2.0 - 1.0).collect();
         // Treatment probability: 0.2 below cutoff, 0.8 above
-        let d: Array1<f64> = x.iter().map(|&xi| if xi >= cutoff { 1.0 } else { 0.0 }).collect();
-        let y: Array1<f64> = x.iter().zip(d.iter()).map(|(&xi, &di)| 1.0 + 0.5 * xi + 2.0 * di).collect();
+        let d: Array1<f64> = x
+            .iter()
+            .map(|&xi| if xi >= cutoff { 1.0 } else { 0.0 })
+            .collect();
+        let y: Array1<f64> = x
+            .iter()
+            .zip(d.iter())
+            .map(|(&xi, &di)| 1.0 + 0.5 * xi + 2.0 * di)
+            .collect();
         let frdd = FuzzyRDD::new(cutoff, 1, "triangular");
-        let res = frdd.estimate(&x.view(), &y.view(), &d.view(), None)
+        let res = frdd
+            .estimate(&x.view(), &y.view(), &d.view(), None)
             .expect("Fuzzy RDD should succeed");
-        assert!((res.estimate - 2.0).abs() < 0.5,
-            "Expected LATE≈2.0, got {}", res.estimate);
+        assert!(
+            (res.estimate - 2.0).abs() < 0.5,
+            "Expected LATE≈2.0, got {}",
+            res.estimate
+        );
     }
 }

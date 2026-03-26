@@ -159,16 +159,16 @@
 ## v0.4.0 Roadmap
 
 ### Differentiable Optimization
-- [ ] Differentiable convex optimization layers (OptNet / CVXPY-layers style)
-- [ ] Implicit differentiation through optimization solutions (KKT sensitivity)
-- [ ] Differentiable LP and QP solvers for end-to-end training
-- [ ] Differentiable combinatorial optimization (perturbed optimizers, SparseMAP)
+- [x] Differentiable convex optimization layers (OptNet / CVXPY-layers style) — Implemented in v0.4.0 (`differentiable_optimization/layer.rs`, `qp_layer.rs`)
+- [x] Implicit differentiation through optimization solutions (KKT sensitivity) — Implemented in v0.4.0 (`differentiable_optimization/kkt_sensitivity.rs`, `implicit_diff.rs`)
+- [x] Differentiable LP and QP solvers for end-to-end training — Implemented in v0.4.0 (`differentiable_optimization/diff_lp.rs`, `diff_qp.rs`, `lp_layer.rs`)
+- [x] Differentiable combinatorial optimization (perturbed optimizers, SparseMAP) — Implemented in v0.4.0 (`differentiable_optimization/combinatorial.rs`, `perturbed_optimizer.rs`)
 
 ### Quantum-Classical Hybrid
-- [ ] QAOA (Quantum Approximate Optimization Algorithm) interface for combinatorial problems
-- [ ] VQE (Variational Quantum Eigensolver) adapter for ground-state problems
-- [ ] Quantum-inspired tensor network optimization
-- [ ] Classical simulation of small QAOA circuits for benchmarking
+- [x] QAOA (Quantum Approximate Optimization Algorithm) interface for combinatorial problems — Implemented in v0.4.0 (`quantum_classical/qaoa.rs`)
+- [x] VQE (Variational Quantum Eigensolver) adapter for ground-state problems — Implemented in v0.4.0 (`quantum_classical/vqe.rs`)
+- [x] Quantum-inspired tensor network optimization — Implemented in v0.4.0 (`quantum_classical/tensor_network.rs`)
+- [x] Classical simulation of small QAOA circuits for benchmarking — Implemented in v0.4.0 (`quantum_classical/statevector.rs`)
 
 ### Neural Architecture Search (NAS) Improvements
 - [ ] DARTS (Differentiable Architecture Search) implementation
@@ -177,16 +177,16 @@
 - [ ] Hardware-aware NAS with latency constraints
 
 ### High-Dimensional Optimization
-- [ ] Coordinate descent with random and greedy selection rules
-- [ ] Randomized Kaczmarz and block Kaczmarz for large linear systems
+- [x] Coordinate descent with random and greedy selection rules — Implemented in v0.4.0 (`coordinate_descent/` module)
+- [x] Randomized Kaczmarz and block Kaczmarz for large linear systems — Implemented in v0.4.0 (`kaczmarz/` module)
 - [ ] Subspace embedding methods for dimensionality-reduced optimization
-- [ ] Sketched gradient descent for massive least-squares
+- [x] Sketched gradient descent for massive least-squares — Implemented in v0.4.0 (`sketched/` module)
 
 ### Advanced Integer Programming
-- [ ] Conflict-driven clause learning (CDCL)-style MIP branching
-- [ ] Lift-and-project cuts
-- [ ] Lattice-reduction preprocessing for integer programs
-- [ ] Column generation with pricing subproblem interface
+- [x] Conflict-driven clause learning (CDCL)-style MIP branching — Implemented in v0.4.0 (`integer/cdcl_branching.rs`)
+- [x] Lift-and-project cuts — Implemented in v0.4.0 (`integer/lift_project.rs`, `lift_project_mip.rs`)
+- [x] Lattice-reduction preprocessing for integer programs — Implemented in v0.4.0 (`integer/lattice/` module)
+- [x] Column generation with pricing subproblem interface — Implemented in v0.4.0 (`integer/column_generation.rs`)
 
 ---
 

@@ -30,6 +30,7 @@ sobol = { workspace = true }
 halton = { workspace = true }
 num_cpus = { workspace = true }
 half = { workspace = true }
+serde = { workspace = true }
 
 # Optional dependencies
 scirs2-autograd = { workspace = true, optional = true }

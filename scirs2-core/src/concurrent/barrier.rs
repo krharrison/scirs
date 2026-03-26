@@ -97,7 +97,10 @@ impl CyclicBarrier {
     /// Returns `Ok(true)` for exactly one thread per cycle (the "trip" thread
     /// that was the last to arrive).  All other threads get `Ok(false)`.
     pub fn wait(&self) -> CoreResult<bool> {
-        let mut g = self.inner.lock().map_err(|e| lock_err("CyclicBarrier::wait", e))?;
+        let mut g = self
+            .inner
+            .lock()
+            .map_err(|e| lock_err("CyclicBarrier::wait", e))?;
 
         if g.broken {
             return Err(CoreError::MutexError(ErrorContext::new(
@@ -474,7 +477,7 @@ impl SpinBarrier {
     /// Spin-wait until all parties have called `wait`.
     ///
     /// Uses `std::hint::spin_loop` for low-latency busy waiting.  On each
-    /// unsuccessful poll the thread yields via [`thread::yield_now`].
+    /// unsuccessful poll the thread yields via [`std::thread::yield_now`].
     pub fn wait(&self) {
         let current_epoch = self.epoch.load(Ordering::Acquire);
         let prev = self.arrived.fetch_add(1, Ordering::AcqRel);
@@ -483,8 +486,7 @@ impl SpinBarrier {
         if new_count == self.parties {
             // Last to arrive — reset counter and advance epoch.
             self.arrived.store(0, Ordering::Release);
-            self.epoch
-                .fetch_add(1, Ordering::Release);
+            self.epoch.fetch_add(1, Ordering::Release);
         } else {
             // Spin until epoch advances.
             let mut spins = 0usize;

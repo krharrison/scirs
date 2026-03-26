@@ -46,7 +46,7 @@
 //! Add to your `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! scirs2-stats = "0.1.5"
+//! scirs2-stats = "0.4.0"
 //! ```
 //!
 //! ```rust
@@ -624,6 +624,7 @@ pub mod qmc; // Quasi-Monte Carlo
 pub mod sampling; // Sampling utilities
 pub mod survival; // Survival analysis
 pub mod traits; // Trait definitions for distributions and statistical objects // Mathematical utility functions with SIMD acceleration (abs, sign)
+pub mod variational; // Variational inference (ADVI, SVGD, Normalizing Flows)
 
 // Comprehensive validation and testing frameworks for v1.0.0
 // pub mod comprehensive_validation_suite;
@@ -1093,6 +1094,35 @@ pub use regression::{
 // Core functions for random number generation
 pub mod random;
 pub use random::*;
+
+// Bayesian network (DAG, CPD, inference)
+pub mod bayesian_network;
+
+// Causal inference and causal discovery
+pub mod causal;
+pub mod causal_graph;
+
+// Econometrics: IV, DiD, Synthetic Control
+pub mod econometrics;
+
+// ADVI (Automatic Differentiation Variational Inference)
+pub mod advi;
+// Bayesian approximations (Laplace, SWAG)
+pub mod bayesian_approx;
+// Bayesian neural networks
+pub mod bayesian_nn;
+// Conformal prediction (split, CQR, RAPS, ACI)
+pub mod conformal;
+// Functional data analysis
+pub mod functional;
+// Graphical lasso
+pub mod graphical_lasso;
+// INLA (Integrated Nested Laplace Approximations)
+pub mod inla;
+// Online Bayesian inference
+pub mod online;
+// Online Bayesian updating
+pub mod online_bayes;
 
 #[cfg(test)]
 mod test_utils {

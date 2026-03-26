@@ -125,36 +125,36 @@
 
 ## v0.4.0 Roadmap
 
-### Variational Inference
-- [ ] Automatic Differentiation Variational Inference (ADVI) with normalizing flows
-- [ ] Stein Variational Gradient Descent (SVGD)
-- [ ] Black-box VI with variance reduction (REINFORCE, VIMCO)
+### Variational Inference — Partially implemented in v0.4.0
+- [x] Automatic Differentiation Variational Inference (ADVI) with normalizing flows — Implemented in v0.4.0
+- [x] Stein Variational Gradient Descent (SVGD) — Implemented in v0.4.0
+- [x] Black-box VI with variance reduction (REINFORCE, VIMCO) — Implemented in v0.4.0 (`variational/bbvi.rs`)
 
 ### Causal Inference (Extended)
-- [ ] Full do-calculus identification engine (ID algorithm, hedge criterion)
-- [ ] PC algorithm and FCI algorithm for causal discovery from observational data
-- [ ] Instrumental variable (IV) estimation and 2SLS
-- [ ] Difference-in-differences and synthetic control methods
+- [x] Full do-calculus identification engine (ID algorithm, hedge criterion) — Implemented in v0.4.0 (`causal/id_algorithm.rs`, `causal/hedge.rs`)
+- [x] PC algorithm and FCI algorithm for causal discovery from observational data — Implemented in v0.4.0 (`causal/pc_algorithm.rs`, `causal/fci_algorithm.rs`)
+- [x] Instrumental variable (IV) estimation and 2SLS — Implemented in v0.4.0
+- [x] Difference-in-differences and synthetic control methods — Implemented in v0.4.0
 
 ### Online & Streaming Bayesian Learning
-- [ ] Online variational Bayes for conjugate models
-- [ ] Streaming Gaussian processes with sparse updates
-- [ ] Sequential Bayesian model comparison (SMC-based)
+- [x] Online variational Bayes for conjugate models — Implemented in v0.4.0 (`online_bayes/online_vb.rs`)
+- [x] Streaming Gaussian processes with sparse updates — Implemented in v0.4.0 (`online_bayes/streaming_gp.rs`)
+- [x] Sequential Bayesian model comparison (SMC-based) — Implemented in v0.4.0 (`mcmc/smc_model_compare.rs`)
 
 ### Advanced Nonparametric Bayes
-- [ ] Hierarchical Dirichlet Process (HDP) for topic models
-- [ ] Beta process for sparse feature learning
-- [ ] Normalized random measures with independent increments (NRMI)
+- [x] Hierarchical Dirichlet Process (HDP) for topic models — Implemented in v0.4.0 (`nonparametric_bayes/hdp.rs`, `hdp_topic_model.rs`)
+- [x] Beta process for sparse feature learning — Implemented in v0.4.0 (`nonparametric_bayes/beta_process.rs`)
+- [x] Normalized random measures with independent increments (NRMI) — Implemented in v0.4.0 (`nonparametric_bayes/nrmi.rs`)
 
-### Multivariate Volatility
-- [ ] DCC-GARCH (Dynamic Conditional Correlation)
-- [ ] BEKK-GARCH for multivariate financial data
-- [ ] Realized covariance and HAR-RV models
+### Multivariate Volatility — Implemented in v0.4.0
+- [x] DCC-GARCH (Dynamic Conditional Correlation) — Implemented in v0.4.0
+- [x] BEKK-GARCH for multivariate financial data — Implemented in v0.4.0
+- [x] Realized covariance and HAR-RV models — Implemented in v0.4.0
 
 ### High-Dimensional Statistics
-- [ ] Graphical Lasso (GLASSO) for sparse precision matrix estimation
-- [ ] Factor-adjusted robust multiple testing
-- [ ] High-dimensional t-tests and principal component regression
+- [x] Graphical Lasso (GLASSO) for sparse precision matrix estimation — Implemented in v0.4.0 (`graphical_lasso.rs`, `high_dimensional/glasso.rs`)
+- [x] Factor-adjusted robust multiple testing — Implemented in v0.4.0 (`high_dimensional/factor_adjusted_testing.rs`)
+- [x] High-dimensional t-tests and principal component regression — Implemented in v0.4.0 (`high_dimensional/hd_tests.rs`)
 
 ---
 

@@ -21,7 +21,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 # Core dependencies - ALL numeric/array/random functionality from scirs2-core (SciRS2 POLICY)
 scirs2-core = { workspace = true, features = ["parallel", "simd", "gpu", "array", "random"] }
 byteorder = { workspace = true }
-image = { workspace = true }
+image = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 oxicode = { workspace = true }  # Binary serialization (SIMD-optimized)
@@ -43,7 +43,7 @@ tempfile = { workspace = true }
 regex = { workspace = true }
 glob = { workspace = true }
 netcdf3 = { workspace = true }
-kamadak-exif = { workspace = true }
+kamadak-exif = { workspace = true, optional = true }
 hdf5 = { workspace = true, optional = true }
 # rayon = { workspace = true }  # Now use scirs2-core parallel abstractions
 thiserror = { workspace = true }
@@ -89,7 +89,8 @@ url = { workspace = true }
 tokio-test = { workspace = true }
 
 [features]
-default = ["csv", "compression", "validation"]
+default = ["csv", "compression", "validation", "image_io"]
+image_io = ["dep:image", "dep:kamadak-exif"]
 csv = []
 # Default compression uses 100% Pure Rust libraries (COOLJAPAN Policy)
 compression = []
@@ -103,7 +104,7 @@ google-cloud-storage = []
 azure-storage-blobs = []
 # GPU compression uses Pure Rust oxiarc-* compression (COOLJAPAN Policy)
 gpu = []
-exif = []
+exif = ["image_io"]
 # Database features
 sqlite = ["dep:rusqlite"]
 postgres = ["async"]  # Stub implementation only (no actual sqlx dependency)
@@ -118,7 +119,7 @@ mqtt = ["dep:rumqttc", "async"]
 sse = ["dep:eventsource-client", "async", "reqwest"]
 grpc = ["dep:tonic", "async"]
 realtime = ["websocket", "mqtt", "sse", "grpc"]
-all = ["csv", "compression", "validation", "hdf5", "async", "reqwest", "aws-sdk-s3", "google-cloud-storage", "azure-storage-blobs", "gpu", "exif", "database", "mongodb", "redis", "realtime"]
+all = ["csv", "compression", "validation", "image_io", "hdf5", "async", "reqwest", "aws-sdk-s3", "google-cloud-storage", "azure-storage-blobs", "gpu", "exif", "database", "mongodb", "redis", "realtime"]
 
 [[example]]
 name = "hdf5_example"

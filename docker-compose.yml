@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  # Development environment with source mounted
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    volumes:
+      - .:/app
+      - cargo-cache:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+    working_dir: /app
+    command: cargo check --workspace --exclude scirs2-python
+    environment:
+      - RUST_BACKTRACE=1
+      - CARGO_BUILD_JOBS=4
+      - CARGO_INCREMENTAL=1
+
+  # Run the full test suite
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    volumes:
+      - .:/app
+      - cargo-cache:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+    working_dir: /app
+    command: >
+      cargo nextest run --workspace
+        --exclude scirs2-python
+        --exclude scirs2-datasets
+        --all-features
+    environment:
+      - RUST_BACKTRACE=1
+      - CARGO_BUILD_JOBS=4
+
+  # Run benchmarks and compare against SLA baselines
+  benchmark:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    volumes:
+      - .:/app
+      - cargo-cache:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+    working_dir: /app
+    command: ./scripts/bench-regression.sh
+    environment:
+      - BASELINE_DIR=/app/baselines
+      - RUST_BACKTRACE=1
+
+  # Clippy lint check
+  lint:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    volumes:
+      - .:/app
+      - cargo-cache:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+    working_dir: /app
+    command: cargo clippy --workspace --all-features -- -D warnings
+    environment:
+      - CARGO_BUILD_JOBS=4
+
+  # Format check
+  fmt:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    volumes:
+      - .:/app
+      - cargo-cache:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+    working_dir: /app
+    command: cargo fmt --all -- --check
+
+  # Documentation build
+  docs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    volumes:
+      - .:/app
+      - cargo-cache:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+    working_dir: /app
+    command: cargo doc --workspace --no-deps --all-features
+    environment:
+      - RUSTDOCFLAGS=-D warnings
+
+  # SLA validation
+  sla-validate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    volumes:
+      - .:/app
+      - cargo-cache:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+    working_dir: /app
+    command: ./scripts/validate-sla.sh
+    environment:
+      - BASELINE_DIR=/app/baselines
+      - RUST_BACKTRACE=1
+
+volumes:
+  cargo-cache:
+  cargo-git:

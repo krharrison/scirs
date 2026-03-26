@@ -96,17 +96,17 @@
 - Computation graph lowering to an IR
 - XLA-style device placement and fusion
 
-### Symbolic Differentiation
-- CAS-style symbolic derivative rules
-- Simplification of symbolic expressions before evaluation
+### Symbolic Differentiation — Implemented in v0.4.0
+- [x] CAS-style symbolic derivative rules
+- [x] Simplification of symbolic expressions before evaluation
 
 ### Improved JIT
 - Cross-operation fusion across different op types
 - Profile-guided optimization for hot paths
 
-### Sparse Gradients
-- Sparse tensor representation in the gradient tape
-- Efficient sparse-dense gradient accumulation
+### Sparse Gradients — Implemented in v0.4.0
+- [x] Sparse tensor representation in the gradient tape
+- [x] Efficient sparse-dense gradient accumulation
 
 ## Known Issues / Technical Debt
 

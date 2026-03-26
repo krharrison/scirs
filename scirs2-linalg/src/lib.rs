@@ -48,9 +48,9 @@
 //! Add to your `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! scirs2-linalg = "0.1.5"
+//! scirs2-linalg = "0.4.0"
 //! # Optional features
-//! scirs2-linalg = { version = "0.1.5", features = ["simd", "parallel", "gpu"] }
+//! scirs2-linalg = { version = "0.4.0", features = ["simd", "parallel", "gpu"] }
 //! ```
 //!
 //! ### Basic Matrix Operations
@@ -243,6 +243,7 @@ pub use self::eigen::{
 // Specialized eigen solvers in separate module
 pub mod eigen_specialized;
 pub mod extended_precision;
+pub mod factorization;
 pub mod generic;
 pub mod gradient;
 pub mod hierarchical;
@@ -297,6 +298,28 @@ pub mod tensor_contraction;
 pub mod tensor_ops;
 pub mod tensor_train;
 mod validation;
+
+// Block Krylov solvers
+pub mod block_krylov;
+// Distributed algorithms (SUMMA, CAQR)
+pub mod distrib_algorithms;
+// Eigensolvers (D&C tridiagonal, FEAST, randomized)
+pub mod eigensolvers;
+// GPU acceleration stubs
+pub mod gpu_accel;
+// GPU GEMM (cache-blocked, f16/bf16)
+pub mod gpu_gemm;
+// H2-matrix (hierarchical)
+pub mod hmatrix_h2;
+// Matrix functions via Zolotarev
+pub mod matrix_functions_zolotarev;
+// Mixed/adaptive precision
+pub mod precision;
+// SSS (sequentially semi-separable) matrix
+pub mod sss_matrix;
+// Structured flat (Toeplitz, Circulant, Hankel)
+pub mod structured_flat;
+
 // Distributed computing support (temporarily disabled - needs extensive API fixes)
 // pub mod distributed;
 

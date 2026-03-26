@@ -35,11 +35,7 @@ fn tanh_act<F: Float>(x: F) -> F {
 }
 
 /// Dense (fully-connected) layer: `y = tanh(W x + b)`.
-fn dense_tanh<F: Float + FromPrimitive>(
-    w: &Array2<F>,
-    b: &Array1<F>,
-    x: &Array1<F>,
-) -> Array1<F> {
+fn dense_tanh<F: Float + FromPrimitive>(w: &Array2<F>, b: &Array1<F>, x: &Array1<F>) -> Array1<F> {
     let out_dim = w.nrows();
     let mut y = Array1::zeros(out_dim);
     for i in 0..out_dim {
@@ -270,9 +266,12 @@ fn rk4_integrate<F: Float + Debug + FromPrimitive + Clone>(
         let k4 = f(&z_k4)?;
 
         for i in 0..dim {
-            z[i] = z[i] + h * sixth * (k1[i] + F::from(2.0).expect("2") * k2[i]
-                + F::from(2.0).expect("2") * k3[i]
-                + k4[i]);
+            z[i] = z[i]
+                + h * sixth
+                    * (k1[i]
+                        + F::from(2.0).expect("2") * k2[i]
+                        + F::from(2.0).expect("2") * k3[i]
+                        + k4[i]);
         }
     }
     Ok(z)
@@ -415,12 +414,14 @@ impl<F: Float + Debug + FromPrimitive + Clone> LatentODE<F> {
         let gru_input_dim = config.obs_dim + 1;
         let encoder_gru = GruCell::new(gru_input_dim, config.encoder_hidden, s);
 
-        let enc_std = F::from(
-            (2.0 / (config.encoder_hidden + config.latent_dim) as f64).sqrt(),
-        )
-        .expect("std");
-        let encoder_to_z0_w =
-            random_matrix(config.latent_dim, config.encoder_hidden, enc_std, s.wrapping_add(100));
+        let enc_std = F::from((2.0 / (config.encoder_hidden + config.latent_dim) as f64).sqrt())
+            .expect("std");
+        let encoder_to_z0_w = random_matrix(
+            config.latent_dim,
+            config.encoder_hidden,
+            enc_std,
+            s.wrapping_add(100),
+        );
         let encoder_to_z0_b = Array1::zeros(config.latent_dim);
 
         let dynamics =
@@ -441,28 +442,16 @@ impl<F: Float + Debug + FromPrimitive + Clone> LatentODE<F> {
     // ODE helper
     // ------------------------------------------------------------------
 
-    fn integrate_latent(
-        &self,
-        z0: &Array1<F>,
-        t_start: F,
-        t_end: F,
-    ) -> Result<Array1<F>> {
+    fn integrate_latent(&self, z0: &Array1<F>, t_start: F, t_end: F) -> Result<Array1<F>> {
         let duration = (t_end - t_start).abs();
-        let n_steps = ((duration
-            * F::from(self.config.ode_steps_per_unit).expect("steps"))
-        .ceil()
-        .to_usize()
-        .unwrap_or(1))
+        let n_steps = ((duration * F::from(self.config.ode_steps_per_unit).expect("steps"))
+            .ceil()
+            .to_usize()
+            .unwrap_or(1))
         .max(1);
 
         let dynamics_ref = &self.dynamics;
-        rk4_integrate(
-            &|z| dynamics_ref.forward(z),
-            z0,
-            t_start,
-            t_end,
-            n_steps,
-        )
+        rk4_integrate(&|z| dynamics_ref.forward(z), z0, t_start, t_end, n_steps)
     }
 
     // ------------------------------------------------------------------
@@ -514,11 +503,10 @@ impl<F: Float + Debug + FromPrimitive + Clone> LatentODE<F> {
             // (Approximation: for very small deltas we skip the ODE step)
             let abs_delta = delta.abs();
             if abs_delta > F::epsilon() {
-                let steps = ((abs_delta
-                    * F::from(self.config.ode_steps_per_unit).expect("steps"))
-                .ceil()
-                .to_usize()
-                .unwrap_or(1))
+                let steps = ((abs_delta * F::from(self.config.ode_steps_per_unit).expect("steps"))
+                    .ceil()
+                    .to_usize()
+                    .unwrap_or(1))
                 .max(1);
                 let dynamics_ref = &self.dynamics;
                 // We use the dynamics in hidden space as a proxy (in a full
@@ -633,7 +621,9 @@ fn random_matrix<F: Float + FromPrimitive>(
     seed: u64,
 ) -> Array2<F> {
     let mut mat = Array2::zeros((rows, cols));
-    let mut state = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+    let mut state = seed
+        .wrapping_mul(6364136223846793005)
+        .wrapping_add(1442695040888963407);
     for i in 0..rows {
         for j in 0..cols {
             // xorshift64

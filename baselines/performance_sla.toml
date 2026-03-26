@@ -1,0 +1,188 @@
+# SciRS2 Performance SLA Baselines
+# Version: 0.4.0
+# Generated: 2026-03-24
+#
+# These are minimum performance guarantees (conservative upper bounds).
+# Measured on reference platform: Ubuntu 22.04, 4-core x86_64, 16 GB RAM.
+# Production deployments on higher-spec hardware should comfortably exceed
+# these targets.
+#
+# All latency values are in milliseconds (wall-clock time).
+# Throughput values are in operations per second.
+
+[metadata]
+version = "0.4.0"
+generated = "2026-03-24"
+measurement_platform = "GitHub Actions ubuntu-latest (4-core x86_64, 16GB RAM)"
+pure_rust = true
+note = "All benchmarks use Pure Rust implementations (OxiBLAS, OxiFFT). No C/Fortran."
+
+# ==============================================================================
+# Linear Algebra (scirs2-linalg)
+# ==============================================================================
+
+[sla.linalg.matmul_1000x1000]
+max_latency_ms = 500
+throughput_ops_per_sec = 2.0
+p99_latency_ms = 600
+description = "Dense matrix multiply (1000x1000 f64)"
+
+[sla.linalg.det_100x100]
+max_latency_ms = 10
+throughput_ops_per_sec = 100.0
+p99_latency_ms = 15
+description = "Determinant of 100x100 f64 matrix"
+
+[sla.linalg.svd_500x500]
+max_latency_ms = 2000
+throughput_ops_per_sec = 0.5
+p99_latency_ms = 2500
+description = "Full SVD of 500x500 f64 matrix"
+
+[sla.linalg.solve_1000x1000]
+max_latency_ms = 500
+throughput_ops_per_sec = 2.0
+p99_latency_ms = 600
+description = "Dense linear solve (1000x1000 f64)"
+
+[sla.linalg.cholesky_1000x1000]
+max_latency_ms = 300
+throughput_ops_per_sec = 3.0
+p99_latency_ms = 400
+description = "Cholesky decomposition (1000x1000 SPD f64)"
+
+# ==============================================================================
+# FFT (scirs2-fft)
+# ==============================================================================
+
+[sla.fft.fft_1m_points]
+max_latency_ms = 100
+throughput_ops_per_sec = 10.0
+p99_latency_ms = 130
+description = "Complex FFT of 2^20 (1M) points"
+
+[sla.fft.fft_64k_points]
+max_latency_ms = 10
+throughput_ops_per_sec = 100.0
+p99_latency_ms = 15
+description = "Complex FFT of 2^16 (64K) points"
+
+[sla.fft.batch_fft_1000x1024]
+max_latency_ms = 200
+throughput_ops_per_sec = 5.0
+p99_latency_ms = 250
+description = "Batch FFT: 1000 transforms of length 1024"
+
+[sla.fft.rfft_1m_points]
+max_latency_ms = 60
+throughput_ops_per_sec = 15.0
+p99_latency_ms = 80
+description = "Real-valued FFT of 2^20 (1M) points"
+
+# ==============================================================================
+# Statistics (scirs2-stats)
+# ==============================================================================
+
+[sla.stats.normal_pdf_1m]
+max_latency_ms = 50
+throughput_ops_per_sec = 20.0
+p99_latency_ms = 65
+description = "Normal PDF evaluated at 1M points"
+
+[sla.stats.linreg_10k_100feat]
+max_latency_ms = 500
+throughput_ops_per_sec = 2.0
+p99_latency_ms = 600
+description = "Linear regression: 10K samples, 100 features"
+
+[sla.stats.kde_10k_points]
+max_latency_ms = 200
+throughput_ops_per_sec = 5.0
+p99_latency_ms = 250
+description = "Kernel density estimation on 10K points"
+
+# ==============================================================================
+# Signal Processing (scirs2-signal)
+# ==============================================================================
+
+[sla.signal.fir_64tap_1m]
+max_latency_ms = 100
+throughput_ops_per_sec = 10.0
+p99_latency_ms = 130
+description = "FIR filter: 64 taps, 1M samples"
+
+[sla.signal.stft_1m_1024win]
+max_latency_ms = 500
+throughput_ops_per_sec = 2.0
+p99_latency_ms = 600
+description = "STFT: 1M samples, 1024-sample window"
+
+[sla.signal.iir_8pole_1m]
+max_latency_ms = 50
+throughput_ops_per_sec = 20.0
+p99_latency_ms = 65
+description = "IIR filter: 8-pole Butterworth, 1M samples"
+
+# ==============================================================================
+# Sparse (scirs2-sparse)
+# ==============================================================================
+
+[sla.sparse.spmv_100k_1m]
+max_latency_ms = 10
+throughput_ops_per_sec = 100.0
+p99_latency_ms = 15
+description = "Sparse matrix-vector multiply: 100K x 100K, 1M nnz"
+
+[sla.sparse.cg_10k]
+max_latency_ms = 1000
+throughput_ops_per_sec = 1.0
+p99_latency_ms = 1200
+description = "Conjugate gradient solve: 10K x 10K sparse SPD"
+
+[sla.sparse.sparse_lu_10k]
+max_latency_ms = 2000
+throughput_ops_per_sec = 0.5
+p99_latency_ms = 2500
+description = "Sparse LU factorization: 10K x 10K"
+
+# ==============================================================================
+# Integration (scirs2-integrate)
+# ==============================================================================
+
+[sla.integrate.quad_1k_points]
+max_latency_ms = 5
+throughput_ops_per_sec = 200.0
+p99_latency_ms = 8
+description = "Adaptive quadrature with 1K evaluation points"
+
+[sla.integrate.ode_rk45_10k_steps]
+max_latency_ms = 100
+throughput_ops_per_sec = 10.0
+p99_latency_ms = 130
+description = "RK45 ODE solver: 10K adaptive steps"
+
+# ==============================================================================
+# Interpolation (scirs2-interpolate)
+# ==============================================================================
+
+[sla.interpolate.cubic_spline_10k]
+max_latency_ms = 20
+throughput_ops_per_sec = 50.0
+p99_latency_ms = 30
+description = "Cubic spline interpolation: 10K knots"
+
+# ==============================================================================
+# Optimization (scirs2-optimize)
+# ==============================================================================
+
+[sla.optimize.lbfgs_100d]
+max_latency_ms = 200
+throughput_ops_per_sec = 5.0
+p99_latency_ms = 250
+description = "L-BFGS optimization: 100 dimensions, Rosenbrock"
+
+[sla.optimize.nelder_mead_50d]
+max_latency_ms = 500
+throughput_ops_per_sec = 2.0
+p99_latency_ms = 600
+description = "Nelder-Mead: 50 dimensions"

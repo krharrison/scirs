@@ -8,8 +8,8 @@
 //! - Markov blanket computation
 //! - V-structure enumeration
 
-use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 use crate::StatsError;
+use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 
 /// Directed Acyclic Graph for Bayesian network structure.
 ///
@@ -58,7 +58,8 @@ impl DAG {
     pub fn add_edge(&mut self, from: usize, to: usize) -> Result<(), StatsError> {
         if from >= self.n_nodes || to >= self.n_nodes {
             return Err(StatsError::InvalidInput(format!(
-                "Node index out of range: from={from}, to={to}, n={}", self.n_nodes
+                "Node index out of range: from={from}, to={to}, n={}",
+                self.n_nodes
             )));
         }
         if from == to {
@@ -105,9 +106,7 @@ impl DAG {
     /// Internal: returns `None` if a cycle is detected.
     fn topological_sort_full(&self) -> Option<Vec<usize>> {
         let mut in_degree: Vec<usize> = self.parents.iter().map(|p| p.len()).collect();
-        let mut queue: VecDeque<usize> = (0..self.n_nodes)
-            .filter(|&i| in_degree[i] == 0)
-            .collect();
+        let mut queue: VecDeque<usize> = (0..self.n_nodes).filter(|&i| in_degree[i] == 0).collect();
         let mut order = Vec::with_capacity(self.n_nodes);
         while let Some(node) = queue.pop_front() {
             order.push(node);

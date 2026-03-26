@@ -337,9 +337,7 @@ impl CausalDAG {
                 }
             }
         }
-        mb.into_iter()
-            .map(|i| self.nodes[i].as_str())
-            .collect()
+        mb.into_iter().map(|i| self.nodes[i].as_str()).collect()
     }
 
     // ------------------------------------------------------------------
@@ -349,7 +347,7 @@ impl CausalDAG {
     /// Return a topological ordering of all nodes.
     ///
     /// Returns `Err` if the graph contains a cycle (should not happen if
-    /// all edges were added through [`add_edge`]).
+    /// all edges were added through `add_edge`).
     pub fn topological_sort(&self) -> Vec<&str> {
         let n = self.nodes.len();
         let mut in_degree = vec![0usize; n];
@@ -367,10 +365,7 @@ impl CausalDAG {
                 }
             }
         }
-        order
-            .into_iter()
-            .map(|i| self.nodes[i].as_str())
-            .collect()
+        order.into_iter().map(|i| self.nodes[i].as_str()).collect()
     }
 
     // ------------------------------------------------------------------
@@ -455,12 +450,18 @@ impl CausalDAG {
     }
 
     /// Remove all edges where the child node index is in `target_indices`.
-    pub(crate) fn remove_incoming_edges_for(&mut self, target_indices: &std::collections::HashSet<usize>) {
+    pub(crate) fn remove_incoming_edges_for(
+        &mut self,
+        target_indices: &std::collections::HashSet<usize>,
+    ) {
         self.edges.retain(|&(_, c)| !target_indices.contains(&c));
     }
 
     /// Remove all edges where the parent node index is in `target_indices`.
-    pub(crate) fn remove_outgoing_edges_for(&mut self, target_indices: &std::collections::HashSet<usize>) {
+    pub(crate) fn remove_outgoing_edges_for(
+        &mut self,
+        target_indices: &std::collections::HashSet<usize>,
+    ) {
         self.edges.retain(|&(p, _)| !target_indices.contains(&p));
     }
 }

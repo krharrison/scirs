@@ -1,0 +1,98 @@
+# Bencher.dev performance regression detection configuration for SciRS2
+# https://bencher.dev/docs/
+#
+# This file configures which benchmark suites are tracked by Bencher.dev.
+# The Bencher API token must be provided as a repository secret:
+#   BENCHER_API_TOKEN
+#
+# All adapters use rust_criterion (Criterion JSON output).
+# The testbed name follows the GitHub Actions runner image used in CI.
+
+version: 1
+
+project: scirs2
+
+benchmarks:
+  # -----------------------------------------------------------------------
+  # scirs2-linalg
+  # -----------------------------------------------------------------------
+  - name: linalg-matmul
+    command: cargo bench -p scirs2-linalg --bench matmul_bench -- --output-format bencher
+    adapter: rust_criterion
+    description: "Matrix multiplication benchmarks (ndarray_dot, blas, strassen, tiled, SIMD)"
+
+  - name: linalg-decompositions
+    command: cargo bench -p scirs2-linalg --bench decomp_bench -- --output-format bencher
+    adapter: rust_criterion
+    description: "LU, QR, SVD decomposition benchmarks"
+
+  - name: linalg-numerical-accuracy
+    command: cargo bench -p scirs2-linalg --bench numerical_accuracy_bench -- --output-format bencher
+    adapter: rust_criterion
+    description: "Numerical accuracy vs NumPy/LAPACK reference values (Hilbert det, SVD, inv residual)"
+
+  # -----------------------------------------------------------------------
+  # scirs2-fft
+  # -----------------------------------------------------------------------
+  - name: fft-standard
+    command: cargo bench -p scirs2-fft --bench fft_bench -- --output-format bencher
+    adapter: rust_criterion
+    description: "FFT throughput benchmarks across transform sizes"
+
+  - name: fft-accuracy
+    command: cargo bench -p scirs2-fft --bench accuracy_bench -- --output-format bencher
+    adapter: rust_criterion
+    description: "FFT accuracy vs analytic references (DC, pure tone, Parseval, round-trip)"
+
+  # -----------------------------------------------------------------------
+  # scirs2-stats
+  # -----------------------------------------------------------------------
+  - name: stats-distributions
+    command: cargo bench -p scirs2-stats --bench distributions_bench -- --output-format bencher
+    adapter: rust_criterion
+    description: "PDF/CDF/PPF throughput for Normal, Beta, Gamma, etc."
+
+  - name: stats-accuracy
+    command: cargo bench -p scirs2-stats --bench accuracy_bench -- --output-format bencher
+    adapter: rust_criterion
+    description: "Statistical accuracy vs SciPy reference values (Normal, Beta, OLS regression)"
+
+  # -----------------------------------------------------------------------
+  # scirs2-signal
+  # -----------------------------------------------------------------------
+  - name: signal-filters
+    command: cargo bench -p scirs2-signal --bench filters_bench -- --output-format bencher
+    adapter: rust_criterion
+    description: "FIR, IIR, and STFT filter benchmarks"
+
+  # -----------------------------------------------------------------------
+  # scirs2-special
+  # -----------------------------------------------------------------------
+  - name: special-functions
+    command: cargo bench -p scirs2-special --bench special_bench -- --output-format bencher
+    adapter: rust_criterion
+    description: "Gamma, Bessel, Legendre, and elliptic function benchmarks"
+
+  # -----------------------------------------------------------------------
+  # scirs2-optimize
+  # -----------------------------------------------------------------------
+  - name: optimize-scipy-comparison
+    command: cargo bench -p scirs2-optimize --bench scipy_comparison_bench -- --output-format bencher
+    adapter: rust_criterion
+    description: "Optimizer throughput and convergence vs SciPy reference (informational)"
+
+  # -----------------------------------------------------------------------
+  # scirs2-sparse
+  # -----------------------------------------------------------------------
+  - name: sparse-matrices
+    command: cargo bench -p scirs2-sparse --bench sparse_benchmarks -- --output-format bencher
+    adapter: rust_criterion
+    description: "Sparse matrix operations (SpMV, SpMM, ILU, AMG) benchmarks"
+
+  # -----------------------------------------------------------------------
+  # scirs2-stability-tests (numerical correctness as a bench)
+  # -----------------------------------------------------------------------
+  - name: stability-numerical
+    command: cargo bench -p scirs2-stability-tests --bench numerical -- --output-format bencher
+    adapter: rust_criterion
+    description: "Cross-crate numerical benchmarks (matmul, SVD, QR, LU, Normal PDF/CDF/PPF)"

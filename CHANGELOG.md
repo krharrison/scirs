@@ -5,6 +5,56 @@ All notable changes to the SciRS2 project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-03-18
+
+### Added
+
+#### Wave 1: Core Algorithmic Features (15 features across 13 crates)
+
+- **scirs2-neural**: Transformer architecture — multi-head self-attention, positional encoding, encoder/decoder blocks, feed-forward networks, layer normalization
+- **scirs2-neural**: GAN framework — generator/discriminator training loop, Wasserstein GAN with gradient penalty, spectral normalization, conditional GAN
+- **scirs2-stats**: Bayesian inference — Metropolis-Hastings MCMC, No-U-Turn Sampler (NUTS), Hamiltonian Monte Carlo (HMC), posterior predictive checks
+- **scirs2-stats**: Survival analysis — Kaplan-Meier estimator, Cox proportional hazards model, Nelson-Aalen estimator, log-rank test, Breslow method
+- **scirs2-signal**: Adaptive filtering — LMS, NLMS, RLS, affine projection, frequency-domain adaptive filter, Kalman-based adaptive filter
+- **scirs2-signal**: Time-frequency analysis — continuous wavelet transform (CWT), Wigner-Ville distribution, Choi-Williams distribution, synchrosqueezing
+- **scirs2-series**: State space models — Kalman filter, extended Kalman filter, unscented Kalman filter, particle filter, structural time series models
+- **scirs2-series**: Change point detection — PELT, binary segmentation, BOCPD (Bayesian online), kernel change point detection, CUSUM
+- **scirs2-special**: Hypergeometric functions — 1F1 (Kummer), 2F1 (Gauss), 0F1, pFq generalized, regularized incomplete beta/gamma
+- **scirs2-fft**: Non-uniform FFT (NUFFT) — Type 1/2/3 transforms, Kaiser-Bessel interpolation, spreading/gathering, multi-dimensional support
+- **scirs2-optimize**: Constrained optimization — augmented Lagrangian method, sequential quadratic programming (SQP), interior point method, penalty methods
+- **scirs2-ndimage**: Morphological operations — advanced structuring elements, geodesic dilation/erosion, morphological reconstruction, hit-or-miss transform
+- **scirs2-integrate**: Sparse grid quadrature — Smolyak algorithm, Clenshaw-Curtis and Gauss-Legendre nodes, adaptive sparse grids, dimension-adaptive refinement
+- **scirs2-transform**: Online/streaming transformations — incremental PCA, online StandardScaler/MinMaxScaler/RobustScaler with GK quantile sketch, streaming statistics
+- **scirs2-cluster**: Spectral biclustering — spectral co-clustering, spectral biclustering (Kluger method), bicluster quality metrics (Jaccard, relevance, recovery)
+
+#### Wave 3: Advanced Algorithmic Features (22 features across 20 crates)
+
+- **scirs2-core**: Probabilistic data structures — Bloom filter, counting Bloom filter, count-min sketch, HyperLogLog cardinality estimation
+- **scirs2-core**: Concurrent data structures — lock-free skip list, compressed trie (burst trie for string keys)
+- **scirs2-linalg**: RRQR + URV + Iterative Refinement — rank-revealing QR with column pivoting, URV decomposition, mixed-precision iterative refinement
+- **scirs2-linalg**: FEAST contour integral eigensolver — contour integration for interior eigenvalues, Zolotarev rational approximation
+- **scirs2-sparse**: Reordering algorithms — Cuthill-McKee, reverse Cuthill-McKee, approximate minimum degree (AMD), nested dissection, graph coloring
+- **scirs2-sparse**: Advanced sparse formats — Sliced ELLPACK (SELL), CSR5, compressed sparse fiber (CSF), Chebyshev polynomial preconditioner
+- **scirs2-spatial**: Spatial statistics — Moran's I, Geary's C, LISA, Getis-Ord Gi*, spatial KDE, spatial scan statistic (Kulldorff)
+- **scirs2-cluster**: Community detection — Leiden algorithm, label propagation, stochastic block model
+- **scirs2-graph**: Graph transformers — Graphormer-style positional encodings, GPS (general powerful scalable), temporal attention networks, TGN
+- **scirs2-text**: Advanced tokenizers — SentencePiece (Unigram LM), GPT-2 BPE (byte-level), batch tokenization with padding/truncation
+- **scirs2-text**: NLP evaluation metrics — BLEU (corpus/sentence), ROUGE (1/2/L), METEOR, online LDA for streaming corpora
+- **scirs2-autograd**: Sparse gradients + symbolic differentiation — sparse tensor gradient accumulation, CAS-style symbolic diff, expression simplification
+- **scirs2-interpolate**: Polyharmonic splines + subdivision surfaces — thin-plate splines, polyharmonic RBF, Loop/Catmull-Clark subdivision, Hermite-Birkhoff interpolation
+- **scirs2-vision**: Neural radiance fields + depth estimation — basic NeRF (positional encoding, volume rendering), MiDaS-style relative depth, depth completion
+- **scirs2-neural**: Flash Attention v2 + Multi-Query Attention — tiled memory-efficient attention, MQA (shared KV heads), grouped-query attention (GQA)
+- **scirs2-stats**: ADVI + SVGD variational inference — automatic differentiation VI with normalizing flows, Stein variational gradient descent
+- **scirs2-stats**: Econometrics — instrumental variables (IV/2SLS), difference-in-differences (DiD), synthetic control method
+- **scirs2-signal**: Beamforming — delay-and-sum, MVDR (Capon), MUSIC DOA estimation, ESPRIT, adaptive beamforming
+- **scirs2-series**: Multivariate GARCH — DCC-GARCH, BEKK-GARCH, HAR-RV (heterogeneous autoregressive realized volatility)
+- **scirs2-special**: Elliptic integrals + polylogarithm — Carlson symmetric forms (RF, RJ, RD, RC), Legendre elliptic integrals, Jacobi elliptic functions, polylogarithm Li_s(z), Clausen function, Debye functions
+- **scirs2-fft**: Wavelet scattering transform — scattering network (Mallat), modulus propagation, invariant/equivariant feature extraction
+- **scirs2-optimize**: Multi-objective optimization — NSGA-II (non-dominated sorting, crowding distance), MOEA/D (decomposition with Tchebycheff/weighted sum), Pareto front utilities
+
+### Changed
+- Version bump from 0.3.4 to 0.4.0
+
 ## [0.3.4] - 2026-03-18
 
 ### Changed

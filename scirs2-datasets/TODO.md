@@ -70,10 +70,10 @@
 ## v0.4.0 Roadmap
 
 ### Streaming Large-Scale Datasets
-- [ ] Async streaming iterator API for datasets that exceed available RAM
-- [ ] Chunked CSV/Parquet streaming via `scirs2-io`
-- [ ] Lazy evaluation for dataset transformations (map, filter, batch)
-- [ ] `DataLoader`-style batching API for neural network training
+- [x] Async streaming iterator API for datasets that exceed available RAM — Implemented in v0.4.0 (`streaming/iterator.rs`)
+- [x] Chunked CSV/Parquet streaming via `scirs2-io` — Implemented in v0.4.0 (`streaming/iterator.rs`)
+- [x] Lazy evaluation for dataset transformations (map, filter, batch) — Implemented in v0.4.0 (`streaming/transforms.rs`)
+- [x] `DataLoader`-style batching API for neural network training — Implemented in v0.4.0 (`streaming/dataloader.rs`)
 
 ### HuggingFace Dataset Format Compatibility
 - [ ] Read `datasets` format (Arrow-backed, parquet shards)

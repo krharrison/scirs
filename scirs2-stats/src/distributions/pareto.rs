@@ -99,8 +99,8 @@ impl<F: Float + NumCast + std::fmt::Display> Pareto<F> {
         // Adjust x by location parameter
         let x_adjusted = x - self.loc;
 
-        // For x <= scale + loc, PDF is 0
-        if x_adjusted <= self.scale {
+        // For x < scale + loc, PDF is 0
+        if x_adjusted < self.scale {
             return F::zero();
         }
 
@@ -400,9 +400,9 @@ mod tests {
         // Pareto with shape=3, scale=1, loc=0
         let pareto = Pareto::new(3.0, 1.0, 0.0).expect("Operation failed");
 
-        // PDF at x = 1 should be shape = 3.0
+        // PDF at x = 1 (boundary) should be α/scale = 3.0
         let pdf_at_one = pareto.pdf(1.0);
-        assert_eq!(pdf_at_one, 0.0); // At x=scale, PDF is 0
+        assert_relative_eq!(pdf_at_one, 3.0, epsilon = 1e-10);
 
         // PDF at x = 2 should be 3 * (1/2)^4 = 3 * 1/16 = 0.1875
         let pdf_at_two = pareto.pdf(2.0);
@@ -415,9 +415,9 @@ mod tests {
         // Custom Pareto with location
         let custom = Pareto::new(3.0, 1.0, 1.0).expect("Operation failed");
 
-        // PDF at x = 2 (with loc=1) should equal pareto.pdf(1.0)
+        // PDF at x = 2 (with loc=1) should equal pareto.pdf(1.0) = α/scale = 3.0
         let pdf_at_two_loc = custom.pdf(2.0);
-        assert_eq!(pdf_at_two_loc, 0.0);
+        assert_relative_eq!(pdf_at_two_loc, 3.0, epsilon = 1e-10);
 
         // PDF at x = 3 (with loc=1) should equal pareto.pdf(2.0)
         let pdf_at_three_loc = custom.pdf(3.0);

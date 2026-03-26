@@ -87,7 +87,11 @@ impl<F: IntegrateFloat> DistributedODESolver<F> {
             LoadBalancerConfig::default(),
         ));
 
-        let checkpoint_path = PathBuf::from("/tmp/scirs_checkpoints");
+        let checkpoint_path = {
+            let mut p = std::env::temp_dir();
+            p.push("scirs_checkpoints");
+            p
+        };
         let checkpoint_config = CheckpointConfig {
             persist_to_disk: config.checkpointing_enabled,
             interval_chunks: config.checkpoint_interval,

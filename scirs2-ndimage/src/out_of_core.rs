@@ -1003,7 +1003,7 @@ mod tests {
         let temp_path = temp_dir().join("test_checkpoint.txt");
 
         let checkpoint = Checkpoint {
-            result_path: PathBuf::from("/tmp/result.raw"),
+            result_path: std::env::temp_dir().join("result.raw"),
             stage_index: 2,
             chunks_processed: 50,
             shape: (1000, 1000),

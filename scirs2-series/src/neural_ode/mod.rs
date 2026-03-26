@@ -85,6 +85,8 @@
 //! * Hasani et al., "Closed-Form Continuous-Depth Models", NeurIPS 2022.
 //! * de Brouwer et al., "GRU-ODE-Bayes: Continuous Modeling of Sporadically-Observed Time Series", NeurIPS 2019.
 
+pub mod cnf;
+pub mod ffjord;
 pub mod latent_ode;
 pub mod liquid_snn;
 pub mod neural_cde;
@@ -96,7 +98,5 @@ pub mod ode_rnn;
 
 pub use latent_ode::{GruCell as LatentGruCell, LatentDynamics, LatentODE, LatentODEConfig};
 pub use liquid_snn::{CfCCell, LiquidSNN, LiquidSNNConfig, LtcCell, LtcState};
-pub use neural_cde::{
-    CubicHermiteSpline, LogSignatureFeatures, NeuralCDE, NeuralCDEConfig,
-};
+pub use neural_cde::{CubicHermiteSpline, LogSignatureFeatures, NeuralCDE, NeuralCDEConfig};
 pub use ode_rnn::{GruCell, GruOde, GruOdeConfig, HiddenDynamics, OdeRnn, OdeRnnConfig};

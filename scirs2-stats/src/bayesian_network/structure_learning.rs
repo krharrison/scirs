@@ -5,12 +5,9 @@
 //! - [`HillClimbing`] — score-based greedy search with tabu list
 //! - [`BIC`] — BIC score for discrete Bayesian Networks
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use super::{cpd::TabularCPD, dag::DAG};
 use crate::StatsError;
-use super::{
-    dag::DAG,
-    cpd::TabularCPD,
-};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 // ---------------------------------------------------------------------------
 // Utilities: discrete data statistics
@@ -18,7 +15,9 @@ use super::{
 
 /// Count unique values for each variable in the data.
 pub fn count_cardinalities(data: &[Vec<f64>]) -> Vec<usize> {
-    if data.is_empty() { return Vec::new(); }
+    if data.is_empty() {
+        return Vec::new();
+    }
     let n_vars = data[0].len();
     let mut cards = vec![0usize; n_vars];
     for row in data {
@@ -38,10 +37,16 @@ fn sample_corr(data: &[Vec<f64>], x: usize, y: usize) -> f64 {
     let n = data.len() as f64;
     let mean_x = data.iter().map(|r| r[x]).sum::<f64>() / n;
     let mean_y = data.iter().map(|r| r[y]).sum::<f64>() / n;
-    let cov: f64 = data.iter().map(|r| (r[x] - mean_x) * (r[y] - mean_y)).sum::<f64>() / n;
+    let cov: f64 = data
+        .iter()
+        .map(|r| (r[x] - mean_x) * (r[y] - mean_y))
+        .sum::<f64>()
+        / n;
     let var_x: f64 = data.iter().map(|r| (r[x] - mean_x).powi(2)).sum::<f64>() / n;
     let var_y: f64 = data.iter().map(|r| (r[y] - mean_y).powi(2)).sum::<f64>() / n;
-    if var_x < 1e-15 || var_y < 1e-15 { return 0.0; }
+    if var_x < 1e-15 || var_y < 1e-15 {
+        return 0.0;
+    }
     (cov / (var_x.sqrt() * var_y.sqrt())).clamp(-1.0, 1.0)
 }
 
@@ -75,7 +80,9 @@ pub fn partial_correlation(data: &[Vec<f64>], x: usize, y: usize, z: &[usize]) -
     let px = inv[idx_x][idx_x];
     let py = inv[idx_y][idx_y];
     let pxy = inv[idx_x][idx_y];
-    if px < 1e-15 || py < 1e-15 { return 0.0; }
+    if px < 1e-15 || py < 1e-15 {
+        return 0.0;
+    }
     (-pxy / (px * py).sqrt()).clamp(-1.0, 1.0)
 }
 
@@ -83,26 +90,35 @@ pub fn partial_correlation(data: &[Vec<f64>], x: usize, y: usize, z: &[usize]) -
 fn invert_matrix(mat: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
     let n = mat.len();
     let mut a: Vec<Vec<f64>> = mat.to_vec();
-    let mut inv: Vec<Vec<f64>> = (0..n).map(|i| {
-        let mut row = vec![0.0; n];
-        row[i] = 1.0;
-        row
-    }).collect();
+    let mut inv: Vec<Vec<f64>> = (0..n)
+        .map(|i| {
+            let mut row = vec![0.0; n];
+            row[i] = 1.0;
+            row
+        })
+        .collect();
     for col in 0..n {
         // Pivot
         let pivot_row = (col..n).max_by(|&i, &j| {
-            a[i][col].abs().partial_cmp(&a[j][col].abs()).unwrap_or(std::cmp::Ordering::Equal)
+            a[i][col]
+                .abs()
+                .partial_cmp(&a[j][col].abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
         })?;
         a.swap(col, pivot_row);
         inv.swap(col, pivot_row);
         let pivot = a[col][col];
-        if pivot.abs() < 1e-15 { return None; }
+        if pivot.abs() < 1e-15 {
+            return None;
+        }
         for j in 0..n {
             a[col][j] /= pivot;
             inv[col][j] /= pivot;
         }
         for row in 0..n {
-            if row == col { continue; }
+            if row == col {
+                continue;
+            }
             let factor = a[row][col];
             for j in 0..n {
                 let av = a[col][j];
@@ -139,13 +155,15 @@ fn normal_sf(x: f64) -> f64 {
 fn erfc_approx(x: f64) -> f64 {
     // Abramowitz & Stegun 7.1.26 approximation
     let t = 1.0 / (1.0 + 0.3275911 * x.abs());
-    let poly = t * (0.254829592
-        + t * (-0.284496736
-        + t * (1.421413741
-        + t * (-1.453152027
-        + t * 1.061405429))));
+    let poly = t
+        * (0.254829592
+            + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
     let result = poly * (-x * x).exp();
-    if x >= 0.0 { result } else { 2.0 - result }
+    if x >= 0.0 {
+        result
+    } else {
+        2.0 - result
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -168,14 +186,20 @@ pub struct PCAlgorithm {
 
 impl Default for PCAlgorithm {
     fn default() -> Self {
-        Self { alpha: 0.05, max_cond_set: 3 }
+        Self {
+            alpha: 0.05,
+            max_cond_set: 3,
+        }
     }
 }
 
 impl PCAlgorithm {
     /// Create a new PCAlgorithm.
     pub fn new(alpha: f64, max_cond_set: usize) -> Self {
-        Self { alpha, max_cond_set }
+        Self {
+            alpha,
+            max_cond_set,
+        }
     }
 
     /// Learn the DAG from continuous data using Fisher's z test.
@@ -185,14 +209,16 @@ impl PCAlgorithm {
         }
         let n = data[0].len();
         if n < 2 {
-            return Err(StatsError::InvalidInput("Need at least 2 variables".to_string()));
+            return Err(StatsError::InvalidInput(
+                "Need at least 2 variables".to_string(),
+            ));
         }
 
         // Phase 1: Skeleton learning
         // Start with complete undirected graph
-        let mut adj: Vec<HashSet<usize>> = (0..n).map(|i| {
-            (0..n).filter(|&j| j != i).collect()
-        }).collect();
+        let mut adj: Vec<HashSet<usize>> = (0..n)
+            .map(|i| (0..n).filter(|&j| j != i).collect())
+            .collect();
 
         // Separator sets: sep[i][j] = conditioning set that made i-j independent
         let mut sep: HashMap<(usize, usize), Vec<usize>> = HashMap::new();
@@ -206,10 +232,14 @@ impl PCAlgorithm {
                 .collect();
 
             for (x, y) in edges {
-                if !adj[x].contains(&y) { continue; }
+                if !adj[x].contains(&y) {
+                    continue;
+                }
                 // Get adjacents of x (excluding y)
                 let adj_x: Vec<usize> = adj[x].iter().copied().filter(|&v| v != y).collect();
-                if adj_x.len() < cond_size { continue; }
+                if adj_x.len() < cond_size {
+                    continue;
+                }
                 // Enumerate conditioning sets of size `cond_size` from adj_x
                 for cond_set in subsets(&adj_x, cond_size) {
                     let p = fisherz_test(data, x, y, &cond_set);
@@ -226,7 +256,9 @@ impl PCAlgorithm {
             }
 
             cond_size += 1;
-            if !removed || cond_size > self.max_cond_set { break; }
+            if !removed || cond_size > self.max_cond_set {
+                break;
+            }
         }
 
         // Phase 2: Orient v-structures
@@ -241,11 +273,11 @@ impl PCAlgorithm {
             for (i, &a) in neighbors_b.iter().enumerate() {
                 for &c in &neighbors_b[(i + 1)..] {
                     // Check if a and c are NOT adjacent
-                    if adj[a].contains(&c) { continue; }
+                    if adj[a].contains(&c) {
+                        continue;
+                    }
                     // Check if b is NOT in sep[a][c]
-                    let is_collider = sep.get(&(a, c))
-                        .map(|s| !s.contains(&b))
-                        .unwrap_or(true);
+                    let is_collider = sep.get(&(a, c)).map(|s| !s.contains(&b)).unwrap_or(true);
                     if is_collider {
                         // Orient a→b←c
                         oriented.insert((a, b));
@@ -267,8 +299,12 @@ impl PCAlgorithm {
         // Heuristic: orient consistently (avoid new v-structures, avoid cycles)
         for x in 0..n {
             for y in adj[x].iter().copied().collect::<Vec<_>>() {
-                if y <= x { continue; }
-                if oriented.contains(&(x, y)) || oriented.contains(&(y, x)) { continue; }
+                if y <= x {
+                    continue;
+                }
+                if oriented.contains(&(x, y)) || oriented.contains(&(y, x)) {
+                    continue;
+                }
                 // Neither direction is oriented; try both
                 if dag.add_edge(x, y).is_ok() {
                     // success
@@ -311,7 +347,10 @@ pub struct HillClimbing {
 
 impl Default for HillClimbing {
     fn default() -> Self {
-        Self { max_iter: 100, tabu_length: 10 }
+        Self {
+            max_iter: 100,
+            tabu_length: 10,
+        }
     }
 }
 
@@ -326,22 +365,22 @@ pub enum Operator {
 impl HillClimbing {
     /// Create a new HillClimbing learner.
     pub fn new(max_iter: usize, tabu_length: usize) -> Self {
-        Self { max_iter, tabu_length }
+        Self {
+            max_iter,
+            tabu_length,
+        }
     }
 
     /// Learn the DAG structure from discrete data.
-    pub fn fit(
-        &self,
-        data: &[Vec<f64>],
-        cards: &[usize],
-    ) -> Result<DAG, StatsError> {
+    pub fn fit(&self, data: &[Vec<f64>], cards: &[usize]) -> Result<DAG, StatsError> {
         if data.is_empty() {
             return Err(StatsError::InvalidInput("Empty data".to_string()));
         }
         let n = data[0].len();
         if cards.len() != n {
             return Err(StatsError::InvalidInput(format!(
-                "cards length {} != n_vars {n}", cards.len()
+                "cards length {} != n_vars {n}",
+                cards.len()
             )));
         }
 
@@ -356,11 +395,17 @@ impl HillClimbing {
             // Enumerate all operators
             let ops = self.enumerate_operators(&dag, n);
             for op in ops {
-                if tabu.contains(&op) { continue; }
+                if tabu.contains(&op) {
+                    continue;
+                }
                 let new_dag = self.apply_op(&dag, &op);
-                if new_dag.is_none() { continue; }
+                if new_dag.is_none() {
+                    continue;
+                }
                 let new_dag = new_dag.expect("apply_op returned Some after is_none() check");
-                if !new_dag.is_dag() { continue; }
+                if !new_dag.is_dag() {
+                    continue;
+                }
                 let new_score = BIC::score(data, &new_dag, cards);
                 let delta = new_score - current_score;
                 if delta > best_delta {
@@ -370,7 +415,9 @@ impl HillClimbing {
             }
 
             if let Some(op) = best_op {
-                let new_dag = self.apply_op(&dag, &op).expect("apply_op with best_op guaranteed to succeed since it passed earlier checks");
+                let new_dag = self.apply_op(&dag, &op).expect(
+                    "apply_op with best_op guaranteed to succeed since it passed earlier checks",
+                );
                 current_score += best_delta;
                 dag = new_dag;
                 tabu.push_back(op);
@@ -389,7 +436,9 @@ impl HillClimbing {
         let mut ops = Vec::new();
         for i in 0..n {
             for j in 0..n {
-                if i == j { continue; }
+                if i == j {
+                    continue;
+                }
                 if dag.has_edge(i, j) {
                     ops.push(Operator::RemoveEdge(i, j));
                     // Reverse: i→j becomes j→i
@@ -434,7 +483,9 @@ impl BIC {
     /// Compute the BIC score of a DAG given data and cardinalities.
     pub fn score(data: &[Vec<f64>], dag: &DAG, cards: &[usize]) -> f64 {
         let n_samples = data.len() as f64;
-        if n_samples < 1.0 { return f64::NEG_INFINITY; }
+        if n_samples < 1.0 {
+            return f64::NEG_INFINITY;
+        }
         let n = dag.n_nodes;
         let mut bic = 0.0f64;
         for node in 0..n {
@@ -479,7 +530,9 @@ impl BIC {
         let mut ll = 0.0f64;
         for pa in 0..n_parent_configs {
             let pa_count = pa_counts[pa] as f64;
-            if pa_count < 1.0 { continue; }
+            if pa_count < 1.0 {
+                continue;
+            }
             for val in 0..card_node {
                 let c = counts[pa][val] as f64;
                 if c > 0.0 {
@@ -514,7 +567,11 @@ impl BIC {
         let card_node = cards[node];
         let parent_indices = parents.to_vec();
         let parent_cards: Vec<usize> = parents.iter().map(|&p| cards[p]).collect();
-        let n_rows: usize = if parent_cards.is_empty() { 1 } else { parent_cards.iter().product() };
+        let n_rows: usize = if parent_cards.is_empty() {
+            1
+        } else {
+            parent_cards.iter().product()
+        };
 
         let mut counts = vec![vec![0u64; card_node]; n_rows];
 
@@ -540,10 +597,16 @@ impl BIC {
 
         // Normalize (with Laplace smoothing to avoid zeros)
         let alpha = 1.0f64; // pseudocount
-        let table: Vec<Vec<f64>> = counts.iter().map(|row_counts| {
-            let total = row_counts.iter().sum::<u64>() as f64 + alpha * card_node as f64;
-            row_counts.iter().map(|&c| (c as f64 + alpha) / total).collect()
-        }).collect();
+        let table: Vec<Vec<f64>> = counts
+            .iter()
+            .map(|row_counts| {
+                let total = row_counts.iter().sum::<u64>() as f64 + alpha * card_node as f64;
+                row_counts
+                    .iter()
+                    .map(|&c| (c as f64 + alpha) / total)
+                    .collect()
+            })
+            .collect();
 
         TabularCPD::new(node, card_node, parent_indices, parent_cards, table)
     }
@@ -554,8 +617,12 @@ impl BIC {
 // ---------------------------------------------------------------------------
 
 fn subsets<T: Copy>(items: &[T], k: usize) -> Vec<Vec<T>> {
-    if k == 0 { return vec![Vec::new()]; }
-    if k > items.len() { return Vec::new(); }
+    if k == 0 {
+        return vec![Vec::new()];
+    }
+    if k > items.len() {
+        return Vec::new();
+    }
     let mut result = Vec::new();
     for i in 0..=(items.len() - k) {
         for mut rest in subsets(&items[i + 1..], k - 1) {
@@ -579,9 +646,13 @@ mod tests {
         let mut data = Vec::with_capacity(n);
         let mut lcg: u64 = 54321;
         let mut normal = || -> f64 {
-            lcg = lcg.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            lcg = lcg
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             let u = (lcg >> 12) as f64 / (1u64 << 52) as f64;
-            lcg = lcg.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            lcg = lcg
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             let v = ((lcg >> 12) as f64 / (1u64 << 52) as f64).max(1e-15);
             (-2.0 * v.ln()).sqrt() * (2.0 * std::f64::consts::PI * u).cos()
         };
@@ -599,15 +670,25 @@ mod tests {
         let mut data = Vec::with_capacity(n);
         let mut lcg: u64 = 99887;
         let mut uniform = || -> f64 {
-            lcg = lcg.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            lcg = lcg
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             (lcg >> 11) as f64 / (1u64 << 53) as f64
         };
         for _ in 0..n {
             let x0 = if uniform() < 0.5 { 0.0 } else { 1.0 };
             let x1 = if x0 == 0.0 {
-                if uniform() < 0.8 { 0.0 } else { 1.0 }
+                if uniform() < 0.8 {
+                    0.0
+                } else {
+                    1.0
+                }
             } else {
-                if uniform() < 0.2 { 0.0 } else { 1.0 }
+                if uniform() < 0.2 {
+                    0.0
+                } else {
+                    1.0
+                }
             };
             data.push(vec![x0, x1]);
         }
@@ -617,7 +698,10 @@ mod tests {
     #[test]
     fn test_pc_algorithm_chain() {
         let data = continuous_chain_data(200);
-        let pc = PCAlgorithm { alpha: 0.05, max_cond_set: 2 };
+        let pc = PCAlgorithm {
+            alpha: 0.05,
+            max_cond_set: 2,
+        };
         let dag = pc.fit(&data).unwrap();
         assert_eq!(dag.n_nodes, 3);
         // At minimum some edges should be learned
@@ -630,7 +714,10 @@ mod tests {
         let pc = PCAlgorithm::default();
         // X0 ⊥ X2 | X1 in a chain
         let indep = pc.conditional_independence_test(&data, 0, 2, &[1]);
-        assert!(indep, "X0 and X2 should be conditionally independent given X1");
+        assert!(
+            indep,
+            "X0 and X2 should be conditionally independent given X1"
+        );
         // X0 is NOT independent of X1 marginally
         let dep = pc.conditional_independence_test(&data, 0, 1, &[]);
         assert!(!dep, "X0 and X1 should be dependent marginally");
@@ -650,13 +737,15 @@ mod tests {
         let data = discrete_data(100);
         let cards = count_cardinalities(&data);
         let mut dag_empty = DAG::new(2);
-        let mut dag_edge  = DAG::new(2);
+        let mut dag_edge = DAG::new(2);
         dag_edge.add_edge(0, 1).unwrap();
         let score_empty = BIC::score(&data, &dag_empty, &cards);
-        let score_edge  = BIC::score(&data, &dag_edge,  &cards);
+        let score_edge = BIC::score(&data, &dag_edge, &cards);
         // BIC with edge should be higher for correlated data
-        assert!(score_edge > score_empty || score_edge.is_finite(),
-            "BIC edge={score_edge}, BIC empty={score_empty}");
+        assert!(
+            score_edge > score_empty || score_edge.is_finite(),
+            "BIC edge={score_edge}, BIC empty={score_empty}"
+        );
         let _ = dag_empty.n_nodes; // suppress unused warning
     }
 

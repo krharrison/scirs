@@ -1,0 +1,261 @@
+name: Benchmarks
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    # Nightly benchmarks at 02:00 UTC — performance regression detection
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  bench:
+    name: Criterion benchmarks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and build artefacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-bench-ubuntu"
+
+      # -----------------------------------------------------------------------
+      # scirs2-linalg
+      # -----------------------------------------------------------------------
+      # --sample-size 10 provides a meaningful regression signal while keeping
+      # CI wall time under a few minutes per bench suite.
+      - name: Run matmul benchmarks (scirs2-linalg)
+        run: |
+          cargo bench \
+            -p scirs2-linalg \
+            --bench matmul_bench \
+            -- --sample-size 10
+
+      - name: Run decomposition benchmarks (scirs2-linalg)
+        run: |
+          cargo bench \
+            -p scirs2-linalg \
+            --bench decomp_bench \
+            -- --sample-size 10
+
+      - name: Run numerical accuracy benchmarks (scirs2-linalg)
+        run: |
+          cargo bench \
+            -p scirs2-linalg \
+            --bench numerical_accuracy_bench \
+            -- --sample-size 10
+        # Accuracy checks panic on regression — treat as hard failure
+        continue-on-error: false
+
+      # -----------------------------------------------------------------------
+      # scirs2-fft
+      # -----------------------------------------------------------------------
+      - name: Run FFT benchmarks (scirs2-fft)
+        run: |
+          cargo bench \
+            -p scirs2-fft \
+            --bench fft_bench \
+            -- --sample-size 10
+
+      - name: Run FFT accuracy benchmarks (scirs2-fft)
+        run: |
+          cargo bench \
+            -p scirs2-fft \
+            --bench accuracy_bench \
+            -- --sample-size 10
+        continue-on-error: false
+
+      # -----------------------------------------------------------------------
+      # scirs2-stats — distribution PDF / CDF / PPF regression bench
+      # -----------------------------------------------------------------------
+      - name: Run distributions_bench (scirs2-stats)
+        run: |
+          cargo bench \
+            -p scirs2-stats \
+            --bench distributions_bench \
+            -- --sample-size 10
+
+      - name: Run statistical accuracy benchmarks (scirs2-stats)
+        run: |
+          cargo bench \
+            -p scirs2-stats \
+            --bench accuracy_bench \
+            -- --sample-size 10
+        continue-on-error: false
+
+      # -----------------------------------------------------------------------
+      # scirs2-signal — FIR / IIR / STFT filter bench
+      # -----------------------------------------------------------------------
+      - name: Run filters_bench (scirs2-signal)
+        run: |
+          cargo bench \
+            -p scirs2-signal \
+            --bench filters_bench \
+            -- --sample-size 10
+
+      # -----------------------------------------------------------------------
+      # scirs2-special — gamma / Bessel / Legendre / elliptic bench
+      # -----------------------------------------------------------------------
+      - name: Run special_bench (scirs2-special)
+        run: |
+          cargo bench \
+            -p scirs2-special \
+            --bench special_bench \
+            -- --sample-size 10
+
+      # -----------------------------------------------------------------------
+      # scirs2-optimize — solver bench (informational; continue on error)
+      # -----------------------------------------------------------------------
+      - name: Run optimize benchmarks (scirs2-optimize)
+        run: |
+          cargo bench \
+            -p scirs2-optimize \
+            --bench scipy_comparison_bench \
+            -- --sample-size 10
+        continue-on-error: true
+
+      # -----------------------------------------------------------------------
+      # scirs2-sparse — sparse matrix bench (informational; continue on error)
+      # -----------------------------------------------------------------------
+      - name: Run sparse benchmarks (scirs2-sparse)
+        run: |
+          cargo bench \
+            -p scirs2-sparse \
+            --bench sparse_benchmarks \
+            -- --sample-size 10
+        continue-on-error: true
+
+      # -----------------------------------------------------------------------
+      # Regression detection via bench-regression.sh script
+      # -----------------------------------------------------------------------
+      - name: Run benchmark regression check
+        run: |
+          chmod +x ./scripts/bench-regression.sh
+          BENCH_CRATES="scirs2-linalg scirs2-fft scirs2-stats scirs2-signal scirs2-special" \
+          CARGO_BENCH_ARGS="-- --sample-size 10" \
+            ./scripts/bench-regression.sh || true
+
+      # -----------------------------------------------------------------------
+      # Bencher.dev — upload Criterion results for historical tracking
+      # Requires BENCHER_API_TOKEN repository secret to be configured.
+      # If the secret is absent (forks, unsigned PRs) the step is skipped.
+      # -----------------------------------------------------------------------
+      - name: Upload linalg benchmarks to Bencher.dev
+        uses: bencherdev/bencher@main
+        if: env.BENCHER_API_TOKEN != ''
+        continue-on-error: true
+        with:
+          project: scirs2
+          token: ${{ secrets.BENCHER_API_TOKEN }}
+          branch: ${{ github.head_ref || github.ref_name }}
+          testbed: ubuntu-latest
+          adapter: rust_criterion
+          err: true
+          file: target/criterion/matmul
+        env:
+          BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
+
+      - name: Upload linalg accuracy benchmarks to Bencher.dev
+        uses: bencherdev/bencher@main
+        if: env.BENCHER_API_TOKEN != ''
+        continue-on-error: true
+        with:
+          project: scirs2
+          token: ${{ secrets.BENCHER_API_TOKEN }}
+          branch: ${{ github.head_ref || github.ref_name }}
+          testbed: ubuntu-latest
+          adapter: rust_criterion
+          err: true
+          file: target/criterion/accuracy
+        env:
+          BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
+
+      - name: Upload FFT benchmarks to Bencher.dev
+        uses: bencherdev/bencher@main
+        if: env.BENCHER_API_TOKEN != ''
+        continue-on-error: true
+        with:
+          project: scirs2
+          token: ${{ secrets.BENCHER_API_TOKEN }}
+          branch: ${{ github.head_ref || github.ref_name }}
+          testbed: ubuntu-latest
+          adapter: rust_criterion
+          err: true
+          file: target/criterion/fft
+        env:
+          BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
+
+      - name: Upload stats benchmarks to Bencher.dev
+        uses: bencherdev/bencher@main
+        if: env.BENCHER_API_TOKEN != ''
+        continue-on-error: true
+        with:
+          project: scirs2
+          token: ${{ secrets.BENCHER_API_TOKEN }}
+          branch: ${{ github.head_ref || github.ref_name }}
+          testbed: ubuntu-latest
+          adapter: rust_criterion
+          err: true
+          file: target/criterion/normal
+        env:
+          BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
+
+      # -----------------------------------------------------------------------
+      # Artifact uploads
+      # -----------------------------------------------------------------------
+      - name: Upload criterion results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: criterion-results-${{ github.run_id }}
+          path: target/criterion/
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Upload baselines
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-baselines-${{ github.run_id }}
+          path: baselines/
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## SciRS2 Benchmark Run" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Commit:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Trigger:** ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Crates benchmarked" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Crate | Bench suite | Type |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------------|------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| scirs2-linalg | matmul_bench, decomp_bench | Performance |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| scirs2-linalg | numerical_accuracy_bench | Accuracy vs NumPy/LAPACK |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| scirs2-fft | fft_bench | Performance |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| scirs2-fft | accuracy_bench | Accuracy vs analytic |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| scirs2-stats | distributions_bench | Performance |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| scirs2-stats | accuracy_bench | Accuracy vs SciPy |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| scirs2-signal | filters_bench | Performance |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| scirs2-special | special_bench | Performance |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| scirs2-optimize | scipy_comparison_bench | Performance (informational) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| scirs2-sparse | sparse_benchmarks | Performance (informational) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Criterion HTML reports are in the **criterion-results** artifact (90-day retention)." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Accuracy benchmarks** panic on numerical regression — any failure indicates an algorithm accuracy change." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "See \`baselines/accuracy_reference.json\` for the embedded reference values." >> "$GITHUB_STEP_SUMMARY"

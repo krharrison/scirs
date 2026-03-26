@@ -112,9 +112,9 @@
 - Federated clustering across nodes
 - Hierarchical clustering for partitioned datasets
 
-### Graph-Based Clustering Improvements
-- Community detection: Louvain, Leiden, label propagation (via scirs2-graph)
-- Stochastic block model fitting
+### Graph-Based Clustering Improvements — Partially implemented in v0.4.0
+- [x] Community detection: Louvain, Leiden, label propagation (via scirs2-graph) — Leiden and label propagation implemented in v0.4.0
+- [x] Stochastic block model fitting — Implemented in v0.4.0
 - Overlapping community detection
 
 ### Online Learning Enhancements

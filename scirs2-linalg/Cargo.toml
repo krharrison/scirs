@@ -44,6 +44,7 @@ required-features = ["simd"]
 [dev-dependencies]
 approx = { workspace = true }
 criterion = { workspace = true }
+proptest = { workspace = true }
 scirs2-sparse = { path = "../scirs2-sparse", default-features = false }
 
 [features]

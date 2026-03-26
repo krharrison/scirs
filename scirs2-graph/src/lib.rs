@@ -30,7 +30,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-graph = "0.1.5"
+//! scirs2-graph = "0.4.0"
 //! ```
 //!
 //! ```rust,no_run
@@ -43,7 +43,7 @@
 //! g.add_edge(0, 1, 1.0);
 //! ```
 //!
-//! ## 🔒 Version: 0.1.5 (January 15, 2026)
+//! ## 🔒 Version: 0.4.0
 //!
 //! ## API Stability and Versioning
 //!
@@ -59,7 +59,7 @@
 //! - **MINOR** (1.0.x → 1.1.x): New features, deprecations only (no breaks to stable APIs)
 //! - **PATCH** (1.0.0 → 1.0.1): Bug fixes only, no API changes
 //!
-//! ### Stable Core APIs (v0.1.5+)
+//! ### Stable Core APIs (v0.4.0+)
 //! - Graph data structures (`Graph`, `DiGraph`, `MultiGraph`)
 //! - Basic algorithms (traversal, shortest paths, connectivity)
 //! - Graph generators and I/O operations
@@ -91,6 +91,26 @@ pub mod temporal;
 pub mod temporal_graph;
 pub mod temporal_interval;
 pub mod weighted;
+
+// Graph alignment (IsoRank)
+pub mod alignment;
+// Graph condensation (coreset, distillation, evaluation)
+pub mod condensation;
+// Distributed graph algorithms
+pub mod distributed;
+// GPU-accelerated graph operations
+pub mod gpu;
+// Graph transformers (GraphGPS, Graphormer)
+pub mod graph_transformer;
+// Graph partitioning (METIS, FENNEL)
+pub mod partitioning;
+// Signed and directed graph embeddings
+pub mod signed_directed;
+// Self-supervised learning on graphs
+pub mod ssl;
+
+// Graph Neural Network layers and transformers
+pub mod gnn;
 
 // SIMD-accelerated graph operations
 #[cfg(feature = "simd")]

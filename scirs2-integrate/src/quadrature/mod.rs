@@ -8,8 +8,11 @@
 //! - `cubature`: Monte Carlo, Quasi-Monte Carlo (Sobol), product Gauss-Legendre,
 //!               Genz-Malik adaptive rule, and 1D Romberg integration.
 
+pub mod contour_cc;
 pub mod cubature;
+pub mod filon_clenshaw;
 pub mod gaussian;
+pub mod smolyak;
 
 pub use cubature::{genz_malik, monte_carlo, product_gauss, quasi_monte_carlo, romberg};
 pub use gaussian::{

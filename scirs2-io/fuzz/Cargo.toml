@@ -1,0 +1,49 @@
+[package]
+name = "scirs2-io-fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+scirs2-io = { path = ".." }
+serde_json = "1"
+tempfile = "3"
+
+# Prevent this from interfering with select list of doc tests
+[[bin]]
+name = "fuzz_csv"
+path = "fuzz_targets/fuzz_csv.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_json"
+path = "fuzz_targets/fuzz_json.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_zarr"
+path = "fuzz_targets/fuzz_zarr.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_arff"
+path = "fuzz_targets/fuzz_arff.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_matrix_market"
+path = "fuzz_targets/fuzz_matrix_market.rs"
+test = false
+doc = false
+
+# Fuzz crate is intentionally outside the workspace so that
+# `cargo fuzz` can build it with the fuzzer-specific settings.
+[workspace]

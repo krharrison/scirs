@@ -30,7 +30,11 @@
 //! ```
 
 pub mod aggregators;
+pub mod bloom_index;
+pub mod count_min;
+pub mod hyperloglog;
 pub mod joins;
+pub mod tdigest;
 pub mod watermarks;
 pub mod windows;
 

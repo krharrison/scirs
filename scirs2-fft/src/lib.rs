@@ -41,7 +41,7 @@
 //! Add to your `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! scirs2-fft = "0.1.5"
+//! scirs2-fft = "0.4.0"
 //! ```
 //!
 //!
@@ -511,6 +511,61 @@ pub use hilbert_enhanced::{
 pub mod padding;
 pub use padding::{
     auto_pad_1d, auto_pad_complex, auto_pad_nd, remove_padding_1d, AutoPadConfig, PaddingMode,
+};
+
+// Bluestein's algorithm (chirp-z approach for arbitrary-length FFT)
+pub mod bluestein;
+
+// Butterfly operations (radix-2, radix-4, radix-8, split-radix)
+pub mod butterfly;
+pub use butterfly::{
+    butterfly2, butterfly4, butterfly8, direct_dft, direct_idft, generate_inverse_twiddle_table,
+    generate_twiddle_table, split_radix_butterfly,
+};
+
+// Cache-oblivious FFT (Frigo-Johnson four-step algorithm)
+pub mod cache_oblivious;
+pub use cache_oblivious::{
+    cache_oblivious_fft, cache_oblivious_fft_with_config, cache_oblivious_ifft,
+    cache_oblivious_ifft_with_config, CacheObliviousConfig,
+};
+
+// FFT plan creation, execution, and serialization (algorithm-agnostic)
+pub mod fft_plan;
+pub use fft_plan::{
+    create_plan, deserialize_plan, execute_plan, serialize_plan, FftAlgorithm as PlanAlgorithm,
+    FftPlan as SerializableFftPlan, FftPlanConfig as SerializablePlanConfig, PlanNode,
+};
+
+// Adaptive sparse FFT
+pub mod adaptive_sparse_fft;
+// Ambiguity function
+pub mod ambiguity;
+// Compressed sensing FFT
+pub mod compressed_sensing;
+// Cyclostationary analysis
+pub mod cyclostationary;
+// Fractional Fourier Transform
+pub mod fractional;
+// GPU FFT stub
+pub mod gpu_fft;
+// N-dimensional FFT
+pub mod ndim_fft;
+// Quantum FFT (QFT, QPE)
+pub mod quantum;
+// Ramanujan FFT
+pub mod ramanujan;
+// Shor's algorithm
+pub mod shor;
+// Wigner-Ville distribution
+pub mod wigner_ville;
+
+// Wavelet Scattering Transform (Mallat 2012)
+pub mod scattering;
+pub use scattering::{
+    FeatureNormalization, FilterBank, FilterBankConfig, JointScatteringFeatures, MorletWavelet,
+    ScatteringCoefficients, ScatteringConfig, ScatteringFeatureExtractor, ScatteringFeatures,
+    ScatteringOrder, ScatteringResult, ScatteringTransform, TimeFrequencyMode,
 };
 
 /// Performs a Short-Time Fourier Transform (STFT).

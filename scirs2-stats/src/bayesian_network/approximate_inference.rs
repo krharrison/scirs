@@ -5,14 +5,10 @@
 //! - [`LikelihoodWeighting`] — importance sampling
 //! - [`MeanFieldVI`] — mean-field variational inference
 
+use super::{cpd::CPD, dag::DAG, exact_inference::BayesianNetwork};
+use crate::StatsError;
 use std::collections::HashMap;
 use std::sync::Arc;
-use crate::StatsError;
-use super::{
-    dag::DAG,
-    cpd::CPD,
-    exact_inference::BayesianNetwork,
-};
 
 // ---------------------------------------------------------------------------
 // Simple pseudo-random generator (no rand dep — uses LCG)
@@ -43,7 +39,8 @@ impl LcgRng {
 
 impl Rng for LcgRng {
     fn next_f64(&mut self) -> f64 {
-        self.state = self.state
+        self.state = self
+            .state
             .wrapping_mul(6_364_136_223_846_793_005)
             .wrapping_add(1_442_695_040_888_963_407);
         // Take the top 53 bits for a uniform double
@@ -87,7 +84,11 @@ pub struct GibbsSampler {
 impl GibbsSampler {
     /// Create a new GibbsSampler.
     pub fn new(bn: Arc<BayesianNetwork>, n_samples: usize, burn_in: usize) -> Self {
-        Self { bn, n_samples, burn_in }
+        Self {
+            bn,
+            n_samples,
+            burn_in,
+        }
     }
 
     /// Run the Gibbs sampler and return collected samples.
@@ -100,22 +101,26 @@ impl GibbsSampler {
     ) -> Result<Vec<Vec<usize>>, StatsError> {
         let n = self.bn.dag.n_nodes;
         // Free variables (non-evidence)
-        let free_vars: Vec<usize> = (0..n)
-            .filter(|v| !evidence.contains_key(v))
-            .collect();
+        let free_vars: Vec<usize> = (0..n).filter(|v| !evidence.contains_key(v)).collect();
         if free_vars.is_empty() {
             return Ok(Vec::new());
         }
 
         // Initialize state: evidence vars fixed, others randomly
-        let mut state: Vec<usize> = (0..n).map(|v| {
-            if let Some(&val) = evidence.get(&v) {
-                val
-            } else {
-                let card = self.bn.cpds[v].cardinality();
-                if card == 0 { 0 } else { rng.next_usize(card) }
-            }
-        }).collect();
+        let mut state: Vec<usize> = (0..n)
+            .map(|v| {
+                if let Some(&val) = evidence.get(&v) {
+                    val
+                } else {
+                    let card = self.bn.cpds[v].cardinality();
+                    if card == 0 {
+                        0
+                    } else {
+                        rng.next_usize(card)
+                    }
+                }
+            })
+            .collect();
 
         let total = self.burn_in + self.n_samples;
         let mut samples = Vec::with_capacity(self.n_samples);
@@ -164,11 +169,7 @@ impl GibbsSampler {
     }
 
     /// Compute P(X_v = val | state[v] for all v != v_idx) using Markov blanket.
-    fn compute_conditional(
-        &self,
-        v: usize,
-        state: &[usize],
-    ) -> Result<Vec<f64>, StatsError> {
+    fn compute_conditional(&self, v: usize, state: &[usize]) -> Result<Vec<f64>, StatsError> {
         let card = self.bn.cpds[v].cardinality();
         if card == 0 {
             return Err(StatsError::InvalidInput(format!(
@@ -182,15 +183,22 @@ impl GibbsSampler {
             // P(X_v = val | pa(X_v))
             let pa: Vec<usize> = dag.parents[v].iter().map(|&p| state[p]).collect();
             let p = self.bn.cpds[v].prob(val, &pa);
-            if p <= 0.0 { probs[val] = 0.0; continue; }
+            if p <= 0.0 {
+                probs[val] = 0.0;
+                continue;
+            }
             log_prob += p.ln();
             // P(X_ch = state[ch] | pa(X_ch)) for each child ch
             for &ch in &dag.children[v] {
-                let ch_pa: Vec<usize> = dag.parents[ch].iter().map(|&p| {
-                    if p == v { val } else { state[p] }
-                }).collect();
+                let ch_pa: Vec<usize> = dag.parents[ch]
+                    .iter()
+                    .map(|&p| if p == v { val } else { state[p] })
+                    .collect();
                 let p_ch = self.bn.cpds[ch].prob(state[ch], &ch_pa);
-                if p_ch <= 0.0 { log_prob = f64::NEG_INFINITY; break; }
+                if p_ch <= 0.0 {
+                    log_prob = f64::NEG_INFINITY;
+                    break;
+                }
                 log_prob += p_ch.ln();
             }
             probs[val] = log_prob.exp();
@@ -304,7 +312,10 @@ pub struct MeanFieldVI {
 
 impl Default for MeanFieldVI {
     fn default() -> Self {
-        Self { max_iter: 100, tol: 1e-6 }
+        Self {
+            max_iter: 100,
+            tol: 1e-6,
+        }
     }
 }
 
@@ -326,19 +337,21 @@ impl MeanFieldVI {
         let n = bn.dag.n_nodes;
 
         // Initialize q_i uniformly (or as point mass for evidence nodes)
-        let mut q: Vec<Vec<f64>> = (0..n).map(|i| {
-            let card = bn.cpds[i].cardinality();
-            if card == 0 {
-                return vec![1.0];
-            }
-            if let Some(&val) = evidence.get(&i) {
-                let mut v = vec![0.0; card];
-                v[val] = 1.0;
-                v
-            } else {
-                vec![1.0 / card as f64; card]
-            }
-        }).collect();
+        let mut q: Vec<Vec<f64>> = (0..n)
+            .map(|i| {
+                let card = bn.cpds[i].cardinality();
+                if card == 0 {
+                    return vec![1.0];
+                }
+                if let Some(&val) = evidence.get(&i) {
+                    let mut v = vec![0.0; card];
+                    v[val] = 1.0;
+                    v
+                } else {
+                    vec![1.0 / card as f64; card]
+                }
+            })
+            .collect();
 
         let topo = bn.dag.topological_sort();
 
@@ -375,10 +388,10 @@ impl MeanFieldVI {
             }
 
             // Check convergence (max absolute change in q)
-            let max_change = q.iter().zip(&old_q)
-                .flat_map(|(qi, qi_old)| {
-                    qi.iter().zip(qi_old).map(|(&a, &b)| (a - b).abs())
-                })
+            let max_change = q
+                .iter()
+                .zip(&old_q)
+                .flat_map(|(qi, qi_old)| qi.iter().zip(qi_old).map(|(&a, &b)| (a - b).abs()))
                 .fold(0.0f64, f64::max);
             if max_change < self.tol {
                 break;
@@ -407,7 +420,9 @@ impl MeanFieldVI {
         let mut expected = 0.0f64;
         for config_idx in 0..n_configs {
             let pa_vals = decode_config(config_idx, &parent_cards);
-            let weight: f64 = parents.iter().zip(&pa_vals)
+            let weight: f64 = parents
+                .iter()
+                .zip(&pa_vals)
                 .map(|(&p, &pv)| q[p][pv])
                 .product();
             let p = cpd.prob(val, &pa_vals);
@@ -429,30 +444,39 @@ impl MeanFieldVI {
     ) -> f64 {
         let cpd = &bn.cpds[child];
         let ch_card = cpd.cardinality();
-        if ch_card == 0 { return 0.0; }
+        if ch_card == 0 {
+            return 0.0;
+        }
         let parents = &bn.dag.children[node]; // This is wrong — we want child's parents
         let ch_parents = &bn.dag.parents[child];
         // Other parents of child (excluding `node`)
-        let other_parents: Vec<usize> = ch_parents.iter()
-            .copied()
-            .filter(|&p| p != node)
-            .collect();
+        let other_parents: Vec<usize> = ch_parents.iter().copied().filter(|&p| p != node).collect();
         let other_cards: Vec<usize> = other_parents.iter().map(|&p| q[p].len()).collect();
-        let n_configs: usize = if other_cards.is_empty() { 1 } else { other_cards.iter().product() };
+        let n_configs: usize = if other_cards.is_empty() {
+            1
+        } else {
+            other_cards.iter().product()
+        };
         let mut expected = 0.0f64;
         for config_idx in 0..n_configs {
             let other_vals = decode_config(config_idx, &other_cards);
-            let weight: f64 = other_parents.iter().zip(&other_vals)
+            let weight: f64 = other_parents
+                .iter()
+                .zip(&other_vals)
                 .map(|(&p, &pv)| q[p][pv])
                 .product::<f64>();
             // Build full parent assignment for child
-            let pa_vals: Vec<usize> = ch_parents.iter().map(|&p| {
-                if p == node { node_val }
-                else {
-                    let pos = other_parents.iter().position(|&op| op == p).unwrap_or(0);
-                    other_vals[pos]
-                }
-            }).collect();
+            let pa_vals: Vec<usize> = ch_parents
+                .iter()
+                .map(|&p| {
+                    if p == node {
+                        node_val
+                    } else {
+                        let pos = other_parents.iter().position(|&op| op == p).unwrap_or(0);
+                        other_vals[pos]
+                    }
+                })
+                .collect();
             // Sum over child values (marginalize)
             let mut child_expected = 0.0f64;
             for ch_val in 0..ch_card {
@@ -501,14 +525,21 @@ mod tests {
         dag.add_edge(0, 2).unwrap();
         dag.add_edge(1, 2).unwrap();
         let cpd_rain = TabularCPD::new(0, 2, vec![], vec![], vec![vec![0.8, 0.2]]).unwrap();
-        let cpd_spr  = TabularCPD::new(1, 2, vec![], vec![], vec![vec![0.5, 0.5]]).unwrap();
-        let cpd_wg   = TabularCPD::new(2, 2, vec![0, 1], vec![2, 2], vec![
-            vec![0.99, 0.01], vec![0.01, 0.99],
-            vec![0.01, 0.99], vec![0.01, 0.99],
-        ]).unwrap();
-        let cpds: Vec<Box<dyn CPD>> = vec![
-            Box::new(cpd_rain), Box::new(cpd_spr), Box::new(cpd_wg),
-        ];
+        let cpd_spr = TabularCPD::new(1, 2, vec![], vec![], vec![vec![0.5, 0.5]]).unwrap();
+        let cpd_wg = TabularCPD::new(
+            2,
+            2,
+            vec![0, 1],
+            vec![2, 2],
+            vec![
+                vec![0.99, 0.01],
+                vec![0.01, 0.99],
+                vec![0.01, 0.99],
+                vec![0.01, 0.99],
+            ],
+        )
+        .unwrap();
+        let cpds: Vec<Box<dyn CPD>> = vec![Box::new(cpd_rain), Box::new(cpd_spr), Box::new(cpd_wg)];
         Arc::new(BayesianNetwork::new(dag, cpds).unwrap())
     }
 
@@ -519,7 +550,11 @@ mod tests {
         let mut rng = LcgRng::new(42);
         let probs = sampler.query(0, &HashMap::new(), &mut rng).unwrap();
         // P(Rain=0) ≈ 0.8 with tolerance
-        assert!((probs[0] - 0.8).abs() < 0.05, "P(Rain=0) ≈ 0.8, got {}", probs[0]);
+        assert!(
+            (probs[0] - 0.8).abs() < 0.05,
+            "P(Rain=0) ≈ 0.8, got {}",
+            probs[0]
+        );
     }
 
     #[test]
@@ -528,7 +563,11 @@ mod tests {
         let lw = LikelihoodWeighting::new(5000);
         let mut rng = LcgRng::new(42);
         let probs = lw.query(&bn, 0, &HashMap::new(), &mut rng).unwrap();
-        assert!((probs[0] - 0.8).abs() < 0.05, "P(Rain=0) ≈ 0.8, got {}", probs[0]);
+        assert!(
+            (probs[0] - 0.8).abs() < 0.05,
+            "P(Rain=0) ≈ 0.8, got {}",
+            probs[0]
+        );
     }
 
     #[test]
@@ -540,7 +579,11 @@ mod tests {
         evidence.insert(2usize, 1usize); // WetGrass = 1
         let probs = lw.query(&bn, 0, &evidence, &mut rng).unwrap();
         // P(Rain=1 | WG=1) should be higher than prior
-        assert!(probs[1] > 0.2, "P(Rain=1|WG=1) should be > 0.2, got {}", probs[1]);
+        assert!(
+            probs[1] > 0.2,
+            "P(Rain=1|WG=1) should be > 0.2, got {}",
+            probs[1]
+        );
     }
 
     #[test]
@@ -549,7 +592,11 @@ mod tests {
         let mf = MeanFieldVI::default();
         let q = mf.run(&bn, &HashMap::new()).unwrap();
         // Rain prior should be approximately 0.8
-        assert!((q[0][0] - 0.8).abs() < 0.1, "q(Rain=0) ≈ 0.8, got {}", q[0][0]);
+        assert!(
+            (q[0][0] - 0.8).abs() < 0.1,
+            "q(Rain=0) ≈ 0.8, got {}",
+            q[0][0]
+        );
     }
 
     #[test]

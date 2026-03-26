@@ -928,7 +928,9 @@ mod tests {
 
     #[test]
     fn test_glove_training_produces_meaningful_vectors() {
-        // Corpus designed so "dog" and "cat" appear in similar contexts
+        // Corpus designed so "dog" and "cat" appear in very similar contexts,
+        // while "bird" appears in distinct contexts. Repeated sentences
+        // reinforce co-occurrence statistics for the small corpus.
         let documents = vec![
             "the dog runs fast",
             "the cat runs fast",
@@ -936,15 +938,29 @@ mod tests {
             "the cat sleeps well",
             "the dog eats food",
             "the cat eats food",
+            "the dog plays outside",
+            "the cat plays outside",
+            "the dog is friendly",
+            "the cat is friendly",
+            // Repeat to reinforce dog-cat co-occurrence patterns
+            "the dog runs fast",
+            "the cat runs fast",
+            "the dog sleeps well",
+            "the cat sleeps well",
+            "the dog eats food",
+            "the cat eats food",
+            // bird in distinct contexts
             "the bird flies high",
             "the bird sings loudly",
+            "the bird builds nests",
+            "the bird migrates south",
         ];
 
         let config = GloVeTrainerConfig {
             vector_size: 20,
             window_size: 3,
             min_count: 1,
-            epochs: 50,
+            epochs: 100,
             learning_rate: 0.05,
             x_max: 10.0,
             alpha: 0.75,

@@ -24,7 +24,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-autograd = { version = "0.1.5", features = ["blas"] }
+//! scirs2-autograd = { version = "0.4.0", features = ["blas"] }
 //! ```
 //!
 //! ### BLAS Acceleration (Recommended)
@@ -33,7 +33,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-autograd = { version = "0.1.5", features = ["blas"] }
+//! scirs2-autograd = { version = "0.4.0", features = ["blas"] }
 //! ```
 //!
 //! ## 🚀 Quick Start
@@ -300,12 +300,12 @@
 //! |---------|---------|-----------------|
 //! | Autodiff | ✅ | ✅ |
 //! | Dynamic Graphs | ✅ | ✅ |
-//! | GPU Support | ✅ | ✅ (v0.2.0) |
+//! | GPU Support | ✅ | ✅ (v0.4.0) |
 //! | Type Safety | ❌ | ✅ |
 //! | Memory Safety | ⚠️ | ✅ |
 //! | Pure Rust | ❌ | ✅ |
 //!
-//! ## 🚀 v0.2.0 Features
+//! ## 🚀 v0.4.0 Features
 //!
 //! - **GPU Acceleration**: CUDA, Metal, OpenCL, WebGPU backends
 //! - **Higher-Order Derivatives**: Hessian-vector products, full Jacobians
@@ -316,7 +316,7 @@
 //!
 //! ## 🔒 Version
 //!
-//! Current version: **0.2.0** (Development - Target Release February 2026)
+//! Current version: **0.4.0**
 
 #[allow(unused_imports)]
 // Re-export from scirs2-core for POLICY compliance
@@ -368,6 +368,7 @@ pub mod distributed;
 #[cfg(feature = "gpu")]
 pub mod gpu;
 pub mod higher_order;
+pub mod sparse;
 pub mod symbolic;
 
 // v0.3.0 modules

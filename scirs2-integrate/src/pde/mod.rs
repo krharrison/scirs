@@ -30,6 +30,15 @@ pub mod mesh_generation;
 pub mod method_of_lines;
 pub mod spectral;
 
+// Hybridizable discontinuous Galerkin
+pub mod hdg;
+// Peridynamics (nonlocal continuum mechanics)
+pub mod peridynamics;
+// Stefan problem (moving boundary)
+pub mod stefan;
+// Virtual element method
+pub mod vem;
+
 // Enhanced PDE solvers (v0.3.0)
 pub mod fd_solvers;
 pub mod fem_1d;

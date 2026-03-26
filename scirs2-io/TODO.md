@@ -64,21 +64,21 @@
 ## v0.4.0 Roadmap
 
 ### New Formats
-- [ ] Zarr v2/v3 format: chunked, compressed, N-dimensional arrays; compatible with Zarr-Python
+- [x] Zarr v2/v3 format: chunked, compressed, N-dimensional arrays; compatible with Zarr-Python — Implemented in v0.4.0 (`zarr/` module)
 - [ ] TileDB integration: dense and sparse multi-dimensional arrays for analytics
-- [ ] Lance format: modern columnar format for ML datasets
+- [x] Lance format: modern columnar format for ML datasets — Implemented in v0.4.0 (`lance/` module)
 - [ ] Delta Lake log-based table format reader
 - [ ] Iceberg table format support
 
 ### Transport Protocols
-- [ ] Apache Arrow Flight protocol: high-throughput gRPC-based data transfer
-- [ ] Apache Kafka consumer/producer for streaming scientific data
-- [ ] MQTT topic-based streaming for IoT/sensor data ingestion
+- [x] Apache Arrow Flight protocol: high-throughput gRPC-based data transfer — Implemented in v0.4.0 (`protocols/arrow_flight.rs`)
+- [x] Apache Kafka consumer/producer for streaming scientific data — Implemented in v0.4.0 (`protocols/kafka.rs`)
+- [x] MQTT topic-based streaming for IoT/sensor data ingestion — Implemented in v0.4.0 (`mqtt_broker/` module)
 
 ### Compression and Encoding
-- [ ] Columnar-aware compression: dictionary encoding, RLE, delta encoding per column
-- [ ] Bloom filter indexes for Parquet-like predicate pushdown
-- [ ] FSST (Fast Static Symbol Table) string compression
+- [x] Columnar-aware compression: dictionary encoding, RLE, delta encoding per column — Implemented in v0.4.0 (`columnar/dictionary.rs`, `columnar/rle.rs`, `columnar/delta.rs`)
+- [x] Bloom filter indexes for Parquet-like predicate pushdown — Implemented in v0.4.0 (`analytics/bloom_index.rs`)
+- [x] FSST (Fast Static Symbol Table) string compression — Implemented in v0.4.0 (`columnar/fsst.rs`)
 - [ ] Adaptive compression: auto-select algorithm based on data entropy
 
 ### Cloud and Distributed
@@ -90,14 +90,14 @@
 ### Query and Analytics
 - [ ] DataFusion-compatible table provider interface
 - [ ] Vectorized expression evaluation for filter and project
-- [ ] Approximate aggregations: HyperLogLog, t-digest, count-min sketch
+- [x] Approximate aggregations: HyperLogLog, t-digest, count-min sketch — Implemented in v0.4.0 (`analytics/hyperloglog.rs`, `analytics/tdigest.rs`, `analytics/count_min.rs`)
 - [ ] Join algorithms for cross-format dataset merge
 
 ### Streaming Enhancements
 - [ ] Exactly-once delivery semantics for streaming pipeline sinks
-- [ ] Windowed aggregation (tumbling, sliding, session windows)
-- [ ] Watermark-based late-data handling
-- [ ] Checkpointing and restart for long-running streaming jobs
+- [x] Windowed aggregation (tumbling, sliding, session windows) — Implemented in v0.4.0 (`streaming/windows.rs`)
+- [x] Watermark-based late-data handling — Implemented in v0.4.0 (`streaming/watermark.rs`)
+- [x] Checkpointing and restart for long-running streaming jobs — Implemented in v0.4.0 (`streaming/checkpoint.rs`)
 
 ### Machine Learning Integration
 - [ ] Tensor serialization (safetensors-compatible read/write)

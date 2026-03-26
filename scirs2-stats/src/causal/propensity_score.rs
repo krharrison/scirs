@@ -103,11 +103,15 @@ fn normal_cdf(x: f64) -> f64 {
 fn erf_approx(x: f64) -> f64 {
     let t = 1.0 / (1.0 + 0.3275911 * x.abs());
     let y = 1.0
-        - (0.254829592 + (-0.284496736 + (1.421413741 + (-1.453152027 + 1.061405429 * t) * t) * t)
-            * t)
+        - (0.254829592
+            + (-0.284496736 + (1.421413741 + (-1.453152027 + 1.061405429 * t) * t) * t) * t)
             * t
             * (-x * x).exp();
-    if x >= 0.0 { y } else { -y }
+    if x >= 0.0 {
+        y
+    } else {
+        -y
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -129,7 +133,11 @@ pub struct PropensityScoreModel {
 impl PropensityScoreModel {
     /// Create a new propensity score model.
     pub fn new() -> Self {
-        Self { max_iter: 200, tol: 1e-8, lambda: 1e-4 }
+        Self {
+            max_iter: 200,
+            tol: 1e-8,
+            lambda: 1e-4,
+        }
     }
 
     /// Fit the propensity score model via IRLS (Newton-Raphson).
@@ -140,11 +148,7 @@ impl PropensityScoreModel {
     ///
     /// # Returns
     /// Fitted coefficient vector (k+1,) including intercept.
-    pub fn fit(
-        &self,
-        x: &ArrayView2<f64>,
-        w: &ArrayView1<f64>,
-    ) -> StatsResult<Array1<f64>> {
+    pub fn fit(&self, x: &ArrayView2<f64>, w: &ArrayView1<f64>) -> StatsResult<Array1<f64>> {
         let n = x.nrows();
         let k = x.ncols();
         if w.len() != n {
@@ -156,7 +160,9 @@ impl PropensityScoreModel {
         let mut xmat = Array2::<f64>::zeros((n, k + 1));
         for i in 0..n {
             xmat[[i, 0]] = 1.0;
-            for j in 0..k { xmat[[i, j + 1]] = x[[i, j]]; }
+            for j in 0..k {
+                xmat[[i, j + 1]] = x[[i, j]];
+            }
         }
         let k1 = k + 1;
         let mut beta = Array1::<f64>::zeros(k1);
@@ -170,21 +176,29 @@ impl PropensityScoreModel {
             // Gradient: X' (y - mu) - lambda * beta  (regularise all but intercept)
             let grad_data = xmat.t().dot(&(w.to_owned() - &mu));
             let mut grad = grad_data;
-            for j in 1..k1 { grad[j] -= self.lambda * beta[j]; }
+            for j in 1..k1 {
+                grad[j] -= self.lambda * beta[j];
+            }
             // Hessian: X' diag(v) X + lambda * I  (except [0,0])
             // Build W^{1/2} X and solve H delta = grad
             let sqrt_v: Array1<f64> = v.mapv(|vi| vi.sqrt());
             let mut wxmat = Array2::<f64>::zeros((n, k1));
             for i in 0..n {
-                for j in 0..k1 { wxmat[[i, j]] = sqrt_v[i] * xmat[[i, j]]; }
+                for j in 0..k1 {
+                    wxmat[[i, j]] = sqrt_v[i] * xmat[[i, j]];
+                }
             }
             let mut hess = wxmat.t().dot(&wxmat);
-            for j in 1..k1 { hess[[j, j]] += self.lambda; }
+            for j in 1..k1 {
+                hess[[j, j]] += self.lambda;
+            }
             let h_inv = cholesky_invert_ps(&hess.view())?;
             let delta = h_inv.dot(&grad);
             let step_norm: f64 = delta.iter().map(|&d| d * d).sum::<f64>().sqrt();
             beta = &beta + &delta;
-            if step_norm < self.tol { break; }
+            if step_norm < self.tol {
+                break;
+            }
         }
         Ok(beta)
     }
@@ -194,11 +208,7 @@ impl PropensityScoreModel {
     /// # Arguments
     /// * `x`    – covariate matrix (n × k)
     /// * `beta` – fitted coefficients from `fit` (k+1,)
-    pub fn predict(
-        &self,
-        x: &ArrayView2<f64>,
-        beta: &ArrayView1<f64>,
-    ) -> StatsResult<Array1<f64>> {
+    pub fn predict(&self, x: &ArrayView2<f64>, beta: &ArrayView1<f64>) -> StatsResult<Array1<f64>> {
         let n = x.nrows();
         let k = x.ncols();
         if beta.len() != k + 1 {
@@ -211,7 +221,9 @@ impl PropensityScoreModel {
         let mut eta = Array1::<f64>::zeros(n);
         for i in 0..n {
             eta[i] = beta[0];
-            for j in 0..k { eta[i] += beta[j + 1] * x[[i, j]]; }
+            for j in 0..k {
+                eta[i] += beta[j + 1] * x[[i, j]];
+            }
         }
         Ok(eta.mapv(sigmoid))
     }
@@ -224,8 +236,12 @@ impl Default for PropensityScoreModel {
 }
 
 fn sigmoid(x: f64) -> f64 {
-    if x > 500.0 { return 1.0; }
-    if x < -500.0 { return 0.0; }
+    if x > 500.0 {
+        return 1.0;
+    }
+    if x < -500.0 {
+        return 0.0;
+    }
     1.0 / (1.0 + (-x).exp())
 }
 
@@ -235,7 +251,9 @@ fn cholesky_invert_ps(a: &scirs2_core::ndarray::ArrayView2<f64>) -> StatsResult<
     for i in 0..n {
         for j in 0..=i {
             let mut s = a[[i, j]];
-            for p in 0..j { s -= l[[i, p]] * l[[j, p]]; }
+            for p in 0..j {
+                s -= l[[i, p]] * l[[j, p]];
+            }
             if i == j {
                 if s <= 0.0 {
                     return Err(StatsError::ComputationError(
@@ -253,7 +271,9 @@ fn cholesky_invert_ps(a: &scirs2_core::ndarray::ArrayView2<f64>) -> StatsResult<
         linv[[j, j]] = 1.0 / l[[j, j]];
         for i in (j + 1)..n {
             let mut s = 0.0_f64;
-            for p in j..i { s += l[[i, p]] * linv[[p, j]]; }
+            for p in j..i {
+                s += l[[i, p]] * linv[[p, j]];
+            }
             linv[[i, j]] = -s / l[[i, i]];
         }
     }
@@ -299,20 +319,19 @@ impl IPW {
         let ps_trim: Array1<f64> = ps.mapv(|p| p.clamp(eps, 1.0 - eps));
 
         // ATE: Horvitz-Thompson estimator
-        let ate_terms: Array1<f64> = (0..n).map(|i| {
-            let wi = w[i];
-            let yi = y[i];
-            let pi = ps_trim[i];
-            wi * yi / pi - (1.0 - wi) * yi / (1.0 - pi)
-        }).collect();
+        let ate_terms: Array1<f64> = (0..n)
+            .map(|i| {
+                let wi = w[i];
+                let yi = y[i];
+                let pi = ps_trim[i];
+                wi * yi / pi - (1.0 - wi) * yi / (1.0 - pi)
+            })
+            .collect();
         let ate = ate_terms.iter().sum::<f64>() / n as f64;
 
         // ATT: normalised IPW
         let n_treated: usize = w.iter().filter(|&&wi| wi > 0.5).count();
-        let att_num: f64 = (0..n)
-            .filter(|&i| w[i] > 0.5)
-            .map(|i| y[i])
-            .sum::<f64>();
+        let att_num: f64 = (0..n).filter(|&i| w[i] > 0.5).map(|i| y[i]).sum::<f64>();
         let att_denom_ctrl_num: f64 = (0..n)
             .filter(|&i| w[i] <= 0.5)
             .map(|i| y[i] * ps_trim[i] / (1.0 - ps_trim[i]))
@@ -323,13 +342,17 @@ impl IPW {
             .sum::<f64>();
         let att = if n_treated > 0 && att_denom_ctrl_den > 1e-10 {
             att_num / n_treated as f64 - att_denom_ctrl_num / att_denom_ctrl_den
-        } else { 0.0 };
+        } else {
+            0.0
+        };
 
         // ATC: normalised IPW
         let n_control = n - n_treated;
         let atc_ctrl_mean = if n_control > 0 {
             (0..n).filter(|&i| w[i] <= 0.5).map(|i| y[i]).sum::<f64>() / n_control as f64
-        } else { 0.0 };
+        } else {
+            0.0
+        };
         let atc_trt_num: f64 = (0..n)
             .filter(|&i| w[i] > 0.5)
             .map(|i| y[i] * (1.0 - ps_trim[i]) / ps_trim[i])
@@ -340,7 +363,9 @@ impl IPW {
             .sum::<f64>();
         let atc = if atc_trt_den > 1e-10 {
             atc_trt_num / atc_trt_den - atc_ctrl_mean
-        } else { 0.0 };
+        } else {
+            0.0
+        };
 
         // Sandwich standard errors (influence-function based)
         let ate_se = bootstrap_se_ipw_ate(y, w, &ps_trim.view(), ate, n)?;
@@ -375,12 +400,14 @@ fn bootstrap_se_ipw_ate(
     ate: f64,
     n: usize,
 ) -> StatsResult<f64> {
-    let psi: Array1<f64> = (0..n).map(|i| {
-        let wi = w[i];
-        let yi = y[i];
-        let pi = ps[i];
-        wi * yi / pi - (1.0 - wi) * yi / (1.0 - pi) - ate
-    }).collect();
+    let psi: Array1<f64> = (0..n)
+        .map(|i| {
+            let wi = w[i];
+            let yi = y[i];
+            let pi = ps[i];
+            wi * yi / pi - (1.0 - wi) * yi / (1.0 - pi) - ate
+        })
+        .collect();
     let var_psi: f64 = psi.iter().map(|&p| p * p).sum::<f64>() / (n * (n - 1).max(1)) as f64;
     Ok(var_psi.sqrt())
 }
@@ -397,13 +424,15 @@ fn bootstrap_se_ipw_att(
     if n_treated < 1.0 {
         return Ok(0.0);
     }
-    let psi: Array1<f64> = (0..n).map(|i| {
-        let wi = w[i];
-        let yi = y[i];
-        let pi = ps[i];
-        // Influence function for ATT
-        (wi * yi - (1.0 - wi) * pi * yi / (1.0 - pi)) / (n_treated / n as f64) - att
-    }).collect();
+    let psi: Array1<f64> = (0..n)
+        .map(|i| {
+            let wi = w[i];
+            let yi = y[i];
+            let pi = ps[i];
+            // Influence function for ATT
+            (wi * yi - (1.0 - wi) * pi * yi / (1.0 - pi)) / (n_treated / n as f64) - att
+        })
+        .collect();
     let var_psi: f64 = psi.iter().map(|&p| p * p).sum::<f64>() / (n * (n - 1).max(1)) as f64;
     Ok(var_psi.sqrt())
 }
@@ -523,10 +552,15 @@ impl PSMatching {
         let n_m = matched_diffs.len();
         let att = matched_diffs.iter().sum::<f64>() / n_m as f64;
         let se = if n_m > 1 {
-            let var = matched_diffs.iter().map(|&d| (d - att).powi(2)).sum::<f64>()
+            let var = matched_diffs
+                .iter()
+                .map(|&d| (d - att).powi(2))
+                .sum::<f64>()
                 / (n_m * (n_m - 1)) as f64;
             var.sqrt()
-        } else { 0.0 };
+        } else {
+            0.0
+        };
         let t = if se > 0.0 { att / se } else { 0.0 };
         let p = normal_p_value(t);
         let ci = [att - 1.96 * se, att + 1.96 * se];
@@ -563,7 +597,11 @@ impl PSMatching {
                 .iter()
                 .map(|&ci| {
                     let u = (ps[ci] - psi) / bw;
-                    if u.abs() < 1.0 { 0.75 * (1.0 - u * u) } else { 0.0 }
+                    if u.abs() < 1.0 {
+                        0.75 * (1.0 - u * u)
+                    } else {
+                        0.0
+                    }
                 })
                 .collect();
             let total_w: f64 = weights.iter().sum();
@@ -586,10 +624,12 @@ impl PSMatching {
         let n_m = diffs.len();
         let att = diffs.iter().sum::<f64>() / n_m as f64;
         let se = if n_m > 1 {
-            let var = diffs.iter().map(|&d| (d - att).powi(2)).sum::<f64>()
-                / (n_m * (n_m - 1)) as f64;
+            let var =
+                diffs.iter().map(|&d| (d - att).powi(2)).sum::<f64>() / (n_m * (n_m - 1)) as f64;
             var.sqrt()
-        } else { 0.0 };
+        } else {
+            0.0
+        };
         let t = if se > 0.0 { att / se } else { 0.0 };
         let p = normal_p_value(t);
         let ci = [att - 1.96 * se, att + 1.96 * se];
@@ -610,7 +650,9 @@ fn logit(p: f64) -> f64 {
 
 fn std_dev_vec(v: &[f64]) -> f64 {
     let n = v.len();
-    if n < 2 { return 1.0; }
+    if n < 2 {
+        return 1.0;
+    }
     let mean = v.iter().sum::<f64>() / n as f64;
     let var = v.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / (n - 1) as f64;
     var.sqrt().max(1e-15)
@@ -648,14 +690,12 @@ impl OverlapCheck {
     /// # Arguments
     /// * `ps` – propensity scores for all units
     /// * `w`  – binary treatment indicator
-    pub fn check(
-        &self,
-        ps: &ArrayView1<f64>,
-        w: &ArrayView1<f64>,
-    ) -> StatsResult<OverlapResult> {
+    pub fn check(&self, ps: &ArrayView1<f64>, w: &ArrayView1<f64>) -> StatsResult<OverlapResult> {
         let n = ps.len();
         if w.len() != n {
-            return Err(StatsError::DimensionMismatch("ps and w must have equal length".into()));
+            return Err(StatsError::DimensionMismatch(
+                "ps and w must have equal length".into(),
+            ));
         }
 
         let treated_ps: Vec<f64> = (0..n).filter(|&i| w[i] > 0.5).map(|i| ps[i]).collect();
@@ -695,9 +735,15 @@ impl OverlapCheck {
 
         let n_t = treated_ps.len() as f64;
         let n_c = control_ps.len() as f64;
-        let frac_t = treated_ps.iter().filter(|&&p| p >= ps_lower && p <= ps_upper).count() as f64
+        let frac_t = treated_ps
+            .iter()
+            .filter(|&&p| p >= ps_lower && p <= ps_upper)
+            .count() as f64
             / n_t.max(1.0);
-        let frac_c = control_ps.iter().filter(|&&p| p >= ps_lower && p <= ps_upper).count() as f64
+        let frac_c = control_ps
+            .iter()
+            .filter(|&&p| p >= ps_lower && p <= ps_upper)
+            .count() as f64
             / n_c.max(1.0);
 
         // Overlap coefficient: approximate as fraction of total PS range covered by both groups
@@ -716,7 +762,9 @@ impl OverlapCheck {
 }
 
 fn quantile_val(v: &[f64], q: f64) -> f64 {
-    if v.is_empty() { return 0.5; }
+    if v.is_empty() {
+        return 0.5;
+    }
     let mut sorted = v.to_vec();
     sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let idx = ((q * (sorted.len() - 1) as f64).round() as usize).min(sorted.len() - 1);
@@ -725,11 +773,23 @@ fn quantile_val(v: &[f64], q: f64) -> f64 {
 
 /// Overlap coefficient: 1 - total variation distance
 fn overlap_coef(ps_t: &[f64], ps_c: &[f64]) -> f64 {
-    if ps_t.is_empty() || ps_c.is_empty() { return 0.0; }
+    if ps_t.is_empty() || ps_c.is_empty() {
+        return 0.0;
+    }
     // Grid-based approximation
-    let all_min = ps_t.iter().chain(ps_c.iter()).cloned().fold(f64::INFINITY, f64::min);
-    let all_max = ps_t.iter().chain(ps_c.iter()).cloned().fold(f64::NEG_INFINITY, f64::max);
-    if (all_max - all_min).abs() < 1e-10 { return 1.0; }
+    let all_min = ps_t
+        .iter()
+        .chain(ps_c.iter())
+        .cloned()
+        .fold(f64::INFINITY, f64::min);
+    let all_max = ps_t
+        .iter()
+        .chain(ps_c.iter())
+        .cloned()
+        .fold(f64::NEG_INFINITY, f64::max);
+    if (all_max - all_min).abs() < 1e-10 {
+        return 1.0;
+    }
     let n_bins = 100_usize;
     let step = (all_max - all_min) / n_bins as f64;
     let mut oc = 0.0_f64;
@@ -780,16 +840,34 @@ mod tests {
     #[test]
     fn test_logistic_regression_ps() {
         // Binary outcome with one covariate; should converge
-        let x = array![[0.0], [1.0], [2.0], [3.0], [4.0],
-                       [5.0], [6.0], [7.0], [8.0], [9.0]];
+        let x = array![
+            [0.0],
+            [1.0],
+            [2.0],
+            [3.0],
+            [4.0],
+            [5.0],
+            [6.0],
+            [7.0],
+            [8.0],
+            [9.0]
+        ];
         let w = array![0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0];
         let model = PropensityScoreModel::new();
-        let beta = model.fit(&x.view(), &w.view()).expect("Logistic fit should succeed");
+        let beta = model
+            .fit(&x.view(), &w.view())
+            .expect("Logistic fit should succeed");
         assert_eq!(beta.len(), 2);
         // Coefficient on x should be positive (larger x → more likely treated)
-        assert!(beta[1] > 0.0, "Coefficient should be positive, got {}", beta[1]);
+        assert!(
+            beta[1] > 0.0,
+            "Coefficient should be positive, got {}",
+            beta[1]
+        );
         // Predict: units with x>5 should have ps > 0.5
-        let ps = model.predict(&x.view(), &beta.view()).expect("Predict should succeed");
+        let ps = model
+            .predict(&x.view(), &beta.view())
+            .expect("Predict should succeed");
         assert!(ps[9] > 0.5, "ps for x=9 should be > 0.5, got {}", ps[9]);
         assert!(ps[0] < 0.5, "ps for x=0 should be < 0.5, got {}", ps[0]);
     }
@@ -802,9 +880,13 @@ mod tests {
         let w: Array1<f64> = ps.mapv(|p| if p > 0.5 { 1.0 } else { 0.0 });
         // Outcomes equal to a constant (no effect)
         let y: Array1<f64> = Array1::ones(n);
-        let res = IPW::estimate(&y.view(), &w.view(), &ps.view(), 0.05)
-            .expect("IPW should succeed");
-        assert!(res.ate.abs() < 0.1, "ATE should be ~0 when no effect, got {}", res.ate);
+        let res =
+            IPW::estimate(&y.view(), &w.view(), &ps.view(), 0.05).expect("IPW should succeed");
+        assert!(
+            res.ate.abs() < 0.1,
+            "ATE should be ~0 when no effect, got {}",
+            res.ate
+        );
     }
 
     #[test]
@@ -815,10 +897,14 @@ mod tests {
         // Treatment effect = 2
         let y: Array1<f64> = (0..n).map(|i| if w[i] > 0.5 { 5.0 } else { 3.0 }).collect();
         let matcher = PSMatching::new(MatchingMethod::NearestNeighbour);
-        let res = matcher.estimate_att(&y.view(), &w.view(), &ps.view())
+        let res = matcher
+            .estimate_att(&y.view(), &w.view(), &ps.view())
             .expect("NN matching should succeed");
-        assert!((res.att - 2.0).abs() < 0.5,
-            "ATT should be ~2.0, got {}", res.att);
+        assert!(
+            (res.att - 2.0).abs() < 0.5,
+            "ATT should be ~2.0, got {}",
+            res.att
+        );
     }
 
     #[test]
@@ -828,10 +914,17 @@ mod tests {
         // control PS: 0.1, 0.2, 0.4, 0.5, 0.9  (min=0.1, max=0.9)
         // MinMax common support: [max(0.3,0.1), min(0.8,0.9)] = [0.3, 0.8]
         let ps = array![0.1, 0.3, 0.4, 0.5, 0.5, 0.2, 0.6, 0.7, 0.8, 0.9];
-        let w  = array![0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0];
+        let w = array![0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0];
         let checker = OverlapCheck::new(TrimMethod::MinMax);
-        let res = checker.check(&ps.view(), &w.view()).expect("Overlap check should succeed");
-        assert!(res.ps_lower < res.ps_upper, "lower={} >= upper={}", res.ps_lower, res.ps_upper);
+        let res = checker
+            .check(&ps.view(), &w.view())
+            .expect("Overlap check should succeed");
+        assert!(
+            res.ps_lower < res.ps_upper,
+            "lower={} >= upper={}",
+            res.ps_lower,
+            res.ps_upper
+        );
         assert!(!res.common_support_idx.is_empty());
     }
 

@@ -559,8 +559,11 @@ where
 // ─── Submodules ─────────────────────────────────────────────────────────────
 
 pub mod cdc;
+pub mod checkpoint;
 pub mod log_parsing;
 pub mod time_series_ingestion;
+pub mod watermark;
+pub mod windows;
 
 #[cfg(test)]
 mod tests {

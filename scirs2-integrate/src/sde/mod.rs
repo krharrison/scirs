@@ -50,11 +50,14 @@
 
 pub mod euler_maruyama;
 pub mod examples;
+pub mod fractional_brownian;
 pub mod jump_diffusion;
 pub mod milstein;
 pub mod processes;
+pub mod rough_sde;
 pub mod runge_kutta_sde;
 pub mod srk;
+pub mod weak_order2;
 pub mod weak_schemes;
 
 use crate::error::{IntegrateError, IntegrateResult};

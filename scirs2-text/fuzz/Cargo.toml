@@ -1,0 +1,34 @@
+[package]
+name = "scirs2-text-fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+scirs2-text = { path = ".." }
+
+[[bin]]
+name = "fuzz_tokenizer"
+path = "fuzz_targets/fuzz_tokenizer.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_bpe"
+path = "fuzz_targets/fuzz_bpe.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_wordpiece"
+path = "fuzz_targets/fuzz_wordpiece.rs"
+test = false
+doc = false
+
+# Fuzz crate is intentionally outside the workspace so that
+# `cargo fuzz` can build it with the fuzzer-specific settings.
+[workspace]

@@ -161,8 +161,7 @@ where
         let f2 = Arc::clone(&f);
         let handle = thread::Builder::new()
             .spawn(move || {
-                let data: &[T] =
-                    unsafe { std::slice::from_raw_parts(data_ptr as *const T, n) };
+                let data: &[T] = unsafe { std::slice::from_raw_parts(data_ptr as *const T, n) };
                 for i in range {
                     f2(&data[i]);
                 }
@@ -216,8 +215,7 @@ where
         let id = identity.clone();
         let handle = thread::Builder::new()
             .spawn(move || {
-                let data: &[T] =
-                    unsafe { std::slice::from_raw_parts(data_ptr as *const T, n) };
+                let data: &[T] = unsafe { std::slice::from_raw_parts(data_ptr as *const T, n) };
                 let local = data[range].iter().fold(id, |acc, x| f2(acc, x));
                 if let Ok(mut g) = results2.lock() {
                     g.push((chunk_id, local));
@@ -468,8 +466,7 @@ where
 
         let handle = thread::Builder::new()
             .spawn(move || {
-                let data: &[T] =
-                    unsafe { std::slice::from_raw_parts(data_ptr as *const T, n) };
+                let data: &[T] = unsafe { std::slice::from_raw_parts(data_ptr as *const T, n) };
                 let chunk = &data[range.clone()];
                 let mut local_prefix = Vec::with_capacity(range.len());
                 let mut acc = id2;
@@ -525,9 +522,7 @@ where
     // For exclusive mode, shift right by 1 and prepend identity.
     if mode == ScanMode::Exclusive {
         let mut out = vec![identity; n];
-        for i in 1..n {
-            out[i] = result[i - 1].clone();
-        }
+        out[1..n].clone_from_slice(&result[..(n - 1)]);
         return Ok(out);
     }
 
@@ -570,10 +565,7 @@ where
         let mut out = Vec::with_capacity(ranges.len());
         let mut offset = 0;
         for range in &ranges {
-            let chunk: Vec<T> = remaining[offset..range.end - offset + offset]
-                .iter()
-                .cloned()
-                .collect();
+            let chunk: Vec<T> = remaining[offset..range.end - offset + offset].to_vec();
             // Simpler: build chunks directly from data.
             let _ = remaining; // avoid unused var warning
             let chunk = data[range.clone()].to_vec();
@@ -605,9 +597,7 @@ where
     }
 
     let mut sorted_chunks = Arc::try_unwrap(sorted_chunks)
-        .map_err(|_| {
-            CoreError::SchedulerError(ErrorContext::new("parallel_merge_sort: Arc held"))
-        })?
+        .map_err(|_| CoreError::SchedulerError(ErrorContext::new("parallel_merge_sort: Arc held")))?
         .into_inner()
         .map_err(|e| {
             CoreError::SchedulerError(
@@ -630,7 +620,10 @@ fn k_way_merge<T: Ord>(mut sorted: Vec<Vec<T>>) -> Vec<T> {
         let mut next = Vec::with_capacity(sorted.len() / 2 + 1);
         let mut i = 0;
         while i + 1 < sorted.len() {
-            let merged = merge_two(std::mem::take(&mut sorted[i]), std::mem::take(&mut sorted[i + 1]));
+            let merged = merge_two(
+                std::mem::take(&mut sorted[i]),
+                std::mem::take(&mut sorted[i + 1]),
+            );
             next.push(merged);
             i += 2;
         }
@@ -709,8 +702,8 @@ mod tests {
     #[test]
     fn parallel_reduce_sum() {
         let data: Vec<i64> = (1..=100).collect();
-        let sum = parallel_reduce(&data, 0i64, |acc, &x| acc + x, |a, b| a + b, 4)
-            .expect("reduce sum");
+        let sum =
+            parallel_reduce(&data, 0i64, |acc, &x| acc + x, |a, b| a + b, 4).expect("reduce sum");
         assert_eq!(sum, 5050);
     }
 
@@ -756,7 +749,7 @@ mod tests {
     fn parallel_prefix_sum_basic() {
         let data: Vec<f64> = (1..=5).map(|x| x as f64).collect();
         let prefix = parallel_prefix_sum(&data, 2).expect("prefix sum");
-        let expected = vec![1.0, 3.0, 6.0, 10.0, 15.0];
+        let expected = [1.0, 3.0, 6.0, 10.0, 15.0];
         for (a, b) in prefix.iter().zip(expected.iter()) {
             assert!((a - b).abs() < 1e-10, "{a} vs {b}");
         }
@@ -786,8 +779,7 @@ mod tests {
     #[test]
     fn parallel_partition_basic() {
         let data: Vec<i32> = (1..=10).collect();
-        let (evens, odds) =
-            parallel_partition(data, |&x| x % 2 == 0, 4).expect("partition");
+        let (evens, odds) = parallel_partition(data, |&x| x % 2 == 0, 4).expect("partition");
         assert_eq!(evens, vec![2, 4, 6, 8, 10]);
         assert_eq!(odds, vec![1, 3, 5, 7, 9]);
     }

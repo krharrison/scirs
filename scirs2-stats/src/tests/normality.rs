@@ -231,8 +231,10 @@ fn calculate_shapiro_wilk_coefficients(n: usize) -> StatsResult<Vec<f64>> {
         }
     }
 
-    // Normalize coefficients to have unit sum of squares
-    let sum_sq = a.iter().map(|&x| x * x).sum::<f64>().sqrt();
+    // Normalize coefficients so that the full vector (length n) has unit sum
+    // of squares.  Due to antisymmetry each half-coefficient appears twice,
+    // hence divide by sqrt(2 * Σ aᵢ²) instead of sqrt(Σ aᵢ²).
+    let sum_sq = (2.0 * a.iter().map(|&x| x * x).sum::<f64>()).sqrt();
     for val in a.iter_mut() {
         *val /= sum_sq;
     }
@@ -581,9 +583,11 @@ where
     let n_f64 = n as f64;
 
     // D'Agostino's calculations for skewness
-    let beta2 = 3.0 * (n_f64 - 1.0).powi(2) / ((n_f64 - 2.0) * (n_f64 + 1.0) * (n_f64 + 3.0));
-    let omega2 = (2.0 * beta2 - 1.0).sqrt() - 1.0;
-    let delta = 1.0 / (omega2.ln()).sqrt();
+    // Reference: D'Agostino, R.B. (1970) and D'Agostino & Pearson (1973)
+    let beta2 = 3.0 * (n_f64 * n_f64 + 27.0 * n_f64 - 70.0) * (n_f64 + 1.0) * (n_f64 + 3.0)
+        / ((n_f64 - 2.0) * (n_f64 + 5.0) * (n_f64 + 7.0) * (n_f64 + 9.0));
+    let omega2 = (2.0 * (beta2 - 1.0)).sqrt() - 1.0;
+    let delta = 1.0 / (0.5 * omega2.ln()).sqrt();
     let alpha = (2.0 / (omega2 - 1.0)).sqrt();
 
     let y = g1_f64 * ((n_f64 + 1.0) * (n_f64 + 3.0) / (6.0 * (n_f64 - 2.0))).sqrt();
@@ -599,8 +603,9 @@ where
     let std_g2 = var_g2.sqrt();
 
     let a = 6.0 + 8.0 / std_g2 * (2.0 / std_g2 + (1.0 + 4.0 / std_g2.powi(2)).sqrt());
-    let z2 = ((1.0 - 2.0 / a) * (1.0 + (g2_f64 - mean_g2) / std_g2 * (2.0 / (a - 4.0)).sqrt()))
-        .powf(1.0 / 3.0);
+    let cbrt_base =
+        (1.0 - 2.0 / a) * (1.0 + (g2_f64 - mean_g2) / std_g2 * (2.0 / (a - 4.0)).sqrt());
+    let z2 = cbrt_base.cbrt();
     let z2 = (a - 2.0) / 2.0 * (z2 - 1.0 / z2);
 
     Ok((

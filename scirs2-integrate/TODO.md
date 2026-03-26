@@ -119,31 +119,31 @@
 - [ ] CUDA graph capture for repeated ODE solve patterns (neural ODE training)
 
 ### Adaptive Mesh Refinement
-- [ ] Full AMR framework: quad-tree / oct-tree dynamic refinement
-- [ ] Conservative prolongation and restriction operators
+- [x] Full AMR framework: quad-tree / oct-tree dynamic refinement — Implemented in v0.4.0 (`amr/quadtree.rs`, `amr/octree.rs`)
+- [x] Conservative prolongation and restriction operators — Implemented in v0.4.0 (`amr/operators.rs`)
 - [ ] Load-balanced AMR for parallel distributed grids
-- [ ] Interface tracking with level-set AMR
+- [x] Interface tracking with level-set AMR — Implemented in v0.4.0 (`amr/level_set.rs`)
 
 ### Quantum Chemistry and Physics
-- [ ] Hartree-Fock and DFT integrals over Gaussian basis sets
-- [ ] Density matrix evolution (Lindblad master equation)
-- [ ] Time-dependent Hartree-Fock (TDHF)
-- [ ] Path integral Monte Carlo for quantum statistical mechanics
+- [x] Hartree-Fock and DFT integrals over Gaussian basis sets — Implemented in v0.4.0 (`specialized/quantum/gaussian_integrals.rs`)
+- [x] Density matrix evolution (Lindblad master equation) — Implemented in v0.4.0 (`specialized/quantum/lindblad.rs`)
+- [x] Time-dependent Hartree-Fock (TDHF) — Implemented in v0.4.0 (`specialized/quantum/tdhf/` module)
+- [x] Path integral Monte Carlo for quantum statistical mechanics — Implemented in v0.4.0 (`pimc/` module)
 
 ### Advanced SDE and SPDE
-- [ ] Weak order 2.0 SDE schemes (Platen-Wagner)
-- [ ] Rough SDE driven by fractional Brownian motion
-- [ ] Galerkin SPDE solvers with polynomial chaos expansion
+- [x] Weak order 2.0 SDE schemes (Platen-Wagner) — Implemented in v0.4.0 (`sde/weak_order2.rs`)
+- [x] Rough SDE driven by fractional Brownian motion — Implemented in v0.4.0 (`sde/rough_sde.rs`, `sde/fractional_brownian.rs`)
+- [x] Galerkin SPDE solvers with polynomial chaos expansion — Implemented in v0.4.0 (`polynomial_chaos/` module)
 - [ ] Real-time particle filter for state estimation
 
 ### PDE Solvers
-- [ ] Hybridizable DG (HDG) for diffusion-dominated problems
-- [ ] Virtual Element Method (VEM) for polygonal meshes
-- [ ] Peridynamics for fracture mechanics
-- [ ] Free boundary / Stefan problem solvers
+- [x] Hybridizable DG (HDG) for diffusion-dominated problems — Implemented in v0.4.0 (`pde/hdg/` module)
+- [x] Virtual Element Method (VEM) for polygonal meshes — Implemented in v0.4.0 (`pde/vem/` module)
+- [x] Peridynamics for fracture mechanics — Implemented in v0.4.0 (`pde/peridynamics/` module)
+- [x] Free boundary / Stefan problem solvers — Implemented in v0.4.0 (`pde/stefan/` module)
 
 ### Integration and Quadrature
-- [ ] Filon quadrature for highly oscillatory integrands
+- [x] Filon quadrature for highly oscillatory integrands — Implemented in v0.4.0 (`quadrature/filon.rs`, `quadrature/filon_clenshaw.rs`)
 - [ ] Sparse grid quadrature for high-dimensional smooth functions
 - [ ] Clenshaw-Curtis adaptive quadrature with contour deformation
 

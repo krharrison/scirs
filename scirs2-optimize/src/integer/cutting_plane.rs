@@ -21,7 +21,8 @@
 //! - Chvátal, V. (1983). "Linear Programming." W.H. Freeman.
 
 use super::{
-    is_integer_valued, lp_relaxation::{LpRelaxationSolver, LpResult},
+    is_integer_valued,
+    lp_relaxation::{LpRelaxationSolver, LpResult},
     most_fractional_variable, IntegerVariableSet, LinearProgram, MipResult,
 };
 use crate::error::{OptimizeError, OptimizeResult};
@@ -119,7 +120,12 @@ impl CuttingPlaneSolver {
         let cut_lhs: Vec<f64> = lp.c.iter().map(|&ci| -ci).collect();
 
         // Check if this cut is actually violated at x
-        let violation: f64 = cut_lhs.iter().zip(x.iter()).map(|(&ai, &xi)| ai * xi).sum::<f64>() - cut_rhs;
+        let violation: f64 = cut_lhs
+            .iter()
+            .zip(x.iter())
+            .map(|(&ai, &xi)| ai * xi)
+            .sum::<f64>()
+            - cut_rhs;
         if violation <= self.options.cut_violation_tol {
             // Not violated, generate a different cut based on the fractional variable
             // Gomory cut from the fractional variable itself:
@@ -195,11 +201,7 @@ impl CuttingPlaneSolver {
     }
 
     /// Solve using cutting plane method
-    pub fn solve(
-        &self,
-        lp: &LinearProgram,
-        ivs: &IntegerVariableSet,
-    ) -> OptimizeResult<MipResult> {
+    pub fn solve(&self, lp: &LinearProgram, ivs: &IntegerVariableSet) -> OptimizeResult<MipResult> {
         let n = lp.n_vars();
         if n == 0 {
             return Err(OptimizeError::InvalidInput("Empty problem".to_string()));
@@ -245,7 +247,8 @@ impl CuttingPlaneSolver {
 
             // Check if integer feasible
             let all_integer = ivs.kinds.iter().enumerate().all(|(i, k)| {
-                matches!(k, super::IntegerKind::Continuous) || is_integer_valued(x[i], self.options.int_tol)
+                matches!(k, super::IntegerKind::Continuous)
+                    || is_integer_valued(x[i], self.options.int_tol)
             });
 
             if all_integer {
@@ -266,9 +269,7 @@ impl CuttingPlaneSolver {
             // Generate cuts
             let mut new_cuts_added = 0;
             let fractional_vars: Vec<usize> = (0..n)
-                .filter(|&i| {
-                    ivs.is_integer(i) && !is_integer_valued(x[i], self.options.int_tol)
-                })
+                .filter(|&i| ivs.is_integer(i) && !is_integer_valued(x[i], self.options.int_tol))
                 .collect();
 
             for &var in &fractional_vars {
@@ -297,7 +298,7 @@ impl CuttingPlaneSolver {
 
         // Cutting plane phase done; fall back to branch-and-bound if enabled
         if self.options.fallback_bb {
-            use super::branch_and_bound::{BranchAndBoundSolver, BranchAndBoundOptions};
+            use super::branch_and_bound::{BranchAndBoundOptions, BranchAndBoundSolver};
             let bb_opts = BranchAndBoundOptions {
                 max_nodes: 10000,
                 ..Default::default()

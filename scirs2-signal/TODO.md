@@ -159,10 +159,10 @@
 ## v0.4.0 Roadmap
 
 ### Real-Time Streaming Processing
-- [ ] Block-based filter processing with state preservation between blocks
-- [ ] Ring-buffer abstraction for streaming convolution and correlation
-- [ ] Online STFT with overlap-save/overlap-add block updating
-- [ ] Streaming OMP for adaptive sparse coding
+- [x] Block-based filter processing with state preservation between blocks — Implemented in v0.4.0 (`streaming/block_filter.rs`)
+- [x] Ring-buffer abstraction for streaming convolution and correlation — Implemented in v0.4.0 (`streaming/ring_buffer.rs`)
+- [x] Online STFT with overlap-save/overlap-add block updating — Implemented in v0.4.0 (`streaming/online_stft.rs`)
+- [x] Streaming OMP for adaptive sparse coding — Implemented in v0.4.0 (`streaming/streaming_omp.rs`)
 
 ### GPU-Accelerated FFT Pipeline
 - [ ] OxiFFT GPU backend integration for large-batch spectrograms
@@ -171,22 +171,22 @@
 - [ ] GPU wavelet transform for high-throughput applications
 
 ### Deep Learning-Based Denoising
-- [ ] Learned speech enhancement model (Conv-TasNet architecture) in pure Rust
+- [x] Learned speech enhancement model (Conv-TasNet architecture) in pure Rust — Implemented in v0.4.0 (`neural_audio/conv_tasnet.rs`)
 - [ ] Deep filtering via scirs2-neural integration
-- [ ] Denoising diffusion probabilistic model for audio restoration
+- [x] Denoising diffusion probabilistic model for audio restoration — Implemented in v0.4.0 (`dl_denoising/diffusion.rs`, `dl_denoising/audio_diffusion.rs`)
 - [ ] Pre-trained model weight loading from oxicode format
 
 ### Modal Analysis (Structural Dynamics)
-- [ ] Frequency Domain Decomposition (FDD) for operational modal analysis
+- [x] Frequency Domain Decomposition (FDD) for operational modal analysis — Implemented in v0.4.0 (`modal_analysis/fdd.rs`)
 - [ ] Enhanced FDD (EFDD) with damping estimation
-- [ ] Stochastic Subspace Identification (SSI-COV, SSI-DATA)
-- [ ] Modal Assurance Criterion (MAC) for mode shape comparison
+- [x] Stochastic Subspace Identification (SSI-COV, SSI-DATA) — Implemented in v0.4.0 (`modal_analysis/ssi.rs`)
+- [x] Modal Assurance Criterion (MAC) for mode shape comparison — Implemented in v0.4.0 (`modal_analysis/mac.rs`)
 
-### Advanced Array Processing
-- [ ] Delay-and-sum beamforming for microphone / sensor arrays
-- [ ] MVDR (Capon) beamformer
-- [ ] MUSIC / ESPRIT for direction-of-arrival (DOA) estimation
-- [ ] Adaptive beamforming with interference cancellation
+### Advanced Array Processing — Implemented in v0.4.0
+- [x] Delay-and-sum beamforming for microphone / sensor arrays
+- [x] MVDR (Capon) beamformer
+- [x] MUSIC / ESPRIT for direction-of-arrival (DOA) estimation
+- [x] Adaptive beamforming with interference cancellation
 
 ---
 

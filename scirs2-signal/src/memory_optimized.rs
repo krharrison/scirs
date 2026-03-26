@@ -872,7 +872,10 @@ mod tests {
     fn test_memory_optimized_data_variants() {
         let in_memory = MemoryOptimizedData::InMemory(vec![1.0, 2.0, 3.0]);
         let on_disk: MemoryOptimizedData<f64> = MemoryOptimizedData::OnDisk {
-            file_path: "/tmp/test.dat".to_string(),
+            file_path: std::env::temp_dir()
+                .join("test.dat")
+                .to_string_lossy()
+                .into_owned(),
             length: 1000,
             chunk_size: 256,
         };
@@ -894,7 +897,8 @@ mod tests {
 
     #[test]
     fn test_create_test_signal_file() -> SignalResult<()> {
-        let test_file = "/tmp/test_signal.dat";
+        let test_file_path = std::env::temp_dir().join("test_signal.dat");
+        let test_file = test_file_path.to_str().expect("Operation failed");
         let n_samples = 1000;
 
         // Create test signal file

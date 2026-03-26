@@ -81,15 +81,15 @@
 
 ## v0.4.0 Roadmap
 
-### Temporal Graph Neural Networks
-- Temporal GNNs for dynamic graph learning
-- Time-aware node embeddings
-- Continuous-time dynamic graph models (JODIE, TGN)
+### Temporal Graph Neural Networks — Implemented in v0.4.0
+- [x] Temporal GNNs for dynamic graph learning
+- [x] Time-aware node embeddings
+- [x] Continuous-time dynamic graph models (JODIE, TGN)
 
-### Graph Transformers
-- Graph Transformer layers with positional encodings
-- Expressive power beyond WL-1 test
-- Long-range graph dependencies
+### Graph Transformers — Implemented in v0.4.0
+- [x] Graph Transformer layers with positional encodings
+- [x] Expressive power beyond WL-1 test
+- [x] Long-range graph dependencies
 
 ### Large-Scale Graph Partitioning
 - Balanced k-way partitioning for distributed processing (target: 10B+ edges)
@@ -102,8 +102,8 @@
 - GPU PageRank and betweenness centrality
 - GPU sparse matrix operations for spectral methods
 
-### Advanced GNN Architectures
-- Graph Transformers (Graphormer, GPS)
+### Advanced GNN Architectures — Partially implemented in v0.4.0
+- [x] Graph Transformers (Graphormer, GPS) — Implemented in v0.4.0
 - Equivariant GNNs (E(n)-GNN) for molecular applications
 - Heterogeneous GNNs for knowledge graph completion
 

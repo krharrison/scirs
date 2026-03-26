@@ -8,6 +8,7 @@
 //! - Momentum conservation (Lagrangian systems)
 
 pub mod lie_group;
+pub mod port_hamiltonian;
 pub mod structure_preserving;
 pub mod volume_preserving;
 

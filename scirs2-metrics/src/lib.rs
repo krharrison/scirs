@@ -39,7 +39,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-metrics = "0.1.5"
+//! scirs2-metrics = "0.4.0"
 //! ```
 //!
 //! ```rust,no_run
@@ -684,6 +684,7 @@
 
 pub mod anomaly;
 pub mod bayesian;
+pub mod benchmark_harness;
 pub mod calibration;
 pub mod classification;
 pub mod clustering;
@@ -712,3 +713,16 @@ pub mod sklearn_compat;
 pub mod streaming;
 pub mod text_metrics;
 pub mod visualization;
+
+// Active learning metrics
+pub mod active_learning;
+// 3D detection metrics (IoU, AP)
+pub mod detection_3d;
+// Distribution distance metrics (Wasserstein, MMD)
+pub mod distribution;
+// Keypoint detection metrics (OKS, PCK)
+pub mod keypoint;
+// Temporal metrics (DTW)
+pub mod temporal;
+// Object tracking metrics (MOTA, MOTP)
+pub mod tracking;

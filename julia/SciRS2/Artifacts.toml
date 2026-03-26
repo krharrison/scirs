@@ -1,0 +1,88 @@
+# Artifacts.toml — JLL-style prebuilt binary artifact declarations for SciRS2.
+#
+# Format follows the Julia Pkg.Artifacts specification:
+#   https://pkgdocs.julialang.org/v1/artifacts/
+#
+# Each [[SciRS2.download]] entry declares one prebuilt archive for a specific
+# (os, arch) triple.  SHA256 hashes and git-tree-sha1 values are filled in by
+# the release pipeline (BinaryBuilder.jl / GitHub Actions).
+#
+# Lifecycle:
+#   1. A new release tag (e.g. v0.4.0) is pushed.
+#   2. The "julia-jll-release" GitHub Actions workflow builds the shared
+#      library for all supported triples and uploads release assets.
+#   3. The workflow computes SHA256 checksums and git-tree-sha1 values, then
+#      updates this file via an automated commit.
+#   4. Downstream Julia users add SciRS2 to their Project.toml and Pkg
+#      downloads the correct prebuilt artifact.
+#
+# NOTE: The `lazy = true` flag means the artifact is not downloaded at `Pkg.add`
+# time but on first use (when `julia/SciRS2/deps/build.jl` is invoked).
+# This keeps package installation fast for users who only need pure-Julia
+# functionality.
+
+# ---------------------------------------------------------------------------
+# Linux x86_64 (glibc >= 2.17)
+# ---------------------------------------------------------------------------
+[SciRS2]
+git-tree-sha1 = ""  # Filled by release pipeline
+lazy = true
+
+    [[SciRS2.download]]
+    url    = "https://github.com/cool-japan/scirs/releases/download/v0.4.0/SciRS2-v0.4.0-x86_64-linux-gnu.tar.gz"
+    sha256 = ""  # Filled by release pipeline
+
+# ---------------------------------------------------------------------------
+# Linux aarch64 (glibc >= 2.17, Raspberry Pi 4 / AWS Graviton / etc.)
+# ---------------------------------------------------------------------------
+[SciRS2.aarch64-linux-gnu]
+git-tree-sha1 = ""
+lazy = true
+
+    [[SciRS2.aarch64-linux-gnu.download]]
+    url    = "https://github.com/cool-japan/scirs/releases/download/v0.4.0/SciRS2-v0.4.0-aarch64-linux-gnu.tar.gz"
+    sha256 = ""
+
+# ---------------------------------------------------------------------------
+# macOS x86_64 (Intel, macOS >= 10.15 Catalina)
+# ---------------------------------------------------------------------------
+[SciRS2.x86_64-apple-darwin]
+git-tree-sha1 = ""
+lazy = true
+
+    [[SciRS2.x86_64-apple-darwin.download]]
+    url    = "https://github.com/cool-japan/scirs/releases/download/v0.4.0/SciRS2-v0.4.0-x86_64-apple-darwin.tar.gz"
+    sha256 = ""
+
+# ---------------------------------------------------------------------------
+# macOS aarch64 (Apple Silicon, macOS >= 11.0 Big Sur)
+# ---------------------------------------------------------------------------
+[SciRS2.aarch64-apple-darwin]
+git-tree-sha1 = ""
+lazy = true
+
+    [[SciRS2.aarch64-apple-darwin.download]]
+    url    = "https://github.com/cool-japan/scirs/releases/download/v0.4.0/SciRS2-v0.4.0-aarch64-apple-darwin.tar.gz"
+    sha256 = ""
+
+# ---------------------------------------------------------------------------
+# Windows x86_64 (MSVC ABI, Windows >= 8)
+# ---------------------------------------------------------------------------
+[SciRS2.x86_64-w64-mingw32]
+git-tree-sha1 = ""
+lazy = true
+
+    [[SciRS2.x86_64-w64-mingw32.download]]
+    url    = "https://github.com/cool-japan/scirs/releases/download/v0.4.0/SciRS2-v0.4.0-x86_64-w64-mingw32.tar.gz"
+    sha256 = ""
+
+# ---------------------------------------------------------------------------
+# Windows aarch64 (ARM64, Windows on ARM)
+# ---------------------------------------------------------------------------
+[SciRS2.aarch64-w64-mingw32]
+git-tree-sha1 = ""
+lazy = true
+
+    [[SciRS2.aarch64-w64-mingw32.download]]
+    url    = "https://github.com/cool-japan/scirs/releases/download/v0.4.0/SciRS2-v0.4.0-aarch64-w64-mingw32.tar.gz"
+    sha256 = ""

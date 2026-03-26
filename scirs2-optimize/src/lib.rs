@@ -43,7 +43,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-optimize = "0.1.5"
+//! scirs2-optimize = "0.4.0"
 //! ```
 //!
 //! ### Unconstrained Minimization (Rosenbrock Function)
@@ -438,6 +438,35 @@ pub mod streaming;
 pub mod unconstrained;
 pub mod unified_pipeline;
 pub mod visualization;
+
+// Coordinate descent methods
+pub mod coordinate_descent;
+// DARTS differentiable NAS
+pub mod darts;
+// Differentiable optimization (OptNet)
+pub mod differentiable_optimization;
+// Distributed ADMM/PDMM/EXTRA
+pub mod distributed_admm;
+// Distributionally robust optimization
+pub mod dro;
+// Hardware-aware NAS
+pub mod hardware_nas;
+// High-dimensional optimization (randomized SVD, stochastic coordinate)
+pub mod high_dimensional;
+// Integer programming (knapsack, CDCL, column generation, lattice, lift-project)
+pub mod integer;
+// Kaczmarz and randomized projection
+pub mod kaczmarz;
+// Multi-fidelity optimization (Hyperband)
+pub mod multi_fidelity;
+// Quantum-classical hybrid (QAOA, VQE, MPS)
+pub mod quantum_classical;
+// Second-order methods (L-BFGS-B, SR1, SLBFGS)
+pub mod second_order;
+// Sketched optimization
+pub mod sketched;
+// Subspace embedding
+pub mod subspace_embed;
 
 // Common optimization result structure
 pub mod result;

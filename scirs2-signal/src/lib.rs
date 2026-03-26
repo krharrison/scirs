@@ -37,7 +37,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-signal = "0.1.5"
+//! scirs2-signal = "0.4.0"
 //! ```
 //!
 //! ```rust
@@ -173,6 +173,21 @@ pub mod signal_quality;
 
 // v0.3.0 Resampling (polyphase, sinc interpolation, fractional delay, anti-aliasing)
 pub mod resampling;
+
+// Deep learning denoising
+pub mod dl_denoising;
+// Echo cancellation (multi-delay AEC)
+pub mod echo_cancellation;
+// GPU-accelerated signal processing
+pub mod gpu;
+// Operational modal analysis
+pub mod modal_analysis;
+// Neural audio processing
+pub mod neural_audio;
+// Phase estimation (ESPRIT, MUSIC)
+pub mod phase_estimation;
+// Real-time DSP pipeline
+pub mod realtime_dsp;
 
 // Re-export core functionality
 pub use convolve::{convolve, convolve_simd_ultra, correlate};

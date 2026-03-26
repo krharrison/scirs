@@ -28,14 +28,17 @@
 
 // Submodules: volatility family extensions
 pub mod arch;
-pub mod garch;
+pub mod bekk_garch;
+pub mod dcc_garch;
 pub mod egarch;
-pub mod gjr_garch;
 pub mod figarch;
+pub mod garch;
+pub mod gjr_garch;
+pub mod har_rv;
 pub mod rv_models;
 
 use scirs2_core::ndarray::Array1;
-use scirs2_core::random::{Normal, Rng, SeedableRng};
+use scirs2_core::random::{Normal, Rng, RngExt, SeedableRng};
 
 use crate::error::TimeSeriesError;
 
@@ -226,9 +229,9 @@ impl Garch {
         let persistence = alpha_sum + beta_sum;
 
         // Long-run mean-reversion target
-        let uncond = self.unconditional_variance().unwrap_or_else(|| {
-            sigmas.iter().copied().sum::<f64>() / n as f64
-        });
+        let uncond = self
+            .unconditional_variance()
+            .unwrap_or_else(|| sigmas.iter().copied().sum::<f64>() / n as f64);
 
         let mut forecasts = Vec::with_capacity(h);
 
@@ -333,7 +336,10 @@ pub fn fit_garch(
             Err(_) => f64::INFINITY,
             Ok(h) => {
                 let h_slice = match h.as_slice() {
-                    Some(s) => { let v: Vec<f64> = s.to_vec(); v },
+                    Some(s) => {
+                        let v: Vec<f64> = s.to_vec();
+                        v
+                    }
                     None => h.iter().copied().collect(),
                 };
                 -compute_log_likelihood(&eps, &h_slice, &distribution)
@@ -509,10 +515,7 @@ impl EGarch {
 }
 
 /// Fit an EGARCH(1,1) model by MLE via Nelder-Mead.
-pub fn fit_egarch_1_1(
-    returns: &Array1<f64>,
-    max_iter: usize,
-) -> Result<EGarch, TimeSeriesError> {
+pub fn fit_egarch_1_1(returns: &Array1<f64>, max_iter: usize) -> Result<EGarch, TimeSeriesError> {
     let n = returns.len();
     if n < 20 {
         return Err(TimeSeriesError::InsufficientData {
@@ -530,9 +533,9 @@ pub fn fit_egarch_1_1(
     let sample_var: f64 = eps.iter().map(|e| e * e).sum::<f64>() / n as f64;
     let init = vec![
         sample_var.max(1e-10).ln() * 0.05, // omega ~ small constant
-        0.10_f64,                            // alpha (shock magnitude)
-        -0.05_f64,                           // gamma (leverage, typically negative)
-        0.85_f64,                            // beta (persistence)
+        0.10_f64,                          // alpha (shock magnitude)
+        -0.05_f64,                         // gamma (leverage, typically negative)
+        0.85_f64,                          // beta (persistence)
     ];
 
     let neg_ll = |par: &[f64]| -> f64 {
@@ -703,7 +706,7 @@ pub fn fit_gjr_garch_1_1(
     let init = vec![
         sample_var * 0.05,
         0.04_f64,
-        0.08_f64,  // leverage (typically positive = bad news amplification)
+        0.08_f64, // leverage (typically positive = bad news amplification)
         0.85_f64,
     ];
 
@@ -752,11 +755,7 @@ pub fn fit_gjr_garch_1_1(
 ///
 /// Supports Normal, Student-t (with fixed or specified df), GED, and SkewedT
 /// (approximated as Student-t for likelihood calculation).
-fn compute_log_likelihood(
-    eps: &[f64],
-    h: &[f64],
-    distribution: &GarchDistribution,
-) -> f64 {
+fn compute_log_likelihood(eps: &[f64], h: &[f64], distribution: &GarchDistribution) -> f64 {
     let n = eps.len().min(h.len());
     if n == 0 {
         return f64::NEG_INFINITY;
@@ -772,16 +771,12 @@ fn compute_log_likelihood(
             }
             ll
         }
-        GarchDistribution::StudentT { df } => {
-            student_t_log_likelihood(eps, h, *df)
-        }
+        GarchDistribution::StudentT { df } => student_t_log_likelihood(eps, h, *df),
         GarchDistribution::SkewedT { df, skew: _ } => {
             // Use Student-t kernel (skewness correction omitted for numerical stability)
             student_t_log_likelihood(eps, h, *df)
         }
-        GarchDistribution::GED { nu } => {
-            ged_log_likelihood(eps, h, *nu)
-        }
+        GarchDistribution::GED { nu } => ged_log_likelihood(eps, h, *nu),
     }
 }
 
@@ -844,9 +839,7 @@ fn lgamma(x: f64) -> f64 {
 
     if x < 0.5 {
         // Reflection formula
-        std::f64::consts::PI.ln()
-            - (std::f64::consts::PI * x).sin().ln()
-            - lgamma(1.0 - x)
+        std::f64::consts::PI.ln() - (std::f64::consts::PI * x).sin().ln() - lgamma(1.0 - x)
     } else {
         let x = x - 1.0;
         let mut a = C[0];
@@ -854,10 +847,7 @@ fn lgamma(x: f64) -> f64 {
             a += c / (x + i as f64 + 1.0);
         }
         let t = x + G + 0.5;
-        0.5 * (2.0 * std::f64::consts::PI).ln()
-            + (x + 0.5) * t.ln()
-            - t
-            + a.ln()
+        0.5 * (2.0 * std::f64::consts::PI).ln() + (x + 0.5) * t.ln() - t + a.ln()
     }
 }
 
@@ -932,7 +922,11 @@ fn nelder_mead_impl(
     simplex.push(x0.to_vec());
     for i in 0..n {
         let mut v = x0.to_vec();
-        let delta = if v[i].abs() > 1e-5 { 0.05 * v[i].abs() } else { 0.00025 };
+        let delta = if v[i].abs() > 1e-5 {
+            0.05 * v[i].abs()
+        } else {
+            0.00025
+        };
         v[i] += delta;
         simplex.push(v);
     }
@@ -945,7 +939,11 @@ fn nelder_mead_impl(
     for _iter in 0..max_iter {
         // Sort by function value (ascending)
         let mut order: Vec<usize> = (0..=n).collect();
-        order.sort_by(|&a, &b| fvals[a].partial_cmp(&fvals[b]).unwrap_or(std::cmp::Ordering::Equal));
+        order.sort_by(|&a, &b| {
+            fvals[a]
+                .partial_cmp(&fvals[b])
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         let best = order[0];
         let worst = order[n];
@@ -1013,8 +1011,8 @@ fn nelder_mead_impl(
                 for i in 1..=n {
                     let idx = order[i];
                     for k in 0..n {
-                        simplex[idx][k] = simplex[best][k]
-                            + SIGMA * (simplex[idx][k] - simplex[best][k]);
+                        simplex[idx][k] =
+                            simplex[best][k] + SIGMA * (simplex[idx][k] - simplex[best][k]);
                     }
                     fvals[idx] = f(&simplex[idx]);
                 }
@@ -1024,7 +1022,11 @@ fn nelder_mead_impl(
 
     // Return best vertex
     let best_idx = (0..=n)
-        .min_by(|&a, &b| fvals[a].partial_cmp(&fvals[b]).unwrap_or(std::cmp::Ordering::Equal))
+        .min_by(|&a, &b| {
+            fvals[a]
+                .partial_cmp(&fvals[b])
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
         .unwrap_or(0);
 
     Ok(simplex[best_idx].clone())
@@ -1038,10 +1040,7 @@ fn nelder_mead_impl(
 ///
 /// Regresses eps2_t on its `lags` lagged values and computes T*R2 ~ chi2(lags).
 /// Returns `(LM_statistic, p_value)`.
-pub fn arch_lm_test(
-    residuals: &Array1<f64>,
-    lags: usize,
-) -> Result<(f64, f64), TimeSeriesError> {
+pub fn arch_lm_test(residuals: &Array1<f64>, lags: usize) -> Result<(f64, f64), TimeSeriesError> {
     let n = residuals.len();
     if n <= lags + 1 {
         return Err(TimeSeriesError::InsufficientData {
@@ -1089,7 +1088,11 @@ pub fn arch_lm_test(
     let mut ss_tot = 0.0_f64;
     let mut ss_res = 0.0_f64;
     for i in 0..t {
-        let y_hat: f64 = x_mat[i].iter().zip(beta.iter()).map(|(xi, bi)| xi * bi).sum();
+        let y_hat: f64 = x_mat[i]
+            .iter()
+            .zip(beta.iter())
+            .map(|(xi, bi)| xi * bi)
+            .sum();
         let r = y_vec[i] - y_hat;
         ss_res += r * r;
         ss_tot += (y_vec[i] - y_mean) * (y_vec[i] - y_mean);
@@ -1108,10 +1111,7 @@ pub fn arch_lm_test(
 }
 
 /// Compute standardized residuals: z_t = eps_t / sigma_t.
-pub fn standardized_residuals(
-    returns: &Array1<f64>,
-    conditional_std: &Array1<f64>,
-) -> Array1<f64> {
+pub fn standardized_residuals(returns: &Array1<f64>, conditional_std: &Array1<f64>) -> Array1<f64> {
     returns
         .iter()
         .zip(conditional_std.iter())
@@ -1350,12 +1350,7 @@ fn regularised_upper_gamma_cf(a: f64, x: f64) -> f64 {
 }
 
 /// OLS via Gaussian elimination on the normal equations.
-fn ols_solve(
-    x: &[Vec<f64>],
-    y: &[f64],
-    n: usize,
-    k: usize,
-) -> Option<Vec<f64>> {
+fn ols_solve(x: &[Vec<f64>], y: &[f64], n: usize, k: usize) -> Option<Vec<f64>> {
     // Compute X'X (k x k) and X'y (k)
     let mut xtx = vec![vec![0.0_f64; k]; k];
     let mut xty = vec![0.0_f64; k];
@@ -1424,8 +1419,14 @@ mod tests {
     use scirs2_core::ndarray::Array1;
 
     /// Generate a synthetic GARCH(1,1) series for testing.
-    fn synthetic_garch_returns(n: usize, omega: f64, alpha: f64, beta: f64, seed: u64) -> Array1<f64> {
-        use scirs2_core::random::{Normal, Rng, SeedableRng};
+    fn synthetic_garch_returns(
+        n: usize,
+        omega: f64,
+        alpha: f64,
+        beta: f64,
+        seed: u64,
+    ) -> Array1<f64> {
+        use scirs2_core::random::{Normal, Rng, RngExt, SeedableRng};
         let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(seed);
         let normal = Normal::new(0.0_f64, 1.0_f64).expect("Normal dist");
 
@@ -1633,7 +1634,10 @@ mod tests {
         let g = Garch::garch_1_1(0.01, 0.08, 0.88);
         let fcs = g.forecast_variance(&returns, 10).expect("Forecasts");
         assert_eq!(fcs.len(), 10);
-        assert!(fcs.iter().all(|&v| v > 0.0), "All forecasts must be positive");
+        assert!(
+            fcs.iter().all(|&v| v > 0.0),
+            "All forecasts must be positive"
+        );
     }
 
     #[test]
@@ -1686,7 +1690,7 @@ mod tests {
     #[test]
     fn test_arch_lm_white_noise_high_pvalue() {
         // iid N(0,1) sequence has no ARCH effects -> high p-value
-        use scirs2_core::random::{Normal, Rng, SeedableRng};
+        use scirs2_core::random::{Normal, Rng, RngExt, SeedableRng};
         let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(12345);
         let normal = Normal::new(0.0_f64, 0.02_f64).expect("Normal");
         let data: Array1<f64> = (0..200).map(|_| rng.sample(normal)).collect();
@@ -1713,7 +1717,7 @@ mod tests {
     fn test_realized_volatility_aggregation() {
         // 60 5-minute returns in a day = 2 days of realized var
         let n = 60_usize;
-        use scirs2_core::random::{Normal, Rng, SeedableRng};
+        use scirs2_core::random::{Normal, Rng, RngExt, SeedableRng};
         let mut rng = scirs2_core::random::rngs::StdRng::seed_from_u64(7);
         let normal = Normal::new(0.0_f64, 0.001_f64).expect("Normal");
         let intra: Array1<f64> = (0..n).map(|_| rng.sample(normal)).collect();

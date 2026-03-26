@@ -92,19 +92,39 @@ pub fn knapsack_dp(
         return Ok((0.0, Vec::new()));
     }
 
-    // Scale weights to integers.  We choose the precision as the smallest
-    // non-zero weight component divided by 1000 (or 1.0 if all are zero).
-    let min_nonzero = weights
-        .iter()
-        .copied()
-        .filter(|&w| w > 0.0)
-        .fold(f64::INFINITY, f64::min);
-    let scale = if min_nonzero.is_finite() && min_nonzero > 0.0 {
-        // Round to at most 1e6 grid points to avoid memory blowup
-        let raw_scale = (1.0 / min_nonzero).min(1e4);
-        raw_scale
-    } else {
-        1.0
+    // Scale weights to integers.  We need a scale factor such that
+    // (weight * scale).round() preserves the relative ordering and feasibility.
+    //
+    // Strategy: find the smallest fractional granularity needed.  If all
+    // weights are (near-)integers, scale = 1.  Otherwise we pick a scale
+    // that maps the smallest fractional part to at least 1 grid unit, capped
+    // to avoid memory blowup.
+    let scale = {
+        // Collect the fractional decimal digits needed
+        let mut best_scale = 1.0_f64;
+        for &w in weights.iter().chain(std::iter::once(&capacity)) {
+            if w <= 0.0 {
+                continue;
+            }
+            // Find the number of significant decimal places (up to 6)
+            let mut s = 1.0_f64;
+            for _ in 0..6 {
+                if ((w * s).round() - w * s).abs() < 1e-9 {
+                    break;
+                }
+                s *= 10.0;
+            }
+            if s > best_scale {
+                best_scale = s;
+            }
+        }
+        // Cap so that scaled_cap doesn't exceed a reasonable size
+        let max_scale = if capacity > 0.0 {
+            (20_000_000.0 / capacity).max(1.0)
+        } else {
+            1e6
+        };
+        best_scale.min(max_scale)
     };
 
     let scaled_cap = (capacity * scale).round() as usize;
@@ -232,11 +252,7 @@ fn greedy_selection_fallback(values: &[f64], weights: &[f64], capacity: f64) -> 
 /// let val = fractional_knapsack(&values, &weights, 50.0).expect("valid input");
 /// assert!((val - 240.0).abs() < 1e-6);
 /// ```
-pub fn fractional_knapsack(
-    values: &[f64],
-    weights: &[f64],
-    capacity: f64,
-) -> OptimizeResult<f64> {
+pub fn fractional_knapsack(values: &[f64], weights: &[f64], capacity: f64) -> OptimizeResult<f64> {
     let n = values.len();
     if weights.len() != n {
         return Err(OptimizeError::InvalidInput(
@@ -341,11 +357,10 @@ pub fn fractional_knapsack(
 /// let weights = vec![1.0, 2.0, 3.0];
 /// let counts  = vec![4usize, 3, 2];
 /// let (val, sel) = bounded_knapsack(&values, &weights, &counts, 7.0).expect("valid input");
-/// // Optimal: 4 of item 0 (val=12, w=4) + 1 of item 1 (val=4, w=2) + ...
-/// // Many solutions; check feasibility
+/// // Optimal is 17: e.g. 4×item0 (v=12,w=4) + 1×item2 (v=5,w=3)
 /// let total_w: f64 = weights.iter().zip(sel.iter()).map(|(&w, &c)| w * c as f64).sum();
 /// assert!(total_w <= 7.0 + 1e-9);
-/// assert!(val >= 18.0 - 1e-6);
+/// assert!(val >= 17.0 - 1e-6);
 /// ```
 pub fn bounded_knapsack(
     values: &[f64],
@@ -551,7 +566,14 @@ impl<'a> Mkp<'a> {
             };
             rb.partial_cmp(&ra).unwrap_or(std::cmp::Ordering::Equal)
         });
-        Mkp { n, d, values, weights, capacities, order }
+        Mkp {
+            n,
+            d,
+            values,
+            weights,
+            capacities,
+            order,
+        }
     }
 
     /// LP upper bound by relaxing integrality (fractional knapsack per first dim).
@@ -722,15 +744,19 @@ mod tests {
 
     #[test]
     fn test_knapsack_dp_basic() {
-        let values  = vec![4.0, 3.0, 5.0, 2.0, 6.0];
+        let values = vec![4.0, 3.0, 5.0, 2.0, 6.0];
         let weights = vec![2.0, 3.0, 4.0, 1.0, 5.0];
         let (val, sel) = knapsack_dp(&values, &weights, 8.0).expect("unexpected None or Err");
         assert_abs_diff_eq!(val, 12.0, epsilon = 1e-6);
         // Verify selection is feasible and achieves the reported value
-        let total_w: f64 = weights.iter().zip(sel.iter())
+        let total_w: f64 = weights
+            .iter()
+            .zip(sel.iter())
             .map(|(&w, &s)| if s { w } else { 0.0 })
             .sum();
-        let total_v: f64 = values.iter().zip(sel.iter())
+        let total_v: f64 = values
+            .iter()
+            .zip(sel.iter())
             .map(|(&v, &s)| if s { v } else { 0.0 })
             .sum();
         assert!(total_w <= 8.0 + 1e-9, "weight {} > capacity 8", total_w);
@@ -747,15 +773,15 @@ mod tests {
     #[test]
     fn test_knapsack_dp_none_fit() {
         // All items too heavy
-        let values  = vec![10.0, 20.0];
-        let weights = vec![5.0,   8.0];
+        let values = vec![10.0, 20.0];
+        let weights = vec![5.0, 8.0];
         let (val, _sel) = knapsack_dp(&values, &weights, 3.0).expect("unexpected None or Err");
         assert_abs_diff_eq!(val, 0.0, epsilon = 1e-6);
     }
 
     #[test]
     fn test_knapsack_dp_all_fit() {
-        let values  = vec![1.0, 2.0, 3.0];
+        let values = vec![1.0, 2.0, 3.0];
         let weights = vec![1.0, 1.0, 1.0];
         let (val, sel) = knapsack_dp(&values, &weights, 10.0).expect("unexpected None or Err");
         assert_abs_diff_eq!(val, 6.0, epsilon = 1e-6);
@@ -778,8 +804,8 @@ mod tests {
     fn test_knapsack_dp_integer_weights() {
         // Classic textbook example: n=4, cap=5
         // values: 10,40,30,50  weights: 5,4,6,3
-        let values  = vec![10.0, 40.0, 30.0, 50.0];
-        let weights = vec![5.0,   4.0,  6.0,  3.0];
+        let values = vec![10.0, 40.0, 30.0, 50.0];
+        let weights = vec![5.0, 4.0, 6.0, 3.0];
         let (val, sel) = knapsack_dp(&values, &weights, 5.0).expect("unexpected None or Err");
         // Best: item 1 (val=40, w=4) + no second item that fits (remaining=1)
         //       or item 3 (val=50, w=3) + no fit for rest
@@ -787,8 +813,11 @@ mod tests {
         // But: item 1 (w=4, v=40) leaves 1 cap -> val=40
         // So optimal = 50
         assert_abs_diff_eq!(val, 50.0, epsilon = 1e-6);
-        let total_w: f64 = weights.iter().zip(sel.iter())
-            .map(|(&w, &s)| if s { w } else { 0.0 }).sum();
+        let total_w: f64 = weights
+            .iter()
+            .zip(sel.iter())
+            .map(|(&w, &s)| if s { w } else { 0.0 })
+            .sum();
         assert!(total_w <= 5.0 + 1e-9);
     }
 
@@ -799,8 +828,8 @@ mod tests {
         // Classic: items with (value, weight) = (60,10),(100,20),(120,30), cap=50
         // Optimal: all of item 0 & 1, then 2/3 of item 2
         // = 60 + 100 + 80 = 240
-        let values  = vec![60.0, 100.0, 120.0];
-        let weights = vec![10.0,  20.0,  30.0];
+        let values = vec![60.0, 100.0, 120.0];
+        let weights = vec![10.0, 20.0, 30.0];
         let val = fractional_knapsack(&values, &weights, 50.0).expect("failed to create val");
         assert_abs_diff_eq!(val, 240.0, epsilon = 1e-6);
     }
@@ -813,8 +842,8 @@ mod tests {
 
     #[test]
     fn test_fractional_knapsack_exact_fit() {
-        let values  = vec![10.0, 20.0];
-        let weights = vec![5.0,  10.0];
+        let values = vec![10.0, 20.0];
+        let weights = vec![5.0, 10.0];
         let val = fractional_knapsack(&values, &weights, 15.0).expect("failed to create val");
         assert_abs_diff_eq!(val, 30.0, epsilon = 1e-9);
     }
@@ -822,8 +851,8 @@ mod tests {
     #[test]
     fn test_fractional_knapsack_zero_weight_item() {
         // Zero-weight item should always be taken fully
-        let values  = vec![100.0, 5.0];
-        let weights = vec![0.0,   1.0];
+        let values = vec![100.0, 5.0];
+        let weights = vec![0.0, 1.0];
         let val = fractional_knapsack(&values, &weights, 1.0).expect("failed to create val");
         assert_abs_diff_eq!(val, 105.0, epsilon = 1e-9);
     }
@@ -838,28 +867,46 @@ mod tests {
 
     #[test]
     fn test_bounded_knapsack_basic() {
-        let values  = vec![3.0, 4.0, 5.0];
+        let values = vec![3.0, 4.0, 5.0];
         let weights = vec![1.0, 2.0, 3.0];
-        let counts  = vec![4usize, 3, 2];
-        let (val, sel) = bounded_knapsack(&values, &weights, &counts, 7.0).expect("unexpected None or Err");
+        let counts = vec![4usize, 3, 2];
+        let (val, sel) =
+            bounded_knapsack(&values, &weights, &counts, 7.0).expect("unexpected None or Err");
         // Verify feasibility
-        let total_w: f64 = weights.iter().zip(sel.iter())
-            .map(|(&w, &c)| w * c as f64).sum();
-        assert!(total_w <= 7.0 + 1e-9, "weight {} exceeds capacity 7", total_w);
+        let total_w: f64 = weights
+            .iter()
+            .zip(sel.iter())
+            .map(|(&w, &c)| w * c as f64)
+            .sum();
+        assert!(
+            total_w <= 7.0 + 1e-9,
+            "weight {} exceeds capacity 7",
+            total_w
+        );
         // Verify counts respected
         for i in 0..3 {
-            assert!(sel[i] <= counts[i], "sel[{}]={} > counts[{}]={}", i, sel[i], i, counts[i]);
+            assert!(
+                sel[i] <= counts[i],
+                "sel[{}]={} > counts[{}]={}",
+                i,
+                sel[i],
+                i,
+                counts[i]
+            );
         }
-        assert!(val >= 18.0 - 1e-6, "val={} should be >= 18", val);
+        // Optimal is 17: e.g. 3×item0 (v=9,w=3) + 2×item1 (v=8,w=4) = 17, w=7
+        // or 4×item0 (v=12,w=4) + 1×item2 (v=5,w=3) = 17, w=7
+        assert!(val >= 17.0 - 1e-6, "val={} should be >= 17", val);
     }
 
     #[test]
     fn test_bounded_knapsack_unit_counts() {
         // bounded with counts=1 should match 0-1 knapsack
-        let values  = vec![4.0, 3.0, 5.0, 2.0];
+        let values = vec![4.0, 3.0, 5.0, 2.0];
         let weights = vec![2.0, 3.0, 4.0, 1.0];
-        let counts  = vec![1usize; 4];
-        let (val_b, _) = bounded_knapsack(&values, &weights, &counts, 6.0).expect("unexpected None or Err");
+        let counts = vec![1usize; 4];
+        let (val_b, _) =
+            bounded_knapsack(&values, &weights, &counts, 6.0).expect("unexpected None or Err");
         let (val_dp, _) = knapsack_dp(&values, &weights, 6.0).expect("unexpected None or Err");
         assert_abs_diff_eq!(val_b, val_dp, epsilon = 1e-6);
     }
@@ -875,23 +922,22 @@ mod tests {
     #[test]
     fn test_multi_dimensional_knapsack_1d() {
         // 1-D should equal the 0-1 DP result
-        let values  = vec![4.0, 3.0, 5.0, 2.0, 6.0];
+        let values = vec![4.0, 3.0, 5.0, 2.0, 6.0];
         let weights = vec![vec![2.0, 3.0, 4.0, 1.0, 5.0]];
-        let caps    = vec![8.0];
-        let val_md = multi_dimensional_knapsack(&values, &weights, &caps).expect("failed to create val_md");
+        let caps = vec![8.0];
+        let val_md =
+            multi_dimensional_knapsack(&values, &weights, &caps).expect("failed to create val_md");
         let (val_dp, _) = knapsack_dp(&values, &weights[0], 8.0).expect("unexpected None or Err");
         assert_abs_diff_eq!(val_md, val_dp, epsilon = 1e-6);
     }
 
     #[test]
     fn test_multi_dimensional_knapsack_2d() {
-        let values  = vec![10.0, 6.0, 5.0];
-        let weights = vec![
-            vec![2.0, 3.0, 1.0],
-            vec![4.0, 1.0, 2.0],
-        ];
+        let values = vec![10.0, 6.0, 5.0];
+        let weights = vec![vec![2.0, 3.0, 1.0], vec![4.0, 1.0, 2.0]];
         let caps = vec![5.0, 6.0];
-        let val = multi_dimensional_knapsack(&values, &weights, &caps).expect("failed to create val");
+        let val =
+            multi_dimensional_knapsack(&values, &weights, &caps).expect("failed to create val");
         assert!(val >= 15.0 - 1e-6, "val={} should be >= 15", val);
     }
 
@@ -901,7 +947,8 @@ mod tests {
         let values = vec![1.0, 2.0, 3.0];
         let weights: Vec<Vec<f64>> = Vec::new();
         let caps: Vec<f64> = Vec::new();
-        let val = multi_dimensional_knapsack(&values, &weights, &caps).expect("failed to create val");
+        let val =
+            multi_dimensional_knapsack(&values, &weights, &caps).expect("failed to create val");
         assert_abs_diff_eq!(val, 6.0, epsilon = 1e-9);
     }
 
@@ -915,9 +962,9 @@ mod tests {
 
     #[test]
     fn test_multi_dimensional_knapsack_error_dim_mismatch() {
-        let values  = vec![1.0, 2.0];
+        let values = vec![1.0, 2.0];
         let weights = vec![vec![1.0]]; // only 1 item weight, but 2 items
-        let caps    = vec![5.0];
+        let caps = vec![5.0];
         let result = multi_dimensional_knapsack(&values, &weights, &caps);
         assert!(result.is_err());
     }

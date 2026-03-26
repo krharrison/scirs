@@ -138,19 +138,19 @@
 ## v0.4.0 Roadmap
 
 ### Distributional Metrics
-- [ ] Wasserstein distance (Earth Mover's distance) — exact and approximate
-- [ ] Sinkhorn divergence for regularized optimal transport
-- [ ] Energy distance between empirical distributions
-- [ ] Kernel Stein Discrepancy (KSD) for goodness-of-fit
-- [ ] Total variation distance
+- [x] Wasserstein distance (Earth Mover's distance) — exact and approximate — Implemented in v0.4.0 (`distribution/mod.rs`)
+- [x] Sinkhorn divergence for regularized optimal transport — Implemented in v0.4.0 (`distribution/mod.rs`)
+- [x] Energy distance between empirical distributions — Implemented in v0.4.0 (`distribution/mod.rs`)
+- [x] Kernel Stein Discrepancy (KSD) for goodness-of-fit — Implemented in v0.4.0 (`distribution/mod.rs`)
+- [x] Total variation distance — Implemented in v0.4.0 (`distribution/mod.rs`)
 
 ### Uncertainty Calibration Metrics
-- [ ] Expected Calibration Error (ECE)
-- [ ] Maximum Calibration Error (MCE)
-- [ ] Reliability diagram generation
-- [ ] Temperature scaling calibration diagnostic
-- [ ] Adaptive Calibration Error (ACE)
-- [ ] Conformal prediction coverage metrics
+- [x] Expected Calibration Error (ECE) — Implemented in v0.4.0 (`calibration/metrics.rs`)
+- [x] Maximum Calibration Error (MCE) — Implemented in v0.4.0 (`calibration/metrics.rs`)
+- [x] Reliability diagram generation — Implemented in v0.4.0 (`calibration/reliability.rs`)
+- [x] Temperature scaling calibration diagnostic — Implemented in v0.4.0 (`calibration/advanced.rs`)
+- [x] Adaptive Calibration Error (ACE) — Implemented in v0.4.0 (`calibration/metrics.rs`)
+- [x] Conformal prediction coverage metrics — Implemented in v0.4.0 (`calibration/advanced.rs`)
 
 ### Active Learning Utility
 - [ ] Margin sampling score
@@ -160,16 +160,16 @@
 - [ ] Expected model change
 
 ### Expanded Detection Metrics
-- [ ] 3D IoU for point cloud bounding boxes
+- [x] 3D IoU for point cloud bounding boxes — Implemented in v0.4.0 (`detection_3d/iou_3d.rs`)
 - [ ] Rotated bounding box IoU
-- [ ] Tracking metrics: MOTA, MOTP, IDF1
-- [ ] Keypoint metrics: OKS (Object Keypoint Similarity), PCK
+- [x] Tracking metrics: MOTA, MOTP, IDF1 — Implemented in v0.4.0 (`tracking/` module)
+- [x] Keypoint metrics: OKS (Object Keypoint Similarity), PCK — Implemented in v0.4.0 (`keypoint/mod.rs`)
 
 ### Time Series Metrics
-- [ ] Dynamic Time Warping (DTW) distance as metric
-- [ ] Forecast skill scores (Brier skill score, CRPS)
-- [ ] Directional accuracy (hit rate) for forecasts
-- [ ] Diebold-Mariano test for forecast comparison
+- [x] Dynamic Time Warping (DTW) distance as metric — Implemented in v0.4.0 (`temporal/mod.rs`)
+- [x] Forecast skill scores (Brier skill score, CRPS) — Implemented in v0.4.0 (`temporal/mod.rs`)
+- [x] Directional accuracy (hit rate) for forecasts — Implemented in v0.4.0 (`temporal/mod.rs`)
+- [x] Diebold-Mariano test for forecast comparison — Implemented in v0.4.0 (`temporal/mod.rs`)
 
 ### Documentation and Examples
 - [ ] Comprehensive cookbook with domain-specific metric selection guides

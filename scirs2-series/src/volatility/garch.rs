@@ -245,7 +245,11 @@ where
     simplex.push(x0.clone());
     for i in 0..n {
         let mut vertex = x0.clone();
-        vertex[i] += if vertex[i].abs() > 1e-5 { 0.05 * vertex[i].abs() } else { 0.00025 };
+        vertex[i] += if vertex[i].abs() > 1e-5 {
+            0.05 * vertex[i].abs()
+        } else {
+            0.00025
+        };
         simplex.push(vertex);
     }
     let mut fvals: Vec<f64> = simplex.iter().map(|v| f(v)).collect();
@@ -253,7 +257,9 @@ where
     for _iter in 0..max_iter {
         let mut order: Vec<usize> = (0..=n).collect();
         order.sort_by(|&a, &b| {
-            fvals[a].partial_cmp(&fvals[b]).unwrap_or(std::cmp::Ordering::Equal)
+            fvals[a]
+                .partial_cmp(&fvals[b])
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
         let best = order[0];
         let worst = order[n];
@@ -310,8 +316,7 @@ where
                 for i in 0..=n {
                     if i != best {
                         for j in 0..n {
-                            simplex[i][j] =
-                                best_vertex[j] + 0.5 * (simplex[i][j] - best_vertex[j]);
+                            simplex[i][j] = best_vertex[j] + 0.5 * (simplex[i][j] - best_vertex[j]);
                         }
                         fvals[i] = f(&simplex[i]);
                     }
@@ -321,7 +326,11 @@ where
     }
 
     let mut order: Vec<usize> = (0..=n).collect();
-    order.sort_by(|&a, &b| fvals[a].partial_cmp(&fvals[b]).unwrap_or(std::cmp::Ordering::Equal));
+    order.sort_by(|&a, &b| {
+        fvals[a]
+            .partial_cmp(&fvals[b])
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     let best = order[0];
     (simplex[best].clone(), fvals[best])
 }
@@ -416,7 +425,7 @@ pub fn fit_garch(residuals: &Array1<f64>, p: usize, q: usize) -> Result<GARCHMod
 /// For h-step-ahead forecasts the GARCH recursion is evaluated using:
 /// - The last q conditional variances from the in-sample fit
 /// - The last p squared residuals
-/// - Futures σ² replaced by σ²ₜ₊ₕ₋₁ in subsequent steps (E[ε²] = σ²)
+/// - Futures sigma^2 replaced by sigma^2(t+h-1) in subsequent steps (`E[eps^2] = sigma^2`)
 ///
 /// # Arguments
 ///
@@ -561,9 +570,9 @@ mod tests {
 
     fn sample_returns() -> Array1<f64> {
         Array1::from(vec![
-            0.01, -0.02, 0.015, -0.008, 0.012, 0.005, -0.018, 0.009, -0.003, 0.007, 0.025,
-            -0.014, 0.008, -0.006, 0.011, -0.019, 0.022, 0.003, -0.011, 0.017, -0.005, 0.031,
-            -0.013, 0.009, 0.002, -0.027, 0.016, -0.007, 0.013, 0.004,
+            0.01, -0.02, 0.015, -0.008, 0.012, 0.005, -0.018, 0.009, -0.003, 0.007, 0.025, -0.014,
+            0.008, -0.006, 0.011, -0.019, 0.022, 0.003, -0.011, 0.017, -0.005, 0.031, -0.013,
+            0.009, 0.002, -0.027, 0.016, -0.007, 0.013, 0.004,
         ])
     }
 
@@ -594,8 +603,8 @@ mod tests {
     #[test]
     fn test_garch_log_likelihood_shape() {
         let returns = sample_returns();
-        let (ll, sigma2) = garch_log_likelihood(&returns, 0.0001, &[0.1], &[0.8])
-            .expect("Should compute");
+        let (ll, sigma2) =
+            garch_log_likelihood(&returns, 0.0001, &[0.1], &[0.8]).expect("Should compute");
         assert!(ll.is_finite());
         assert_eq!(sigma2.len(), returns.len());
         for &s in &sigma2 {

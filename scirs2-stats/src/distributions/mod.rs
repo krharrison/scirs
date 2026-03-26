@@ -31,6 +31,8 @@ pub mod student_t;
 pub mod uniform;
 pub mod weibull;
 
+pub mod validation;
+
 // Re-export distribution functions
 pub use bernoulli::Bernoulli;
 pub use beta::Beta;
@@ -319,8 +321,8 @@ where
 ///
 /// // Special case: beta(2,3)
 /// let beta = distributions::beta(2.0f64, 3.0, 0.0, 1.0).expect("Operation failed");
-/// // This should be around 1.875 (exact: 15/8 = 1.875)
-/// assert!((beta.pdf(0.5) - 1.875).abs() < 1e-3);
+/// // Beta(2,3) PDF at 0.5: x^(a-1)*(1-x)^(b-1)/B(a,b) = 0.5*0.25/(1/12) = 1.5
+/// assert!((beta.pdf(0.5) - 1.5).abs() < 0.01);
 /// ```
 #[allow(dead_code)]
 pub fn beta<F>(alpha: F, beta: F, loc: F, scale: F) -> StatsResult<Beta<F>>

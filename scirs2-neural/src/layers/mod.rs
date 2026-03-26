@@ -318,6 +318,9 @@ pub mod recurrent;
 mod attention;
 mod embedding;
 mod flash_attention;
+mod flash_attention_v2;
+mod grouped_query_attention;
+mod multi_query_attention;
 mod regularization;
 pub mod rnn_thread_safe;
 
@@ -328,9 +331,16 @@ pub use dense::Dense;
 pub use dropout::Dropout;
 pub use embedding::{Embedding, EmbeddingConfig, PositionalEmbedding};
 pub use flash_attention::{flash_attention_compute, FlashAttention, FlashAttentionConfig};
+pub use flash_attention_v2::{
+    flash_attention_v2_compute, FlashAttentionV2, FlashAttentionV2Config,
+};
 pub use graph_conv::{
     GraphActivation, GraphAttentionLayer, GraphConvLayer, GraphSageLayer, SageAggregator,
 };
+pub use grouped_query_attention::{
+    GqaKvCache, GroupedQueryAttention, GroupedQueryAttentionConfig, RotaryPositionEmbedding,
+};
+pub use multi_query_attention::{KvCache, MultiQueryAttention, MultiQueryAttentionConfig};
 pub use normalization::{BatchNorm, LayerNorm};
 pub use recurrent::rnn::{RNNConfig, RecurrentActivation as RecurrentActivationRNN};
 pub use recurrent::{LSTM, RNN};

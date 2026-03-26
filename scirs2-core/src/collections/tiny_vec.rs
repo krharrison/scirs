@@ -192,16 +192,22 @@ impl<T, const N: usize> TinyVec<T, N> {
 
     /// Converts the `TinyVec` into an owned `Vec<T>`, which may involve a heap
     /// allocation if the data is currently stored inline.
-    pub fn into_vec(self) -> Vec<T> {
-        match self.storage {
+    pub fn into_vec(mut self) -> Vec<T> {
+        // Use ManuallyDrop to prevent the Drop impl from running after we
+        // move the storage out via ptr::read.
+        let storage = unsafe { std::ptr::read(&self.storage) };
+        // Prevent our Drop from double-freeing.
+        std::mem::forget(self);
+
+        match storage {
             Storage::Inline { data, len } => {
                 let mut v = Vec::with_capacity(len);
                 for i in 0..len {
                     // SAFETY: elements 0..len are initialised; we consume them.
                     v.push(unsafe { data[i].as_ptr().read() });
                 }
-                // Prevent drop from running on the MaybeUninit elements.
-                std::mem::forget(data);
+                // MaybeUninit<T> does not implement Drop, so no explicit
+                // forget is needed — the array is consumed by value above.
                 v
             }
             Storage::Heap(v) => v,
@@ -228,8 +234,7 @@ impl<T, const N: usize> TinyVec<T, N> {
                 // SAFETY: elements 0..len were initialised.
                 v.push(unsafe { data[i].as_ptr().read() });
             }
-            // Prevent double-drop.
-            std::mem::forget(data);
+            // MaybeUninit<T> does not implement Drop — no forget needed.
             v.push(extra);
             self.storage = Storage::Heap(v);
         }

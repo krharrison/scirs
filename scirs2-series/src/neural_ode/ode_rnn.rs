@@ -340,14 +340,17 @@ impl<F: Float + Debug + FromPrimitive + Clone> OdeRnn<F> {
             });
         }
         let s = config.seed;
-        let std_out = F::from(
-            (2.0 / (config.hidden_dim + config.output_dim) as f64).sqrt(),
-        )
-        .expect("std");
+        let std_out =
+            F::from((2.0 / (config.hidden_dim + config.output_dim) as f64).sqrt()).expect("std");
         Ok(Self {
             dynamics: HiddenDynamics::new(config.hidden_dim, s),
             gru: GruCell::new(config.input_dim, config.hidden_dim, s.wrapping_add(10)),
-            out_w: random_matrix(config.output_dim, config.hidden_dim, std_out, s.wrapping_add(20)),
+            out_w: random_matrix(
+                config.output_dim,
+                config.hidden_dim,
+                std_out,
+                s.wrapping_add(20),
+            ),
             out_b: Array1::zeros(config.output_dim),
             config,
         })
@@ -356,11 +359,10 @@ impl<F: Float + Debug + FromPrimitive + Clone> OdeRnn<F> {
     // ------------------------------------------------------------------
 
     fn ode_step(&self, h: &Array1<F>, dt: F) -> Result<Array1<F>> {
-        let n_steps = ((dt.abs()
-            * F::from(self.config.ode_steps_per_unit).expect("steps"))
-        .ceil()
-        .to_usize()
-        .unwrap_or(1))
+        let n_steps = ((dt.abs() * F::from(self.config.ode_steps_per_unit).expect("steps"))
+            .ceil()
+            .to_usize()
+            .unwrap_or(1))
         .max(1);
         let step_dt = dt / F::from(n_steps).expect("n_steps");
         let dyn_ref = &self.dynamics;
@@ -383,11 +385,7 @@ impl<F: Float + Debug + FromPrimitive + Clone> OdeRnn<F> {
     ///
     /// # Returns
     /// Hidden state trajectory (one per observation).
-    pub fn encode(
-        &self,
-        times: &[F],
-        observations: &[Array1<F>],
-    ) -> Result<Vec<Array1<F>>> {
+    pub fn encode(&self, times: &[F], observations: &[Array1<F>]) -> Result<Vec<Array1<F>>> {
         if times.len() != observations.len() {
             return Err(TimeSeriesError::DimensionMismatch {
                 expected: times.len(),
@@ -436,11 +434,7 @@ impl<F: Float + Debug + FromPrimitive + Clone> OdeRnn<F> {
     }
 
     /// Return the final hidden state of the encoder.
-    pub fn final_hidden(
-        &self,
-        times: &[F],
-        observations: &[Array1<F>],
-    ) -> Result<Array1<F>> {
+    pub fn final_hidden(&self, times: &[F], observations: &[Array1<F>]) -> Result<Array1<F>> {
         let hiddens = self.encode(times, observations)?;
         hiddens
             .into_iter()
@@ -449,11 +443,7 @@ impl<F: Float + Debug + FromPrimitive + Clone> OdeRnn<F> {
     }
 
     /// Predict one output from the final hidden state.
-    pub fn predict(
-        &self,
-        times: &[F],
-        observations: &[Array1<F>],
-    ) -> Result<Array1<F>> {
+    pub fn predict(&self, times: &[F], observations: &[Array1<F>]) -> Result<Array1<F>> {
         let h = self.final_hidden(times, observations)?;
         Ok(self.readout(&h))
     }
@@ -523,13 +513,16 @@ impl<F: Float + Debug + FromPrimitive + Clone> GruOde<F> {
             });
         }
         let s = config.seed;
-        let std_out = F::from(
-            (2.0 / (config.hidden_dim + config.output_dim) as f64).sqrt(),
-        )
-        .expect("std");
+        let std_out =
+            F::from((2.0 / (config.hidden_dim + config.output_dim) as f64).sqrt()).expect("std");
         Ok(Self {
             gru: GruCell::new(config.input_dim, config.hidden_dim, s),
-            out_w: random_matrix(config.output_dim, config.hidden_dim, std_out, s.wrapping_add(30)),
+            out_w: random_matrix(
+                config.output_dim,
+                config.hidden_dim,
+                std_out,
+                s.wrapping_add(30),
+            ),
             out_b: Array1::zeros(config.output_dim),
             config,
         })
@@ -550,11 +543,10 @@ impl<F: Float + Debug + FromPrimitive + Clone> GruOde<F> {
 
     /// Propagate hidden state from `t_prev` to `t_curr` via the continuous GRU-ODE.
     fn ode_propagate(&self, h: &Array1<F>, dt: F) -> Result<Array1<F>> {
-        let n_steps = ((dt.abs()
-            * F::from(self.config.ode_steps_per_unit).expect("steps"))
-        .ceil()
-        .to_usize()
-        .unwrap_or(1))
+        let n_steps = ((dt.abs() * F::from(self.config.ode_steps_per_unit).expect("steps"))
+            .ceil()
+            .to_usize()
+            .unwrap_or(1))
         .max(1);
         let step_dt = dt / F::from(n_steps).expect("n_steps");
         let self_ref = self;
@@ -573,11 +565,7 @@ impl<F: Float + Debug + FromPrimitive + Clone> GruOde<F> {
     ///
     /// Interleaves ODE propagation (between observations) with GRU updates
     /// (at each observation).
-    pub fn encode(
-        &self,
-        times: &[F],
-        observations: &[Array1<F>],
-    ) -> Result<Vec<Array1<F>>> {
+    pub fn encode(&self, times: &[F], observations: &[Array1<F>]) -> Result<Vec<Array1<F>>> {
         if times.len() != observations.len() {
             return Err(TimeSeriesError::DimensionMismatch {
                 expected: times.len(),
@@ -624,11 +612,7 @@ impl<F: Float + Debug + FromPrimitive + Clone> GruOde<F> {
     }
 
     /// Predict a single output from the final hidden state.
-    pub fn predict(
-        &self,
-        times: &[F],
-        observations: &[Array1<F>],
-    ) -> Result<Array1<F>> {
+    pub fn predict(&self, times: &[F], observations: &[Array1<F>]) -> Result<Array1<F>> {
         let hiddens = self.encode(times, observations)?;
         let h = hiddens
             .into_iter()
@@ -735,10 +719,7 @@ mod tests {
         let model = make_ode_rnn();
         let times = vec![0.0_f64, 1.0];
         // wrong input_dim: model expects 2, we send 3
-        let obs = vec![
-            array![1.0_f64, 2.0, 3.0],
-            array![0.0_f64, 0.0, 0.0],
-        ];
+        let obs = vec![array![1.0_f64, 2.0, 3.0], array![0.0_f64, 0.0, 0.0]];
         assert!(model.encode(&times, &obs).is_err());
     }
 

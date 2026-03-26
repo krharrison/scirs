@@ -23,7 +23,14 @@
 //! println!("F-statistic: {}, p-value: {}", result.f_statistic, result.p_value);
 //! ```
 
+pub mod ci_tests;
+pub mod fci;
 pub mod granger;
+pub mod pag;
+pub mod pc;
+pub mod pc_stable;
+pub mod pcmci;
+pub mod structural_var;
 pub mod transfer_entropy;
 
 use crate::error::TimeSeriesError;

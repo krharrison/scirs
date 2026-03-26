@@ -15,16 +15,26 @@
 pub mod basic;
 /// Advanced classification generators (multi-label, Hastie, enhanced n-class)
 pub mod classification;
+/// Time series with concept drift
+pub mod concept_drift;
 pub mod config;
 pub mod gpu;
 /// Graph dataset generators (karate club, random graph, Barabasi-Albert, Watts-Strogatz)
 pub mod graph;
+/// Mixed numeric/categorical feature generators
+pub mod heterogeneous;
+/// Low-rank matrix completion benchmark generator
+pub mod low_rank;
 pub mod manifold;
+/// Advanced multi-label classification with label dependencies
+pub mod multilabel_advanced;
 pub mod noise;
 /// Advanced regression generators (Friedman benchmarks, sparse uncorrelated, low-rank)
 pub mod regression;
 /// Sparse matrix dataset generators (SPD, banded, Laplacian)
 pub mod sparse;
+/// High-dimensional sparse classification generator
+pub mod sparse_classification;
 /// Structured data generators (biclusters, checkerboard, SPD matrices, sparse coded signals)
 pub mod structured;
 /// Time series dataset generators (sine wave, random walk, AR process, seasonal)

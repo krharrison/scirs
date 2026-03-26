@@ -25,7 +25,11 @@ use std::f32::consts::E;
 
 #[inline]
 fn elu(x: f32) -> f32 {
-    if x >= 0.0 { x } else { E.powf(x) - 1.0 }
+    if x >= 0.0 {
+        x
+    } else {
+        E.powf(x) - 1.0
+    }
 }
 
 #[inline]
@@ -76,7 +80,9 @@ impl Linear {
         let mut w = vec![vec![0.0_f32; in_dim]; out_dim];
         for row in &mut w {
             for cell in row.iter_mut() {
-                lcg = lcg.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                lcg = lcg
+                    .wrapping_mul(6364136223846793005)
+                    .wrapping_add(1442695040888963407);
                 let u = (lcg >> 33) as f32 / (u32::MAX as f32);
                 *cell = (u * 2.0 - 1.0) * std_dev;
             }
@@ -164,7 +170,12 @@ impl VariableSelectionNetwork {
             .collect();
         // Selector takes the concatenation of all features
         let selector = Linear::new(n_features * d_model, n_features, seed + 999);
-        Self { var_grns, selector, n_features, d_model }
+        Self {
+            var_grns,
+            selector,
+            n_features,
+            d_model,
+        }
     }
 
     /// Forward pass.
@@ -237,7 +248,9 @@ impl LSTMCell {
             let mut w = vec![vec![0.0_f32; cols]; rows];
             for row in &mut w {
                 for cell in row.iter_mut() {
-                    lcg = lcg.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                    lcg = lcg
+                        .wrapping_mul(6364136223846793005)
+                        .wrapping_add(1442695040888963407);
                     let u = (lcg >> 33) as f32 / (u32::MAX as f32);
                     *cell = (u * 2.0 - 1.0) * std_dev;
                 }
@@ -267,7 +280,10 @@ impl LSTMCell {
     }
 
     fn add3(a: &[f32], b: &[f32], c: &[f32]) -> Vec<f32> {
-        a.iter().zip(b.iter().zip(c.iter())).map(|(&x, (&y, &z))| x + y + z).collect()
+        a.iter()
+            .zip(b.iter().zip(c.iter()))
+            .map(|(&x, (&y, &z))| x + y + z)
+            .collect()
     }
 
     /// Single step forward.
@@ -276,24 +292,42 @@ impl LSTMCell {
     pub fn step(&self, x: &[f32], h: &[f32], c: &[f32]) -> (Vec<f32>, Vec<f32>) {
         let wx_f = Self::mat_vec(&self.wf, x);
         let uh_f = Self::mat_vec(&self.uf, h);
-        let f: Vec<f32> = Self::add3(&wx_f, &uh_f, &self.bf).into_iter().map(sigmoid).collect();
+        let f: Vec<f32> = Self::add3(&wx_f, &uh_f, &self.bf)
+            .into_iter()
+            .map(sigmoid)
+            .collect();
 
         let wx_i = Self::mat_vec(&self.wi, x);
         let uh_i = Self::mat_vec(&self.ui, h);
-        let i_gate: Vec<f32> = Self::add3(&wx_i, &uh_i, &self.bi).into_iter().map(sigmoid).collect();
+        let i_gate: Vec<f32> = Self::add3(&wx_i, &uh_i, &self.bi)
+            .into_iter()
+            .map(sigmoid)
+            .collect();
 
         let wx_o = Self::mat_vec(&self.wo, x);
         let uh_o = Self::mat_vec(&self.uo, h);
-        let o: Vec<f32> = Self::add3(&wx_o, &uh_o, &self.bo).into_iter().map(sigmoid).collect();
+        let o: Vec<f32> = Self::add3(&wx_o, &uh_o, &self.bo)
+            .into_iter()
+            .map(sigmoid)
+            .collect();
 
         let wx_g = Self::mat_vec(&self.wg, x);
         let uh_g = Self::mat_vec(&self.ug, h);
-        let g: Vec<f32> = Self::add3(&wx_g, &uh_g, &self.bg).into_iter().map(tanh).collect();
+        let g: Vec<f32> = Self::add3(&wx_g, &uh_g, &self.bg)
+            .into_iter()
+            .map(tanh)
+            .collect();
 
-        let new_c: Vec<f32> = f.iter().zip(c.iter().zip(i_gate.iter().zip(g.iter())))
+        let new_c: Vec<f32> = f
+            .iter()
+            .zip(c.iter().zip(i_gate.iter().zip(g.iter())))
             .map(|(&fi, (&ci, (&ii, &gi)))| fi * ci + ii * gi)
             .collect();
-        let new_h: Vec<f32> = o.iter().zip(new_c.iter()).map(|(&oi, &ci)| oi * tanh(ci)).collect();
+        let new_h: Vec<f32> = o
+            .iter()
+            .zip(new_c.iter())
+            .map(|(&oi, &ci)| oi * tanh(ci))
+            .collect();
         (new_h, new_c)
     }
 
@@ -333,17 +367,37 @@ impl MultiHeadAttn {
     /// Create with `n_heads` heads over vectors of dimension `d_model`.
     pub fn new(n_heads: usize, d_model: usize, seed: u64) -> Self {
         let d_head = (d_model / n_heads).max(1);
-        let wq = (0..n_heads).map(|i| Linear::new(d_model, d_head, seed + i as u64)).collect();
-        let wk = (0..n_heads).map(|i| Linear::new(d_model, d_head, seed + 100 + i as u64)).collect();
-        let wv = (0..n_heads).map(|i| Linear::new(d_model, d_head, seed + 200 + i as u64)).collect();
+        let wq = (0..n_heads)
+            .map(|i| Linear::new(d_model, d_head, seed + i as u64))
+            .collect();
+        let wk = (0..n_heads)
+            .map(|i| Linear::new(d_model, d_head, seed + 100 + i as u64))
+            .collect();
+        let wv = (0..n_heads)
+            .map(|i| Linear::new(d_model, d_head, seed + 200 + i as u64))
+            .collect();
         let wo = Linear::new(n_heads * d_head, d_model, seed + 999);
-        Self { wq, wk, wv, wo, n_heads, d_head }
+        Self {
+            wq,
+            wk,
+            wv,
+            wo,
+            n_heads,
+            d_head,
+        }
     }
 
     fn dot_product_attn(q: &[f32], keys: &[Vec<f32>], values: &[Vec<f32>], scale: f32) -> Vec<f32> {
-        let scores: Vec<f32> = keys.iter().map(|k| {
-            q.iter().zip(k.iter()).map(|(&qi, &ki)| qi * ki).sum::<f32>() * scale
-        }).collect();
+        let scores: Vec<f32> = keys
+            .iter()
+            .map(|k| {
+                q.iter()
+                    .zip(k.iter())
+                    .map(|(&qi, &ki)| qi * ki)
+                    .sum::<f32>()
+                    * scale
+            })
+            .collect();
         let attn = softmax(&scores);
         let d = values[0].len();
         let mut out = vec![0.0_f32; d];
@@ -360,17 +414,19 @@ impl MultiHeadAttn {
     /// `xs`: `[T][d_model]`. Returns `[T][d_model]`.
     pub fn forward(&self, xs: &[Vec<f32>]) -> Vec<Vec<f32>> {
         let scale = (self.d_head as f32).sqrt().recip();
-        xs.iter().map(|q_vec| {
-            let mut head_outputs: Vec<f32> = Vec::with_capacity(self.n_heads * self.d_head);
-            for h in 0..self.n_heads {
-                let q = self.wq[h].forward(q_vec);
-                let keys: Vec<Vec<f32>> = xs.iter().map(|x| self.wk[h].forward(x)).collect();
-                let vals: Vec<Vec<f32>> = xs.iter().map(|x| self.wv[h].forward(x)).collect();
-                let head_out = Self::dot_product_attn(&q, &keys, &vals, scale);
-                head_outputs.extend(head_out);
-            }
-            self.wo.forward(&head_outputs)
-        }).collect()
+        xs.iter()
+            .map(|q_vec| {
+                let mut head_outputs: Vec<f32> = Vec::with_capacity(self.n_heads * self.d_head);
+                for h in 0..self.n_heads {
+                    let q = self.wq[h].forward(q_vec);
+                    let keys: Vec<Vec<f32>> = xs.iter().map(|x| self.wk[h].forward(x)).collect();
+                    let vals: Vec<Vec<f32>> = xs.iter().map(|x| self.wv[h].forward(x)).collect();
+                    let head_out = Self::dot_product_attn(&q, &keys, &vals, scale);
+                    head_outputs.extend(head_out);
+                }
+                self.wo.forward(&head_outputs)
+            })
+            .collect()
     }
 }
 
@@ -396,10 +452,12 @@ impl PositionwiseFFN {
 
     /// Apply at every position.
     pub fn forward(&self, xs: &[Vec<f32>]) -> Vec<Vec<f32>> {
-        xs.iter().map(|x| {
-            let h: Vec<f32> = self.fc1.forward(x).into_iter().map(elu).collect();
-            self.fc2.forward(&h)
-        }).collect()
+        xs.iter()
+            .map(|x| {
+                let h: Vec<f32> = self.fc1.forward(x).into_iter().map(elu).collect();
+                self.fc2.forward(&h)
+            })
+            .collect()
     }
 }
 
@@ -562,10 +620,8 @@ impl TFT {
         let past_embedded: Vec<Vec<f32>> = x_past
             .iter()
             .map(|feat| {
-                let embedded_feats: Vec<Vec<f32>> = feat
-                    .iter()
-                    .map(|&v| Self::embed(&[v], d))
-                    .collect();
+                let embedded_feats: Vec<Vec<f32>> =
+                    feat.iter().map(|&v| Self::embed(&[v], d)).collect();
                 if embedded_feats.is_empty() {
                     vec![0.0_f32; d]
                 } else {
@@ -581,10 +637,8 @@ impl TFT {
         let future_embedded: Vec<Vec<f32>> = x_future
             .iter()
             .map(|feat| {
-                let embedded_feats: Vec<Vec<f32>> = feat
-                    .iter()
-                    .map(|&v| Self::embed(&[v], d))
-                    .collect();
+                let embedded_feats: Vec<Vec<f32>> =
+                    feat.iter().map(|&v| Self::embed(&[v], d)).collect();
                 if embedded_feats.is_empty() {
                     vec![0.0_f32; d]
                 } else {
@@ -594,7 +648,10 @@ impl TFT {
             .collect();
 
         // Decoder LSTM (initialised with last encoder state)
-        let last_enc_h = encoder_states.last().cloned().unwrap_or_else(|| vec![0.0_f32; d]);
+        let last_enc_h = encoder_states
+            .last()
+            .cloned()
+            .unwrap_or_else(|| vec![0.0_f32; d]);
         let last_enc_c = vec![0.0_f32; d]; // simplified: zero cell state
         let decoder_states: Vec<Vec<f32>> = {
             let mut h = last_enc_h;
@@ -630,9 +687,7 @@ impl TFT {
         // Project to scalar forecasts
         let forecasts: Vec<f32> = ffn_out
             .iter()
-            .map(|h| {
-                self.output_proj.forward(h)[0]
-            })
+            .map(|h| self.output_proj.forward(h)[0])
             .collect();
 
         Ok(forecasts)
@@ -762,11 +817,7 @@ mod tests {
     #[test]
     fn test_vsn_forward() {
         let vsn = VariableSelectionNetwork::new(3, 8, 1);
-        let inputs = vec![
-            vec![0.1_f32; 8],
-            vec![0.2_f32; 8],
-            vec![0.3_f32; 8],
-        ];
+        let inputs = vec![vec![0.1_f32; 8], vec![0.2_f32; 8], vec![0.3_f32; 8]];
         let out = vsn.forward(&inputs);
         assert_eq!(out.len(), 8);
     }
@@ -791,6 +842,8 @@ mod tests {
         };
         let mut model = TFT::new(config);
         let data: Vec<f32> = (0..50).map(|i| (i as f32 * 0.1).sin()).collect();
-        model.train(&data, 1, 0.001).expect("training should succeed");
+        model
+            .train(&data, 1, 0.001)
+            .expect("training should succeed");
     }
 }

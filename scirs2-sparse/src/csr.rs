@@ -12,7 +12,7 @@ use std::cmp::PartialEq;
 ///
 /// A sparse matrix format that compresses rows, making it efficient for
 /// row operations and matrix-vector multiplication.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CsrMatrix<T> {
     /// Number of rows
     rows: usize,

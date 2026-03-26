@@ -40,9 +40,15 @@ pub use simd::{
 
 // Submodules
 pub mod adaptive;
+pub mod adaptive_precision;
 pub mod conversions;
+pub mod convert;
+pub mod f16_gemm;
 pub mod f32_ops;
 pub mod f64_ops;
+pub mod gemm;
+pub mod operations;
+pub mod types;
 
 // Re-export conversion functions for backward compatibility
 pub use conversions::{convert, convert_2d};

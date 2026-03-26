@@ -257,6 +257,7 @@ where
 }
 
 // Import module files
+pub mod functional;
 mod linear;
 mod polynomial;
 mod regularized;

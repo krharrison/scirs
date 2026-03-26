@@ -31,7 +31,7 @@ pub struct CsrMatrix {
     pub n_rows: usize,
     /// Number of columns (nodes, usually equal to n_rows for adjacency)
     pub n_cols: usize,
-    /// Row pointer array (length n_rows + 1): row i spans indptr[i]..indptr[i+1]
+    /// Row pointer array (length n_rows + 1): row i spans `indptr[i]..indptr[i+1]`
     pub indptr: Vec<usize>,
     /// Column indices of non-zero entries
     pub indices: Vec<usize>,
@@ -98,7 +98,13 @@ impl CsrMatrix {
             }
         }
 
-        Ok(CsrMatrix { n_rows, n_cols, indptr, indices, data })
+        Ok(CsrMatrix {
+            n_rows,
+            n_cols,
+            indptr,
+            indices,
+            data,
+        })
     }
 
     /// Create an identity matrix of size `n × n`.
@@ -106,7 +112,13 @@ impl CsrMatrix {
         let indptr: Vec<usize> = (0..=n).collect();
         let indices: Vec<usize> = (0..n).collect();
         let data = vec![1.0f64; n];
-        CsrMatrix { n_rows: n, n_cols: n, indptr, indices, data }
+        CsrMatrix {
+            n_rows: n,
+            n_cols: n,
+            indptr,
+            indices,
+            data,
+        }
     }
 
     /// Return the number of non-zero entries.
@@ -331,7 +343,13 @@ impl GcnLayer {
                 });
             }
         }
-        Ok(GcnLayer { weights, bias, in_dim, out_dim, use_relu: true })
+        Ok(GcnLayer {
+            weights,
+            bias,
+            in_dim,
+            out_dim,
+            use_relu: true,
+        })
     }
 
     /// Disable the ReLU activation (useful for the last layer).

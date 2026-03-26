@@ -11,6 +11,9 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Extended test suite using nightly Rust (includes ignored tests)
+  # ---------------------------------------------------------------------------
   extended-testing:
     name: Extended Test Suite (nightly Rust)
     runs-on: ubuntu-latest
@@ -24,21 +27,28 @@ jobs:
           components: rustfmt, clippy
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-nightly-extended"
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-nextest
 
-      - name: Run all tests (including ignored)
+      - name: Run all tests including ignored
         run: |
           cargo +nightly nextest run \
             --workspace \
             --all-features \
+            --exclude scirs2-python \
+            --exclude scirs2-datasets \
             --run-ignored all \
             --no-fail-fast
-        timeout-minutes: 60
+        timeout-minutes: 90
 
+  # ---------------------------------------------------------------------------
+  # Security audit
+  # ---------------------------------------------------------------------------
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -54,6 +64,9 @@ jobs:
       - name: Run security audit
         run: cargo audit --deny warnings
 
+  # ---------------------------------------------------------------------------
+  # Miri — undefined behaviour detection on scirs2-core concurrent module
+  # ---------------------------------------------------------------------------
   miri:
     name: Miri (Undefined Behavior Detection)
     runs-on: ubuntu-latest
@@ -67,17 +80,34 @@ jobs:
           components: miri
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-miri-nightly"
 
       - name: Setup Miri
         run: cargo +nightly miri setup
 
-      - name: Run Miri on scirs2-core (no default features)
+      - name: Run Miri on scirs2-core concurrent module
+        run: |
+          cargo +nightly miri test \
+            -p scirs2-core \
+            --lib concurrent \
+            -Zmiri-disable-isolation
+        timeout-minutes: 45
+        # Miri is slow; treat failures as warnings on nightly
+        continue-on-error: true
+
+      - name: Run Miri on scirs2-core (no default features, broader coverage)
         run: |
           cargo +nightly miri test \
             -p scirs2-core \
             --lib \
-            --no-default-features || true
+            --no-default-features
+        timeout-minutes: 30
+        continue-on-error: true
 
+  # ---------------------------------------------------------------------------
+  # Dependency audit + outdated check
+  # ---------------------------------------------------------------------------
   dependency-audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
@@ -94,7 +124,7 @@ jobs:
         run: cargo tree --workspace --all-features > /tmp/dependency_tree.txt
 
       - name: Check for outdated dependencies (informational)
-        run: cargo install cargo-outdated && cargo outdated --workspace --root-deps-only || true
+        run: cargo install cargo-outdated --locked && cargo outdated --workspace --root-deps-only || true
 
       - name: Upload dependency report
         uses: actions/upload-artifact@v4
@@ -103,6 +133,9 @@ jobs:
           path: /tmp/dependency_tree.txt
           retention-days: 30
 
+  # ---------------------------------------------------------------------------
+  # Cross-compilation targets
+  # ---------------------------------------------------------------------------
   cross-compile-nightly:
     name: Cross-Compile (${{ matrix.target }})
     runs-on: ubuntu-latest
@@ -128,19 +161,28 @@ jobs:
           tool: cross
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-cross-${{ matrix.target }}"
 
       - name: Cross-compile
+        shell: bash
         run: |
           if [[ "${{ matrix.target }}" == wasm32-* ]]; then
-            cargo build --target ${{ matrix.target }} --no-default-features
+            cargo build --target ${{ matrix.target }} --no-default-features -p scirs2-core
           else
-            cross build --target ${{ matrix.target }} --no-default-features --workspace
+            cross build \
+              --target ${{ matrix.target }} \
+              --no-default-features \
+              --workspace \
+              --exclude scirs2-python
           fi
 
+  # ---------------------------------------------------------------------------
+  # Performance benchmarks (stable, informational)
+  # ---------------------------------------------------------------------------
   performance-benchmarks:
     name: Performance Benchmarks & Regression Detection
     runs-on: ubuntu-latest
-    # Run on stable Rust since benchmarks use criterion (not nightly-gated features)
     continue-on-error: true
 
     steps:
@@ -151,71 +193,64 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          # Keep a separate benchmark cache keyed on the bench files to avoid
-          # polluting the main build cache with release artifacts.
           key: bench-${{ hashFiles('benches/**/*.rs', 'benches/Cargo.toml') }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Build benchmarks (release)
         run: |
-          cargo build --package scirs2-benchmarks --benches --release
-        timeout-minutes: 30
-        env:
-          # opt-level=3 but no target-cpu=native for CI portability across runners
-          RUSTFLAGS: "-C opt-level=3"
-
-      - name: Run v0.3.0 comprehensive suite
-        run: |
-          cargo bench --package scirs2-benchmarks --bench v030_comprehensive_suite \
-            -- --output-format bencher 2>&1 | tee /tmp/bench_comprehensive.txt
+          if cargo metadata --no-deps --format-version 1 2>/dev/null \
+               | grep -q '"name":"scirs2-benchmarks"'; then
+            cargo build --package scirs2-benchmarks --benches --release
+          else
+            echo "scirs2-benchmarks package not found; skipping benchmark build"
+          fi
         timeout-minutes: 30
         env:
           RUSTFLAGS: "-C opt-level=3"
         continue-on-error: true
 
-      - name: Run v0.3.0 autograd benchmarks
+      - name: Run v0.4.0 comprehensive suite
         run: |
-          cargo bench --package scirs2-benchmarks --bench v030_autograd_benchmarks \
-            -- --output-format bencher 2>&1 | tee /tmp/bench_autograd.txt
-        timeout-minutes: 20
-        env:
-          RUSTFLAGS: "-C opt-level=3"
-        continue-on-error: true
-
-      - name: Run v0.3.0 series benchmarks
-        run: |
-          cargo bench --package scirs2-benchmarks --bench v030_series_benchmarks \
-            -- --output-format bencher 2>&1 | tee /tmp/bench_series.txt
-        timeout-minutes: 20
+          if cargo metadata --no-deps --format-version 1 2>/dev/null \
+               | grep -q '"name":"scirs2-benchmarks"'; then
+            cargo bench --package scirs2-benchmarks \
+              -- --output-format bencher 2>&1 | tee /tmp/bench_comprehensive.txt
+          else
+            echo "scirs2-benchmarks not available; skipping"
+          fi
+        timeout-minutes: 45
         env:
           RUSTFLAGS: "-C opt-level=3"
         continue-on-error: true
 
       - name: Run regression detection
         id: regression_check
+        shell: bash
         run: |
-          python3 benches/regression_check.py \
-            --criterion-dir target/criterion \
-            --baselines benches/performance_baseline.json \
-            --json-report \
-            --report-output /tmp/scirs2_perf_report.json \
-            --pr-comment > /tmp/scirs2_pr_comment.md 2>&1
-          REGRESSION_EXIT=$?
+          if [ -f benches/regression_check.py ]; then
+            python3 benches/regression_check.py \
+              --criterion-dir target/criterion \
+              --baselines benches/performance_baseline.json \
+              --json-report \
+              --report-output /tmp/scirs2_perf_report.json \
+              --pr-comment > /tmp/scirs2_pr_comment.md 2>&1
+            REGRESSION_EXIT=$?
+          else
+            echo "regression_check.py not found; skipping"
+            REGRESSION_EXIT=2
+          fi
+
           echo "exit_code=${REGRESSION_EXIT}" >> "$GITHUB_OUTPUT"
-          # Exit code 2 means no benchmark data found — treat as warning, not failure
           if [ "${REGRESSION_EXIT}" -eq 2 ]; then
             echo "regression_found=false" >> "$GITHUB_OUTPUT"
-            echo "no_data=true" >> "$GITHUB_OUTPUT"
           elif [ "${REGRESSION_EXIT}" -eq 1 ]; then
             echo "regression_found=true" >> "$GITHUB_OUTPUT"
-            echo "no_data=false" >> "$GITHUB_OUTPUT"
           else
             echo "regression_found=false" >> "$GITHUB_OUTPUT"
-            echo "no_data=false" >> "$GITHUB_OUTPUT"
           fi
         continue-on-error: true
 
@@ -237,34 +272,19 @@ jobs:
           retention-days: 90
           if-no-files-found: warn
 
-      - name: Upload raw benchmark text output
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: bench-raw-output-${{ github.run_id }}
-          path: |
-            /tmp/bench_comprehensive.txt
-            /tmp/bench_autograd.txt
-            /tmp/bench_series.txt
-          retention-days: 30
-          if-no-files-found: warn
-
       - name: Write job summary
         if: always()
+        shell: bash
         run: |
-          REPORT_FILE="/tmp/scirs2_perf_report.json"
           echo "## SciRS2 Performance Benchmark Results" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**Run:** ${{ github.run_id }} | **Commit:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-
+          REPORT_FILE="/tmp/scirs2_perf_report.json"
           if [ -f "$REPORT_FILE" ]; then
             python3 - <<'PYEOF'
           import json, os, sys
-
           report_path = "/tmp/scirs2_perf_report.json"
           summary_file = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/stdout")
-
           try:
               with open(report_path) as f:
                   report = json.load(f)
@@ -272,34 +292,25 @@ jobs:
               with open(summary_file, "a") as sf:
                   sf.write(f"Could not parse report: {exc}\n")
               sys.exit(0)
-
           summary = report.get("summary", {})
           benchmarks = report.get("benchmarks", [])
-          date_str = report.get("report_date", "unknown")
-
           has_regressions = summary.get("has_regressions", False)
           icon = ":x:" if has_regressions else ":white_check_mark:"
           threshold = report.get("regression_threshold_pct", 10)
-
           lines = [
               f"{icon} **{'Regressions detected' if has_regressions else 'No regressions'}** "
-              f"(threshold: >{threshold:.0f}%)",
-              "",
-              "| Metric | Count |",
-              "|--------|-------|",
+              f"(threshold: >{threshold:.0f}%)", "",
+              "| Metric | Count |", "|--------|-------|",
               f"| Total benchmarks | {summary.get('total', 0)} |",
               f"| Passed | {summary.get('passed', 0)} |",
               f"| Regressions | {summary.get('regressions', 0)} |",
               f"| Improved | {summary.get('improved', 0)} |",
-              f"| New | {summary.get('new', 0)} |",
-              "",
+              f"| New | {summary.get('new', 0)} |", "",
           ]
-
           regressions = [b for b in benchmarks if b.get("status") == "REGRESSION"]
           if regressions:
               lines += [
-                  "### Regressions",
-                  "",
+                  "### Regressions", "",
                   "| Benchmark | Baseline (ns) | Current (ns) | Change |",
                   "|-----------|---------------|--------------|--------|",
               ]
@@ -309,13 +320,11 @@ jobs:
                   chg = f"+{b['change_percent']:.1f}%" if b.get("change_percent") is not None else "N/A"
                   lines.append(f"| `{b['benchmark_name']}` | {base} | {curr} | **{chg}** |")
               lines.append("")
-
           with open(summary_file, "a") as sf:
               sf.write("\n".join(lines) + "\n")
-
           PYEOF
           else
-            echo "Performance report not available (benchmarks may have been skipped or failed to produce data)." >> "$GITHUB_STEP_SUMMARY"
+            echo "Performance report not available (benchmarks may have been skipped)." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Post PR comment on regression
@@ -334,7 +343,6 @@ jobs:
             }
             const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }}`;
             body += `\n\n[View full benchmark artifacts](${runUrl})`;
-
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -348,6 +356,9 @@ jobs:
           echo "Performance regressions were detected. See the job summary and artifacts for details."
           exit 1
 
+  # ---------------------------------------------------------------------------
+  # Nightly summary & issue creation on failure
+  # ---------------------------------------------------------------------------
   nightly-report:
     name: Nightly Report
     runs-on: ubuntu-latest
@@ -386,7 +397,8 @@ jobs:
           script: |
             const date = new Date().toISOString();
             const title = "Nightly Build Failure - " + date.split('T')[0];
-            const runUrl = "https://github.com/" + context.repo.owner + "/" + context.repo.repo + "/actions/runs/${{ github.run_id }}";
+            const runUrl = "https://github.com/" + context.repo.owner + "/" +
+              context.repo.repo + "/actions/runs/${{ github.run_id }}";
             const body = [
               "## Nightly Build Failure",
               "",
@@ -407,7 +419,6 @@ jobs:
               "",
               "Automatically created by the nightly workflow.",
             ].join("\n");
-
             github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,

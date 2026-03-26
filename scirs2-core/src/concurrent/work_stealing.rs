@@ -275,7 +275,7 @@ type BoxTask = Box<dyn FnOnce() + Send + 'static>;
 
 struct PriorityItem {
     priority: Priority,
-    seq: u64,          // tie-break: lower seq = earlier submitted
+    seq: u64, // tie-break: lower seq = earlier submitted
     task: BoxTask,
 }
 
@@ -618,9 +618,13 @@ fn worker_loop(
     let mut local_failures = 0u64;
 
     loop {
-        // 1. Try own deque first.
-        let own = match deques[id].pop() {
-            Ok(Some(task)) => {
+        // 1. Try own deque first — use `steal` (not `pop`) because `push` is
+        //    called from the submitting thread, not from this worker.  In the
+        //    Chase-Lev model `push`/`pop` are owner-side, but our scheduler
+        //    pushes from the main thread and workers consume.  Using `steal`
+        //    is safe for any thread.
+        let own = match deques[id].steal() {
+            StealResult::Success(task) => {
                 task();
                 local_completed += 1;
                 true
@@ -636,6 +640,9 @@ fn worker_loop(
         let mut stole = false;
         'steal: for attempt in 0..steal_attempts {
             let victim = (id + 1 + attempt) % n;
+            if victim == id {
+                continue;
+            }
             match deques[victim].steal() {
                 StealResult::Success(task) => {
                     task();
@@ -793,7 +800,11 @@ mod tests {
 
         for _ in 0..n_tasks {
             let c = Arc::clone(&counter);
-            sched.submit(move || { c.fetch_add(1, Ordering::Relaxed); }).expect("submit");
+            sched
+                .submit(move || {
+                    c.fetch_add(1, Ordering::Relaxed);
+                })
+                .expect("submit");
         }
 
         // Wait for tasks to drain

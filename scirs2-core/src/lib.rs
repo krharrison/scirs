@@ -116,7 +116,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-core = { version = "0.1.5", features = ["simd", "parallel"] }
+//! scirs2-core = { version = "0.4.0", features = ["simd", "parallel"] }
 //! ```
 //!
 //! ### SIMD Operations
@@ -360,7 +360,7 @@
 //!
 //! ## 🔒 Version
 //!
-//! Current version: **0.1.5** (Released January 15, 2026)
+//! Current version: **0.4.0**
 //!
 //! ## 📚 Examples
 //!
@@ -376,6 +376,7 @@ extern crate alloc;
 extern crate std;
 
 pub mod api_freeze;
+pub mod api_reference;
 pub mod apiversioning;
 #[cfg(feature = "array")]
 pub mod array;
@@ -392,6 +393,7 @@ pub mod cache_ops;
 pub mod chunking;
 #[cfg(feature = "cloud")]
 pub mod cloud;
+pub mod concurrent;
 pub mod config;
 pub mod constants;
 pub mod distributed;
@@ -483,6 +485,7 @@ pub mod embedded;
 pub mod fixed_point;
 
 // Production-level features for enterprise deployments
+pub mod enterprise;
 pub mod observability;
 pub mod stability;
 pub mod versioning;
@@ -519,6 +522,28 @@ pub mod bench_utils;
 
 // Progress tracking for iterative algorithms (always available, no feature gate)
 pub mod progress;
+
+// SciPy/NumPy migration guide and equivalence reference.
+pub mod scipy_migration;
+
+// Arithmetic operations
+pub mod arithmetic;
+// Concurrent/lock-free collections (RRB-vector, bit vector, flat map, tiny vec)
+pub mod collections;
+// Reactive signals and dataflow
+pub mod reactive;
+// Task dependency graph with scheduling
+pub mod task_graph;
+// Lock-free concurrent data structures (skiplist, B-tree)
+pub mod lock_free;
+// GPU/CPU memory pool management
+pub mod memory_pool;
+// NUMA-aware task scheduling
+pub mod numa_scheduler;
+// Platform compatibility utilities
+pub mod platform_compat;
+// Structured logging framework
+pub mod structured_logging;
 
 // Re-exports
 #[cfg(feature = "cache")]

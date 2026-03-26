@@ -140,9 +140,8 @@ impl GJRGARCHModel {
                 )));
             }
         }
-        let persistence = alpha.iter().sum::<f64>()
-            + 0.5 * gamma.iter().sum::<f64>()
-            + beta.iter().sum::<f64>();
+        let persistence =
+            alpha.iter().sum::<f64>() + 0.5 * gamma.iter().sum::<f64>() + beta.iter().sum::<f64>();
         if persistence >= 1.0 {
             return Err(TimeSeriesError::InvalidModel(format!(
                 "GJR-GARCH: stationarity violated (Σα + ½Σγ + Σβ = {persistence:.4} >= 1)"
@@ -171,7 +170,7 @@ impl GJRGARCHModel {
     pub fn unconditional_variance(&self) -> Result<f64> {
         let denom = 1.0 - self.persistence();
         if denom <= 0.0 {
-            return Err(TimeSeriesError::NumericalError(
+            return Err(TimeSeriesError::NumericalInstability(
                 "GJR-GARCH: stationarity violated — cannot compute unconditional variance".into(),
             ));
         }
@@ -224,11 +223,7 @@ pub fn gjr_garch_variance(
     }
 
     let mean = returns.mean().unwrap_or(0.0);
-    let sample_var = returns
-        .iter()
-        .map(|&r| (r - mean).powi(2))
-        .sum::<f64>()
-        / n as f64;
+    let sample_var = returns.iter().map(|&r| (r - mean).powi(2)).sum::<f64>() / n as f64;
     let init_var = sample_var.max(omega);
 
     let mut sigma2 = vec![init_var; n];
@@ -284,7 +279,7 @@ pub fn gjr_garch_log_likelihood(
     for t in burn_in..n {
         let s2 = sigma2[t];
         if s2 <= 0.0 || !s2.is_finite() {
-            return Err(TimeSeriesError::NumericalError(
+            return Err(TimeSeriesError::NumericalInstability(
                 "GJR-GARCH: non-positive conditional variance".into(),
             ));
         }
@@ -293,7 +288,7 @@ pub fn gjr_garch_log_likelihood(
     }
 
     if !ll.is_finite() {
-        return Err(TimeSeriesError::NumericalError(
+        return Err(TimeSeriesError::NumericalInstability(
             "GJR-GARCH: log-likelihood is not finite".into(),
         ));
     }
@@ -356,9 +351,8 @@ pub fn fit_gjr_garch(returns: &Array1<f64>, p: usize, q: usize) -> Result<GJRGAR
             return 1e15;
         }
 
-        let persist = alpha.iter().sum::<f64>()
-            + 0.5 * gamma.iter().sum::<f64>()
-            + beta.iter().sum::<f64>();
+        let persist =
+            alpha.iter().sum::<f64>() + 0.5 * gamma.iter().sum::<f64>() + beta.iter().sum::<f64>();
         if persist >= 0.9999 {
             return 1e15;
         }
@@ -383,9 +377,8 @@ pub fn fit_gjr_garch(returns: &Array1<f64>, p: usize, q: usize) -> Result<GJRGAR
     let gamma: Vec<f64> = best[1 + p..1 + 2 * p].iter().map(|&v| v.max(0.0)).collect();
     let beta: Vec<f64> = best[1 + 2 * p..].iter().map(|&v| v.max(0.0)).collect();
 
-    let persist = alpha.iter().sum::<f64>()
-        + 0.5 * gamma.iter().sum::<f64>()
-        + beta.iter().sum::<f64>();
+    let persist =
+        alpha.iter().sum::<f64>() + 0.5 * gamma.iter().sum::<f64>() + beta.iter().sum::<f64>();
     if persist >= 1.0 {
         return Err(TimeSeriesError::FittingError(
             "GJR-GARCH: fitted persistence >= 1 — model is non-stationary".into(),
@@ -419,12 +412,20 @@ pub fn gjr_garch_forecast(
         ));
     }
 
-    let sigma2 = gjr_garch_variance(returns, model.omega, &model.alpha, &model.gamma, &model.beta)?;
-    let last_sigma2 = *sigma2.last().ok_or_else(|| TimeSeriesError::InsufficientData {
-        message: "GJR-GARCH forecast: empty sigma2 series".into(),
-        required: 1,
-        actual: 0,
-    })?;
+    let sigma2 = gjr_garch_variance(
+        returns,
+        model.omega,
+        &model.alpha,
+        &model.gamma,
+        &model.beta,
+    )?;
+    let last_sigma2 = *sigma2
+        .last()
+        .ok_or_else(|| TimeSeriesError::InsufficientData {
+            message: "GJR-GARCH forecast: empty sigma2 series".into(),
+            required: 1,
+            actual: 0,
+        })?;
 
     // Effective alpha under E[I_{eps<0}] = 0.5
     let alpha_eff: Vec<f64> = model
@@ -451,15 +452,33 @@ pub fn gjr_garch_forecast(
 }
 
 /// Compute conditional volatility series (σ_t) from a GJR-GARCH model.
-pub fn gjr_conditional_volatility(model: &GJRGARCHModel, returns: &Array1<f64>) -> Result<Vec<f64>> {
-    let sigma2 = gjr_garch_variance(returns, model.omega, &model.alpha, &model.gamma, &model.beta)?;
+pub fn gjr_conditional_volatility(
+    model: &GJRGARCHModel,
+    returns: &Array1<f64>,
+) -> Result<Vec<f64>> {
+    let sigma2 = gjr_garch_variance(
+        returns,
+        model.omega,
+        &model.alpha,
+        &model.gamma,
+        &model.beta,
+    )?;
     Ok(sigma2.into_iter().map(|v| v.sqrt()).collect())
 }
 
 /// Compute standardised residuals from a GJR-GARCH model.
-pub fn gjr_standardised_residuals(model: &GJRGARCHModel, returns: &Array1<f64>) -> Result<Vec<f64>> {
+pub fn gjr_standardised_residuals(
+    model: &GJRGARCHModel,
+    returns: &Array1<f64>,
+) -> Result<Vec<f64>> {
     let mean = returns.mean().unwrap_or(0.0);
-    let sigma2 = gjr_garch_variance(returns, model.omega, &model.alpha, &model.gamma, &model.beta)?;
+    let sigma2 = gjr_garch_variance(
+        returns,
+        model.omega,
+        &model.alpha,
+        &model.gamma,
+        &model.beta,
+    )?;
     let z: Vec<f64> = returns
         .iter()
         .zip(sigma2.iter())
@@ -510,20 +529,30 @@ impl TGARCHModel {
         beta: Vec<f64>,
     ) -> Result<Self> {
         if omega <= 0.0 {
-            return Err(TimeSeriesError::InvalidModel("TGARCH: ω must be positive".into()));
+            return Err(TimeSeriesError::InvalidModel(
+                "TGARCH: ω must be positive".into(),
+            ));
         }
         if alpha.len() != p || gamma.len() != p || beta.len() != q {
             return Err(TimeSeriesError::InvalidModel(
                 "TGARCH: parameter vector lengths do not match model orders".into(),
             ));
         }
-        if alpha.iter().any(|&a| a < 0.0) || gamma.iter().any(|&g| g < 0.0) || beta.iter().any(|&b| b < 0.0) {
+        if alpha.iter().any(|&a| a < 0.0)
+            || gamma.iter().any(|&g| g < 0.0)
+            || beta.iter().any(|&b| b < 0.0)
+        {
             return Err(TimeSeriesError::InvalidModel(
                 "TGARCH: all coefficients must be non-negative".into(),
             ));
         }
         Ok(Self {
-            p, q, omega, alpha, gamma, beta,
+            p,
+            q,
+            omega,
+            alpha,
+            gamma,
+            beta,
             log_likelihood: f64::NEG_INFINITY,
             n_obs: 0,
         })
@@ -569,7 +598,11 @@ pub fn tgarch_sigma(
 
         for (i, (&ai, &gi)) in alpha.iter().zip(gamma.iter()).enumerate() {
             let lag = i + 1;
-            let eps_lag = if t >= lag { returns[t - lag] - mean } else { 0.0 };
+            let eps_lag = if t >= lag {
+                returns[t - lag] - mean
+            } else {
+                0.0
+            };
             let eps_pos = eps_lag.max(0.0);
             let eps_neg = (-eps_lag).max(0.0);
             s_t += ai * eps_pos + gi * eps_neg;
@@ -617,7 +650,9 @@ pub fn fit_tgarch(returns: &Array1<f64>, p: usize, q: usize) -> Result<TGARCHMod
 
     let objective = |th: &[f64]| -> f64 {
         let omega = th[0];
-        if omega <= 0.0 { return 1e15; }
+        if omega <= 0.0 {
+            return 1e15;
+        }
         let alpha: Vec<f64> = th[1..1 + p].to_vec();
         let gamma_v: Vec<f64> = th[1 + p..1 + 2 * p].to_vec();
         let beta: Vec<f64> = th[1 + 2 * p..].to_vec();
@@ -631,10 +666,18 @@ pub fn fit_tgarch(returns: &Array1<f64>, p: usize, q: usize) -> Result<TGARCHMod
 
         let persist = 0.5 * (alpha.iter().sum::<f64>() + gamma_v.iter().sum::<f64>())
             + beta.iter().sum::<f64>();
-        if persist >= 0.9999 { return 1e15; }
+        if persist >= 0.9999 {
+            return 1e15;
+        }
 
         match tgarch_log_likelihood(returns, omega, &alpha, &gamma_v, &beta) {
-            Ok((ll, _)) => if ll.is_finite() { -ll } else { 1e15 },
+            Ok((ll, _)) => {
+                if ll.is_finite() {
+                    -ll
+                } else {
+                    1e15
+                }
+            }
             Err(_) => 1e15,
         }
     };
@@ -671,7 +714,7 @@ pub fn tgarch_log_likelihood(
     for t in burn_in..n {
         let s = sigma[t];
         if s <= 0.0 || !s.is_finite() {
-            return Err(TimeSeriesError::NumericalError(
+            return Err(TimeSeriesError::NumericalInstability(
                 "TGARCH: non-positive conditional std".into(),
             ));
         }
@@ -680,7 +723,7 @@ pub fn tgarch_log_likelihood(
     }
 
     if !ll.is_finite() {
-        return Err(TimeSeriesError::NumericalError(
+        return Err(TimeSeriesError::NumericalInstability(
             "TGARCH: log-likelihood not finite".into(),
         ));
     }
@@ -699,13 +742,11 @@ mod tests {
 
     fn make_returns() -> Array1<f64> {
         Array1::from(vec![
-            0.008, -0.015, 0.011, -0.007, 0.013, 0.005, -0.018, 0.009,
-            -0.003, 0.007, 0.025, -0.014, 0.008, -0.006, 0.011, -0.019,
-            0.022, 0.003, -0.011, 0.017, -0.004, 0.008, -0.013, 0.019,
-            0.001, -0.009, 0.016, -0.002, 0.011, 0.006, 0.010, -0.020,
-            0.014, -0.009, 0.015, 0.003, -0.016, 0.010, -0.004, 0.008,
-            0.023, -0.012, 0.007, -0.007, 0.012, -0.021, 0.018, 0.002,
-            -0.010, 0.016,
+            0.008, -0.015, 0.011, -0.007, 0.013, 0.005, -0.018, 0.009, -0.003, 0.007, 0.025,
+            -0.014, 0.008, -0.006, 0.011, -0.019, 0.022, 0.003, -0.011, 0.017, -0.004, 0.008,
+            -0.013, 0.019, 0.001, -0.009, 0.016, -0.002, 0.011, 0.006, 0.010, -0.020, 0.014,
+            -0.009, 0.015, 0.003, -0.016, 0.010, -0.004, 0.008, 0.023, -0.012, 0.007, -0.007,
+            0.012, -0.021, 0.018, 0.002, -0.010, 0.016,
         ])
     }
 
@@ -789,8 +830,8 @@ mod tests {
     #[test]
     fn test_tgarch_sigma_basic() {
         let r = make_returns();
-        let sigma = tgarch_sigma(&r, 1e-4, &[0.04], &[0.08], &[0.85])
-            .expect("Should compute sigma");
+        let sigma =
+            tgarch_sigma(&r, 1e-4, &[0.04], &[0.08], &[0.85]).expect("Should compute sigma");
         assert_eq!(sigma.len(), r.len());
         for &s in &sigma {
             assert!(s > 0.0);

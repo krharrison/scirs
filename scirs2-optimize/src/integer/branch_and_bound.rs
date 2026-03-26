@@ -17,8 +17,9 @@
 //!   programming problems." Econometrica, 28(3), 497-520.
 
 use super::{
-    is_integer_valued, lp_relaxation::{LpRelaxationSolver, LpResult},
-    most_fractional_variable, IntegerVariableSet, LinearProgram, MipResult, IntegerKind,
+    is_integer_valued,
+    lp_relaxation::{LpRelaxationSolver, LpResult},
+    most_fractional_variable, IntegerKind, IntegerVariableSet, LinearProgram, MipResult,
 };
 use crate::error::{OptimizeError, OptimizeResult};
 use scirs2_core::ndarray::Array1;
@@ -140,13 +141,7 @@ impl BranchAndBoundSolver {
     fn round_integer_solution(&self, x: &[f64], ivs: &IntegerVariableSet) -> Vec<f64> {
         x.iter()
             .enumerate()
-            .map(|(i, &xi)| {
-                if ivs.is_integer(i) {
-                    xi.round()
-                } else {
-                    xi
-                }
-            })
+            .map(|(i, &xi)| if ivs.is_integer(i) { xi.round() } else { xi })
             .collect()
     }
 
@@ -156,11 +151,7 @@ impl BranchAndBoundSolver {
     }
 
     /// Solve the MIP problem
-    pub fn solve(
-        &self,
-        lp: &LinearProgram,
-        ivs: &IntegerVariableSet,
-    ) -> OptimizeResult<MipResult> {
+    pub fn solve(&self, lp: &LinearProgram, ivs: &IntegerVariableSet) -> OptimizeResult<MipResult> {
         let n = lp.n_vars();
         if n == 0 {
             return Err(OptimizeError::InvalidInput("Empty problem".to_string()));
@@ -256,7 +247,7 @@ impl BranchAndBoundSolver {
                         None => match queue.pop_back() {
                             Some(n) => n,
                             None => break,
-                        }
+                        },
                     }
                 }
                 NodeSelection::DepthFirst | NodeSelection::BestOfDepth => {
@@ -417,10 +408,7 @@ mod tests {
         // minimize -values^T x
         let c = array![-4.0, -3.0, -5.0, -2.0, -6.0];
         let mut lp = LinearProgram::new(c);
-        lp.a_ub = Some(Array2::from_shape_vec(
-            (1, n),
-            weights.clone(),
-        ).expect("shape"));
+        lp.a_ub = Some(Array2::from_shape_vec((1, n), weights.clone()).expect("shape"));
         lp.b_ub = Some(array![capacity]);
         lp.lower = Some(array![0.0, 0.0, 0.0, 0.0, 0.0]);
         lp.upper = Some(array![1.0, 1.0, 1.0, 1.0, 1.0]);
@@ -431,7 +419,11 @@ mod tests {
 
         assert!(result.success, "B&B should find solution");
         // Optimal: -12
-        assert!(result.fun <= -11.9, "optimal value should be -12, got {}", result.fun);
+        assert!(
+            result.fun <= -11.9,
+            "optimal value should be -12, got {}",
+            result.fun
+        );
     }
 
     #[test]

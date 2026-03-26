@@ -16,6 +16,7 @@ mod gibbs;
 mod hamiltonian;
 mod metropolis;
 pub mod nuts;
+pub mod smc_model_compare;
 
 pub use advanced::*;
 pub use diagnostics::*;

@@ -31,7 +31,11 @@ impl LpRelaxationSolver {
     ///   s.t. A_ub x <= b_ub  (inequality constraints)
     ///        A_eq x  = b_eq  (equality constraints)
     ///        lb <= x <= ub
-    pub fn solve(lp: &LinearProgram, extra_lb: &[f64], extra_ub: &[f64]) -> OptimizeResult<LpResult> {
+    pub fn solve(
+        lp: &LinearProgram,
+        extra_lb: &[f64],
+        extra_ub: &[f64],
+    ) -> OptimizeResult<LpResult> {
         let n = lp.n_vars();
         if n == 0 {
             return Err(OptimizeError::InvalidInput("Empty LP".to_string()));
@@ -101,13 +105,7 @@ impl LpRelaxationSolver {
         let c_vec: Vec<f64> = lp.c.to_vec();
 
         let sol = solve_lp_simplex(
-            &c_vec,
-            &a_ub_rows,
-            &b_ub_vec,
-            &a_eq_rows,
-            &b_eq_vec,
-            &lb,
-            &ub,
+            &c_vec, &a_ub_rows, &b_ub_vec, &a_eq_rows, &b_eq_vec, &lb, &ub,
         );
 
         Ok(sol)
@@ -131,22 +129,47 @@ fn solve_lp_simplex(
     let m_eq = a_eq.len();
 
     if n == 0 {
-        return LpResult { x: Array1::zeros(0), fun: 0.0, success: true, status: 0 };
+        return LpResult {
+            x: Array1::zeros(0),
+            fun: 0.0,
+            success: true,
+            status: 0,
+        };
     }
 
     // --- Variable shift: y = x - lb, so y >= 0, y <= ub - lb -----------
-    let ub_shifted: Vec<f64> = (0..n).map(|i| {
-        if ub[i].is_finite() { ub[i] - lb[i] } else { f64::INFINITY }
-    }).collect();
+    let ub_shifted: Vec<f64> = (0..n)
+        .map(|i| {
+            if ub[i].is_finite() {
+                ub[i] - lb[i]
+            } else {
+                f64::INFINITY
+            }
+        })
+        .collect();
 
     // Shift RHS of inequality constraints: A(y+lb) <= b => Ay <= b - A*lb
     let b_ub_shifted: Vec<f64> = (0..m_ub)
-        .map(|i| b_ub[i] - a_ub[i].iter().zip(lb.iter()).map(|(&a, &l)| a * l).sum::<f64>())
+        .map(|i| {
+            b_ub[i]
+                - a_ub[i]
+                    .iter()
+                    .zip(lb.iter())
+                    .map(|(&a, &l)| a * l)
+                    .sum::<f64>()
+        })
         .collect();
 
     // Shift RHS of equality constraints: A_eq(y+lb) = b_eq => A_eq y = b_eq - A_eq*lb
     let b_eq_shifted: Vec<f64> = (0..m_eq)
-        .map(|i| b_eq[i] - a_eq[i].iter().zip(lb.iter()).map(|(&a, &l)| a * l).sum::<f64>())
+        .map(|i| {
+            b_eq[i]
+                - a_eq[i]
+                    .iter()
+                    .zip(lb.iter())
+                    .map(|(&a, &l)| a * l)
+                    .sum::<f64>()
+        })
         .collect();
 
     // --- Count finite upper bounds for UB slack variables ----------------
@@ -209,7 +232,9 @@ fn solve_lp_simplex(
     for i in 0..total_rows {
         if full_b[i] < -1e-12 {
             // Negate the row
-            for v in full_a[i].iter_mut() { *v = -*v; }
+            for v in full_a[i].iter_mut() {
+                *v = -*v;
+            }
             full_b[i] = -full_b[i];
             needs_artif[i] = true;
         }
@@ -317,9 +342,9 @@ fn solve_lp_simplex(
     }
 
     // Shift back: x = y + lb, clamped to [lb, ub]
-    let x: Vec<f64> = (0..n).map(|j| {
-        (lb[j] + y[j]).max(lb[j]).min(ub[j])
-    }).collect();
+    let x: Vec<f64> = (0..n)
+        .map(|j| (lb[j] + y[j]).max(lb[j]).min(ub[j]))
+        .collect();
 
     let fun: f64 = c.iter().zip(x.iter()).map(|(&ci, &xi)| ci * xi).sum();
 
@@ -392,9 +417,13 @@ fn run_simplex(
             tableau[col][j] /= pv;
         }
         for i in 0..m {
-            if i == col { continue; }
+            if i == col {
+                continue;
+            }
             let factor = tableau[i][basic];
-            if factor.abs() < 1e-15 { continue; }
+            if factor.abs() < 1e-15 {
+                continue;
+            }
             for j in 0..=n_total {
                 let delta = factor * tableau[col][j];
                 tableau[i][j] -= delta;
@@ -406,14 +435,21 @@ fn run_simplex(
     let mut status = SimplexStatus::MaxIter;
     for _iter in 0..max_iter {
         // Compute reduced costs using current basis
-        let c_b: Vec<f64> = basis.iter().map(|&bv| c.get(bv).copied().unwrap_or(0.0)).collect();
+        let c_b: Vec<f64> = basis
+            .iter()
+            .map(|&bv| c.get(bv).copied().unwrap_or(0.0))
+            .collect();
 
         // Find entering variable (most negative reduced cost)
         let mut enter = None;
         let mut min_rc = -1e-8_f64;
         for j in 0..n_total {
             let rc = c.get(j).copied().unwrap_or(0.0)
-                - c_b.iter().zip(tableau.iter()).map(|(&cb, row)| cb * row[j]).sum::<f64>();
+                - c_b
+                    .iter()
+                    .zip(tableau.iter())
+                    .map(|(&cb, row)| cb * row[j])
+                    .sum::<f64>();
             if rc < min_rc {
                 min_rc = rc;
                 enter = Some(j);
@@ -421,7 +457,10 @@ fn run_simplex(
         }
 
         let enter_col = match enter {
-            None => { status = SimplexStatus::Optimal; break; }
+            None => {
+                status = SimplexStatus::Optimal;
+                break;
+            }
             Some(j) => j,
         };
 
@@ -447,7 +486,10 @@ fn run_simplex(
         }
 
         let pivot_row = match leave_row {
-            None => { status = SimplexStatus::Unbounded; break; }
+            None => {
+                status = SimplexStatus::Unbounded;
+                break;
+            }
             Some(r) => r,
         };
 
@@ -457,9 +499,13 @@ fn run_simplex(
             tableau[pivot_row][j] /= pv;
         }
         for i in 0..m {
-            if i == pivot_row { continue; }
+            if i == pivot_row {
+                continue;
+            }
             let factor = tableau[i][enter_col];
-            if factor.abs() < 1e-15 { continue; }
+            if factor.abs() < 1e-15 {
+                continue;
+            }
             for j in 0..=n_total {
                 let delta = factor * tableau[pivot_row][j];
                 tableau[i][j] -= delta;

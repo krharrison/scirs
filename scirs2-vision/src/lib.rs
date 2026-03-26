@@ -35,7 +35,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-vision = "0.1.5"
+//! scirs2-vision = "0.4.0"
 //! ```
 //!
 //! ### Feature Detection (Harris Corners)
@@ -262,7 +262,7 @@
 //!
 //! ## 🔒 Version
 //!
-//! Current version: **0.1.5** (Released January 15, 2026)
+//! Current version: **0.4.0**
 
 #![warn(missing_docs)]
 
@@ -342,6 +342,7 @@ pub mod instance_segmentation;
 pub mod matching;
 pub mod medical;
 pub mod morphology;
+pub mod neural_3d;
 pub mod object_detection;
 pub mod optical_flow_dense;
 pub mod point_cloud;
@@ -356,6 +357,27 @@ pub mod stitch;
 pub mod style_transfer;
 pub mod video_processing;
 pub mod video_stabilization;
+
+// Depth completion
+pub mod depth_completion;
+// 3D object detection (PointPillars, frustum)
+pub mod detection_3d;
+// Event camera processing
+pub mod event_camera;
+// LiDAR point cloud processing
+pub mod lidar;
+// Neural radiance fields (NeRF, instant-NGP)
+pub mod nerf;
+// PointNet/PointNet++ point cloud processing
+pub mod pointnet;
+// Prompt-based segmentation
+pub mod prompt_segmentation;
+// Temporal action detection
+pub mod temporal_action;
+// Object tracking (SORT, ByteTrack)
+pub mod tracking;
+// Video object segmentation
+pub mod vos;
 
 // Cross-module Advanced coordination
 /// Advanced Integration - Cross-Module AI Coordination

@@ -33,7 +33,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-neural = "0.1.5"
+//! scirs2-neural = "0.4.0"
 //! ```
 //!
 //! ### Building a Simple Neural Network
@@ -261,7 +261,7 @@
 //!
 //! ## 🔒 Version
 //!
-//! Current version: **0.1.5** (Released January 15, 2026)
+//! Current version: **0.4.0**
 
 pub mod activations;
 pub mod activations_minimal;
@@ -283,6 +283,22 @@ pub mod training;
 pub mod transformer;
 pub mod utils;
 pub mod visualization;
+
+// Attention mechanisms (flash attention, sparse attention)
+pub mod attention;
+// Model export (ONNX, WeightStore)
+pub mod export;
+// Inference optimization (speculative decoding)
+pub mod inference;
+// LoRA and adapter layers
+pub mod lora;
+// Neural architecture search (DARTS, GDAS, SNAS)
+// NOTE: NAS module files have truncated source code; disabled until fixed
+// pub mod nas;
+// Speculative decoding
+pub mod speculative;
+// Model tracing and static graph
+pub mod tracing;
 
 pub use activations_minimal::{Activation, ReLU, Sigmoid, Softmax, Tanh, GELU};
 pub use error::{Error, NeuralError, Result};

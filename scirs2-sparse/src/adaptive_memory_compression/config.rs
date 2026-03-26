@@ -69,7 +69,11 @@ impl Default for AdaptiveCompressionConfig {
             adaptive_compression: true,
             cache_size: default_cache_size,
             out_of_core: true,
-            temp_directory: "/tmp/scirs2_sparse".to_string(),
+            temp_directory: {
+                let mut p = std::env::temp_dir();
+                p.push("scirs2_sparse");
+                p.to_string_lossy().into_owned()
+            },
             memory_mapping: true,
         }
     }
@@ -181,7 +185,11 @@ impl AdaptiveCompressionConfig {
             adaptive_compression: false,
             cache_size: 16 * 1024 * 1024, // 16MB cache
             out_of_core: false,
-            temp_directory: "/tmp/scirs2_test".to_string(),
+            temp_directory: {
+                let mut p = std::env::temp_dir();
+                p.push("scirs2_test");
+                p.to_string_lossy().into_owned()
+            },
             memory_mapping: false,
         }
     }
@@ -208,7 +216,11 @@ impl AdaptiveCompressionConfig {
             adaptive_compression: true,
             cache_size: hp_cache_size,
             out_of_core: true,
-            temp_directory: "/tmp/scirs2_hiperf".to_string(),
+            temp_directory: {
+                let mut p = std::env::temp_dir();
+                p.push("scirs2_hiperf");
+                p.to_string_lossy().into_owned()
+            },
             memory_mapping: true,
         }
     }
@@ -224,7 +236,11 @@ impl AdaptiveCompressionConfig {
             adaptive_compression: true,
             cache_size: 128 * 1024 * 1024, // 128MB cache
             out_of_core: true,
-            temp_directory: "/tmp/scirs2_memeff".to_string(),
+            temp_directory: {
+                let mut p = std::env::temp_dir();
+                p.push("scirs2_memeff");
+                p.to_string_lossy().into_owned()
+            },
             memory_mapping: true,
         }
     }

@@ -19,6 +19,7 @@ pub mod events;
 // Public modules
 pub mod chemical;
 pub mod chemical_equilibrium;
+pub mod ensemble;
 pub mod enzyme_kinetics;
 pub mod mechanical;
 pub mod methods;

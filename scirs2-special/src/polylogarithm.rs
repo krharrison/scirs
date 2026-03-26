@@ -194,15 +194,13 @@ pub fn polylogarithm(s: f64, z: Complex64) -> SpecialResult<Complex64> {
     }
     // z = -1: Li_s(-1) = Σ_{k=1}^∞ (-1)^k/k^s = -η(s)
     // where the Dirichlet eta function is η(s) = Σ (-1)^{k-1}/k^s = (1 - 2^{1-s}) ζ(s).
-    if (z - Complex64::new(-1.0, 0.0)).norm() < 1e-14 {
-        if s > 0.0 {
-            let zeta_s = riemann_zeta_approx(s);
-            let eta_s = (1.0 - (2.0_f64).powf(1.0 - s)) * zeta_s;
-            // Li_s(-1) = -η(s)
-            return Ok(Complex64::new(-eta_s, 0.0));
-        }
-        // For s ≤ 0 fall through to the general computation
+    if (z - Complex64::new(-1.0, 0.0)).norm() < 1e-14 && s > 0.0 {
+        let zeta_s = riemann_zeta_approx(s);
+        let eta_s = (1.0 - (2.0_f64).powf(1.0 - s)) * zeta_s;
+        // Li_s(-1) = -η(s)
+        return Ok(Complex64::new(-eta_s, 0.0));
     }
+    // For s ≤ 0 fall through to the general computation
 
     // For |z| ≤ 0.7: direct power series (converges well)
     if z.norm() <= 0.7 {
@@ -319,7 +317,8 @@ pub fn lerch_phi(z: f64, s: f64, a: f64) -> SpecialResult<f64> {
     // |z| > 1: series diverges unconditionally
     if z.abs() > 1.0 + 1e-12 {
         return Err(SpecialError::DomainError(format!(
-            "lerch_phi: |z| = {} > 1 gives a divergent series", z.abs()
+            "lerch_phi: |z| = {} > 1 gives a divergent series",
+            z.abs()
         )));
     }
     // |z| = 1, s ≤ 1: pole / non-convergent
@@ -435,7 +434,7 @@ pub fn clausen_generalized(theta: f64, n: usize) -> SpecialResult<f64> {
     let z = Complex64::new(theta.cos(), theta.sin()); // e^{iθ}
     let li = polylogarithm(n as f64, z)?;
 
-    if n % 2 == 0 {
+    if n.is_multiple_of(2) {
         Ok(li.im)
     } else {
         Ok(li.re)
@@ -497,7 +496,8 @@ pub fn nielsen_polylog(n: usize, p: usize, z: f64) -> SpecialResult<f64> {
     }
     if z.abs() > 1.0 + 1e-12 {
         return Err(SpecialError::DomainError(format!(
-            "nielsen_polylog: |z| must be ≤ 1 for convergence, got |z| = {}", z.abs()
+            "nielsen_polylog: |z| must be ≤ 1 for convergence, got |z| = {}",
+            z.abs()
         )));
     }
 
@@ -582,7 +582,7 @@ fn polylog_series(s: f64, z: Complex64) -> SpecialResult<Complex64> {
     for k in 1..MAX_TERMS {
         let k_s = (k as f64).powf(s);
         let term = z_pow / Complex64::new(k_s, 0.0);
-        sum = sum + term;
+        sum += term;
 
         if term.norm() < TOL * sum.norm().max(1e-300) && k > 3 {
             return Ok(sum);
@@ -592,7 +592,7 @@ fn polylog_series(s: f64, z: Complex64) -> SpecialResult<Complex64> {
                 "polylog_series: series overflowed".to_string(),
             ));
         }
-        z_pow = z_pow * z;
+        z_pow *= z;
     }
 
     if sum.re.is_finite() && sum.im.is_finite() {
@@ -630,8 +630,16 @@ fn polylog_neg_int(n: usize, z: Complex64) -> SpecialResult<Complex64> {
     for row in 1..=n {
         let mut next_row = vec![0u64; row + 1];
         for k in 0..=row {
-            let left = if k < row { (k + 1) as u64 * euler_row[k] } else { 0 };
-            let right = if k > 0 { (row - k + 1) as u64 * euler_row[k - 1] } else { 0 };
+            let left = if k < row {
+                (k + 1) as u64 * euler_row[k]
+            } else {
+                0
+            };
+            let right = if k > 0 {
+                (row - k + 1) as u64 * euler_row[k - 1]
+            } else {
+                0
+            };
             next_row[k] = left.saturating_add(right);
         }
         euler_row = next_row;
@@ -643,7 +651,7 @@ fn polylog_neg_int(n: usize, z: Complex64) -> SpecialResult<Complex64> {
         let inv_1mz = Complex64::new(1.0, 0.0) / one_minus_z;
         let mut p = Complex64::new(1.0, 0.0);
         for _ in 0..=(n as u32) {
-            p = p * inv_1mz;
+            p *= inv_1mz;
         }
         p
     };
@@ -652,8 +660,8 @@ fn polylog_neg_int(n: usize, z: Complex64) -> SpecialResult<Complex64> {
     let mut z_pow = z; // z^1
     for k in 0..n {
         let coeff = euler_row[k] as f64;
-        sum = sum + z_pow * Complex64::new(coeff, 0.0);
-        z_pow = z_pow * z;
+        sum += z_pow * Complex64::new(coeff, 0.0);
+        z_pow *= z;
     }
     Ok(sum * inv_1mz_n1)
 }
@@ -720,7 +728,11 @@ fn polylog_large_z(s: f64, z: Complex64) -> SpecialResult<Complex64> {
     let correction = Complex64::new(0.0, -2.0 * PI) / Complex64::new(gamma_approx(s), 0.0)
         * log_z.powc(Complex64::new(s - 1.0, 0.0));
 
-    let sign = if (s as i64) % 2 == 0 { -1.0_f64 } else { 1.0_f64 };
+    let sign = if (s as i64) % 2 == 0 {
+        -1.0_f64
+    } else {
+        1.0_f64
+    };
     Ok(Complex64::new(sign, 0.0) * li_inv + correction)
 }
 
@@ -756,7 +768,7 @@ fn polylog_euler_transform(s: f64, z: Complex64) -> SpecialResult<Complex64> {
                 "polylog_euler_transform: series overflowed".to_string(),
             ));
         }
-        z_pow = z_pow * z;
+        z_pow *= z;
     }
 
     if sum.re.is_finite() && sum.im.is_finite() {
@@ -809,7 +821,7 @@ fn bernoulli_poly_complex(n: usize, t: Complex64) -> Complex64 {
     for k in 0..=n {
         let bk = if k <= 20 { BERN[k] } else { 0.0 };
         let t_pow = t.powc(Complex64::new((n - k) as f64, 0.0));
-        result = result + Complex64::new(binom * bk, 0.0) * t_pow;
+        result += Complex64::new(binom * bk, 0.0) * t_pow;
 
         // Update binomial coefficient C(n, k+1) = C(n, k) * (n - k) / (k + 1)
         if k < n {
@@ -859,7 +871,6 @@ fn gamma_approx(x: f64) -> f64 {
     sqrt_2pi * t.powf(x_adj + 0.5) * (-t).exp() * series
 }
 
-
 /// Riemann zeta function ζ(s) for real s > 1 via Euler-Maclaurin.
 ///
 /// This is an internal helper for computing Li_s(1) = ζ(s).
@@ -871,10 +882,10 @@ fn riemann_zeta_approx(s: f64) -> f64 {
 
     // Known exact values (match on s rounded to nearest integer)
     match s.round() as i64 {
-        2 => return PI * PI / 6.0,         // ζ(2) = π²/6
-        4 => return PI.powi(4) / 90.0,     // ζ(4) = π⁴/90
-        6 => return PI.powi(6) / 945.0,    // ζ(6) = π⁶/945
-        8 => return PI.powi(8) / 9450.0,   // ζ(8) = π⁸/9450
+        2 => return PI * PI / 6.0,       // ζ(2) = π²/6
+        4 => return PI.powi(4) / 90.0,   // ζ(4) = π⁴/90
+        6 => return PI.powi(6) / 945.0,  // ζ(6) = π⁶/945
+        8 => return PI.powi(8) / 9450.0, // ζ(8) = π⁸/9450
         _ => {}
     }
 
@@ -914,7 +925,11 @@ mod tests {
         // Li_2(1) = π²/6
         let val = polylogarithm(2.0, Complex64::new(1.0, 0.0)).expect("Li_2(1)");
         let expected = PI * PI / 6.0;
-        assert!((val.re - expected).abs() < 1e-8, "Li_2(1) = {}, expected {expected}", val.re);
+        assert!(
+            (val.re - expected).abs() < 1e-8,
+            "Li_2(1) = {}, expected {expected}",
+            val.re
+        );
     }
 
     #[test]
@@ -922,7 +937,12 @@ mod tests {
         // Li_2(-1) = -π²/12
         let val = polylogarithm(2.0, Complex64::new(-1.0, 0.0)).expect("Li_2(-1)");
         let expected = -PI * PI / 12.0;
-        assert!((val.re - expected).abs() < 1e-8, "Li_2(-1) = {}, expected {}", val.re, expected);
+        assert!(
+            (val.re - expected).abs() < 1e-8,
+            "Li_2(-1) = {}, expected {}",
+            val.re,
+            expected
+        );
     }
 
     #[test]
@@ -930,14 +950,22 @@ mod tests {
         // Li_2(1/2) = π²/12 - (ln 2)²/2
         let val = polylogarithm(2.0, Complex64::new(0.5, 0.0)).expect("Li_2(0.5)");
         let expected = PI * PI / 12.0 - (2.0_f64.ln()).powi(2) / 2.0;
-        assert!((val.re - expected).abs() < 1e-8, "Li_2(0.5) = {}, expected {expected}", val.re);
+        assert!(
+            (val.re - expected).abs() < 1e-8,
+            "Li_2(0.5) = {}, expected {expected}",
+            val.re
+        );
     }
 
     #[test]
     fn test_polylog_li1() {
         // Li_1(0.5) = ln(2)
         let val = polylogarithm(1.0, Complex64::new(0.5, 0.0)).expect("Li_1(0.5)");
-        assert!((val.re - 2.0_f64.ln()).abs() < 1e-10, "Li_1(0.5) = {}", val.re);
+        assert!(
+            (val.re - 2.0_f64.ln()).abs() < 1e-10,
+            "Li_1(0.5) = {}",
+            val.re
+        );
     }
 
     #[test]
@@ -946,7 +974,11 @@ mod tests {
         let z = 0.5_f64;
         let val = polylogarithm(0.0, Complex64::new(z, 0.0)).expect("Li_0");
         let expected = z / (1.0 - z);
-        assert!((val.re - expected).abs() < 1e-13, "Li_0(0.5) = {}, expected {expected}", val.re);
+        assert!(
+            (val.re - expected).abs() < 1e-13,
+            "Li_0(0.5) = {}, expected {expected}",
+            val.re
+        );
     }
 
     #[test]
@@ -955,7 +987,11 @@ mod tests {
         let z = 0.5_f64;
         let val = polylogarithm(-1.0, Complex64::new(z, 0.0)).expect("Li_{-1}");
         let expected = z / (1.0 - z).powi(2);
-        assert!((val.re - expected).abs() < 1e-10, "Li_{{-1}}(0.5) = {}, expected {expected}", val.re);
+        assert!(
+            (val.re - expected).abs() < 1e-10,
+            "Li_{{-1}}(0.5) = {}, expected {expected}",
+            val.re
+        );
     }
 
     #[test]
@@ -963,7 +999,11 @@ mod tests {
         // Li_3(1) = ζ(3) = Apéry's constant ≈ 1.20206
         let val = polylogarithm(3.0, Complex64::new(1.0, 0.0)).expect("Li_3(1)");
         let apery = 1.202_056_903_159_594;
-        assert!((val.re - apery).abs() < 1e-6, "Li_3(1) = {}, expected {apery}", val.re);
+        assert!(
+            (val.re - apery).abs() < 1e-6,
+            "Li_3(1) = {}, expected {apery}",
+            val.re
+        );
     }
 
     #[test]
@@ -990,7 +1030,11 @@ mod tests {
         let s = 3.0_f64;
         let phi = lerch_phi(z, s, 1.0).expect("lerch_phi");
         let li = polylogarithm(s, Complex64::new(z, 0.0)).expect("polylog");
-        assert!((z * phi - li.re).abs() < 1e-7, "Lerch vs polylog: {phi} vs {}", li.re);
+        assert!(
+            (z * phi - li.re).abs() < 1e-7,
+            "Lerch vs polylog: {phi} vs {}",
+            li.re
+        );
     }
 
     #[test]
@@ -998,14 +1042,17 @@ mod tests {
         // Φ(1, 2, 1) = ζ(2) = π²/6
         let val = lerch_phi(1.0 - 1e-10, 2.0, 1.0).expect("lerch_phi ≈ zeta");
         let expected = PI * PI / 6.0;
-        assert!((val - expected).abs() < 0.001, "Φ(1,2,1) ≈ {val}, expected {expected}");
+        assert!(
+            (val - expected).abs() < 0.001,
+            "Φ(1,2,1) ≈ {val}, expected {expected}"
+        );
     }
 
     #[test]
     fn test_lerch_phi_domain_errors() {
-        assert!(lerch_phi(0.5, 2.0, 0.0).is_err());  // a = 0
+        assert!(lerch_phi(0.5, 2.0, 0.0).is_err()); // a = 0
         assert!(lerch_phi(0.5, 2.0, -1.0).is_err()); // a < 0
-        assert!(lerch_phi(2.0, 2.0, 1.0).is_err());  // |z| > 1
+        assert!(lerch_phi(2.0, 2.0, 1.0).is_err()); // |z| > 1
     }
 
     // ── clausen_generalized ──────────────────────────────────────────────────
@@ -1022,7 +1069,10 @@ mod tests {
         // Cl_1(π/2) = -ln(2 * sin(π/4)) = -ln(√2) = -0.5 * ln 2
         let val = clausen_generalized(PI / 2.0, 1).expect("Cl_1(pi/2)");
         let expected = -(0.5_f64 * 2_f64.ln());
-        assert!((val - expected).abs() < 1e-10, "Cl_1(π/2) = {val}, expected {expected}");
+        assert!(
+            (val - expected).abs() < 1e-10,
+            "Cl_1(π/2) = {val}, expected {expected}"
+        );
     }
 
     #[test]
@@ -1044,7 +1094,11 @@ mod tests {
         let z = 0.5_f64;
         let s_val = nielsen_polylog(0, 2, z).expect("S_{0,2}");
         let li = polylogarithm(2.0, Complex64::new(z, 0.0)).expect("Li_2");
-        assert!((s_val - li.re).abs() < 1e-8, "S_{{0,2}} = {s_val}, Li_2 = {}", li.re);
+        assert!(
+            (s_val - li.re).abs() < 1e-8,
+            "S_{{0,2}} = {s_val}, Li_2 = {}",
+            li.re
+        );
     }
 
     #[test]
@@ -1052,7 +1106,10 @@ mod tests {
         // S_{1,1}(z) = Li_{1+1}(z) = Li_2(z), so S_{1,1}(1) = Li_2(1) = π²/6
         let val = nielsen_polylog(1, 1, 1.0).expect("S_{1,1}(1)");
         let expected = PI * PI / 6.0;
-        assert!((val - expected).abs() < 1e-8, "S_{{1,1}}(1) ≈ {val}, expected {expected}");
+        assert!(
+            (val - expected).abs() < 1e-8,
+            "S_{{1,1}}(1) ≈ {val}, expected {expected}"
+        );
     }
 
     #[test]
@@ -1079,13 +1136,16 @@ mod tests {
 
     #[test]
     fn test_reflection_z_half() {
-        // At z = 1/2: Li_2(1/2) + Li_2(1/2) = π²/6 - (ln 2)² 
+        // At z = 1/2: Li_2(1/2) + Li_2(1/2) = π²/6 - (ln 2)²
         // ⟹  2 * Li_2(1/2) = π²/6 - (ln 2)²
         // ⟹  Li_2(1/2) = π²/12 - (ln 2)²/2  ✓
         let (li2z, li2_1mz) = dilogarithm_reflection(0.5).expect("reflection 0.5");
         assert_relative_eq!(li2z, li2_1mz, epsilon = 1e-8); // by symmetry
         let expected = PI * PI / 12.0 - (2.0_f64.ln()).powi(2) / 2.0;
-        assert!((li2z - expected).abs() < 1e-8, "Li_2(0.5) via reflection: {li2z}");
+        assert!(
+            (li2z - expected).abs() < 1e-8,
+            "Li_2(0.5) via reflection: {li2z}"
+        );
     }
 
     #[test]
@@ -1104,7 +1164,11 @@ mod tests {
         let expected = [1.0_f64, 1.0, 2.0, 6.0, 24.0, 120.0];
         for (i, &e) in expected.iter().enumerate() {
             let val = gamma_approx((i + 1) as f64);
-            assert!((val - e).abs() < 1e-8 * e.max(1.0), "Γ({}) = {val}, expected {e}", i + 1);
+            assert!(
+                (val - e).abs() < 1e-8 * e.max(1.0),
+                "Γ({}) = {val}, expected {e}",
+                i + 1
+            );
         }
     }
 }

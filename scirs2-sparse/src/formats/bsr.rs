@@ -106,10 +106,8 @@ where
             });
         }
         // Validate indptr is non-decreasing and in range.
-        if *indptr.last().ok_or_else(|| {
-            SparseError::InconsistentData {
-                reason: "indptr is empty".to_string(),
-            }
+        if *indptr.last().ok_or_else(|| SparseError::InconsistentData {
+            reason: "indptr is empty".to_string(),
         })? != nnz_blocks
         {
             return Err(SparseError::InconsistentData {
@@ -119,10 +117,7 @@ where
         for bi in 0..block_rows {
             if indptr[bi] > indptr[bi + 1] {
                 return Err(SparseError::InconsistentData {
-                    reason: format!(
-                        "indptr is not non-decreasing at position {}",
-                        bi
-                    ),
+                    reason: format!("indptr is not non-decreasing at position {}", bi),
                 });
             }
         }
@@ -157,13 +152,24 @@ where
             ));
         }
         let block_rows = nrows.div_ceil(r);
-        Self::new(vec![], vec![], vec![0usize; block_rows + 1], shape, block_size)
+        Self::new(
+            vec![],
+            vec![],
+            vec![0usize; block_rows + 1],
+            shape,
+            block_size,
+        )
     }
 
     /// Build a BSRMatrix from a row-major dense matrix.
     ///
     /// Blocks whose all entries are zero are omitted.
-    pub fn from_dense(dense: &[T], nrows: usize, ncols: usize, block_size: (usize, usize)) -> SparseResult<Self>
+    pub fn from_dense(
+        dense: &[T],
+        nrows: usize,
+        ncols: usize,
+        block_size: (usize, usize),
+    ) -> SparseResult<Self>
     where
         T: PartialEq + Zero,
     {
@@ -171,7 +177,10 @@ where
             return Err(SparseError::InconsistentData {
                 reason: format!(
                     "dense slice length {} does not match nrows*ncols = {}*{} = {}",
-                    dense.len(), nrows, ncols, nrows * ncols
+                    dense.len(),
+                    nrows,
+                    ncols,
+                    nrows * ncols
                 ),
             });
         }
@@ -264,7 +273,15 @@ where
                     blocks: vec![None; bc],
                 }
             }
-            fn accumulate(&mut self, bj: usize, local_row: usize, local_col: usize, val: U, r: usize, c: usize) {
+            fn accumulate(
+                &mut self,
+                bj: usize,
+                local_row: usize,
+                local_col: usize,
+                val: U,
+                r: usize,
+                c: usize,
+            ) {
                 if self.blocks[bj].is_none() {
                     self.blocks[bj] = Some(vec![U::zero(); r * c]);
                 }
@@ -406,7 +423,9 @@ where
                 for local_row in 0..(row_end - row_start) {
                     let mut acc = zero;
                     for local_col in 0..(col_end - col_start) {
-                        acc = acc + self.data[base + local_row * c + local_col] * x[col_start + local_col];
+                        acc = acc
+                            + self.data[base + local_row * c + local_col]
+                                * x[col_start + local_col];
                     }
                     y[row_start + local_row] = y[row_start + local_row] + acc;
                 }
@@ -463,7 +482,13 @@ where
             }
         }
         let _ = t_block_cols; // suppress lint
-        BSRMatrix::new(t_data, t_indices, t_indptr, (t_nrows, t_ncols), t_block_size)
+        BSRMatrix::new(
+            t_data,
+            t_indices,
+            t_indptr,
+            (t_nrows, t_ncols),
+            t_block_size,
+        )
     }
 
     // ------------------------------------------------------------------
@@ -556,8 +581,8 @@ where
                                 continue;
                             }
                             for lc in 0..c {
-                                buf[lr * c + lc] = buf[lr * c + lc]
-                                    + a_val * other.data[base_b + lk * c + lc];
+                                buf[lr * c + lc] =
+                                    buf[lr * c + lc] + a_val * other.data[base_b + lk * c + lc];
                             }
                         }
                     }
@@ -584,7 +609,13 @@ where
         }
         let _ = other_by_col; // suppress lint
 
-        BSRMatrix::new(out_data, out_indices, out_indptr, (out_nrows, out_ncols), out_block_size)
+        BSRMatrix::new(
+            out_data,
+            out_indices,
+            out_indptr,
+            (out_nrows, out_ncols),
+            out_block_size,
+        )
     }
 
     // ------------------------------------------------------------------
@@ -632,7 +663,12 @@ where
     // ------------------------------------------------------------------
 
     /// Helper for element-wise binary operations on matching-structure BSR matrices.
-    fn elementwise_op<F>(&self, other: &BSRMatrix<T>, op: F, _op_name: &str) -> SparseResult<BSRMatrix<T>>
+    fn elementwise_op<F>(
+        &self,
+        other: &BSRMatrix<T>,
+        op: F,
+        _op_name: &str,
+    ) -> SparseResult<BSRMatrix<T>>
     where
         F: Fn(T, T) -> T,
         T: Add<Output = T> + Mul<Output = T>,
@@ -667,8 +703,16 @@ where
             let mut bi_idx = b_start;
 
             while ai < a_end || bi_idx < b_end {
-                let a_col = if ai < a_end { self.indices[ai] } else { usize::MAX };
-                let b_col = if bi_idx < b_end { other.indices[bi_idx] } else { usize::MAX };
+                let a_col = if ai < a_end {
+                    self.indices[ai]
+                } else {
+                    usize::MAX
+                };
+                let b_col = if bi_idx < b_end {
+                    other.indices[bi_idx]
+                } else {
+                    usize::MAX
+                };
 
                 if a_col < b_col {
                     // Only in A; apply op with zero.
@@ -716,7 +760,13 @@ where
             out_indptr[bi + 1] = out_indices.len();
         }
 
-        BSRMatrix::new(out_data, out_indices, out_indptr, self.shape(), self.block_size)
+        BSRMatrix::new(
+            out_data,
+            out_indices,
+            out_indptr,
+            self.shape(),
+            self.block_size,
+        )
     }
 }
 
@@ -760,7 +810,7 @@ mod tests {
         // [ 0 0 | 7 8 ]
         let data = vec![
             1.0_f64, 2.0, 3.0, 4.0, // block (0,0)
-            5.0, 6.0, 7.0, 8.0,     // block (1,1)
+            5.0, 6.0, 7.0, 8.0, // block (1,1)
         ];
         let indices = vec![0, 1];
         let indptr = vec![0, 1, 2];
@@ -772,10 +822,7 @@ mod tests {
         let bsr = make_4x4_bsr();
         let dense = bsr.to_dense();
         let expected = vec![
-            1.0, 2.0, 0.0, 0.0,
-            3.0, 4.0, 0.0, 0.0,
-            0.0, 0.0, 5.0, 6.0,
-            0.0, 0.0, 7.0, 8.0,
+            1.0, 2.0, 0.0, 0.0, 3.0, 4.0, 0.0, 0.0, 0.0, 0.0, 5.0, 6.0, 0.0, 0.0, 7.0, 8.0,
         ];
         for (a, b) in dense.iter().zip(expected.iter()) {
             assert_relative_eq!(a, b, epsilon = 1e-12);
@@ -785,10 +832,7 @@ mod tests {
     #[test]
     fn test_from_dense_constructor() {
         let dense = vec![
-            1.0_f64, 2.0, 0.0, 0.0,
-            3.0, 4.0, 0.0, 0.0,
-            0.0, 0.0, 5.0, 6.0,
-            0.0, 0.0, 7.0, 8.0,
+            1.0_f64, 2.0, 0.0, 0.0, 3.0, 4.0, 0.0, 0.0, 0.0, 0.0, 5.0, 6.0, 0.0, 0.0, 7.0, 8.0,
         ];
         let bsr = BSRMatrix::from_dense(&dense, 4, 4, (2, 2)).expect("from_dense failed");
         assert_eq!(bsr.nnz_blocks(), 2);
@@ -844,14 +888,14 @@ mod tests {
         // Block (1,1) = [[5,6],[7,8]]^2 = [[67,78],[83,96]] (wait recalc)
         // Actually [[5,6],[7,8]] * [[5,6],[7,8]] = [[5*5+6*7, 5*6+6*8],[7*5+8*7, 7*6+8*8]]
         //  = [[25+42, 30+48],[35+56, 42+64]] = [[67,78],[91,106]]
-        assert_relative_eq!(dense_r[0 * 4 + 0], 7.0, epsilon = 1e-12);
-        assert_relative_eq!(dense_r[0 * 4 + 1], 10.0, epsilon = 1e-12);
-        assert_relative_eq!(dense_r[1 * 4 + 0], 15.0, epsilon = 1e-12);
-        assert_relative_eq!(dense_r[1 * 4 + 1], 22.0, epsilon = 1e-12);
-        assert_relative_eq!(dense_r[2 * 4 + 2], 67.0, epsilon = 1e-12);
-        assert_relative_eq!(dense_r[2 * 4 + 3], 78.0, epsilon = 1e-12);
-        assert_relative_eq!(dense_r[3 * 4 + 2], 91.0, epsilon = 1e-12);
-        assert_relative_eq!(dense_r[3 * 4 + 3], 106.0, epsilon = 1e-12);
+        assert_relative_eq!(dense_r[0], 7.0, epsilon = 1e-12);
+        assert_relative_eq!(dense_r[1], 10.0, epsilon = 1e-12);
+        assert_relative_eq!(dense_r[4], 15.0, epsilon = 1e-12);
+        assert_relative_eq!(dense_r[5], 22.0, epsilon = 1e-12);
+        assert_relative_eq!(dense_r[10], 67.0, epsilon = 1e-12);
+        assert_relative_eq!(dense_r[11], 78.0, epsilon = 1e-12);
+        assert_relative_eq!(dense_r[14], 91.0, epsilon = 1e-12);
+        assert_relative_eq!(dense_r[15], 106.0, epsilon = 1e-12);
     }
 
     #[test]
@@ -879,10 +923,8 @@ mod tests {
     fn test_non_square_blocks() {
         // 4×6 matrix with 2×3 blocks
         let dense = vec![
-            1.0_f64, 2.0, 3.0, 0.0, 0.0, 0.0,
-            4.0, 5.0, 6.0, 0.0, 0.0, 0.0,
-            0.0, 0.0, 0.0, 7.0, 8.0, 9.0,
-            0.0, 0.0, 0.0, 10.0, 11.0, 12.0,
+            1.0_f64, 2.0, 3.0, 0.0, 0.0, 0.0, 4.0, 5.0, 6.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 7.0,
+            8.0, 9.0, 0.0, 0.0, 0.0, 10.0, 11.0, 12.0,
         ];
         let bsr = BSRMatrix::from_dense(&dense, 4, 6, (2, 3)).expect("from_dense non-square");
         assert_eq!(bsr.nnz_blocks(), 2);

@@ -36,7 +36,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-series = "0.1.5"
+//! scirs2-series = "0.4.0"
 //! ```
 //!
 //! ```rust,no_run
@@ -238,6 +238,36 @@ pub mod utils;
 pub mod validation;
 pub mod var_models;
 pub mod visualization;
+pub mod volatility;
+
+// Attention mechanisms for time series
+pub mod attention;
+// Energy forecasting models
+pub mod energy_forecast;
+// Foundation models for time series
+pub mod foundation;
+// Gaussian process state-space models
+pub mod gp_ssm;
+// Hierarchical time series reconciliation
+pub mod hierarchical;
+// Hierarchical sparse attention
+pub mod hierarchical_attention;
+// Latent ODE models
+pub mod latent_ode;
+// Neural ODE for time series (CNF, FFJORD)
+pub mod neural_ode;
+// Online learning for time series
+pub mod online_learner;
+// Online meta-learning
+pub mod online_meta;
+// Physics-informed time series
+pub mod physics_ts;
+// Prompt conditioning for zero-shot forecasting
+pub mod prompt_conditioning;
+// State space models (S4, S4D, Mamba, HiPPO)
+pub mod ssm;
+// Temporal fusion transformer
+pub mod tft;
 
 // SIMD-accelerated time series operations
 #[cfg(feature = "simd")]

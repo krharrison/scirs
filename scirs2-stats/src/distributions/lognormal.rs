@@ -153,7 +153,7 @@ impl<F: Float + NumCast + std::fmt::Display> Lognormal<F> {
     ///
     /// let lognorm = Lognormal::new(0.0f64, 1.0, 0.0).expect("Operation failed");
     /// let x = lognorm.ppf(0.5).expect("Operation failed");
-    /// assert!((x - 1.0000001010066806) < 1e-7);
+    /// assert!((x - 1.0) < 1e-7);
     /// ```
     pub fn ppf(&self, p: F) -> StatsResult<F> {
         if p < F::zero() || p > F::one() {
@@ -417,15 +417,15 @@ mod tests {
 
         // Median (50th percentile)
         let median = lognorm.ppf(0.5).expect("Operation failed");
-        assert_relative_eq!(median, 1.0000001010066806, epsilon = 1e-7);
+        assert_relative_eq!(median, 1.0, epsilon = 1e-7);
 
-        // 75th percentile
+        // 75th percentile: exp(Normal(0,1).ppf(0.75)) = exp(0.67449) ≈ 1.96303
         let p75 = lognorm.ppf(0.75).expect("Operation failed");
-        assert_relative_eq!(p75, 1.9624410657713667, epsilon = 1e-4);
+        assert_relative_eq!(p75, 1.9630, epsilon = 1e-3);
 
-        // 25th percentile
+        // 25th percentile: exp(Normal(0,1).ppf(0.25)) = exp(-0.67449) ≈ 0.50942
         let p25 = lognorm.ppf(0.25).expect("Operation failed");
-        assert_relative_eq!(p25, 0.5095694425895716, epsilon = 1e-4);
+        assert_relative_eq!(p25, 0.50942, epsilon = 1e-3);
 
         // Error cases
         assert!(lognorm.ppf(-0.1).is_err());

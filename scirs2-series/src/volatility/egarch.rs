@@ -151,7 +151,7 @@ impl EGARCHModel {
         let sum_beta: f64 = self.beta.iter().sum();
         let denom = 1.0 - sum_beta;
         if denom.abs() < 1e-12 {
-            return Err(TimeSeriesError::NumericalError(
+            return Err(TimeSeriesError::NumericalInstability(
                 "EGARCH: Σβ ≈ 1 — denominator near zero in unconditional log-variance".into(),
             ));
         }
@@ -208,11 +208,7 @@ pub fn egarch_log_variance(
 
     // Initial log-variance: log of sample variance
     let mean = returns.mean().unwrap_or(0.0);
-    let sample_var = returns
-        .iter()
-        .map(|&r| (r - mean).powi(2))
-        .sum::<f64>()
-        / n as f64;
+    let sample_var = returns.iter().map(|&r| (r - mean).powi(2)).sum::<f64>() / n as f64;
     let init_log_var = if sample_var > 0.0 {
         sample_var.ln()
     } else {
@@ -274,7 +270,7 @@ pub fn egarch_log_likelihood(
     for t in burn_in..n {
         let sigma2 = h[t].exp();
         if sigma2 <= 0.0 || !sigma2.is_finite() {
-            return Err(TimeSeriesError::NumericalError(
+            return Err(TimeSeriesError::NumericalInstability(
                 "EGARCH: non-positive or non-finite conditional variance".into(),
             ));
         }
@@ -283,7 +279,7 @@ pub fn egarch_log_likelihood(
     }
 
     if !ll.is_finite() {
-        return Err(TimeSeriesError::NumericalError(
+        return Err(TimeSeriesError::NumericalInstability(
             "EGARCH: log-likelihood is not finite".into(),
         ));
     }
@@ -400,11 +396,7 @@ pub fn fit_egarch(returns: &Array1<f64>, p: usize, q: usize) -> Result<EGARCHMod
 /// ```
 ///
 /// Returns a vector of length `h` with the forecasted **variances** (not log-variances).
-pub fn egarch_forecast(
-    model: &EGARCHModel,
-    returns: &Array1<f64>,
-    h: usize,
-) -> Result<Vec<f64>> {
+pub fn egarch_forecast(model: &EGARCHModel, returns: &Array1<f64>, h: usize) -> Result<Vec<f64>> {
     if h == 0 {
         return Err(TimeSeriesError::InvalidInput(
             "forecast horizon h must be >= 1".into(),
@@ -414,19 +406,18 @@ pub fn egarch_forecast(
     let mean = returns.mean().unwrap_or(0.0);
     let r: Array1<f64> = returns.mapv(|x| x - mean);
 
-    let log_var_series = egarch_log_variance(&r, model.omega, &model.alpha, &model.gamma, &model.beta)?;
-    let last_log_var = *log_var_series.last().ok_or_else(|| {
-        TimeSeriesError::InsufficientData {
+    let log_var_series =
+        egarch_log_variance(&r, model.omega, &model.alpha, &model.gamma, &model.beta)?;
+    let last_log_var = *log_var_series
+        .last()
+        .ok_or_else(|| TimeSeriesError::InsufficientData {
             message: "EGARCH forecast: empty log-variance series".into(),
             required: 1,
             actual: 0,
-        }
-    })?;
+        })?;
 
     let sum_beta: f64 = model.beta.iter().sum();
-    let uncond_log_var = model
-        .unconditional_log_variance()
-        .unwrap_or(last_log_var);
+    let uncond_log_var = model.unconditional_log_variance().unwrap_or(last_log_var);
 
     let mut forecasts = Vec::with_capacity(h);
     let mut current = last_log_var;
@@ -435,7 +426,7 @@ pub fn egarch_forecast(
         // E[ln σ²_{t+1}] = ω + Σβ * current  (α terms vanish in expectation)
         let next_log_var = model.omega + sum_beta * current;
         let _ = next_log_var; // suppress lint
-        // Mean-reverting recursion toward unconditional log-variance
+                              // Mean-reverting recursion toward unconditional log-variance
         current = uncond_log_var + sum_beta * (current - uncond_log_var);
         forecasts.push(current.exp());
     }
@@ -444,7 +435,10 @@ pub fn egarch_forecast(
 }
 
 /// Compute the conditional volatility series (σ_t) from an EGARCH model.
-pub fn egarch_conditional_volatility(model: &EGARCHModel, returns: &Array1<f64>) -> Result<Vec<f64>> {
+pub fn egarch_conditional_volatility(
+    model: &EGARCHModel,
+    returns: &Array1<f64>,
+) -> Result<Vec<f64>> {
     let mean = returns.mean().unwrap_or(0.0);
     let r: Array1<f64> = returns.mapv(|x| x - mean);
     let log_var = egarch_log_variance(&r, model.omega, &model.alpha, &model.gamma, &model.beta)?;
@@ -452,7 +446,10 @@ pub fn egarch_conditional_volatility(model: &EGARCHModel, returns: &Array1<f64>)
 }
 
 /// Compute standardised residuals `z_t = ε_t / σ_t`.
-pub fn egarch_standardised_residuals(model: &EGARCHModel, returns: &Array1<f64>) -> Result<Vec<f64>> {
+pub fn egarch_standardised_residuals(
+    model: &EGARCHModel,
+    returns: &Array1<f64>,
+) -> Result<Vec<f64>> {
     let mean = returns.mean().unwrap_or(0.0);
     let r: Array1<f64> = returns.mapv(|x| x - mean);
     let log_var = egarch_log_variance(&r, model.omega, &model.alpha, &model.gamma, &model.beta)?;
@@ -472,12 +469,7 @@ pub fn egarch_standardised_residuals(model: &EGARCHModel, returns: &Array1<f64>)
 ///
 /// Minimises `f(x)` starting from the initial point `x0`.  Returns the
 /// approximate minimiser.
-pub(crate) fn nelder_mead<F>(
-    x0: &[f64],
-    f: &F,
-    max_iter: usize,
-    tol: f64,
-) -> Result<Vec<f64>>
+pub(crate) fn nelder_mead<F>(x0: &[f64], f: &F, max_iter: usize, tol: f64) -> Result<Vec<f64>>
 where
     F: Fn(&[f64]) -> f64,
 {
@@ -512,10 +504,13 @@ where
     for _iter in 0..max_iter {
         // Sort by function value
         let mut order: Vec<usize> = (0..=n).collect();
-        order.sort_by(|&a, &b| fvals[a].partial_cmp(&fvals[b]).unwrap_or(std::cmp::Ordering::Equal));
+        order.sort_by(|&a, &b| {
+            fvals[a]
+                .partial_cmp(&fvals[b])
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
-        let (best_idx, worst_idx, second_worst_idx) =
-            (order[0], order[n], order[n - 1]);
+        let (best_idx, worst_idx, second_worst_idx) = (order[0], order[n], order[n - 1]);
 
         // Convergence check
         let range = fvals[worst_idx] - fvals[best_idx];
@@ -606,7 +601,9 @@ where
 // ============================================================
 
 /// Chi-squared survival function re-exported for use in arch_tests module.
-pub(crate) use crate::volatility::arch::{chi2_survival as arch_chi2_survival, ln_gamma as arch_ln_gamma};
+pub(crate) use crate::volatility::arch::{
+    chi2_survival as arch_chi2_survival, ln_gamma as arch_ln_gamma,
+};
 
 // ============================================================
 // Tests
@@ -620,16 +617,11 @@ mod tests {
     fn make_returns() -> Array1<f64> {
         // 50 synthetic return values with some volatility clustering
         Array1::from(vec![
-            0.008, -0.015, 0.011, -0.007, 0.013,
-            0.005, -0.018, 0.009, -0.003, 0.007,
-            0.025, -0.014, 0.008, -0.006, 0.011,
-            -0.019, 0.022, 0.003, -0.011, 0.017,
-            -0.004, 0.008, -0.013, 0.019, 0.001,
-            -0.009, 0.016, -0.002, 0.011, 0.006,
-            0.010, -0.020, 0.014, -0.009, 0.015,
-            0.003, -0.016, 0.010, -0.004, 0.008,
-            0.023, -0.012, 0.007, -0.007, 0.012,
-            -0.021, 0.018, 0.002, -0.010, 0.016,
+            0.008, -0.015, 0.011, -0.007, 0.013, 0.005, -0.018, 0.009, -0.003, 0.007, 0.025,
+            -0.014, 0.008, -0.006, 0.011, -0.019, 0.022, 0.003, -0.011, 0.017, -0.004, 0.008,
+            -0.013, 0.019, 0.001, -0.009, 0.016, -0.002, 0.011, 0.006, 0.010, -0.020, 0.014,
+            -0.009, 0.015, 0.003, -0.016, 0.010, -0.004, 0.008, 0.023, -0.012, 0.007, -0.007,
+            0.012, -0.021, 0.018, 0.002, -0.010, 0.016,
         ])
     }
 

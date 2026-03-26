@@ -5,12 +5,12 @@
 //! - [`VariableElimination`] — variable elimination for exact marginal/conditional queries
 //! - [`BeliefPropagation`] — sum-product message passing on singly-connected graphs (polytrees)
 
-use std::collections::HashMap;
-use crate::StatsError;
 use super::{
+    cpd::{TabularCPD, CPD},
     dag::DAG,
-    cpd::{CPD, TabularCPD},
 };
+use crate::StatsError;
+use std::collections::HashMap;
 
 // ---------------------------------------------------------------------------
 // BayesianNetwork
@@ -114,7 +114,11 @@ impl Factor {
             let parent_vals = &assignment[1..];
             values[idx] = cpd.prob(node_val, parent_vals);
         }
-        Factor { scope, card, values }
+        Factor {
+            scope,
+            card,
+            values,
+        }
     }
 
     /// Marginalize out `var` by summing over its values.
@@ -122,22 +126,34 @@ impl Factor {
         let pos = self.scope.iter().position(|&v| v == var)?;
         let var_card = self.card[pos];
         // New scope: remove var
-        let new_scope: Vec<usize> = self.scope.iter().enumerate()
+        let new_scope: Vec<usize> = self
+            .scope
+            .iter()
+            .enumerate()
             .filter(|&(i, _)| i != pos)
             .map(|(_, &v)| v)
             .collect();
-        let new_card: Vec<usize> = self.card.iter().enumerate()
+        let new_card: Vec<usize> = self
+            .card
+            .iter()
+            .enumerate()
             .filter(|&(i, _)| i != pos)
             .map(|(_, &c)| c)
             .collect();
-        let new_n: usize = if new_card.is_empty() { 1 } else { new_card.iter().product() };
+        let new_n: usize = if new_card.is_empty() {
+            1
+        } else {
+            new_card.iter().product()
+        };
         let new_strides = strides_from_card(&new_card);
         let old_strides = strides_from_card(&self.card);
         let mut new_values = vec![0.0f64; new_n];
         for idx in 0..self.values.len() {
             let old_assign = decode_index(idx, &self.card, &old_strides);
             // Build new assignment (drop position pos)
-            let new_assign: Vec<usize> = old_assign.iter().enumerate()
+            let new_assign: Vec<usize> = old_assign
+                .iter()
+                .enumerate()
                 .filter(|&(i, _)| i != pos)
                 .map(|(_, &v)| v)
                 .collect();
@@ -146,21 +162,35 @@ impl Factor {
         }
         // Handle summing over var_card (the factor value already covers all var_card values summed)
         let _ = var_card; // used implicitly above
-        Some(Factor { scope: new_scope, card: new_card, values: new_values })
+        Some(Factor {
+            scope: new_scope,
+            card: new_card,
+            values: new_values,
+        })
     }
 
     /// Reduce factor by observing `var = val`.
     pub fn reduce(&self, var: usize, val: usize) -> Option<Factor> {
         let pos = self.scope.iter().position(|&v| v == var)?;
-        let new_scope: Vec<usize> = self.scope.iter().enumerate()
+        let new_scope: Vec<usize> = self
+            .scope
+            .iter()
+            .enumerate()
             .filter(|&(i, _)| i != pos)
             .map(|(_, &v)| v)
             .collect();
-        let new_card: Vec<usize> = self.card.iter().enumerate()
+        let new_card: Vec<usize> = self
+            .card
+            .iter()
+            .enumerate()
             .filter(|&(i, _)| i != pos)
             .map(|(_, &c)| c)
             .collect();
-        let new_n: usize = if new_card.is_empty() { 1 } else { new_card.iter().product() };
+        let new_n: usize = if new_card.is_empty() {
+            1
+        } else {
+            new_card.iter().product()
+        };
         let new_strides = strides_from_card(&new_card);
         let old_strides = strides_from_card(&self.card);
         let mut new_values = vec![0.0f64; new_n];
@@ -169,14 +199,20 @@ impl Factor {
             if old_assign[pos] != val {
                 continue;
             }
-            let new_assign: Vec<usize> = old_assign.iter().enumerate()
+            let new_assign: Vec<usize> = old_assign
+                .iter()
+                .enumerate()
                 .filter(|&(i, _)| i != pos)
                 .map(|(_, &v)| v)
                 .collect();
             let new_idx = encode_index(&new_assign, &new_strides);
             new_values[new_idx] = self.values[idx];
         }
-        Some(Factor { scope: new_scope, card: new_card, values: new_values })
+        Some(Factor {
+            scope: new_scope,
+            card: new_card,
+            values: new_values,
+        })
     }
 
     /// Point-wise multiply two factors (over their combined scope).
@@ -190,7 +226,11 @@ impl Factor {
                 new_card.push(other.card[i]);
             }
         }
-        let new_n: usize = if new_card.is_empty() { 1 } else { new_card.iter().product() };
+        let new_n: usize = if new_card.is_empty() {
+            1
+        } else {
+            new_card.iter().product()
+        };
         let new_strides = strides_from_card(&new_card);
         let self_strides = strides_from_card(&self.card);
         let other_strides = strides_from_card(&other.card);
@@ -198,21 +238,31 @@ impl Factor {
         for idx in 0..new_n {
             let full_assign = decode_index(idx, &new_card, &new_strides);
             // Map to self's assignment
-            let self_assign: Vec<usize> = self.scope.iter()
+            let self_assign: Vec<usize> = self
+                .scope
+                .iter()
                 .map(|v| {
                     let pos = new_scope.iter().position(|&x| x == *v).unwrap_or(0);
                     full_assign[pos]
-                }).collect();
-            let other_assign: Vec<usize> = other.scope.iter()
+                })
+                .collect();
+            let other_assign: Vec<usize> = other
+                .scope
+                .iter()
                 .map(|v| {
                     let pos = new_scope.iter().position(|&x| x == *v).unwrap_or(0);
                     full_assign[pos]
-                }).collect();
+                })
+                .collect();
             let si = encode_index(&self_assign, &self_strides);
             let oi = encode_index(&other_assign, &other_strides);
             new_values[idx] = self.values[si] * other.values[oi];
         }
-        Factor { scope: new_scope, card: new_card, values: new_values }
+        Factor {
+            scope: new_scope,
+            card: new_card,
+            values: new_values,
+        }
     }
 
     /// Normalize values to sum to 1.
@@ -253,7 +303,9 @@ impl VariableElimination {
     ) -> Self {
         let topo = bn.dag.topological_sort();
         // Reversed topological order, excluding query and evidence variables
-        let order: Vec<usize> = topo.into_iter().rev()
+        let order: Vec<usize> = topo
+            .into_iter()
+            .rev()
             .filter(|v| !query_vars.contains(v) && !evidence.contains_key(v))
             .collect();
         Self { order }
@@ -269,7 +321,9 @@ impl VariableElimination {
         evidence: &HashMap<usize, usize>,
     ) -> Result<HashMap<usize, Vec<f64>>, StatsError> {
         // Step 1: build initial factors from all CPDs
-        let mut factors: Vec<Factor> = bn.cpds.iter()
+        let mut factors: Vec<Factor> = bn
+            .cpds
+            .iter()
             .map(|cpd| Factor::from_cpd(cpd.as_ref(), bn))
             .collect();
 
@@ -287,9 +341,8 @@ impl VariableElimination {
         // Step 3: eliminate hidden variables
         for &var in &self.order {
             // Collect factors that contain `var`
-            let (with_var, without_var): (Vec<Factor>, Vec<Factor>) = factors
-                .into_iter()
-                .partition(|f| f.scope.contains(&var));
+            let (with_var, without_var): (Vec<Factor>, Vec<Factor>) =
+                factors.into_iter().partition(|f| f.scope.contains(&var));
 
             if with_var.is_empty() {
                 factors = without_var;
@@ -316,7 +369,9 @@ impl VariableElimination {
         for &qv in query_vars {
             // Marginalize out everything except qv from product
             let mut marginal = product.clone();
-            let other_vars: Vec<usize> = marginal.scope.iter()
+            let other_vars: Vec<usize> = marginal
+                .scope
+                .iter()
                 .copied()
                 .filter(|&v| v != qv)
                 .collect();
@@ -377,9 +432,10 @@ impl BeliefPropagation {
     ) -> Result<Vec<f64>, StatsError> {
         let ve = VariableElimination::from_network(bn, &[node], evidence);
         let result = ve.query(bn, &[node], evidence)?;
-        result.get(&node).cloned().ok_or_else(|| {
-            StatsError::ComputationError(format!("No result for node {node}"))
-        })
+        result
+            .get(&node)
+            .cloned()
+            .ok_or_else(|| StatsError::ComputationError(format!("No result for node {node}")))
     }
 }
 
@@ -422,7 +478,11 @@ fn encode_index(assignment: &[usize], strides: &[usize]) -> usize {
 /// Multiply a list of factors together (pairwise).
 fn multiply_all(mut factors: Vec<Factor>) -> Factor {
     if factors.is_empty() {
-        return Factor { scope: Vec::new(), card: Vec::new(), values: vec![1.0] };
+        return Factor {
+            scope: Vec::new(),
+            card: Vec::new(),
+            values: vec![1.0],
+        };
     }
     let mut result = factors.remove(0);
     for f in factors {
@@ -451,14 +511,10 @@ mod tests {
         dag.add_edge(1, 2).unwrap();
 
         // P(Rain): 0.8, 0.2
-        let cpd_rain = TabularCPD::new(
-            0, 2, vec![], vec![], vec![vec![0.8, 0.2]],
-        ).unwrap();
+        let cpd_rain = TabularCPD::new(0, 2, vec![], vec![], vec![vec![0.8, 0.2]]).unwrap();
 
         // P(Sprinkler): 0.5, 0.5
-        let cpd_spr = TabularCPD::new(
-            1, 2, vec![], vec![], vec![vec![0.5, 0.5]],
-        ).unwrap();
+        let cpd_spr = TabularCPD::new(1, 2, vec![], vec![], vec![vec![0.5, 0.5]]).unwrap();
 
         // P(WG | Rain, Sprinkler): 4 rows
         // row 0: R=0,S=0 → WG:0.99,0.01
@@ -466,21 +522,20 @@ mod tests {
         // row 2: R=1,S=0 → WG:0.01,0.99
         // row 3: R=1,S=1 → WG:0.01,0.99
         let cpd_wg = TabularCPD::new(
-            2, 2,
-            vec![0, 1], vec![2, 2],
+            2,
+            2,
+            vec![0, 1],
+            vec![2, 2],
             vec![
                 vec![0.99, 0.01],
                 vec![0.01, 0.99],
                 vec![0.01, 0.99],
                 vec![0.01, 0.99],
             ],
-        ).unwrap();
+        )
+        .unwrap();
 
-        let cpds: Vec<Box<dyn CPD>> = vec![
-            Box::new(cpd_rain),
-            Box::new(cpd_spr),
-            Box::new(cpd_wg),
-        ];
+        let cpds: Vec<Box<dyn CPD>> = vec![Box::new(cpd_rain), Box::new(cpd_spr), Box::new(cpd_wg)];
         BayesianNetwork::new(dag, cpds).unwrap()
     }
 
@@ -521,7 +576,11 @@ mod tests {
         let result = ve.query(&bn, &[0], &evidence).unwrap();
         let rain = &result[&0];
         // P(Rain=1 | WG=1) should be higher than prior 0.2
-        assert!(rain[1] > 0.2, "P(Rain=1|WG=1) should be > 0.2, got {}", rain[1]);
+        assert!(
+            rain[1] > 0.2,
+            "P(Rain=1|WG=1) should be > 0.2, got {}",
+            rain[1]
+        );
         assert!((rain[0] + rain[1] - 1.0).abs() < 1e-6, "Should sum to 1");
     }
 

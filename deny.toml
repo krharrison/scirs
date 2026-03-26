@@ -2,17 +2,21 @@
 # This file defines policies for dependencies, licenses, and security
 
 [advisories]
-db-path = "~/.cargo/advisory-db"
-db-urls = ["https://github.com/rustsec/advisory-db"]
-vulnerability = "deny"
-unmaintained = "warn"
-yanked = "deny"
-notice = "warn"
-ignore = []
+version = 2
+ignore = [
+    "RUSTSEC-2024-0436", # paste - unmaintained but widely used, no replacement yet
+    "RUSTSEC-2024-0384", # instant - unmaintained, transitive dep via criterion/tokio
+    "RUSTSEC-2025-0134", # rustls-pemfile - unmaintained, transitive dep via rumqttc
+    # aws-lc-sys 0.38.x vulnerabilities: transitive via reqwest→rustls→aws-lc-rs
+    # Will be resolved when reqwest/rustls update to aws-lc-rs >= 1.16.2 (aws-lc-sys 0.39+)
+    "RUSTSEC-2026-0044", # aws-lc-sys: X.509 Name Constraints Bypass (fixed in 0.39.0)
+    "RUSTSEC-2026-0048", # aws-lc-sys: CRL Distribution Point logic error (fixed in 0.39.0)
+    "RUSTSEC-2026-0049", # rustls-webpki 0.102.8: CRL scope check (fixed in 0.103.10)
+]
 
 [licenses]
+version = 2
 # Licensing policy for COOLJAPAN Pure Rust ecosystem
-unlicensed = "deny"
 allow = [
     "MIT",
     "Apache-2.0",
@@ -21,17 +25,12 @@ allow = [
     "BSD-3-Clause",
     "ISC",
     "Unicode-DFS-2016",
+    "Unicode-3.0",
     "Zlib",
     "MPL-2.0",
+    "NCSA",
+    "CDLA-Permissive-2.0",
 ]
-deny = [
-    "GPL-2.0",
-    "GPL-3.0",
-    "AGPL-3.0",
-]
-copyleft = "warn"
-allow-osi-fsf-free = "both"
-default = "deny"
 confidence-threshold = 0.8
 
 [bans]
@@ -39,8 +38,6 @@ confidence-threshold = 0.8
 multiple-versions = "warn"
 wildcards = "warn"
 highlight = "all"
-workspace-default-features = "allow"
-external-default-features = "allow"
 
 # Deny specific crates per COOLJAPAN Pure Rust Policy
 deny = [

@@ -306,7 +306,7 @@ pub fn agm(mut a: f64, mut b: f64) -> SpecialResult<f64> {
 /// assert!((k - std::f64::consts::PI / 2.0).abs() < 1e-14);
 /// ```
 pub fn ellipk_agm(m: f64) -> SpecialResult<f64> {
-    if m < 0.0 || m >= 1.0 {
+    if !(0.0..1.0).contains(&m) {
         return Err(SpecialError::DomainError(format!(
             "m must be in [0, 1) for ellipk_agm, got {m}"
         )));
@@ -338,7 +338,7 @@ pub fn ellipk_agm(m: f64) -> SpecialResult<f64> {
 /// assert!((e - std::f64::consts::PI / 2.0).abs() < 1e-14);
 /// ```
 pub fn ellipe_agm(m: f64) -> SpecialResult<f64> {
-    if m < 0.0 || m > 1.0 {
+    if !(0.0..=1.0).contains(&m) {
         return Err(SpecialError::DomainError(format!(
             "m must be in [0, 1] for ellipe_agm, got {m}"
         )));
@@ -417,7 +417,7 @@ pub fn ellipe_agm(m: f64) -> SpecialResult<f64> {
 /// assert!(val.abs() < 1e-14);
 /// ```
 pub fn jacobi_am(u: f64, m: f64) -> SpecialResult<f64> {
-    if m < 0.0 || m > 1.0 {
+    if !(0.0..=1.0).contains(&m) {
         return Err(SpecialError::DomainError(format!(
             "m must be in [0, 1] for jacobi_am, got {m}"
         )));
@@ -509,7 +509,7 @@ pub fn arcsn(x: f64, m: f64) -> SpecialResult<f64> {
         )));
     }
 
-    if m < 0.0 || m > 1.0 {
+    if !(0.0..=1.0).contains(&m) {
         return Err(SpecialError::DomainError(format!(
             "m must be in [0, 1] for arcsn, got {m}"
         )));
@@ -540,7 +540,7 @@ pub fn arccn(x: f64, m: f64) -> SpecialResult<f64> {
         )));
     }
 
-    if m < 0.0 || m > 1.0 {
+    if !(0.0..=1.0).contains(&m) {
         return Err(SpecialError::DomainError(format!(
             "m must be in [0, 1] for arccn, got {m}"
         )));
@@ -653,9 +653,9 @@ pub fn bulirsch_cel(kc: f64, p: f64, a: f64, b: f64) -> SpecialResult<f64> {
         a += b / p;
         let g = em / p;
         b = 2.0 * (f * g + b);
-        p = g + p;
+        p += g;
         let g_old = em;
-        em = kc + em;
+        em += kc;
         if (g_old - kc).abs() <= g_old * eps {
             break;
         }
@@ -680,7 +680,7 @@ pub fn bulirsch_cel(kc: f64, p: f64, a: f64, b: f64) -> SpecialResult<f64> {
 /// # Returns
 /// Nome q
 pub fn nome_from_m(m: f64) -> SpecialResult<f64> {
-    if m < 0.0 || m >= 1.0 {
+    if !(0.0..1.0).contains(&m) {
         return Err(SpecialError::DomainError(format!(
             "m must be in [0, 1), got {m}"
         )));

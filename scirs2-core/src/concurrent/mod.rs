@@ -86,9 +86,7 @@ where
     S: BuildHasher + Clone,
 {
     fn shard_index(&self, key: &K) -> usize {
-        let mut hasher = self.hash_builder.build_hasher();
-        key.hash(&mut hasher);
-        (hasher.finish() as usize) % self.shard_count
+        (self.hash_builder.hash_one(&key) as usize) % self.shard_count
     }
 
     fn lock_shard(&self, idx: usize) -> CoreResult<MutexGuard<'_, HashMap<K, V, S>>> {
@@ -1166,34 +1164,38 @@ mod tests {
 // Lock-free data structure submodules
 // ---------------------------------------------------------------------------
 
+pub mod compressed_trie;
+pub mod persistent_vector;
 pub mod queue;
-pub mod stack;
 pub mod skip_list;
+pub mod stack;
 
+pub use compressed_trie::CompressedTrie;
+pub use persistent_vector::PersistentRrbVec;
 pub use queue::LockFreeQueue;
-pub use stack::LockFreeStack;
 pub use skip_list::SkipList;
+pub use stack::LockFreeStack;
 
 // ---------------------------------------------------------------------------
 // Advanced concurrency submodules
 // ---------------------------------------------------------------------------
 
-pub mod work_stealing;
+pub mod async_utils;
 pub mod barrier;
 pub mod parallel_iter;
-pub mod async_utils;
+pub mod work_stealing;
 pub use async_utils as concurrent_async;
 
-pub use work_stealing::{
-    Priority, PriorityTaskQueue, SchedulerConfig, SchedulerStats, StealResult,
-    WorkStealingDeque, WorkStealingScheduler,
-};
 pub use barrier::{CountDownLatch, CyclicBarrier, PhaseBarrier, SpinBarrier};
-pub use parallel_iter::{
-    ScanMode, parallel_filter, parallel_for_each, parallel_map, parallel_merge_sort,
-    parallel_partition, parallel_prefix_sum, parallel_reduce, parallel_scan,
-};
 pub use concurrent_async::{
     BackoffStrategy, FutureExecutor, JoinFuture, RetryPolicy, Semaphore, SemaphoreGuard,
     TokenBucketRateLimiter,
+};
+pub use parallel_iter::{
+    parallel_filter, parallel_for_each, parallel_map, parallel_merge_sort, parallel_partition,
+    parallel_prefix_sum, parallel_reduce, parallel_scan, ScanMode,
+};
+pub use work_stealing::{
+    Priority, PriorityTaskQueue, SchedulerConfig, SchedulerStats, StealResult, WorkStealingDeque,
+    WorkStealingScheduler,
 };

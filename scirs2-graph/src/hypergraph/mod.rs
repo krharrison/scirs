@@ -32,8 +32,11 @@
 //! ```
 
 pub mod algorithms;
+pub mod attention;
 pub mod core;
+pub mod edge_prediction;
 pub mod higher_order;
+pub mod neural;
 pub mod simplicial;
 
 // Core structures and free functions

@@ -150,7 +150,13 @@ where
             ));
         }
         let block_cols = ncols.div_ceil(c);
-        Self::new(vec![], vec![], vec![0usize; block_cols + 1], shape, block_size)
+        Self::new(
+            vec![],
+            vec![],
+            vec![0usize; block_cols + 1],
+            shape,
+            block_size,
+        )
     }
 
     /// Convert a BSRMatrix to BSCMatrix (essentially a block-level transpose and re-index).
@@ -456,7 +462,7 @@ mod tests {
     fn make_4x4_bsr() -> BSRMatrix<f64> {
         let data = vec![
             1.0_f64, 2.0, 3.0, 4.0, // block (0,0)
-            5.0, 6.0, 7.0, 8.0,     // block (1,1)
+            5.0, 6.0, 7.0, 8.0, // block (1,1)
         ];
         let indices = vec![0, 1];
         let indptr = vec![0, 1, 2];
@@ -479,10 +485,7 @@ mod tests {
     #[test]
     fn test_from_dense() {
         let dense = vec![
-            1.0_f64, 2.0, 0.0, 0.0,
-            3.0, 4.0, 0.0, 0.0,
-            0.0, 0.0, 5.0, 6.0,
-            0.0, 0.0, 7.0, 8.0,
+            1.0_f64, 2.0, 0.0, 0.0, 3.0, 4.0, 0.0, 0.0, 0.0, 0.0, 5.0, 6.0, 0.0, 0.0, 7.0, 8.0,
         ];
         let bsc = BSCMatrix::from_dense(&dense, 4, 4, (2, 2)).expect("from_dense failed");
         assert_eq!(bsc.nnz_blocks(), 2);
@@ -506,10 +509,8 @@ mod tests {
     #[test]
     fn test_to_dense_consistent() {
         let dense_orig = vec![
-            1.0_f64, 2.0, 3.0, 4.0,
-            5.0, 6.0, 7.0, 8.0,
-            9.0, 10.0, 11.0, 12.0,
-            13.0, 14.0, 15.0, 16.0,
+            1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0,
+            16.0,
         ];
         let bsc = BSCMatrix::from_dense(&dense_orig, 4, 4, (2, 2)).expect("from_dense failed");
         let recovered = bsc.to_dense();

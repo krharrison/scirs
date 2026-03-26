@@ -49,7 +49,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-spatial = "0.1.5"
+//! scirs2-spatial = "0.4.0"
 //! ```
 //!
 //! ```rust
@@ -886,9 +886,48 @@ pub use collision::continuous::continuous_sphere_sphere_collision;
 // Spatial statistics and pattern analysis
 pub mod spatial_stats;
 pub use spatial_stats::{
-    average_nearest_neighbor, clark_evans_index, contiguity_weights_matrix,
-    distance_weights_matrix, gearys_c, getis_ord_gi, knn_weights_matrix, local_morans_i, morans_i,
-    ripleys_k, ripleys_l, AnnResult,
+    average_nearest_neighbor,
+    clark_evans_index,
+    contiguity_weights_matrix,
+    // Enhanced global autocorrelation with significance testing
+    distance_band_weights,
+    distance_weights_matrix,
+    geary_test,
+    gearys_c,
+    getis_ord_gi,
+    // LISA with permutation tests and cluster maps
+    getis_ord_gi_star,
+    inverse_distance_weights,
+    // Spatial KDE
+    kde_at_point,
+    kde_on_grid,
+    knn_weights_matrix,
+    // Scan statistic
+    kulldorff_scan,
+    lisa_cluster_map,
+    local_moran_permutation_test,
+    local_morans_i,
+    moran_test,
+    morans_i,
+    ripleys_k,
+    ripleys_l,
+    row_standardize_weights,
+    select_bandwidth,
+    AnnResult,
+    BandwidthMethod,
+    GetisOrdResult,
+    GlobalAutocorrelationResult,
+    KdeGrid,
+    KernelType,
+    LisaCluster,
+    LisaClusterMap,
+    LisaResult,
+    ScanCluster,
+    ScanModel,
+    ScanResult,
+    ScanStatisticConfig,
+    SpatialKdeConfig,
+    SpatialWeights,
 };
 
 // Triangle mesh operations (simplification, smoothing, normals, quality, I/O)

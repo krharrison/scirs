@@ -47,7 +47,11 @@ impl Default for ScipyComparisonConfig {
             python_executable: "python3".to_string(),
             scipy_version: Some(">=1.9.0".to_string()),
             numpy_version: Some(">=1.21.0".to_string()),
-            temp_dir: "/tmp/scirs2_benchmarks".to_string(),
+            temp_dir: {
+                let mut p = std::env::temp_dir();
+                p.push("scirs2_benchmarks");
+                p.to_string_lossy().into_owned()
+            },
             accuracy_tolerance: 1e-10,
             performance_tolerance: 2.0, // Allow 2x slower than SciPy
             warmup_iterations: 10,

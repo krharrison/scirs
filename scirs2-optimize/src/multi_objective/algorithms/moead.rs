@@ -773,4 +773,150 @@ mod tests {
         assert_eq!(binomial_coefficient(4, 0), 1);
         assert_eq!(binomial_coefficient(0, 0), 1);
     }
+
+    #[test]
+    fn test_moead_weight_vectors_span_front() {
+        // Verify that weight vectors cover the objective space with enough generations
+        let config = MultiObjectiveConfig {
+            max_generations: 30,
+            population_size: 30,
+            bounds: Some((Array1::zeros(3), Array1::ones(3))),
+            random_seed: Some(77),
+            neighborhood_size: Some(10),
+            ..Default::default()
+        };
+
+        let mut moead = MOEAD::with_config(config, 2, 3, ScalarizationMethod::Tchebycheff);
+        let result = moead.optimize(zdt1).expect("should succeed");
+
+        assert!(result.success);
+        assert!(!result.pareto_front.is_empty());
+
+        // The full solution set should have diversity
+        let all_f1: Vec<f64> = result.population.iter().map(|s| s.objectives[0]).collect();
+        let unique: std::collections::HashSet<u64> = all_f1.iter().map(|v| v.to_bits()).collect();
+        assert!(unique.len() > 1, "Solutions should have varied f1 values");
+    }
+
+    #[test]
+    fn test_moead_tchebycheff_vs_weighted_sum() {
+        // Both methods should produce valid Pareto fronts
+        let make_config = || MultiObjectiveConfig {
+            max_generations: 15,
+            population_size: 20,
+            bounds: Some((Array1::zeros(3), Array1::ones(3))),
+            random_seed: Some(42),
+            neighborhood_size: Some(5),
+            ..Default::default()
+        };
+
+        let mut moead_tch =
+            MOEAD::with_config(make_config(), 2, 3, ScalarizationMethod::Tchebycheff);
+        let result_tch = moead_tch
+            .optimize(zdt1)
+            .expect("Tchebycheff should succeed");
+
+        let mut moead_ws =
+            MOEAD::with_config(make_config(), 2, 3, ScalarizationMethod::WeightedSum);
+        let result_ws = moead_ws.optimize(zdt1).expect("WeightedSum should succeed");
+
+        // Both should produce non-empty Pareto fronts
+        assert!(!result_tch.pareto_front.is_empty());
+        assert!(!result_ws.pareto_front.is_empty());
+
+        // Both should succeed
+        assert!(result_tch.success);
+        assert!(result_ws.success);
+    }
+
+    #[test]
+    fn test_moead_ideal_point_tracking() {
+        let config = MultiObjectiveConfig {
+            max_generations: 10,
+            population_size: 20,
+            bounds: Some((Array1::zeros(3), Array1::ones(3))),
+            random_seed: Some(42),
+            neighborhood_size: Some(5),
+            ..Default::default()
+        };
+
+        let mut moead = MOEAD::with_config(config, 2, 3, ScalarizationMethod::Tchebycheff);
+        let _result = moead.optimize(zdt1).expect("should succeed");
+
+        // After optimization, ideal point should be finite (updated from initial infinity)
+        assert!(
+            moead.ideal_point[0].is_finite(),
+            "Ideal point[0] should be finite after optimization"
+        );
+        assert!(
+            moead.ideal_point[1].is_finite(),
+            "Ideal point[1] should be finite after optimization"
+        );
+    }
+
+    #[test]
+    fn test_moead_deterministic_evaluation_count() {
+        // With fixed parameters, evaluation count should be deterministic
+        let config = MultiObjectiveConfig {
+            max_generations: 5,
+            population_size: 15,
+            bounds: Some((Array1::zeros(3), Array1::ones(3))),
+            random_seed: Some(42),
+            neighborhood_size: Some(5),
+            ..Default::default()
+        };
+
+        let mut moead = MOEAD::with_config(config, 2, 3, ScalarizationMethod::Tchebycheff);
+        let result = moead.optimize(zdt1).expect("should succeed");
+
+        // Should have evaluations > initial population
+        assert!(result.n_evaluations > 10, "Should have > 10 evaluations");
+        assert!(result.success);
+        assert!(!result.pareto_front.is_empty());
+    }
+
+    #[test]
+    fn test_moead_scalarization_values() {
+        // Test that scalar_value produces expected results for known inputs
+        let config = MultiObjectiveConfig {
+            population_size: 10,
+            ..Default::default()
+        };
+        let mut moead = MOEAD::with_config(config, 2, 2, ScalarizationMethod::WeightedSum);
+
+        // Set ideal point to known values
+        moead.ideal_point = array![0.0, 0.0];
+
+        let objectives = array![2.0, 3.0];
+        let weight = array![0.5, 0.5];
+
+        // Weighted sum: 0.5*2 + 0.5*3 = 2.5
+        let val = moead.scalar_value(&objectives, &weight);
+        assert!(
+            (val - 2.5).abs() < 1e-10,
+            "WeightedSum should be 2.5, got {}",
+            val
+        );
+    }
+
+    #[test]
+    fn test_moead_tchebycheff_scalarization_value() {
+        let config = MultiObjectiveConfig {
+            population_size: 10,
+            ..Default::default()
+        };
+        let mut moead = MOEAD::with_config(config, 2, 2, ScalarizationMethod::Tchebycheff);
+        moead.ideal_point = array![0.0, 0.0];
+
+        let objectives = array![2.0, 3.0];
+        let weight = array![0.5, 0.5];
+
+        // Tchebycheff: max(0.5*|2-0|, 0.5*|3-0|) = max(1.0, 1.5) = 1.5
+        let val = moead.scalar_value(&objectives, &weight);
+        assert!(
+            (val - 1.5).abs() < 1e-10,
+            "Tchebycheff should be 1.5, got {}",
+            val
+        );
+    }
 }
