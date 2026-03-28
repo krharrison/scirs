@@ -16,6 +16,7 @@ categories = ["science", "mathematics", "algorithms"]
 [lib]
 name = "scirs2"
 crate-type = ["cdylib", "rlib"]
+doc = false
 
 [dependencies]
 # Core SciRS2 dependencies with Python feature (workspace-based)

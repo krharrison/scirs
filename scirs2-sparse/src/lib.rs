@@ -39,7 +39,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scirs2-sparse = "0.4.0"
+//! scirs2-sparse = "0.4.1"
 //! ```
 //!
 //! ```rust
@@ -52,7 +52,7 @@
 //! let sparse = CsrArray::from_triplets(&rows, &cols, &data, (3, 3), false).expect("Operation failed");
 //! ```
 //!
-//! ## 🔒 Version: 0.2.0 (February 8, 2026)
+//! ## 🔒 Version: 0.4.1 (March 27, 2026)
 //!
 //! ## Matrix vs. Array API
 //!

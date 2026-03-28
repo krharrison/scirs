@@ -135,7 +135,7 @@
 ## Known Issues / Technical Debt
 
 - `spectral.rs` was deleted and replaced by the `spectral/` submodule; verify no broken re-exports remain
-- `nufft_legacy.rs` is retained for backward compatibility; deprecate and remove in v0.4.0
+- `nufft_legacy.rs` backward-compatibility shim deprecated in v0.4.0 and marked for removal in v0.4.1
 - EMD cubic spline envelope may not converge for highly non-stationary signals; add iteration cap with warning
 - NTT works only for inputs whose length divides `p - 1`; document this constraint clearly
 - Lomb-Scargle FAP estimation is approximate (chi-squared); implement bootstrap alternative

@@ -13,6 +13,7 @@
 //! - Performance profiling and auto-tuning
 
 use crate::error::{CoreError, ErrorContext, ErrorLocation};
+#[cfg(feature = "gpu")]
 #[allow(unused_imports)]
 use crate::gpu::{GpuBackend, GpuContext, GpuError};
 use std::collections::HashMap;
@@ -61,6 +62,7 @@ pub enum JitError {
     ProfilingError(String),
 
     /// Underlying GPU error
+    #[cfg(feature = "gpu")]
     #[error("GPU error: {0}")]
     GpuError(#[from] GpuError),
 }

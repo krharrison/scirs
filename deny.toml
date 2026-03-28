@@ -5,13 +5,9 @@
 version = 2
 ignore = [
     "RUSTSEC-2024-0436", # paste - unmaintained but widely used, no replacement yet
-    "RUSTSEC-2024-0384", # instant - unmaintained, transitive dep via criterion/tokio
-    "RUSTSEC-2025-0134", # rustls-pemfile - unmaintained, transitive dep via rumqttc
-    # aws-lc-sys 0.38.x vulnerabilities: transitive via reqwest→rustls→aws-lc-rs
-    # Will be resolved when reqwest/rustls update to aws-lc-rs >= 1.16.2 (aws-lc-sys 0.39+)
-    "RUSTSEC-2026-0044", # aws-lc-sys: X.509 Name Constraints Bypass (fixed in 0.39.0)
-    "RUSTSEC-2026-0048", # aws-lc-sys: CRL Distribution Point logic error (fixed in 0.39.0)
-    "RUSTSEC-2026-0049", # rustls-webpki 0.102.8: CRL scope check (fixed in 0.103.10)
+    { id = "RUSTSEC-2026-0049", reason = "rustls-webpki vulnerability via rumqttc 0.25.1; no upstream fix available yet" },
+    { id = "RUSTSEC-2025-0134", reason = "rustls-pemfile 2.2.0 unmaintained, pulled in by rumqttc 0.25.1; no upstream fix available" },
+    { id = "RUSTSEC-2024-0384", reason = "instant 0.1.13 unmaintained, pulled in by hdf5 0.8.1; no upstream fix available" },
 ]
 
 [licenses]

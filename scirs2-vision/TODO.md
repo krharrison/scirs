@@ -130,4 +130,4 @@
 - Farneback optical flow requires grayscale input; color flow not yet supported
 - ICP convergence is sensitive to initial alignment; RANSAC pre-alignment recommended for large misalignments
 - Video stabilization requires sufficient texture in scene; textureless scenes may produce artifacts
-- Panoptic segmentation API is preliminary; interface may change in v0.4.0
+- Panoptic segmentation API stabilized in v0.4.1; interface is now current and should not change without a deprecation cycle

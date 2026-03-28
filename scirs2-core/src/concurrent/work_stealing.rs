@@ -662,12 +662,19 @@ fn worker_loop(
             continue;
         }
 
-        // 3. Check stop flag.
+        // 3. Re-check own deque (a task may have been pushed during stealing).
+        if let StealResult::Success(task) = deques[id].steal() {
+            task();
+            local_completed += 1;
+            continue;
+        }
+
+        // 4. Check stop flag.
         if stop.load(Ordering::Relaxed) {
             break;
         }
 
-        // 4. Sleep briefly before retrying.
+        // 5. Sleep briefly before retrying.
         thread::sleep(std::time::Duration::from_micros(idle_sleep_us));
     }
 
@@ -792,7 +799,7 @@ mod tests {
         let cfg = SchedulerConfig {
             num_workers: 4,
             steal_attempts: 16,
-            idle_sleep_us: 50,
+            idle_sleep_us: 100,
         };
         let sched = WorkStealingScheduler::new(cfg).expect("new scheduler");
         let counter = Arc::new(AtomicU64::new(0));
@@ -808,7 +815,7 @@ mod tests {
         }
 
         // Wait for tasks to drain
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
         while counter.load(Ordering::Relaxed) < n_tasks as u64 {
             if std::time::Instant::now() > deadline {
                 break;

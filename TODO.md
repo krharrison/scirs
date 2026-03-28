@@ -1,7 +1,7 @@
 # SciRS2 Development Roadmap
 
-**Current Version**: 0.4.0 (Released)
-**Status**: Production Ready — All 25,800+ tests passing (100% pass rate)
+**Current Version**: 0.4.1 (Released)
+**Status**: Production Ready — All 25,863 tests passing (100% pass rate)
 **Scale**: ~2.9M lines of Rust, ~7,600 source files, ~29 workspace crates
 
 This document tracks the development roadmap for SciRS2. Completed items in v0.3.4 are documented here for historical reference; the active roadmap is the v0.4.0 section.
@@ -533,7 +533,7 @@ These are pulled in by external crates we depend on — not direct violations, b
 ### Current CI Infrastructure
 - Pure Rust toolchain with cargo-nextest
 - Zero warnings enforcement (clippy + rustc)
-- Comprehensive test coverage (25,800+ tests)
+- Comprehensive test coverage (25,863 tests)
 - No-unwrap policy enforced in code review
 
 ### Planned CI Enhancements
@@ -595,6 +595,6 @@ All development must adhere to the following policies:
 
 ---
 
-**Last Updated**: March 26, 2026
-**Branch**: 0.4.0
-**Status**: v0.4.0 released — all items implemented (Waves 1-39)
+**Last Updated**: March 28, 2026
+**Branch**: 0.4.1
+**Status**: v0.4.1 released — all items implemented (Waves 1-39)

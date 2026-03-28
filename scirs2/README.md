@@ -254,7 +254,7 @@ scirs2 (meta-crate, re-exports all)
 SciRS2 v0.3.4 delivers production-grade performance:
 
 - **SIMD Acceleration**: AVX2/AVX-512/NEON paths for 3-12x speedups on element-wise operations
-- **GPU Backends**: Metal (Apple Silicon), with CUDA and ROCm planned for v0.4.0
+- **GPU Backends**: Metal (Apple Silicon), with CUDA and ROCm in development
 - **Pure Rust FFT**: OxiFFT backend for competitive FFT throughput without C dependencies
 - **Parallel Algorithms**: Rayon-based parallel iterators in compute-intensive paths
 - **Memory-Efficient**: Buddy/Slab/Compaction allocators, arena allocators for hot paths

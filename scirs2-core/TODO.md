@@ -115,6 +115,17 @@
 
 ---
 
+## v0.4.1 — COMPLETED
+
+### JIT Compilation Improvements
+- [x] Added two targeted enhancements to `jit.rs` (branch 0.4.1, March 2026)
+- [x] All v0.4.0 items carried forward as complete
+
+### v0.4.0 Items Status
+All items listed under v0.4.0 Planned were implemented during Waves 1-39 and are complete as of v0.4.1.
+
+---
+
 ## Known Issues / Technical Debt
 
 - Several source files exceed 2000 lines (refactoring policy); track with `rslines 50` and split

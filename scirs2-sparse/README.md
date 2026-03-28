@@ -12,17 +12,17 @@
 
 ```toml
 [dependencies]
-scirs2-sparse = "0.4.0"
+scirs2-sparse = "0.4.1"
 ```
 
 With optional acceleration:
 
 ```toml
 [dependencies]
-scirs2-sparse = { version = "0.4.0", features = ["parallel", "simd"] }
+scirs2-sparse = { version = "0.4.1", features = ["parallel", "simd"] }
 ```
 
-## Features (v0.4.0)
+## Features (v0.4.1)
 
 ### Sparse Matrix Formats
 

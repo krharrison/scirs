@@ -25,9 +25,12 @@
 //! ```
 
 use crate::error::SciRS2Error;
+#[cfg(feature = "series")]
 use crate::series::PyTimeSeries;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList};
+use pyo3::types::PyDict;
+#[cfg(feature = "series")]
+use pyo3::types::PyList;
 use scirs2_numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods};
 
 /// Convert pandas Series to PyTimeSeries
@@ -40,6 +43,7 @@ use scirs2_numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods};
 ///
 /// # Returns
 /// A PyTimeSeries object with values and timestamps
+#[cfg(feature = "series")]
 #[pyfunction]
 pub fn pandas_to_timeseries(py: Python, series: Py<PyAny>) -> PyResult<PyTimeSeries> {
     // Get values as numpy array
@@ -92,6 +96,7 @@ pub fn pandas_to_timeseries(py: Python, series: Py<PyAny>) -> PyResult<PyTimeSer
 ///
 /// # Returns
 /// A pandas Series object
+#[cfg(feature = "series")]
 #[pyfunction]
 pub fn timeseries_to_pandas(py: Python, ts: &PyTimeSeries) -> PyResult<Py<PyAny>> {
     // Import pandas
@@ -313,7 +318,9 @@ pub fn rolling_apply(
 
 /// Register pandas compatibility functions with Python module
 pub fn register_pandas_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    #[cfg(feature = "series")]
     m.add_function(wrap_pyfunction!(pandas_to_timeseries, m)?)?;
+    #[cfg(feature = "series")]
     m.add_function(wrap_pyfunction!(timeseries_to_pandas, m)?)?;
     m.add_function(wrap_pyfunction!(dataframe_to_array, m)?)?;
     m.add_function(wrap_pyfunction!(array_to_dataframe, m)?)?;
